@@ -227,6 +227,7 @@ tbody tr:last-child td{border-bottom:none;}
     <button class="btn bh bsm" onclick="exportData()">💾 Export</button>
     <button class="btn bh bsm" onclick="importData()">📂 Import</button>
     <button class="btn bg bsm" onclick="saveCloud()">☁️ Sauvegarder</button>
+    <button class="btn bg bsm" onclick="testSupabaseConnection()" title="Vérifier la connexion Supabase">🔌 Test Cloud</button>
     <button class="btn bd bsm" onclick="cloturer()">🔄 Clôture</button>
     <button class="btn bh bsm" onclick="doLogout()" title="Se déconnecter">🚪 Déco.</button>
     <button class="btn bd bsm" onclick="viderTout()" title="Supprimer TOUT">🗑️ Tout</button>
@@ -1914,8 +1915,15 @@ function syncToCloud() {
       'Prefer': 'resolution=merge-duplicates'
     },
     body: JSON.stringify({ id: ROW_ID, data: D, updated_at: new Date().toISOString() })
+  }).then(function (res) {
+    if (!res.ok) {
+      return res.text().then(function (msg) {
+        throw new Error('HTTP ' + res.status + ' — ' + msg);
+      });
+    }
   }).catch(function (err) {
     console.error('[Supabase] Échec de synchronisation (envoi) :', err);
+    notif('⚠️ Échec de synchronisation cloud : ' + err.message, 6000);
   });
 }
 
@@ -1948,37 +1956,88 @@ function syncFromCloud() {
     });
 }
 
+/**
+ * Diagnostic manuel de la connexion Supabase, déclenché par le bouton
+ * "🔌 Test Cloud". Affiche un message clair et compréhensible dans
+ * l'interface (pas besoin d'ouvrir la console développeur), quelle
+ * que soit la cause de l'échec.
+ */
+function testSupabaseConnection() {
+  notif('⏳ Test de connexion en cours…', 3000);
+
+  if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.anonKey) {
+    notif('❌ Configuration Supabase manquante (URL ou clé vide).', 6000);
+    return;
+  }
+
+  fetch(SUPABASE_CONFIG.url + '/rest/v1/app_data?select=id&limit=1', {
+    headers: {
+      'apikey': SUPABASE_CONFIG.anonKey,
+      'Authorization': 'Bearer ' + SUPABASE_CONFIG.anonKey
+    }
+  })
+    .then(function (res) {
+      if (res.status === 200) {
+        notif('✅ Connexion Supabase réussie — table accessible.', 5000);
+        return;
+      }
+      if (res.status === 401) {
+        notif('❌ Clé Supabase refusée (401). Vérifie SUPABASE_CONFIG.anonKey.', 7000);
+        return;
+      }
+      if (res.status === 404) {
+        notif('❌ Table "app_data" introuvable (404). As-tu exécuté le script SQL ?', 7000);
+        return;
+      }
+      if (res.status === 403) {
+        notif('❌ Accès refusé (403). Vérifie que ROW_ID correspond exactement à la valeur du script SQL, et que RLS est bien configuré.', 8000);
+        return;
+      }
+      res.text().then(function (msg) {
+        notif('❌ Erreur inattendue (HTTP ' + res.status + ') : ' + msg.slice(0, 120), 8000);
+      });
+    })
+    .catch(function (err) {
+      notif('❌ Impossible de joindre Supabase (réseau/CORS). Vérifie ta connexion internet et l\'URL du projet. Détail : ' + err.message, 8000);
+    });
+}
+
   </script>
 
   <!-- =====================================================================
-       SCRIPT SQL — À COLLER DANS SUPABASE > SQL EDITOR (une seule fois)
-       Ce script ne s'exécute PAS dans le navigateur, il est ici pour référence.
+       SCRIPT SQL A COLLER DANS SUPABASE > SQL EDITOR (une seule fois)
+       Ce script ne s'execute PAS dans le navigateur, il est ici pour reference.
   -- =====================================================================
-       -- BOULLIWEL PRO — Configuration Supabase (stockage JSON unique)
-       -- À exécuter une seule fois dans Supabase > SQL Editor
+       -- BOULLIWEL PRO - Configuration Supabase (stockage JSON unique)
+       -- A executer une seule fois dans Supabase > SQL Editor
        -- =====================================================================
        
-       -- 1. Table unique : une ligne = l'intégralité des données de l'app
+       -- 1. Table unique : une ligne = toutes les donnees de l'application
        create table if not exists app_data (
          id text primary key,
          data jsonb not null,
          updated_at timestamptz not null default now()
        );
        
-       -- 2. Active la sécurité au niveau des lignes (RLS)
+       -- 2. Active la securite au niveau des lignes (RLS)
        alter table app_data enable row level security;
        
-       -- 3. Règle : autorise la lecture et l'écriture UNIQUEMENT sur la ligne
-       --    dont l'id correspond à ton identifiant secret d'application.
-       --    Remplace 'boulliwel-secret-2026' par une valeur longue et unique
-       --    à toi (garde-la aussi dans app.js, voir ROW_ID plus bas).
-       create policy "Accès unique boulliwel"
+       -- 3. Droits d'acces explicites pour le role anon
+       --    (necessaire sur certains projets ou les droits par defaut
+       --    ne sont pas automatiquement accordes aux nouvelles tables)
+       grant select, insert, update, delete on app_data to anon;
+       
+       -- 4. Regle d'acces (RLS) : autorise la lecture et l'ecriture UNIQUEMENT
+       --    sur la ligne dont l'id correspond a l'identifiant choisi.
+       --    Remplace 'boulliwel-secret-2026' ci-dessous par ta propre valeur,
+       --    et mets exactement la meme valeur dans ROW_ID (dans index.html).
+       drop policy if exists "acces_unique_boulliwel" on app_data;
+       create policy "acces_unique_boulliwel"
        on app_data
        for all
        to anon
        using (id = 'boulliwel-secret-2026')
        with check (id = 'boulliwel-secret-2026');
-       
   ===================================================================== -->
 </body>
 </html>
