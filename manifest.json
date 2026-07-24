@@ -1,0 +1,82 @@
+{
+  "id": "/",
+  "name": "Boulliwel Pro — Gestion de Stock & Service Téléphones",
+  "short_name": "Boulliwel Pro",
+  "description": "Application de gestion intégrée pour service et vente de téléphones : stock, activités, dettes, paiements, dépenses, commandes et bilan.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#070B14",
+  "theme_color": "#070B14",
+  "categories": ["business", "productivity", "finance"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nouvelle activité",
+      "short_name": "Activité",
+      "description": "Enregistrer une nouvelle activité",
+      "url": "/index.html?tab=activites",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Stock",
+      "short_name": "Stock",
+      "description": "Consulter et gérer le stock",
+      "url": "/index.html?tab=stock",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Bilan",
+      "short_name": "Bilan",
+      "description": "Voir le bilan financier",
+      "url": "/index.html?tab=bilan",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "assets/images/screenshot-mobile-1.png",
+      "sizes": "540x1170",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Tableau de bord Boulliwel Pro sur mobile"
+    },
+    {
+      "src": "assets/images/screenshot-desktop-1.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Tableau de bord Boulliwel Pro sur ordinateur"
+    }
+  ]
+}
