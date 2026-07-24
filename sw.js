@@ -14,15 +14,15 @@
         puis supprimera automatiquement les caches obsolètes.
    ===================================================================== */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
+// (style.css et app.js retirés : leur contenu est désormais intégré
+//  directement dans index.html)
 const APP_SHELL = [
   './',
   './index.html',
-  './style.css',
-  './app.js',
   './manifest.json',
   './favicon.ico',
   './icon-192.png',
