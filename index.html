@@ -233,7 +233,7 @@ tbody tr:last-child td{border-bottom:none;}
     <button class="btn bh bsm" onclick="showChangerPass()" title="Changer mot de passe">🔑</button>
     <button class="btn bh bsm" onclick="exportData()">💾 Export</button>
     <button class="btn bh bsm" onclick="importData()">📂 Import</button>
-    <button class="btn bg bsm" onclick="saveCloud()">☁️ Sauvegarder</button>
+    <button class="btn bg bsm" onclick="saveCloud()" title="Génère un lien de partage manuel (différent de la synchronisation cloud automatique)">🔗 Lien partage</button>
     <button class="btn bg bsm" onclick="testSupabaseConnection()" title="Vérifier la connexion Supabase">🔌 Test Cloud</button>
     <button class="btn bd bsm" onclick="cloturer()">🔄 Clôture</button>
     <button class="btn bh bsm" onclick="doLogout()" title="Se déconnecter">🚪 Déco.</button>
@@ -783,7 +783,10 @@ function load(){
     if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1},d); }
   }catch(e){}
 }
-function persist(){ localStorage.setItem(KEY,JSON.stringify(D)); }
+function persist(){
+  localStorage.setItem(KEY,JSON.stringify(D));
+  localStorage.setItem(KEY+'_ts', new Date().toISOString());
+}
 function save(){ persist(); renderAll(); if (typeof syncToCloud === 'function') syncToCloud(); }
 
 // ================================================================
@@ -1921,8 +1924,7 @@ document.addEventListener('DOMContentLoaded',function(){
   if (!navigator.onLine) {
     setSyncStatus('offline', '⚪ Hors ligne');
   } else if (SUPABASE_CONFIG.enabled) {
-    setSyncStatus('syncing', '🟠 Connexion…');
-    syncToCloud();
+    reconcileOnStartup();
   } else {
     setSyncStatus('offline', '⚪ Cloud désactivé');
   }
@@ -2007,7 +2009,7 @@ function setSyncStatus(state, text) {
 // Réagit immédiatement aux changements de connexion réseau
 window.addEventListener('online', function () {
   setSyncStatus('syncing', '🟠 Reconnexion…');
-  syncToCloud();
+  reconcileOnStartup();
 });
 window.addEventListener('offline', function () {
   setSyncStatus('offline', '⚪ Hors ligne — données sauvegardées localement');
@@ -2039,6 +2041,63 @@ function syncFromCloud() {
     .catch(function (err) {
       console.error('[Supabase] Échec de synchronisation (réception) :', err);
       return false;
+    });
+}
+
+/**
+ * Réconciliation au démarrage — remplace l'ancien comportement qui
+ * poussait aveuglément les données locales vers le cloud (et pouvait
+ * donc écraser des données plus récentes saisies sur un autre appareil).
+ *
+ * Compare l'horodatage de la dernière modification LOCALE
+ * (localStorage, clé KEY+'_ts') avec l'horodatage `updated_at` de la
+ * ligne distante dans Supabase, et applique la version la plus récente :
+ *   - Cloud plus récent (ou local jamais modifié)  → on récupère le cloud
+ *   - Local plus récent (ou cloud vide)            → on pousse le local
+ */
+function reconcileOnStartup() {
+  if (!SUPABASE_CONFIG.enabled) return;
+  if (!navigator.onLine) { setSyncStatus('offline', '⚪ Hors ligne'); return; }
+  setSyncStatus('syncing', '🟠 Vérification cloud…');
+
+  fetch(SUPABASE_CONFIG.url + '/rest/v1/app_data?id=eq.' + encodeURIComponent(ROW_ID) + '&select=data,updated_at', {
+    headers: {
+      'apikey': SUPABASE_CONFIG.anonKey,
+      'Authorization': 'Bearer ' + SUPABASE_CONFIG.anonKey
+    }
+  })
+    .then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(function (rows) {
+      var localTs = localStorage.getItem(KEY + '_ts');
+      var localDate = localTs ? new Date(localTs) : null;
+
+      if (!rows || !rows.length || !rows[0].data) {
+        // Rien dans le cloud encore : on pousse notre version locale
+        syncToCloud();
+        return;
+      }
+
+      var cloudDate = new Date(rows[0].updated_at);
+
+      if (!localDate || cloudDate > localDate) {
+        // Le cloud est plus récent (ou on n'a jamais rien sauvegardé
+        // localement sur cet appareil) : on récupère le cloud
+        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1}, rows[0].data);
+        persist(); renderAll();
+        var h = cloudDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        setSyncStatus('online', '🟢 Synchronisé ' + h);
+        notif('☁️ Données à jour récupérées depuis le cloud');
+      } else {
+        // Notre version locale est plus récente : on la pousse
+        syncToCloud();
+      }
+    })
+    .catch(function (err) {
+      console.error('[Supabase] Échec de la réconciliation au démarrage :', err);
+      setSyncStatus('error', '🔴 Erreur de synchronisation');
     });
 }
 
