@@ -389,11 +389,11 @@ tbody tr:last-child td{border-bottom:none;}
       </div>
       <div style="background:var(--bg4);border-radius:8px;padding:11px">
         <div style="font-size:.7rem;color:var(--te);font-weight:700;margin-bottom:6px;text-transform:uppercase">⑤ Entreprise Me Doit</div>
-        <div style="font-size:.78rem;color:var(--tx2);line-height:1.7">= 20% + Stock Perso − (P.Achat + 20%)<br>Stock Perso = Prix revient × 1.10<br>= (P.Achat × Qté) × 1.10</div>
+        <div style="font-size:.78rem;color:var(--tx2);line-height:1.7">= Stock Perso − (P.Achat + 20%) − Déjà déduit (cumul, survit aux clôtures)<br>Stock Perso = Prix revient × 1.15<br>= (P.Achat × Qté) × 1.15</div>
       </div>
       <div style="background:var(--bg4);border-radius:8px;padding:11px">
         <div style="font-size:.7rem;color:var(--or);font-weight:700;margin-bottom:6px;text-transform:uppercase">⑥ Clôture</div>
-        <div style="font-size:.78rem;color:var(--tx2);line-height:1.7">Dettes fusionnées → verrouillées.<br>Activités + dépenses effacées.<br>Stock conservé.</div>
+        <div style="font-size:.78rem;color:var(--tx2);line-height:1.7">Dettes actives + paiements fusionnés dans le cumul verrouillé (dettesClot).<br>Prix achat + 20% de la période ajoutés au cumul "déjà déduit" (entDejaDeduit) — rien n'est reperdu.<br>Activités + dépenses + historique effacés.<br>Stock et Commandes conservés intégralement.<br>Nouvelles dettes possibles dès la période suivante.</div>
       </div>
     </div>
   </div>
@@ -564,6 +564,23 @@ tbody tr:last-child td{border-bottom:none;}
     <div style="display:flex;gap:7px;justify-content:flex-end">
       <button class="btn bh" onclick="cm('mpp')">Annuler</button>
       <button class="btn bs" onclick="enrPP()">✓ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- REMBOURSEMENT STOCK PERSO -->
+<div class="ov" id="mrp">
+  <div class="modal">
+    <div class="mhd">💰 Rembourser (Stock Perso)<button class="mcl" onclick="cm('mrp')">✕</button></div>
+    <input type="hidden" id="rp-id">
+    <div id="rp-inf" style="background:var(--bg4);border-radius:7px;padding:8px;margin-bottom:9px;font-size:.79rem"></div>
+    <div class="fr">
+      <div class="fg"><label>Montant remboursé *</label><input type="number" id="rp-m" placeholder="0"></div>
+      <div class="fg"><label>Date</label><input type="date" id="rp-d"></div>
+    </div>
+    <div style="display:flex;gap:7px;justify-content:flex-end">
+      <button class="btn bh" onclick="cm('mrp')">Annuler</button>
+      <button class="btn bs" onclick="enrRembPerso()">✓ Enregistrer</button>
     </div>
   </div>
 </div>
@@ -775,13 +792,13 @@ let D = {
   activites:[],stock:[],perso:[],depenses:[],
   dettes:[],dettesClot:0,detteVerrou:false,
   paiements:[],commandes:[],histo:[],corbeille:[],
-  _o:1,_co:1,_del:{},auth:null
+  _o:1,_co:1,_del:{},auth:null,entDejaDeduit:0
 };
 
 function load(){
   try{
     const s=localStorage.getItem(KEY);
-    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null},d); if(!D._del) D._del={}; }
+    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0},d); if(!D._del) D._del={}; }
   }catch(e){}
 }
 
@@ -860,6 +877,20 @@ function pAct(){
     be.textContent=fmt(b); be.style.color=b>=0?'var(--gr)':'var(--re)';
   } else el.style.display='none';
 }
+/**
+ * Ajuste la quantité "vendue" d'un produit (stock entreprise ou perso)
+ * en fonction de son nom, avec un delta positif (vente) ou négatif
+ * (annulation/suppression/restauration inverse). Centralise cette logique
+ * pour que le stock reste toujours synchronisé avec les activités réelles,
+ * peu importe qu'une activité soit créée, modifiée, supprimée ou restaurée.
+ */
+function ajusterStockVendu(desig, delta){
+  if(!desig || !delta) return;
+  var pr=D.stock.find(function(p){ return p.nom.toLowerCase()===desig.toLowerCase(); });
+  if(pr){ pr.qteVendue=Math.max(0,(pr.qteVendue||0)+delta); pr.qteRestante=Math.max(0,pr.qteInitiale-(pr.qteVendue||0)); }
+  var pp=D.perso.find(function(p){ return p.nom.toLowerCase()===desig.toLowerCase(); });
+  if(pp){ pp.qteVendue=Math.max(0,(pp.qteVendue||0)+delta); pp.qteRestante=Math.max(0,pp.qteInitiale-(pp.qteVendue||0)); }
+}
 function enrAct(){
   var date=v('a-date'),type=v('a-type'),desig=v('a-desig').trim();
   var achat=fl('a-achat'),qte=Math.max(1,parseInt(v('a-qte'))||1);
@@ -878,16 +909,19 @@ function enrAct(){
   var eid=v('a-eid');
   if(eid){
     var a=D.activites.find(function(x){ return x.id==eid; });
-    if(a){ a.date=date;a.type=type;a.desig=desig;a.panne=panne;a.achat=achat;a.qte=qte;a.apayer=apayer;a.paye=paye;a.reste=reste;a.benefice=ben;a.ticket=ticket;a.client=client; }
+    if(a){
+      // Annuler l'ancienne déduction de stock AVANT de modifier l'activité,
+      // puis appliquer la nouvelle — sinon le stock reste désynchronisé
+      // dès qu'on change la quantité ou la désignation d'une vente.
+      ajusterStockVendu(a.desig, -(a.qte||0));
+      a.date=date;a.type=type;a.desig=desig;a.panne=panne;a.achat=achat;a.qte=qte;a.apayer=apayer;a.paye=paye;a.reste=reste;a.benefice=ben;a.ticket=ticket;a.client=client;
+      ajusterStockVendu(desig, qte);
+    }
     ah('activite','Modif: '+desig,paye,date);
   } else {
     D.activites.push({id:Date.now(),date:date,ordre:D._o++,ticket:ticket,type:type,desig:desig,panne:panne,achat:achat,qte:qte,apayer:apayer,paye:paye,reste:reste,benefice:ben,client:client});
     ah('activite',type+': '+desig,paye,date);
-    // Décrémenter stock
-    var pr=D.stock.find(function(p){ return p.nom.toLowerCase()===desig.toLowerCase(); });
-    if(pr&&qte>0){ pr.qteVendue=(pr.qteVendue||0)+qte; pr.qteRestante=Math.max(0,pr.qteInitiale-(pr.qteVendue||0)); }
-    var pp=D.perso.find(function(p){ return p.nom.toLowerCase()===desig.toLowerCase(); });
-    if(pp&&qte>0){ pp.qteVendue=(pp.qteVendue||0)+qte; pp.qteRestante=Math.max(0,pp.qteInitiale-(pp.qteVendue||0)); }
+    ajusterStockVendu(desig, qte);
   }
   save(); cm('ma'); rAF(); notif('✅ '+type+' enregistrée : '+desig);
 }
@@ -908,6 +942,7 @@ function editAct(id){
 function delAct(id){
   var a=D.activites.find(function(x){ return x.id===id; }); if(!a) return;
   if(!confirm('Supprimer cette activité ?')) return;
+  ajusterStockVendu(a.desig, -(a.qte||0));
   D.activites=D.activites.filter(function(x){ return x.id!==id; });
   markDeleted('activites',id);
   rb('activite',a.desig+' ('+a.type+')',a); save(); notif('Activité → corbeille');
@@ -987,7 +1022,7 @@ function delStock(id){
 function enrPerso(){
   var nom=v('p-nom').trim(),qte=parseInt(v('p-qte'))||0,achat=fl('p-achat'),vente=fl('p-vente'),date=v('p-date');
   if(!nom||qte<=0||achat<=0){ notif('⚠️ Champs obligatoires manquants'); return; }
-  // Prix revient = achat × qte ; créance = prix revient × 1.10
+  // Prix revient = achat × qte ; créance = prix revient × 1.15
   var prixRevient=achat*qte, commission=prixRevient*0.15, totalDu=prixRevient+commission;
   var eid=v('p-eid');
   if(eid){
@@ -1013,6 +1048,25 @@ function editPerso(id){
   st('mp-t','✏️ Modifier Perso');
   var b=document.getElementById('btn-sp'); b.textContent='✓ Modifier'; b.onclick=enrPerso; om('mp');
 }
+/** Ouvre le formulaire de remboursement pour un produit du stock perso. */
+function ouvrirRembPerso(id){
+  var p=D.perso.find(function(x){ return x.id===id; }); if(!p) return;
+  var r=Math.max(0,p.totalDu-(p.rembourse||0));
+  if(r<=0){ notif('✅ Déjà entièrement remboursé'); return; }
+  sv('rp-id',id); sv('rp-m',r); sv('rp-d',td());
+  document.getElementById('rp-inf').innerHTML='<strong>'+p.nom+'</strong><br>Total dû : '+fmt(p.totalDu)+' — Déjà remboursé : '+fmt(p.rembourse||0)+' — Reste : '+fmt(r);
+  om('mrp');
+}
+function enrRembPerso(){
+  var id=v('rp-id'), m=fl('rp-m'), d=v('rp-d')||td();
+  var p=D.perso.find(function(x){ return x.id==id; }); if(!p) return;
+  var r=Math.max(0,p.totalDu-(p.rembourse||0));
+  if(m<=0){ notif('⚠️ Montant invalide'); return; }
+  if(m>r){ notif('⚠️ Montant supérieur au reste dû ('+fmt(r)+')'); return; }
+  p.rembourse=(p.rembourse||0)+m;
+  ah('perso','Remboursement: '+p.nom,m,d);
+  save(); cm('mrp'); rPerso(); notif('✅ Remboursement enregistré : '+fmt(m));
+}
 function delPerso(id){
   var p=D.perso.find(function(x){ return x.id===id; }); if(!p) return;
   if(!confirm('Supprimer ?')) return;
@@ -1020,7 +1074,7 @@ function delPerso(id){
   markDeleted('perso',id);
   rb('perso',p.nom,p); save(); notif('Perso → corbeille');
 }
-function viderPerso(){ if(!confirm('Vider tous les produits personnels ?')) return; D.perso.forEach(function(p){ markDeleted('perso',p.id); }); D.perso=[]; save(); notif('Perso vidé'); }
+function viderPerso(){ if(!confirm('Vider tous les produits personnels ?')) return; D.perso.forEach(function(p){ markDeleted('perso',p.id); rb('perso', p.nom, p); }); D.perso=[]; save(); notif('✅ Perso vidé → corbeille'); }
 
 // ================================================================
 // DETTES
@@ -1196,7 +1250,7 @@ function delCmd(id){
 }
 function cStatCmd(id,s){
   var c=D.commandes.find(function(x){ return x.id===id; });
-  if(c){ c.statut=s; persist(); }
+  if(c){ c.statut=s; ah('commande','Statut → '+s+': '+c.client,0,td()); save(); }
 }
 function appelClient(){
   var tel=v('c-tel').trim();
@@ -1253,7 +1307,7 @@ function calculerBilan(){
   // est soustrait de ce que l'entreprise doit (il ne s'ajoute plus au
   // "total dû" au préalable, sinon il s'annulait mathématiquement).
   var entDoit=tperso;
-  var aDeduire=ta+d20;
+  var aDeduire=ta+d20+(D.entDejaDeduit||0);
   var resteEnt=entDoit-aDeduire;
   var res=document.getElementById('bilan-result');
   if(tp<=0&&ta<=0){
@@ -1305,8 +1359,9 @@ function calculerBilan(){
   html+='<div style="background:var(--bg4);border-radius:9px;padding:12px">';
   html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">Stock perso (prix revient + 15%)</span><span style="color:var(--go)">'+fmt(tperso)+'</span></div>';
   html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">Total brut dû</span><span style="color:var(--go)">'+fmt(entDoit)+'</span></div>';
-  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">− Prix achat total</span><span style="color:var(--re)">− '+fmt(ta)+'</span></div>';
-  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">− 20% (ajouté au prix d\'achat)</span><span style="color:var(--re)">− '+fmt(d20)+'</span></div>';
+  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">− Prix achat total (période)</span><span style="color:var(--re)">− '+fmt(ta)+'</span></div>';
+  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">− 20% (ajouté au prix d\'achat, période)</span><span style="color:var(--re)">− '+fmt(d20)+'</span></div>';
+  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">− Déjà déduit lors des clôtures précédentes</span><span style="color:var(--re)">− '+fmt(D.entDejaDeduit||0)+'</span></div>';
   html+='<hr class="sep">';
   html+='<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600">Reste que l\'entreprise vous doit</span><span style="font-family:Syne,sans-serif;font-size:1.05rem;color:var(--go)">'+fmt(Math.max(0,resteEnt))+'</span></div>';
   if(resteEnt<0) html+='<div style="margin-top:6px;padding:6px;background:rgba(239,68,68,.1);border-radius:7px;font-size:.77rem;color:var(--re)">⚠️ Prix d\'achat + 20% dépassent le stock perso dû de : <strong>'+fmt(Math.abs(resteEnt))+'</strong></div>';
@@ -1358,7 +1413,7 @@ function rAlertesStock(){
 // ================================================================
 function restaurer(id){
   var c=D.corbeille.find(function(x){ return x.id===id; }); if(!c) return;
-  if(c.type==='activite') D.activites.push(c.data);
+  if(c.type==='activite'){ D.activites.push(c.data); ajusterStockVendu(c.data.desig, c.data.qte||0); }
   else if(c.type==='stock') D.stock.push(c.data);
   else if(c.type==='perso') D.perso.push(c.data);
   else if(c.type==='depense') D.depenses.push(c.data);
@@ -1393,10 +1448,23 @@ function vCorbeille(){
 // CLÔTURE
 // ================================================================
 function cloturer(){
-  if(!confirm('⚠️ CLÔTURE DE PÉRIODE\n\nActivités, dépenses et historique supprimés.\nDettes actives et paiements de la période fusionnés dans le cumul verrouillé.\nStock (entreprise + perso) et Commandes CONSERVÉS intégralement.\nLa saisie de nouvelles dettes reste possible pour la période suivante.\n\nContinuer ?')) return;
+  if(!confirm('⚠️ CLÔTURE DE PÉRIODE\n\nActivités, dépenses et historique supprimés.\nDettes actives et paiements de la période fusionnés dans le cumul verrouillé.\n"Ce que l\'entreprise vous doit" (stock perso) reste exact — rien n\'est perdu.\nStock (entreprise + perso) et Commandes CONSERVÉS intégralement.\nLa saisie de nouvelles dettes reste possible pour la période suivante.\n\nContinuer ?')) return;
   var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0);
   var totP=D.paiements.reduce(function(s,p){ return s+p.montant; },0);
   D.dettesClot=Math.max(0,totD-totP)+D.dettesClot;
+  // IMPORTANT : "Ce que l'entreprise vous doit" (stock perso) se calcule
+  // comme (Stock perso dû) − (Prix achat total de la période + 20%).
+  // Cette déduction (prix achat + 20%) vient des ACTIVITÉS DE LA PÉRIODE,
+  // qui vont être vidées ci-dessous. Sans cette ligne, la déduction déjà
+  // acquise disparaîtrait à chaque clôture et "Reste dû" remonterait à
+  // 100% du stock perso comme si aucune vente n'avait jamais compensé
+  // quoi que ce soit — c'est ce qui aurait fait perdre le suivi de cet
+  // argent. On l'accumule donc ici, de façon permanente, comme dettesClot.
+  var taPeriode=D.activites.reduce(function(s,a){ return s+(a.achat*(a.qte||1)); },0);
+  var tpPeriode=D.activites.reduce(function(s,a){ return s+a.paye; },0);
+  var bbPeriode=tpPeriode-taPeriode;
+  var d20Periode=bbPeriode*0.20;
+  D.entDejaDeduit=(D.entDejaDeduit||0)+taPeriode+d20Periode;
   // Marquer les tombstones AVANT de vider, pour que la suppression
   // se propage correctement lors de la prochaine synchronisation
   // (sinon un autre appareil, ou ce même appareil après un rechargement,
@@ -1510,7 +1578,7 @@ function rPerso(){
     html+='<td style="color:var(--gr)">+'+fmt(p.commission)+'</td>';
     html+='<td style="color:var(--go)">'+fmt(p.totalDu)+'</td>';
     html+='<td><span class="badge '+(r>0?'bor':'bgr')+'">'+(r>0?'En attente':'Remboursé')+'</span></td>';
-    html+='<td class="ac"><button class="btn bh bxs" onclick="editPerso('+p.id+')">✏️</button><button class="btn bd bxs" onclick="delPerso('+p.id+')">🗑️</button></td>';
+    html+='<td class="ac"><button class="btn bh bxs" onclick="editPerso('+p.id+')">✏️</button>'+(r>0?'<button class="btn bg bxs" onclick="ouvrirRembPerso('+p.id+')" title="Enregistrer un remboursement">💰</button>':'')+'<button class="btn bd bxs" onclick="delPerso('+p.id+')">🗑️</button></td>';
     html+='</tr>';
   });
   tb.innerHTML=html; st('t-perso',fmt(tot));
@@ -1626,7 +1694,7 @@ function updateKPIs(){
   var bb=enc-ac, r20=bb*0.20, net=bb-r20-dep;
   var rst=D.activites.reduce(function(s,a){ return s+a.reste; },0);
   var tp=D.perso.reduce(function(s,p){ return s+(p.totalDu-p.rembourse); },0);
-  var entDoit=Math.max(0,(r20+tp)-(ac+r20));
+  var entDoit=Math.max(0,tp-ac-r20-(D.entDejaDeduit||0));
   var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0)+D.dettesClot;
   st('k-enc',fmt(enc)); st('k-ben',fmt(net)); st('k-map',fmt(net/2));
   st('k-dep',fmt(dep)); st('k-rst',fmt(rst)); st('k-ent',fmt(entDoit)); st('k-det',fmt(totD));
@@ -1657,7 +1725,7 @@ function hImport(e){
   r.onload=function(ev){
     try{
       var d=JSON.parse(ev.target.result);
-      if(confirm('Remplacer toutes les données actuelles ?')){ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null},d); persist(); renderAll(); notif('✅ Données importées'); }
+      if(confirm('Remplacer toutes les données actuelles ?')){ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0},d); persist(); renderAll(); notif('✅ Données importées'); }
     }catch(err){ notif('⚠️ Fichier invalide'); }
   };
   r.readAsText(f); e.target.value='';
@@ -1761,7 +1829,7 @@ function saveCloud(){
 function loadFromHash(){
   var h=window.location.hash;
   if(h&&h.startsWith('#data=')){
-    try{ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null},JSON.parse(decodeURIComponent(atob(h.slice(6))))); persist(); notif('✅ Données restaurées !'); return true; }catch(e){}
+    try{ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0},JSON.parse(decodeURIComponent(atob(h.slice(6))))); persist(); notif('✅ Données restaurées !'); return true; }catch(e){}
   } return false;
 }
 
@@ -1897,6 +1965,7 @@ function goBack() {
     document.querySelectorAll('.nb').forEach(function(b){
       if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf("'"+prev+"'") > -1) b.classList.add('active');
     });
+    try{ localStorage.setItem('bpro_last_tab', prev); }catch(e){}
   } else {
     // Retour au dashboard par défaut
     document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
@@ -1905,6 +1974,7 @@ function goBack() {
     document.querySelectorAll('.nb').forEach(function(b){
       if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf("'dashboard'") > -1) b.classList.add('active');
     });
+    try{ localStorage.setItem('bpro_last_tab', 'dashboard'); }catch(e){}
   }
 }
 
@@ -1919,13 +1989,13 @@ function viderTout() {
   });
   D.activites = []; D.stock = []; D.perso = []; D.depenses = [];
   D.dettes = []; D.paiements = []; D.commandes = []; D.histo = []; D.corbeille = [];
-  D.dettesClot = 0; D.detteVerrou = false; D._o = 1; D._co = 1;
+  D.dettesClot = 0; D.detteVerrou = false; D._o = 1; D._co = 1; D.entDejaDeduit = 0;
   save(); notif('✅ Tous les éléments supprimés.');
 }
 
 function viderActivites() {
   if (!confirm('Supprimer toutes les activités ?')) return;
-  D.activites.forEach(function(a){ markDeleted('activites',a.id); rb('activite', a.desig, a); });
+  D.activites.forEach(function(a){ markDeleted('activites',a.id); ajusterStockVendu(a.desig, -(a.qte||0)); rb('activite', a.desig, a); });
   D.activites = []; save(); notif('✅ Activités vidées → corbeille');
 }
 
@@ -2212,7 +2282,7 @@ function syncFromCloud() {
     .then(function (res) { return res.json(); })
     .then(function (rows) {
       if (rows && rows.length && rows[0].data) {
-        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null}, rows[0].data);
+        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0}, rows[0].data);
         persist(); renderAll();
         notif('✅ Données restaurées depuis le cloud');
         return true;
@@ -2240,7 +2310,7 @@ function syncFromCloud() {
 // donc on peut combiner les entrées de deux appareils au lieu d'en
 // écraser une avec l'autre.
 var MERGEABLE_ARRAYS = ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille'];
-var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null};
+var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0};
 
 /**
  * Fusionne deux tableaux d'éléments par leur "id" (union), sans perte,
