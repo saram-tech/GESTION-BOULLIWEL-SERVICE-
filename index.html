@@ -774,14 +774,28 @@ let D = {
   activites:[],stock:[],perso:[],depenses:[],
   dettes:[],dettesClot:0,detteVerrou:false,
   paiements:[],commandes:[],histo:[],corbeille:[],
-  _o:1,_co:1
+  _o:1,_co:1,_del:{}
 };
 
 function load(){
   try{
     const s=localStorage.getItem(KEY);
-    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1},d); }
+    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{}},d); if(!D._del) D._del={}; }
   }catch(e){}
+}
+
+/**
+ * Enregistre un "tombstone" (marqueur de suppression) pour un id donné
+ * d'un tableau donné. Indispensable pour que les suppressions se propagent
+ * correctement lors de la fusion multi-appareils (voir mergeArraysById) :
+ * sans ça, un élément supprimé sur un appareil réapparaît dès qu'un autre
+ * appareil, qui l'a encore localement, se synchronise.
+ */
+function markDeleted(field, id){
+  if(id==null) return;
+  if(!D._del) D._del={};
+  if(!D._del[field]) D._del[field]=[];
+  if(D._del[field].indexOf(id)===-1) D._del[field].push(id);
 }
 function persist(){
   localStorage.setItem(KEY,JSON.stringify(D));
@@ -894,6 +908,7 @@ function delAct(id){
   var a=D.activites.find(function(x){ return x.id===id; }); if(!a) return;
   if(!confirm('Supprimer cette activité ?')) return;
   D.activites=D.activites.filter(function(x){ return x.id!==id; });
+  markDeleted('activites',id);
   rb('activite',a.desig+' ('+a.type+')',a); save(); notif('Activité → corbeille');
 }
 
@@ -961,6 +976,7 @@ function delStock(id){
   var s=D.stock.find(function(x){ return x.id===id; }); if(!s) return;
   if(!confirm('Supprimer ?')) return;
   D.stock=D.stock.filter(function(x){ return x.id!==id; });
+  markDeleted('stock',id);
   rb('stock',s.nom,s); save(); notif('Stock → corbeille');
 }
 
@@ -1000,9 +1016,10 @@ function delPerso(id){
   var p=D.perso.find(function(x){ return x.id===id; }); if(!p) return;
   if(!confirm('Supprimer ?')) return;
   D.perso=D.perso.filter(function(x){ return x.id!==id; });
+  markDeleted('perso',id);
   rb('perso',p.nom,p); save(); notif('Perso → corbeille');
 }
-function viderPerso(){ if(!confirm('Vider tous les produits personnels ?')) return; D.perso=[]; save(); notif('Perso vidé'); }
+function viderPerso(){ if(!confirm('Vider tous les produits personnels ?')) return; D.perso.forEach(function(p){ markDeleted('perso',p.id); }); D.perso=[]; save(); notif('Perso vidé'); }
 
 // ================================================================
 // DETTES
@@ -1039,6 +1056,7 @@ function delDette(id){
   var d=D.dettes.find(function(x){ return x.id===id; }); if(!d) return;
   if(!confirm('Supprimer cette dette ?')) return;
   D.dettes=D.dettes.filter(function(x){ return x.id!==id; });
+  markDeleted('dettes',id);
   rb('dette',d.desc,d); save(); notif('Dette → corbeille');
 }
 
@@ -1074,6 +1092,7 @@ function delPaym(id){
   var p=D.paiements.find(function(x){ return x.id===id; }); if(!p) return;
   if(!confirm('Supprimer ce paiement ?')) return;
   D.paiements=D.paiements.filter(function(x){ return x.id!==id; });
+  markDeleted('paiements',id);
   rb('paiement','Paiement '+fmt(p.montant),p); save(); notif('Paiement → corbeille');
 }
 
@@ -1110,6 +1129,7 @@ function delDep(id){
   var d=D.depenses.find(function(x){ return x.id===id; }); if(!d) return;
   if(!confirm('Supprimer ?')) return;
   D.depenses=D.depenses.filter(function(x){ return x.id!==id; });
+  markDeleted('depenses',id);
   rb('depense',d.desc,d); save(); notif('Dépense → corbeille');
 }
 
@@ -1170,6 +1190,7 @@ function delCmd(id){
   var c=D.commandes.find(function(x){ return x.id===id; }); if(!c) return;
   if(!confirm('Supprimer cette commande ?')) return;
   D.commandes=D.commandes.filter(function(x){ return x.id!==id; });
+  markDeleted('commandes',id);
   rb('commande',c.num+': '+c.client,c); save(); notif('Commande → corbeille');
 }
 function cStatCmd(id,s){
@@ -1331,16 +1352,26 @@ function restaurer(id){
   else if(c.type==='paiement') D.paiements.push(c.data);
   else if(c.type==='commande') D.commandes.push(c.data);
   D.corbeille=D.corbeille.filter(function(x){ return x.id!==id; });
+  markDeleted('corbeille',id);
+  // L'élément redevient actif : on retire son tombstone du tableau d'origine
+  // (sinon la fusion multi-appareils l'effacerait de nouveau).
+  var fieldMap={activite:'activites',stock:'stock',perso:'perso',depense:'depenses',dette:'dettes',paiement:'paiements',commande:'commandes'};
+  var srcField=fieldMap[c.type];
+  if(srcField && D._del && D._del[srcField]){
+    D._del[srcField]=D._del[srcField].filter(function(x){ return x!==c.data.id; });
+  }
   ah(c.type,'Restauré: '+c.label,0,td());
   save(); notif('✅ Restauré : '+c.label);
 }
 function suppDef(id){
   if(!confirm('Supprimer définitivement ? Irréversible.')) return;
   D.corbeille=D.corbeille.filter(function(x){ return x.id!==id; });
+  markDeleted('corbeille',id);
   save(); notif('Suppression définitive effectuée');
 }
 function vCorbeille(){
   if(!confirm('Vider toute la corbeille définitivement ?')) return;
+  D.corbeille.forEach(function(c){ markDeleted('corbeille',c.id); });
   D.corbeille=[]; save(); notif('Corbeille vidée');
 }
 
@@ -1352,10 +1383,22 @@ function cloturer(){
   var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0);
   var totP=D.paiements.reduce(function(s,p){ return s+p.montant; },0);
   D.dettesClot=Math.max(0,totD-totP)+D.dettesClot;
+  // Marquer les tombstones AVANT de vider, pour que la suppression
+  // se propage correctement lors de la prochaine synchronisation
+  // (sinon un autre appareil, ou ce même appareil après un rechargement,
+  // ramène ces éléments depuis le cloud via la fusion par union).
+  D.dettes.forEach(function(d){ markDeleted('dettes',d.id); });
+  D.paiements.forEach(function(p){ markDeleted('paiements',p.id); });
+  D.activites.forEach(function(a){ markDeleted('activites',a.id); });
+  D.depenses.forEach(function(d){ markDeleted('depenses',d.id); });
+  D.histo.forEach(function(h){ markDeleted('histo',h.id); });
   D.dettes=[]; D.paiements=[];
   D.activites=[]; D.depenses=[]; D.histo=[]; D._o=1;
   D.detteVerrou=true;
-  persist(); renderAll(); notif('✅ Clôture. Dette globale verrouillée: '+fmt(D.dettesClot));
+  // IMPORTANT : save() (et non persist()) pour pousser immédiatement la
+  // clôture vers le cloud — sinon la suppression reste locale et le
+  // prochain appareil qui se synchronise récupère l'ancien état complet.
+  save(); notif('✅ Clôture. Dette globale verrouillée: '+fmt(D.dettesClot));
 }
 
 // ================================================================
@@ -1757,6 +1800,9 @@ function goBack() {
 function viderTout() {
   if (!confirm('⚠️ SUPPRESSION TOTALE\n\nVous allez supprimer TOUS les éléments de TOUS les modules.\nCette action est irréversible.\n\nContinuer ?')) return;
   if (!confirm('Dernière confirmation : supprimer TOUT ?')) return;
+  ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille'].forEach(function(field){
+    (D[field]||[]).forEach(function(it){ if(it&&it.id!=null) markDeleted(field,it.id); });
+  });
   D.activites = []; D.stock = []; D.perso = []; D.depenses = [];
   D.dettes = []; D.paiements = []; D.commandes = []; D.histo = []; D.corbeille = [];
   D.dettesClot = 0; D.detteVerrou = false; D._o = 1; D._co = 1;
@@ -1765,38 +1811,38 @@ function viderTout() {
 
 function viderActivites() {
   if (!confirm('Supprimer toutes les activités ?')) return;
-  D.activites.forEach(function(a){ rb('activite', a.desig, a); });
+  D.activites.forEach(function(a){ markDeleted('activites',a.id); rb('activite', a.desig, a); });
   D.activites = []; save(); notif('✅ Activités vidées → corbeille');
 }
 
 function viderStock() {
   if (!confirm('Supprimer tout le stock entreprise ?')) return;
-  D.stock.forEach(function(s){ rb('stock', s.nom, s); });
+  D.stock.forEach(function(s){ markDeleted('stock',s.id); rb('stock', s.nom, s); });
   D.stock = []; save(); notif('✅ Stock entreprise vidé → corbeille');
 }
 
 function viderDettes() {
   if (D.detteVerrou) { notif('🔒 Dettes verrouillées'); return; }
   if (!confirm('Supprimer toutes les dettes actives ?')) return;
-  D.dettes.forEach(function(d){ rb('dette', d.desc, d); });
+  D.dettes.forEach(function(d){ markDeleted('dettes',d.id); rb('dette', d.desc, d); });
   D.dettes = []; save(); notif('✅ Dettes vidées → corbeille');
 }
 
 function viderPaiements() {
   if (!confirm('Supprimer tous les paiements reçus ?')) return;
-  D.paiements.forEach(function(p){ rb('paiement', 'Paiement '+fmt(p.montant), p); });
+  D.paiements.forEach(function(p){ markDeleted('paiements',p.id); rb('paiement', 'Paiement '+fmt(p.montant), p); });
   D.paiements = []; save(); notif('✅ Paiements vidés → corbeille');
 }
 
 function viderCommandes() {
   if (!confirm('Supprimer toutes les commandes ?')) return;
-  D.commandes.forEach(function(c){ rb('commande', c.num+': '+c.client, c); });
+  D.commandes.forEach(function(c){ markDeleted('commandes',c.id); rb('commande', c.num+': '+c.client, c); });
   D.commandes = []; save(); notif('✅ Commandes vidées → corbeille');
 }
 
 function viderDep() {
   if (!confirm('Supprimer toutes les dépenses ?')) return;
-  D.depenses.forEach(function(d){ rb('depense', d.desc, d); });
+  D.depenses.forEach(function(d){ markDeleted('depenses',d.id); rb('depense', d.desc, d); });
   D.depenses = []; save(); notif('✅ Dépenses vidées → corbeille');
 }
 
@@ -2034,7 +2080,7 @@ function syncFromCloud() {
     .then(function (res) { return res.json(); })
     .then(function (rows) {
       if (rows && rows.length && rows[0].data) {
-        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1}, rows[0].data);
+        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{}}, rows[0].data);
         persist(); renderAll();
         notif('✅ Données restaurées depuis le cloud');
         return true;
@@ -2062,25 +2108,49 @@ function syncFromCloud() {
 // donc on peut combiner les entrées de deux appareils au lieu d'en
 // écraser une avec l'autre.
 var MERGEABLE_ARRAYS = ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille'];
-var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1};
+var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{}};
 
 /**
- * Fusionne deux tableaux d'éléments par leur "id" (union), sans perte.
+ * Fusionne deux tableaux d'éléments par leur "id" (union), sans perte,
+ * SAUF pour les ids marqués comme supprimés (tombstones) : un simple
+ * union-merge ne peut pas représenter une suppression (l'absence d'un
+ * élément d'un côté ne l'efface pas côté fusion), c'est pour ça qu'un
+ * élément supprimé sur un appareil "revenait" après synchronisation
+ * depuis un autre appareil qui l'avait encore. Les tombstones corrigent
+ * ce problème en supprimant explicitement ces ids du résultat fusionné.
  * En cas de conflit (même id présent des deux côtés = le même élément
  * a été modifié séparément sur deux appareils), la version passée en
  * second (arrPrioritaire) l'emporte pour CET élément précis — mais tous
  * les éléments distincts des deux côtés sont conservés.
  */
-function mergeArraysById(arrBase, arrPrioritaire) {
+function mergeArraysById(arrBase, arrPrioritaire, delIds) {
   var map = {};
   (arrBase || []).forEach(function (item) { if (item && item.id != null) map[item.id] = item; });
   (arrPrioritaire || []).forEach(function (item) { if (item && item.id != null) map[item.id] = item; });
+  (delIds || []).forEach(function (id) { delete map[id]; });
   return Object.values(map);
 }
 
 /**
+ * Fusionne deux ensembles de tombstones (union simple par champ).
+ */
+function mergeTombstones(delA, delB) {
+  var out = {};
+  [delA || {}, delB || {}].forEach(function (d) {
+    Object.keys(d).forEach(function (field) {
+      if (!out[field]) out[field] = [];
+      (d[field] || []).forEach(function (id) {
+        if (out[field].indexOf(id) === -1) out[field].push(id);
+      });
+    });
+  });
+  return out;
+}
+
+/**
  * Fusionne l'état complet de l'app entre deux versions (cloud et local),
- * sans jamais faire disparaître les saisies propres à chacune.
+ * sans jamais faire disparaître les saisies propres à chacune — hormis
+ * les suppressions explicites (tombstones), qui doivent bien disparaître.
  * @param {object} cloudData
  * @param {object} localData
  * @param {boolean} cloudIsNewer - lequel des deux est prioritaire en cas de vrai conflit
@@ -2088,9 +2158,11 @@ function mergeArraysById(arrBase, arrPrioritaire) {
 function mergeAppData(cloudData, localData, cloudIsNewer) {
   var base = cloudIsNewer ? localData : cloudData;
   var priorite = cloudIsNewer ? cloudData : localData;
+  var mergedDel = mergeTombstones(cloudData._del, localData._del);
   var merged = Object.assign({}, DEFAULT_SHAPE, base, priorite);
+  merged._del = mergedDel;
   MERGEABLE_ARRAYS.forEach(function (f) {
-    merged[f] = mergeArraysById(base[f], priorite[f]);
+    merged[f] = mergeArraysById(base[f], priorite[f], mergedDel[f]);
   });
   merged._o = Math.max(cloudData._o || 1, localData._o || 1);
   merged._co = Math.max(cloudData._co || 1, localData._co || 1);
