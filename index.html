@@ -1943,9 +1943,12 @@ document.addEventListener('DOMContentLoaded',function(){
  *   - L'application reste 100% utilisable hors ligne : load()/persist()
  *     continuent d'utiliser localStorage en priorité.
  *   - Quand SUPABASE_CONFIG.enabled = true et que le réseau est disponible,
- *     syncToCloud() est appelée après chaque sauvegarde locale (save()),
- *     et syncFromCloud() peut être appelée au démarrage pour récupérer
- *     la dernière version distante.
+ *     syncToCloud() est appelée après chaque sauvegarde locale (save()).
+ *   - Au démarrage et lors d'une reconnexion réseau, reconcileOnStartup()
+ *     FUSIONNE les données locales et distantes (par id, sans perte),
+ *     au lieu d'écraser l'une avec l'autre — voir mergeAppData() plus bas.
+ *     syncFromCloud() (récupération brute, sans fusion) reste disponible
+ *     pour un usage manuel futur mais n'est pas appelée automatiquement.
  *   - En cas d'échec réseau, les erreurs sont silencieuses : les données
  *     restent disponibles localement et seront resynchronisées plus tard.
  */
@@ -2055,6 +2058,45 @@ function syncFromCloud() {
  *   - Cloud plus récent (ou local jamais modifié)  → on récupère le cloud
  *   - Local plus récent (ou cloud vide)            → on pousse le local
  */
+// Listes fusionnables : chaque élément a un "id" unique (Date.now()),
+// donc on peut combiner les entrées de deux appareils au lieu d'en
+// écraser une avec l'autre.
+var MERGEABLE_ARRAYS = ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille'];
+var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1};
+
+/**
+ * Fusionne deux tableaux d'éléments par leur "id" (union), sans perte.
+ * En cas de conflit (même id présent des deux côtés = le même élément
+ * a été modifié séparément sur deux appareils), la version passée en
+ * second (arrPrioritaire) l'emporte pour CET élément précis — mais tous
+ * les éléments distincts des deux côtés sont conservés.
+ */
+function mergeArraysById(arrBase, arrPrioritaire) {
+  var map = {};
+  (arrBase || []).forEach(function (item) { if (item && item.id != null) map[item.id] = item; });
+  (arrPrioritaire || []).forEach(function (item) { if (item && item.id != null) map[item.id] = item; });
+  return Object.values(map);
+}
+
+/**
+ * Fusionne l'état complet de l'app entre deux versions (cloud et local),
+ * sans jamais faire disparaître les saisies propres à chacune.
+ * @param {object} cloudData
+ * @param {object} localData
+ * @param {boolean} cloudIsNewer - lequel des deux est prioritaire en cas de vrai conflit
+ */
+function mergeAppData(cloudData, localData, cloudIsNewer) {
+  var base = cloudIsNewer ? localData : cloudData;
+  var priorite = cloudIsNewer ? cloudData : localData;
+  var merged = Object.assign({}, DEFAULT_SHAPE, base, priorite);
+  MERGEABLE_ARRAYS.forEach(function (f) {
+    merged[f] = mergeArraysById(base[f], priorite[f]);
+  });
+  merged._o = Math.max(cloudData._o || 1, localData._o || 1);
+  merged._co = Math.max(cloudData._co || 1, localData._co || 1);
+  return merged;
+}
+
 function reconcileOnStartup() {
   if (!SUPABASE_CONFIG.enabled) return;
   if (!navigator.onLine) { setSyncStatus('offline', '⚪ Hors ligne'); return; }
@@ -2071,29 +2113,24 @@ function reconcileOnStartup() {
       return res.json();
     })
     .then(function (rows) {
-      var localTs = localStorage.getItem(KEY + '_ts');
-      var localDate = localTs ? new Date(localTs) : null;
-
       if (!rows || !rows.length || !rows[0].data) {
         // Rien dans le cloud encore : on pousse notre version locale
         syncToCloud();
         return;
       }
 
+      var localTs = localStorage.getItem(KEY + '_ts');
+      var localDate = localTs ? new Date(localTs) : null;
       var cloudDate = new Date(rows[0].updated_at);
+      var cloudIsNewer = !localDate || cloudDate > localDate;
 
-      if (!localDate || cloudDate > localDate) {
-        // Le cloud est plus récent (ou on n'a jamais rien sauvegardé
-        // localement sur cet appareil) : on récupère le cloud
-        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1}, rows[0].data);
-        persist(); renderAll();
-        var h = cloudDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-        setSyncStatus('online', '🟢 Synchronisé ' + h);
-        notif('☁️ Données à jour récupérées depuis le cloud');
-      } else {
-        // Notre version locale est plus récente : on la pousse
-        syncToCloud();
-      }
+      var merged = mergeAppData(rows[0].data, D, cloudIsNewer);
+      D = merged;
+      persist(); renderAll();
+      // On repousse immédiatement la version fusionnée, pour que le
+      // cloud et cet appareil convergent tout de suite vers l'union.
+      syncToCloud();
+      notif('☁️ Données fusionnées avec le cloud (rien n\'est perdu)');
     })
     .catch(function (err) {
       console.error('[Supabase] Échec de la réconciliation au démarrage :', err);
