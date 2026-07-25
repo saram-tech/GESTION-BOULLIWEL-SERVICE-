@@ -1417,13 +1417,14 @@ function rAct(){
   var tc={'Vente':'bbr','Réparation':'bnr','Service':'btr'};
   var html='';
   var lastDate=null;
-  items.forEach(function(a){
+  items.forEach(function(a,idx){
+    var numAffiche=idx+1;
     var tcc=tc[a.type]||'bbr';
     var isNewDay=(a.date!==lastDate);
     lastDate=a.date;
     html+='<tr>';
     html+='<td>'+(isNewDay?('<strong>'+a.date+'</strong>'):'')+'</td>';
-    html+='<td style="color:var(--tx2);font-weight:600">'+a.ordre+'</td>';
+    html+='<td style="color:var(--tx2);font-weight:600">'+numAffiche+'</td>';
     html+='<td>'+(a.ticket?'<span class="badge bpr" style="font-size:.66rem">'+a.ticket+'</span>':'<span style="color:var(--tx3)">—</span>')+'</td>';
     html+='<td><span class="badge '+tcc+'">'+a.type+'</span></td>';
     html+='<td><strong>'+a.desig+'</strong>'+(a.qte>1?' <span style="color:var(--tx2);font-size:.73rem">×'+a.qte+'</span>':'')+'</td>';
