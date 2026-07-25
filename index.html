@@ -232,6 +232,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="hbts">
     <button class="btn bh bsm" onclick="showChangerPass()" title="Changer mot de passe">🔑</button>
     <button class="btn bh bsm" onclick="exportData()">💾 Export</button>
+    <button class="btn bh bsm" onclick="exportExcel()" title="Exporter toutes les données en fichier Excel (.xlsx)">📊 Excel</button>
     <button class="btn bh bsm" onclick="importData()">📂 Import</button>
     <button class="btn bg bsm" onclick="saveCloud()" title="Génère un lien de partage manuel (différent de la synchronisation cloud automatique)">🔗 Lien partage</button>
     <button class="btn bg bsm" onclick="testSupabaseConnection()" title="Vérifier la connexion Supabase">🔌 Test Cloud</button>
@@ -1634,10 +1635,99 @@ function hImport(e){
   r.onload=function(ev){
     try{
       var d=JSON.parse(ev.target.result);
-      if(confirm('Remplacer toutes les données actuelles ?')){ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1},d); persist(); renderAll(); notif('✅ Données importées'); }
+      if(confirm('Remplacer toutes les données actuelles ?')){ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{}},d); persist(); renderAll(); notif('✅ Données importées'); }
     }catch(err){ notif('⚠️ Fichier invalide'); }
   };
   r.readAsText(f); e.target.value='';
+}
+
+/**
+ * EXPORT EXCEL (.xlsx)
+ * -------------------------------------------------------------
+ * Utilise la bibliothèque SheetJS, chargée à la demande depuis un CDN
+ * (nécessite une connexion internet — l'app reste 100% utilisable hors
+ * ligne pour tout le reste). Si le chargement échoue (pas de réseau),
+ * un export CSV (compatible Excel) est proposé en repli.
+ */
+var _xlsxLoading=false;
+function loadSheetJS(cb, onerr){
+  if (window.XLSX) { cb(); return; }
+  if (_xlsxLoading){ setTimeout(function(){ loadSheetJS(cb,onerr); },300); return; }
+  _xlsxLoading=true;
+  var s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload=function(){ _xlsxLoading=false; cb(); };
+  s.onerror=function(){ _xlsxLoading=false; onerr(); };
+  document.head.appendChild(s);
+}
+function exportExcel(){
+  notif('⏳ Préparation du fichier Excel…');
+  loadSheetJS(function(){
+    try{
+      var wb=XLSX.utils.book_new();
+      function feuille(nom, arr, cols){
+        var data=(arr||[]).map(function(item){
+          var row={};
+          cols.forEach(function(c){ row[c[0]]=typeof c[1]==='function'?c[1](item):item[c[1]]; });
+          return row;
+        });
+        var ws=XLSX.utils.json_to_sheet(data.length?data:[{}]);
+        XLSX.utils.book_append_sheet(wb,ws,nom);
+      }
+      feuille('Activités', D.activites, [
+        ['Date','date'],['N°','ordre'],['Ticket','ticket'],['Type','type'],['Désignation','desig'],
+        ['Panne','panne'],['Qté','qte'],['Prix achat',function(a){return a.achat*(a.qte||1);}],
+        ['À payer','apayer'],['Payé','paye'],['Reste','reste'],['Bénéfice','benefice'],['Client','client']
+      ]);
+      feuille('Stock Entreprise', D.stock, [
+        ['Nom','nom'],['Qté initiale','qteInitiale'],['Qté vendue','qteVendue'],
+        ['Qté restante',function(s){return s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;}],
+        ['Seuil alerte','seuil'],['Prix achat','achat'],['Prix vente','vente'],['Date','date']
+      ]);
+      feuille('Stock Perso', D.perso, [
+        ['Nom','nom'],['Qté initiale','qteInitiale'],['Qté vendue','qteVendue'],['Qté restante','qteRestante'],
+        ['Prix achat','achat'],['Prix vente','vente'],['Prix revient','prixRevient'],
+        ['Commission (10%)','commission'],['Total dû','totalDu'],['Remboursé','rembourse'],['Date','date']
+      ]);
+      feuille('Dettes', D.dettes, [
+        ['Date','date'],['Type','type'],['Description','desc'],['Montant','montant']
+      ]);
+      feuille('Paiements Associé', D.paiements, [
+        ['Date','date'],['Type','type'],['Note','note'],['Montant','montant']
+      ]);
+      feuille('Commandes', D.commandes, [
+        ['Date','date'],['N° commande','num'],['Client','client'],['Téléphone','tel'],['Adresse','adresse'],
+        ['Produits',function(c){ return (c.produits||[]).map(function(l){ return l.produit+' x'+l.qte+' ('+fmt(l.prix)+')'; }).join(' | '); }],
+        ['Total','total'],['Statut','statut'],['Note','note']
+      ]);
+      feuille('Dépenses', D.depenses, [
+        ['Date','date'],['Catégorie','cat'],['Description','desc'],['Qté','qte'],['Prix unitaire','prix'],['Montant','montant']
+      ]);
+      feuille('Historique', D.histo, [
+        ['Date','date'],['Type','type'],['Description','desc'],['Montant','montant']
+      ]);
+      XLSX.writeFile(wb,'boulliwel_'+td()+'.xlsx');
+      notif('✅ Export Excel généré');
+    }catch(err){
+      console.error('[Export Excel]',err);
+      notif('❌ Erreur export Excel : '+err.message,6000);
+    }
+  }, function(){
+    notif('⚠️ Pas de connexion — export CSV utilisé à la place',6000);
+    exportCSV();
+  });
+}
+/** Repli hors-ligne : export CSV des activités (lisible par Excel). */
+function exportCSV(){
+  var lignes=[['Date','N°','Ticket','Type','Désignation','Panne','Qté','Prix achat','À payer','Payé','Reste','Bénéfice','Client']];
+  D.activites.forEach(function(a){
+    lignes.push([a.date,a.ordre,a.ticket||'',a.type,a.desig,a.panne||'',a.qte,a.achat*(a.qte||1),a.apayer,a.paye,a.reste,a.benefice,a.client||'']);
+  });
+  var csv=lignes.map(function(l){ return l.map(function(v){ return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'; }).join(';'); }).join('\r\n');
+  var b=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(b);
+  a.download='boulliwel_activites_'+td()+'.csv'; a.click();
+  notif('✅ Export CSV généré (Activités)');
 }
 function saveCloud(){
   var enc=btoa(encodeURIComponent(JSON.stringify(D)));
