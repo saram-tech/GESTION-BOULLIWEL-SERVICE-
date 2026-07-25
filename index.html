@@ -775,13 +775,13 @@ let D = {
   activites:[],stock:[],perso:[],depenses:[],
   dettes:[],dettesClot:0,detteVerrou:false,
   paiements:[],commandes:[],histo:[],corbeille:[],
-  _o:1,_co:1,_del:{}
+  _o:1,_co:1,_del:{},auth:null
 };
 
 function load(){
   try{
     const s=localStorage.getItem(KEY);
-    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{}},d); if(!D._del) D._del={}; }
+    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null},d); if(!D._del) D._del={}; }
   }catch(e){}
 }
 
@@ -1380,7 +1380,7 @@ function vCorbeille(){
 // CLÔTURE
 // ================================================================
 function cloturer(){
-  if(!confirm('⚠️ CLÔTURE DE PÉRIODE\n\nActivités, dépenses et historique supprimés.\nDettes fusionnées et VERROUILLÉES.\nStock conservé.\n\nContinuer ?')) return;
+  if(!confirm('⚠️ CLÔTURE DE PÉRIODE\n\nActivités, dépenses et historique supprimés.\nDettes fusionnées et VERROUILLÉES.\nStock (entreprise + perso) et Commandes CONSERVÉS intégralement.\n\nContinuer ?')) return;
   var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0);
   var totP=D.paiements.reduce(function(s,p){ return s+p.montant; },0);
   D.dettesClot=Math.max(0,totD-totP)+D.dettesClot;
@@ -1635,7 +1635,7 @@ function hImport(e){
   r.onload=function(ev){
     try{
       var d=JSON.parse(ev.target.result);
-      if(confirm('Remplacer toutes les données actuelles ?')){ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{}},d); persist(); renderAll(); notif('✅ Données importées'); }
+      if(confirm('Remplacer toutes les données actuelles ?')){ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null},d); persist(); renderAll(); notif('✅ Données importées'); }
     }catch(err){ notif('⚠️ Fichier invalide'); }
   };
   r.readAsText(f); e.target.value='';
@@ -1739,7 +1739,7 @@ function saveCloud(){
 function loadFromHash(){
   var h=window.location.hash;
   if(h&&h.startsWith('#data=')){
-    try{ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1},JSON.parse(decodeURIComponent(atob(h.slice(6))))); persist(); notif('✅ Données restaurées !'); return true; }catch(e){}
+    try{ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null},JSON.parse(decodeURIComponent(atob(h.slice(6))))); persist(); notif('✅ Données restaurées !'); return true; }catch(e){}
   } return false;
 }
 
@@ -1836,6 +1836,7 @@ function gt(id, btn) {
   else document.querySelectorAll('.nb').forEach(function(b){
     if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf("'"+id+"'") > -1) b.classList.add('active');
   });
+  try{ localStorage.setItem('bpro_last_tab', id); }catch(e){}
 }
 
 // ================================================================
@@ -1950,15 +1951,27 @@ var DEFAULT_LOGIN = 'admin';
 var DEFAULT_PASS  = 'boulliwel2026';
 
 function getAuth() {
+  if (D && D.auth && D.auth.pass) return D.auth;
+  // Migration : ancien système où le mot de passe était stocké uniquement
+  // en localStorage local (donc jamais synchronisé entre appareils).
   try {
     var s = localStorage.getItem(AUTH_KEY);
-    if (s) return JSON.parse(s);
+    if (s) {
+      var old = JSON.parse(s);
+      if (D) { D.auth = old; save(); }
+      return old;
+    }
   } catch(e) {}
   return { login: DEFAULT_LOGIN, pass: DEFAULT_PASS };
 }
 
 function saveAuth(login, pass) {
-  localStorage.setItem(AUTH_KEY, JSON.stringify({ login: login, pass: pass }));
+  D.auth = { login: login, pass: pass };
+  // save() persiste localement ET pousse immédiatement vers Supabase,
+  // pour que le nouveau mot de passe soit disponible sur tous les
+  // appareils dès leur prochaine synchronisation (au démarrage).
+  save();
+  try { localStorage.removeItem(AUTH_KEY); } catch(e) {} // nettoyage ancien système
 }
 
 function isLoggedIn() {
@@ -2051,6 +2064,12 @@ function doChangerPass() {
 document.addEventListener('DOMContentLoaded',function(){
   var fh=loadFromHash(); if(!fh) load();
   cmdLignes=[]; rCL(); renderAll();
+  // Restaurer l'onglet actif avant l'actualisation, au lieu de toujours
+  // revenir au tableau de bord.
+  try{
+    var lastTab=localStorage.getItem('bpro_last_tab');
+    if(lastTab && document.getElementById('tab-'+lastTab)) gt(lastTab, null);
+  }catch(e){}
   // Vérifier session
   if(isLoggedIn()){
     document.getElementById('login-screen').classList.add('hidden');
@@ -2171,7 +2190,7 @@ function syncFromCloud() {
     .then(function (res) { return res.json(); })
     .then(function (rows) {
       if (rows && rows.length && rows[0].data) {
-        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{}}, rows[0].data);
+        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null}, rows[0].data);
         persist(); renderAll();
         notif('✅ Données restaurées depuis le cloud');
         return true;
@@ -2199,7 +2218,7 @@ function syncFromCloud() {
 // donc on peut combiner les entrées de deux appareils au lieu d'en
 // écraser une avec l'autre.
 var MERGEABLE_ARRAYS = ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille'];
-var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{}};
+var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null};
 
 /**
  * Fusionne deux tableaux d'éléments par leur "id" (union), sans perte,
@@ -2252,6 +2271,10 @@ function mergeAppData(cloudData, localData, cloudIsNewer) {
   var mergedDel = mergeTombstones(cloudData._del, localData._del);
   var merged = Object.assign({}, DEFAULT_SHAPE, base, priorite);
   merged._del = mergedDel;
+  // Le mot de passe (auth) est un champ simple, pas un tableau fusionnable :
+  // on garde celui de la version prioritaire, mais jamais un null qui
+  // écraserait un mot de passe déjà défini par erreur.
+  merged.auth = priorite.auth || base.auth || null;
   MERGEABLE_ARRAYS.forEach(function (f) {
     merged[f] = mergeArraysById(base[f], priorite[f], mergedDel[f]);
   });
