@@ -65,6 +65,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(7,11,20,.97);backdrop-f
 .sync-syncing{background:rgba(251,191,36,.15);color:#fbbf24;}
 .sync-error{background:rgba(239,68,68,.15);color:#ef4444;}
 .sync-offline{background:rgba(148,163,184,.15);color:#94a3b8;}
+.input-error{border-color:#ef4444 !important;box-shadow:0 0 0 2px rgba(239,68,68,.25);}
 nav{background:var(--bg2);border-bottom:1px solid var(--bd);position:sticky;top:54px;z-index:190;overflow-x:auto;}
 .ni{display:flex;gap:2px;padding:7px 12px 0;min-width:max-content;}
 .nb{padding:6px 12px;border-radius:7px 7px 0 0;background:transparent;border:1px solid transparent;border-bottom:none;color:var(--tx2);cursor:pointer;font-family:var(--font-body);font-size:.77rem;font-weight:500;white-space:nowrap;transition:all .2s;}
@@ -529,7 +530,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="fr">
       <div class="fg"><label>Prix achat unitaire (GNF)</label><input type="number" id="a-achat" placeholder="0" oninput="pAct()"></div>
       <div class="fg"><label>Quantité</label><input type="number" id="a-qte" placeholder="1" min="1" value="1" oninput="pAct()"></div>
-      <div class="fg"><label>À Payer (GNF) *</label><input type="number" id="a-apayer" placeholder="0" oninput="pAct()"></div>
+      <div class="fg"><label>À Payer (GNF)</label><input type="number" id="a-apayer" placeholder="0 (facultatif)" min="0" oninput="pAct()"></div>
     </div>
     <div class="fr">
       <div class="fg"><label>Payé (GNF)</label><input type="number" id="a-paye" placeholder="0" oninput="pAct()"></div>
@@ -846,7 +847,15 @@ function enrAct(){
   var achat=fl('a-achat'),qte=Math.max(1,parseInt(v('a-qte'))||1);
   var apayer=fl('a-apayer'),paye=fl('a-paye');
   var ticket=v('a-ticket').trim(),panne=v('a-panne').trim(),client=v('a-client').trim();
-  if(!date||!desig||apayer<=0){ notif('⚠️ Date, désignation et montant à payer obligatoires'); return; }
+  var elDate=document.getElementById('a-date'), elDesig=document.getElementById('a-desig');
+  elDate.classList.remove('input-error'); elDesig.classList.remove('input-error');
+  if(!date||!desig){
+    notif('⚠️ Date et désignation obligatoires');
+    if(!date) elDate.classList.add('input-error');
+    if(!desig) elDesig.classList.add('input-error');
+    (!date?elDate:elDesig).focus();
+    return;
+  }
   var reste=Math.max(0,apayer-paye), ben=paye-(achat*qte);
   var eid=v('a-eid');
   if(eid){
@@ -1361,10 +1370,13 @@ function rAct(){
   }
   var tc={'Vente':'bbr','Réparation':'bnr','Service':'btr'};
   var html='';
+  var lastDate=null;
   items.forEach(function(a){
     var tcc=tc[a.type]||'bbr';
+    var isNewDay=(a.date!==lastDate);
+    lastDate=a.date;
     html+='<tr>';
-    html+='<td>'+a.date+'</td>';
+    html+='<td>'+(isNewDay?('<strong>'+a.date+'</strong>'):'')+'</td>';
     html+='<td style="color:var(--tx2);font-weight:600">'+a.ordre+'</td>';
     html+='<td>'+(a.ticket?'<span class="badge bpr" style="font-size:.66rem">'+a.ticket+'</span>':'<span style="color:var(--tx3)">—</span>')+'</td>';
     html+='<td><span class="badge '+tcc+'">'+a.type+'</span></td>';
@@ -1471,9 +1483,11 @@ function rDep(){
   var tb=document.getElementById('tbl-dep');
   if(!D.depenses.length){ tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--tx2);padding:20px">Aucune dépense</td></tr>'; return; }
   var tot=0, mois=0, m=new Date().toISOString().slice(0,7), html='';
+  var lastDateDep=null;
   D.depenses.forEach(function(d){
     tot+=d.montant; if(d.date&&d.date.startsWith(m)) mois+=d.montant;
-    html+='<tr><td>'+(d.date||'—')+'</td><td><span class="badge bbr">'+d.cat+'</span></td>';
+    var isNewDayDep=(d.date!==lastDateDep); lastDateDep=d.date;
+    html+='<tr><td>'+(isNewDayDep?('<strong>'+(d.date||'—')+'</strong>'):'')+'</td><td><span class="badge bbr">'+d.cat+'</span></td>';
     html+='<td>'+(d.desc||'—')+'</td><td>'+(d.qte||1)+'</td>';
     html+='<td>'+fmt(d.prix||d.montant)+'</td>';
     html+='<td style="color:var(--re)"><strong>'+fmt(d.montant)+'</strong></td>';
@@ -1512,8 +1526,10 @@ function rHisto(){
   if(!items.length){ tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--tx2);padding:20px">Aucun historique</td></tr>'; return; }
   var tc={activite:'bbr',stock:'bgr',depense:'bdr',paiement:'bor',dette:'bnr',perso:'bpr',commande:'btr'};
   var html='';
+  var lastDateH=null;
   items.forEach(function(i){
-    html+='<tr><td>'+(i.date||'—')+'</td><td><span class="badge '+(tc[i.type]||'bbr')+'">'+i.type+'</span></td><td>'+i.desc+'</td><td>'+(i.montant?fmt(i.montant):'—')+'</td></tr>';
+    var isNewDayH=(i.date!==lastDateH); lastDateH=i.date;
+    html+='<tr><td>'+(isNewDayH?('<strong>'+(i.date||'—')+'</strong>'):'')+'</td><td><span class="badge '+(tc[i.type]||'bbr')+'">'+i.type+'</span></td><td>'+i.desc+'</td><td>'+(i.montant?fmt(i.montant):'—')+'</td></tr>';
   });
   tb.innerHTML=html;
 }
@@ -1684,6 +1700,33 @@ function gt(id, btn) {
     if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf("'"+id+"'") > -1) b.classList.add('active');
   });
 }
+
+// ================================================================
+// NAVIGATION AU CLAVIER (flèches directionnelles)
+// ================================================================
+// Flèche droite / gauche : onglet suivant / précédent.
+// Désactivée si l'utilisateur est en train de saisir dans un champ,
+// ou si une fenêtre modale est ouverte (pour ne pas gêner la saisie).
+var TAB_ORDER = ['dashboard','activites','stock','perso','bilan','associe','depenses','commandes','historique','corbeille'];
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+
+  var tag = (document.activeElement && document.activeElement.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  if (document.querySelector('.ov.open')) return; // une modale est ouverte
+
+  var current = document.querySelector('.tab-panel.active');
+  if (!current) return;
+  var curId = current.id.replace('tab-', '');
+  var idx = TAB_ORDER.indexOf(curId);
+  if (idx === -1) return;
+
+  e.preventDefault();
+  var nextIdx = e.key === 'ArrowRight'
+    ? (idx + 1) % TAB_ORDER.length
+    : (idx - 1 + TAB_ORDER.length) % TAB_ORDER.length;
+  gt(TAB_ORDER[nextIdx], null);
+});
 
 function goBack() {
   if (navHistory.length > 0) {
