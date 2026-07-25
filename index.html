@@ -342,19 +342,19 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- STOCK PERSO -->
 <div id="tab-perso" class="tab-panel">
   <div class="sh">
-    <div><div class="st">Stock Personnel</div><div class="ss">Vos produits — créance = prix revient + 10%</div></div>
+    <div><div class="st">Stock Personnel</div><div class="ss">Vos produits — créance = prix revient + 15%</div></div>
     <div style="display:flex;gap:6px">
       <button class="btn bg bsm" onclick="om('mp')">+ Ajouter</button>
       <button class="btn bd bsm" onclick="viderPerso()">🗑️ Vider</button>
     </div>
   </div>
   <div class="al alw" style="font-size:.77rem">
-    🏷️ <strong>Créance = (Prix achat × Qté) × 1.10</strong> — L'entreprise vous doit le prix de revient + 10%.<br>
-    Exemple : 5 unités à 100 000 GNF = revient 500 000 GNF → entreprise vous doit <strong>550 000 GNF</strong>.<br>
+    🏷️ <strong>Créance = (Prix achat × Qté) × 1.15</strong> — L'entreprise vous doit le prix de revient + 15%.<br>
+    Exemple : 5 unités à 100 000 GNF = revient 500 000 GNF → entreprise vous doit <strong>575 000 GNF</strong>.<br>
     Le bénéfice de vente est partagé 50/50 avec l'associé.
   </div>
   <div class="card"><div class="tw"><table>
-    <thead><tr><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>P.Achat</th><th>Prix Revient</th><th>+10%</th><th>Total Dû</th><th>Statut</th><th>Actions</th></tr></thead>
+    <thead><tr><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>P.Achat</th><th>Prix Revient</th><th>+15%</th><th>Total Dû</th><th>Statut</th><th>Actions</th></tr></thead>
     <tbody id="tbl-perso"><tr><td colspan="10" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr></tbody>
   </table></div>
   <div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--bd);display:flex;justify-content:space-between">
@@ -385,7 +385,7 @@ tbody tr:last-child td{border-bottom:none;}
       </div>
       <div style="background:var(--bg4);border-radius:8px;padding:11px">
         <div style="font-size:.7rem;color:var(--re);font-weight:700;margin-bottom:6px;text-transform:uppercase">④ Part Associé</div>
-        <div style="font-size:.78rem;color:var(--tx2);line-height:1.7">= Part base − 15% − Dettes nettes<br>15% retiré de SA part uniquement.<br>Dettes nettes = dettes − paiements reçus.</div>
+        <div style="font-size:.78rem;color:var(--tx2);line-height:1.7">= Part base − 15% − Dette restante<br>Le 15% (retiré de SA part) sert D'ABORD à rembourser sa dette ; le surplus non utilisé reste retenu.<br>Dettes nettes = dettes − paiements reçus.</div>
       </div>
       <div style="background:var(--bg4);border-radius:8px;padding:11px">
         <div style="font-size:.7rem;color:var(--te);font-weight:700;margin-bottom:6px;text-transform:uppercase">⑤ Entreprise Me Doit</div>
@@ -411,7 +411,7 @@ tbody tr:last-child td{border-bottom:none;}
       <button class="btn bd bsm" onclick="viderPaiements()">🗑️ Paiements</button>
     </div>
   </div>
-  <div id="al-clot" class="al ald" style="display:none">🔒 Dettes verrouillées après clôture. Aucune modification autorisée.</div>
+  <div id="al-clot" class="al ald" style="display:none">🔒 Anomalie détectée : les dettes sont restées verrouillées d'une ancienne clôture. <button class="btn bh bxs" onclick="deverrouillerDettes()" style="margin-left:6px">🔓 Déverrouiller</button></div>
   <div class="al ali" style="font-size:.77rem">
     🤝 <strong>Dettes actives</strong> = cette période (modifiables) | <strong>Cumulé clôtures</strong> = périodes précédentes (verrouillées).<br>
     💳 <strong>Paiement type :</strong> Dette directe de l'associé OU Dette de sa femme uniquement.<br>
@@ -598,7 +598,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="modal">
     <div class="mhd"><span id="mp-t">🏷️ Produit Personnel</span><button class="mcl" onclick="cm('mp');rPF()">✕</button></div>
     <input type="hidden" id="p-eid">
-    <div class="al alw" style="font-size:.77rem">Créance = (Prix achat × Qté) × 1.10 — Prix revient + 10%</div>
+    <div class="al alw" style="font-size:.77rem">Créance = (Prix achat × Qté) × 1.15 — Prix revient + 15%</div>
     <div class="fr">
       <div class="fg"><label>Nom produit *</label><input type="text" id="p-nom" placeholder="Ex: Cahiers"></div>
       <div class="fg"><label>Quantité *</label><input type="number" id="p-qte" placeholder="0" min="1"></div>
@@ -988,7 +988,7 @@ function enrPerso(){
   var nom=v('p-nom').trim(),qte=parseInt(v('p-qte'))||0,achat=fl('p-achat'),vente=fl('p-vente'),date=v('p-date');
   if(!nom||qte<=0||achat<=0){ notif('⚠️ Champs obligatoires manquants'); return; }
   // Prix revient = achat × qte ; créance = prix revient × 1.10
-  var prixRevient=achat*qte, commission=prixRevient*0.10, totalDu=prixRevient+commission;
+  var prixRevient=achat*qte, commission=prixRevient*0.15, totalDu=prixRevient+commission;
   var eid=v('p-eid');
   if(eid){
     var p=D.perso.find(function(x){ return x.id==eid; });
@@ -1239,10 +1239,20 @@ function calculerBilan(){
   var r15=pab*0.15, pa15=pab-r15;
   var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0)+D.dettesClot;
   var totP=D.paiements.reduce(function(s,p){ return s+p.montant; },0);
-  var dn=Math.max(0,totD-totP);
+  var dnBrut=Math.max(0,totD-totP);
+  // Les 15% retenus proviennent de la part de l'associé : ils s'appliquent
+  // D'ABORD comme un premier remboursement de sa dette, avant tout calcul
+  // de ce qu'il reçoit. S'il ne reste pas assez de dette pour absorber
+  // tout le 15%, le surplus reste une vraie retenue au profit de l'entreprise.
+  var r15VersDette=Math.min(r15,dnBrut);
+  var r15Restant=Math.max(0,r15-dnBrut);
+  var dn=Math.max(0,dnBrut-r15);
   var ra=pa15-dn;
-  // Entreprise me doit: 20% + stock perso − (prix achat total + 20%)
-  var entDoit=d20+tperso;
+  // Entreprise me doit: le stock perso, moins (prix achat total + 20%)
+  // déjà remboursés — le 20% s'additionne au prix d'achat total puis
+  // est soustrait de ce que l'entreprise doit (il ne s'ajoute plus au
+  // "total dû" au préalable, sinon il s'annulait mathématiquement).
+  var entDoit=tperso;
   var aDeduire=ta+d20;
   var resteEnt=entDoit-aDeduire;
   var res=document.getElementById('bilan-result');
@@ -1279,24 +1289,27 @@ function calculerBilan(){
   html+='<div style="background:var(--bg4);border-radius:9px;padding:12px;margin-bottom:11px">';
   html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">Part de base (50%)</span><span>'+fmt(pab)+'</span></div>';
   html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">− 15% de sa part (retenu)</span><span style="color:var(--re)">− '+fmt(r15)+'</span></div>';
-  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">− Dettes nettes (dettes − paiements reçus)</span><span style="color:var(--re)">− '+fmt(dn)+'</span></div>';
+  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">Dette brute (dettes − paiements reçus)</span><span>'+fmt(dnBrut)+'</span></div>';
+  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">→ 15% appliqué en 1er paiement de dette</span><span style="color:var(--gr)">− '+fmt(r15VersDette)+'</span></div>';
+  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">− Dette restante (après 15%)</span><span style="color:var(--re)">− '+fmt(dn)+'</span></div>';
   html+='<hr class="sep">';
   var raColor=ra>=0?'var(--gr)':'var(--re)';
   html+='<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600">Il reçoit (net)</span><span style="font-family:Syne,sans-serif;font-size:1.05rem;color:'+raColor+'">'+fmt(Math.max(0,ra))+'</span></div>';
   if(ra<0) html+='<div style="margin-top:6px;padding:6px;background:rgba(239,68,68,.1);border-radius:7px;font-size:.77rem;color:var(--re)">⚠️ Il vous doit encore : <strong>'+fmt(Math.abs(ra))+'</strong></div>';
   html+='</div>';
   html+='<div style="padding:10px;background:var(--bg5);border-radius:8px;margin-bottom:11px;display:flex;justify-content:space-between">';
-  html+='<span style="color:var(--tx2)">💳 Reste à vous payer (15% + dettes non couvertes)</span>';
-  html+='<span style="font-family:Syne,sans-serif;color:var(--re)">'+fmt(r15+Math.max(0,-ra))+'</span>';
+  html+='<span style="color:var(--tx2)">💳 Reste à vous payer (15% non absorbé par la dette + dette non couverte)</span>';
+  html+='<span style="font-family:Syne,sans-serif;color:var(--re)">'+fmt(r15Restant+Math.max(0,-ra))+'</span>';
   html+='</div>';
   html+='<div class="dv">Ce que l\'entreprise vous doit</div>';
   html+='<div style="background:var(--bg4);border-radius:9px;padding:12px">';
-  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">20% réinvesti</span><span style="color:var(--go)">'+fmt(d20)+'</span></div>';
-  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">Stock perso (prix revient + 10%)</span><span style="color:var(--go)">'+fmt(tperso)+'</span></div>';
+  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">Stock perso (prix revient + 15%)</span><span style="color:var(--go)">'+fmt(tperso)+'</span></div>';
   html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">Total brut dû</span><span style="color:var(--go)">'+fmt(entDoit)+'</span></div>';
-  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">− (Prix achat total + 20%) remboursés</span><span style="color:var(--re)">− '+fmt(aDeduire)+'</span></div>';
+  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">− Prix achat total</span><span style="color:var(--re)">− '+fmt(ta)+'</span></div>';
+  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">− 20% (ajouté au prix d\'achat)</span><span style="color:var(--re)">− '+fmt(d20)+'</span></div>';
   html+='<hr class="sep">';
   html+='<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600">Reste que l\'entreprise vous doit</span><span style="font-family:Syne,sans-serif;font-size:1.05rem;color:var(--go)">'+fmt(Math.max(0,resteEnt))+'</span></div>';
+  if(resteEnt<0) html+='<div style="margin-top:6px;padding:6px;background:rgba(239,68,68,.1);border-radius:7px;font-size:.77rem;color:var(--re)">⚠️ Prix d\'achat + 20% dépassent le stock perso dû de : <strong>'+fmt(Math.abs(resteEnt))+'</strong></div>';
   html+='</div></div>';
   res.innerHTML=html;
   updateKPIs();
@@ -1380,7 +1393,7 @@ function vCorbeille(){
 // CLÔTURE
 // ================================================================
 function cloturer(){
-  if(!confirm('⚠️ CLÔTURE DE PÉRIODE\n\nActivités, dépenses et historique supprimés.\nDettes fusionnées et VERROUILLÉES.\nStock (entreprise + perso) et Commandes CONSERVÉS intégralement.\n\nContinuer ?')) return;
+  if(!confirm('⚠️ CLÔTURE DE PÉRIODE\n\nActivités, dépenses et historique supprimés.\nDettes actives et paiements de la période fusionnés dans le cumul verrouillé.\nStock (entreprise + perso) et Commandes CONSERVÉS intégralement.\nLa saisie de nouvelles dettes reste possible pour la période suivante.\n\nContinuer ?')) return;
   var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0);
   var totP=D.paiements.reduce(function(s,p){ return s+p.montant; },0);
   D.dettesClot=Math.max(0,totD-totP)+D.dettesClot;
@@ -1395,11 +1408,20 @@ function cloturer(){
   D.histo.forEach(function(h){ markDeleted('histo',h.id); });
   D.dettes=[]; D.paiements=[];
   D.activites=[]; D.depenses=[]; D.histo=[]; D._o=1;
-  D.detteVerrou=true;
+  // IMPORTANT : le cumul "dettesClot" est déjà figé (aucune interface ne
+  // permet de le modifier) — on NE verrouille PAS la nouvelle liste de
+  // dettes, sinon il devient impossible d'en saisir pour la période
+  // suivante (c'était un bug : le cadenas restait actif pour toujours).
+  D.detteVerrou=false;
   // IMPORTANT : save() (et non persist()) pour pousser immédiatement la
   // clôture vers le cloud — sinon la suppression reste locale et le
   // prochain appareil qui se synchronise récupère l'ancien état complet.
-  save(); notif('✅ Clôture. Dette globale verrouillée: '+fmt(D.dettesClot));
+  save(); notif('✅ Clôture. Cumul verrouillé: '+fmt(D.dettesClot)+' — nouvelle période de dettes ouverte');
+}
+/** Filet de sécurité pour les installations restées bloquées par
+ * l'ancien bug (detteVerrou resté à true après une clôture). */
+function deverrouillerDettes(){
+  D.detteVerrou=false; save(); notif('🔓 Saisie des dettes déverrouillée');
 }
 
 // ================================================================
@@ -1687,7 +1709,7 @@ function exportExcel(){
       feuille('Stock Perso', D.perso, [
         ['Nom','nom'],['Qté initiale','qteInitiale'],['Qté vendue','qteVendue'],['Qté restante','qteRestante'],
         ['Prix achat','achat'],['Prix vente','vente'],['Prix revient','prixRevient'],
-        ['Commission (10%)','commission'],['Total dû','totalDu'],['Remboursé','rembourse'],['Date','date']
+        ['Commission (15%)','commission'],['Total dû','totalDu'],['Remboursé','rembourse'],['Date','date']
       ]);
       feuille('Dettes', D.dettes, [
         ['Date','date'],['Type','type'],['Description','desc'],['Montant','montant']

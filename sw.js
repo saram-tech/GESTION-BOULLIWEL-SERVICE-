@@ -14,7 +14,7 @@
         puis supprimera automatiquement les caches obsolètes.
    ===================================================================== */
 
-const CACHE_VERSION = 'v11';
+const CACHE_VERSION = 'v14';
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
