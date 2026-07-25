@@ -60,6 +60,11 @@ header{position:sticky;top:0;z-index:200;background:rgba(7,11,20,.97);backdrop-f
 .logo{font-family:var(--font-display);font-size:.95rem;font-weight:800;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 .logo small{font-size:.6rem;color:var(--tx2);display:block;-webkit-text-fill-color:var(--tx2);font-family:var(--font-body);font-weight:400;}
 .hbts{display:flex;gap:4px;flex-wrap:wrap;}
+.sync-badge{font-size:.68rem;font-weight:600;padding:4px 10px;border-radius:20px;white-space:nowrap;transition:background .3s,color .3s;}
+.sync-online{background:rgba(34,197,94,.15);color:#22c55e;}
+.sync-syncing{background:rgba(251,191,36,.15);color:#fbbf24;}
+.sync-error{background:rgba(239,68,68,.15);color:#ef4444;}
+.sync-offline{background:rgba(148,163,184,.15);color:#94a3b8;}
 nav{background:var(--bg2);border-bottom:1px solid var(--bd);position:sticky;top:54px;z-index:190;overflow-x:auto;}
 .ni{display:flex;gap:2px;padding:7px 12px 0;min-width:max-content;}
 .nb{padding:6px 12px;border-radius:7px 7px 0 0;background:transparent;border:1px solid transparent;border-bottom:none;color:var(--tx2);cursor:pointer;font-family:var(--font-body);font-size:.77rem;font-weight:500;white-space:nowrap;transition:all .2s;}
@@ -222,6 +227,7 @@ tbody tr:last-child td{border-bottom:none;}
 
 <header>
   <div class="logo">Boulliwel Pro <small>Gestion Intégrée v3</small></div>
+  <div id="sync-status" class="sync-badge sync-offline" title="Statut de synchronisation">⚪ Vérification…</div>
   <div class="hbts">
     <button class="btn bh bsm" onclick="showChangerPass()" title="Changer mot de passe">🔑</button>
     <button class="btn bh bsm" onclick="exportData()">💾 Export</button>
@@ -1868,6 +1874,15 @@ document.addEventListener('DOMContentLoaded',function(){
   } else {
     document.getElementById('inp-login').focus();
   }
+  // Statut initial de synchronisation
+  if (!navigator.onLine) {
+    setSyncStatus('offline', '⚪ Hors ligne');
+  } else if (SUPABASE_CONFIG.enabled) {
+    setSyncStatus('syncing', '🟠 Connexion…');
+    syncToCloud();
+  } else {
+    setSyncStatus('offline', '⚪ Cloud désactivé');
+  }
 });
 
 // ================================================================
@@ -1906,6 +1921,8 @@ var ROW_ID = 'boulliwel-secret-2026';
  */
 function syncToCloud() {
   if (!SUPABASE_CONFIG.enabled) return;
+  if (!navigator.onLine) { setSyncStatus('offline', '⚪ Hors ligne — en attente'); return; }
+  setSyncStatus('syncing', '🟠 Synchronisation…');
   fetch(SUPABASE_CONFIG.url + '/rest/v1/app_data', {
     method: 'POST',
     headers: {
@@ -1921,11 +1938,37 @@ function syncToCloud() {
         throw new Error('HTTP ' + res.status + ' — ' + msg);
       });
     }
+    var h = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    setSyncStatus('online', '🟢 Synchronisé ' + h);
   }).catch(function (err) {
     console.error('[Supabase] Échec de synchronisation (envoi) :', err);
     notif('⚠️ Échec de synchronisation cloud : ' + err.message, 6000);
+    setSyncStatus('error', '🔴 Erreur de synchronisation');
   });
 }
+
+/**
+ * Met à jour le badge visuel de statut de synchronisation, visible en
+ * permanence dans l'en-tête, pour que l'utilisateur sache toujours si
+ * ses données sont sauvegardées dans le cloud, en attente, ou hors ligne.
+ * @param {'online'|'syncing'|'error'|'offline'} state
+ * @param {string} text
+ */
+function setSyncStatus(state, text) {
+  var el = document.getElementById('sync-status');
+  if (!el) return;
+  el.className = 'sync-badge sync-' + state;
+  el.textContent = text;
+}
+
+// Réagit immédiatement aux changements de connexion réseau
+window.addEventListener('online', function () {
+  setSyncStatus('syncing', '🟠 Reconnexion…');
+  syncToCloud();
+});
+window.addEventListener('offline', function () {
+  setSyncStatus('offline', '⚪ Hors ligne — données sauvegardées localement');
+});
 
 /**
  * Récupère l'état applicatif depuis Supabase et l'applique à D si une
