@@ -266,6 +266,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="kpi"><div class="kl">Reste Clients</div><div class="kv gold" id="k-rst">0 GNF</div><div class="ks">Non soldés</div></div>
     <div class="kpi"><div class="kl">Ent. Me Doit</div><div class="kv gold" id="k-ent">0 GNF</div></div>
     <div class="kpi"><div class="kl">Dette Associé</div><div class="kv r" id="k-det">0 GNF</div></div>
+    <div class="kpi"><div class="kl">Reste Associé Me Doit</div><div class="kv r" id="k-assodoit">0 GNF</div></div>
     <div class="kpi"><div class="kl">Activités</div><div class="kv" id="k-act">0</div></div>
     <div class="kpi"><div class="kl">Ventes</div><div class="kv b" id="k-ven">0</div></div>
     <div class="kpi"><div class="kl">Rép./Services</div><div class="kv pur" id="k-rep">0</div></div>
@@ -842,6 +843,19 @@ document.querySelectorAll('.ov').forEach(function(o){
 // HELPERS
 // ================================================================
 function fmt(n){ if(isNaN(n)||n==null) return '0 GNF'; return Math.round(n).toLocaleString('fr-FR')+' GNF'; }
+/**
+ * Formate une date 'YYYY-MM-DD' en "NomDuJour JJ-MM-AAAA" (ex: "Dimanche 26-07-2026").
+ * Retourne la chaîne d'origine si le format n'est pas reconnu.
+ */
+var JOURS_FR=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+function fmtDateJour(dateStr){
+  if(!dateStr) return '';
+  var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr);
+  if(!m) return dateStr;
+  var dt=new Date(parseInt(m[1]),parseInt(m[2])-1,parseInt(m[3]));
+  if(isNaN(dt.getTime())) return dateStr;
+  return JOURS_FR[dt.getDay()]+' '+m[3]+'-'+m[2]+'-'+m[1];
+}
 function v(id){ var e=document.getElementById(id); return e?e.value:''; }
 function fl(id){ return parseFloat(v(id))||0; }
 function sv(id,val){ var e=document.getElementById(id); if(e) e.value=val; }
@@ -1280,7 +1294,13 @@ function creerCmdFournisseur(stockId){
 // ================================================================
 // BILAN
 // ================================================================
-function calculerBilan(){
+/**
+ * Calcule TOUTES les valeurs du Bilan en un seul endroit (source unique
+ * de vérité). Utilisée par calculerBilan() (affichage), updateKPIs()
+ * (tableau de bord) et exportExcel() (export) — pour ne plus jamais avoir
+ * deux formules différentes qui affichent des chiffres différents.
+ */
+function calculerBilanData(){
   var tp=D.activites.reduce(function(s,a){ return s+a.paye; },0);
   var ta=D.activites.reduce(function(s,a){ return s+(a.achat*(a.qte||1)); },0);
   var tapy=D.activites.reduce(function(s,a){ return s+a.apayer; },0);
@@ -1294,21 +1314,25 @@ function calculerBilan(){
   var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0)+D.dettesClot;
   var totP=D.paiements.reduce(function(s,p){ return s+p.montant; },0);
   var dnBrut=Math.max(0,totD-totP);
-  // Les 15% retenus proviennent de la part de l'associé : ils s'appliquent
-  // D'ABORD comme un premier remboursement de sa dette, avant tout calcul
-  // de ce qu'il reçoit. S'il ne reste pas assez de dette pour absorber
-  // tout le 15%, le surplus reste une vraie retenue au profit de l'entreprise.
   var r15VersDette=Math.min(r15,dnBrut);
   var r15Restant=Math.max(0,r15-dnBrut);
   var dn=Math.max(0,dnBrut-r15);
   var ra=pa15-dn;
-  // Entreprise me doit: le stock perso, moins (prix achat total + 20%)
-  // déjà remboursés — le 20% s'additionne au prix d'achat total puis
-  // est soustrait de ce que l'entreprise doit (il ne s'ajoute plus au
-  // "total dû" au préalable, sinon il s'annulait mathématiquement).
   var entDoit=tperso;
   var aDeduire=ta+d20+(D.entDejaDeduit||0);
   var resteEnt=entDoit-aDeduire;
+  var resteAVousPayer=r15Restant+Math.max(0,-ra);
+  var resteAssocieDoit=Math.max(0,-ra);
+  return {tp:tp,ta:ta,tapy:tapy,tr:tr,bb:bb,tdep:tdep,tperso:tperso,d20:d20,a20:a20,aD:aD,
+    mp:mp,pab:pab,r15:r15,pa15:pa15,totD:totD,totP:totP,dnBrut:dnBrut,r15VersDette:r15VersDette,
+    r15Restant:r15Restant,dn:dn,ra:ra,entDoit:entDoit,aDeduire:aDeduire,resteEnt:resteEnt,
+    resteAVousPayer:resteAVousPayer,resteAssocieDoit:resteAssocieDoit};
+}
+function calculerBilan(){
+  var bd=calculerBilanData();
+  var tp=bd.tp,ta=bd.ta,tapy=bd.tapy,tr=bd.tr,bb=bd.bb,tdep=bd.tdep,tperso=bd.tperso,d20=bd.d20,a20=bd.a20,aD=bd.aD;
+  var mp=bd.mp,pab=bd.pab,r15=bd.r15,dnBrut=bd.dnBrut,r15VersDette=bd.r15VersDette,r15Restant=bd.r15Restant,dn=bd.dn,ra=bd.ra;
+  var entDoit=bd.entDoit,resteEnt=bd.resteEnt;
   var res=document.getElementById('bilan-result');
   if(tp<=0&&ta<=0){
     res.innerHTML='<div class="card" style="text-align:center;padding:32px;color:var(--tx2)"><div style="font-size:1.8rem;margin-bottom:7px">📊</div>Aucune activité enregistrée.</div>';
@@ -1514,7 +1538,7 @@ function rAct(){
     var isNewDay=(a.date!==lastDate);
     lastDate=a.date;
     html+='<tr>';
-    html+='<td>'+(isNewDay?('<strong>'+a.date+'</strong>'):'')+'</td>';
+    html+='<td>'+(isNewDay?('<strong>'+fmtDateJour(a.date)+'</strong>'):'')+'</td>';
     html+='<td style="color:var(--tx2);font-weight:600">'+numAffiche+'</td>';
     html+='<td>'+(a.ticket?'<span class="badge bpr" style="font-size:.66rem">'+a.ticket+'</span>':'<span style="color:var(--tx3)">—</span>')+'</td>';
     html+='<td><span class="badge '+tcc+'">'+a.type+'</span></td>';
@@ -1554,7 +1578,7 @@ function rStock(){
     html+='<td>'+fmt(s.achat)+'</td>';
     html+='<td>'+fmt(s.vente||0)+'</td>';
     html+='<td>'+fmt(restant*s.achat)+'</td>';
-    html+='<td>'+(s.date||'—')+'</td>';
+    html+='<td>'+(s.date?fmtDateJour(s.date):'—')+'</td>';
     html+='<td class="ac"><button class="btn bh bxs" onclick="editStock('+s.id+')">✏️</button><button class="btn bd bxs" onclick="delStock('+s.id+')">🗑️</button></td>';
     html+='</tr>';
   });
@@ -1594,7 +1618,7 @@ function rDettes(){
   else{
     var html='';
     D.dettes.forEach(function(d){
-      html+='<tr><td>'+(d.date||'—')+'</td><td>'+d.desc+'</td>';
+      html+='<tr><td>'+(d.date?fmtDateJour(d.date):'—')+'</td><td>'+d.desc+'</td>';
       html+='<td><span class="badge bnr">'+d.type+'</span></td>';
       html+='<td style="color:var(--re)">'+fmt(d.montant)+'</td>';
       html+='<td class="ac">'+(locked?'<span class="badge bgg">🔒</span>':'<button class="btn bh bxs" onclick="editDette('+d.id+')">✏️</button><button class="btn bd bxs" onclick="delDette('+d.id+')">🗑️</button>')+'</td></tr>';
@@ -1608,7 +1632,7 @@ function rDettes(){
   else{
     var html2='';
     D.paiements.slice().reverse().forEach(function(p){
-      html2+='<tr><td>'+p.date+'</td><td><span class="badge bgr">'+p.type+'</span></td>';
+      html2+='<tr><td>'+fmtDateJour(p.date)+'</td><td><span class="badge bgr">'+p.type+'</span></td>';
       html2+='<td style="font-size:.76rem">'+(p.note||'—')+'</td>';
       html2+='<td style="color:var(--gr)">'+fmt(p.montant)+'</td>';
       html2+='<td class="ac"><button class="btn bh bxs" onclick="editPaym('+p.id+')">✏️</button><button class="btn bd bxs" onclick="delPaym('+p.id+')">🗑️</button></td></tr>';
@@ -1625,7 +1649,7 @@ function rDep(){
   D.depenses.forEach(function(d){
     tot+=d.montant; if(d.date&&d.date.startsWith(m)) mois+=d.montant;
     var isNewDayDep=(d.date!==lastDateDep); lastDateDep=d.date;
-    html+='<tr><td>'+(isNewDayDep?('<strong>'+(d.date||'—')+'</strong>'):'')+'</td><td><span class="badge bbr">'+d.cat+'</span></td>';
+    html+='<tr><td>'+(isNewDayDep?('<strong>'+(d.date?fmtDateJour(d.date):'—')+'</strong>'):'')+'</td><td><span class="badge bbr">'+d.cat+'</span></td>';
     html+='<td>'+(d.desc||'—')+'</td><td>'+(d.qte||1)+'</td>';
     html+='<td>'+fmt(d.prix||d.montant)+'</td>';
     html+='<td style="color:var(--re)"><strong>'+fmt(d.montant)+'</strong></td>';
@@ -1641,7 +1665,7 @@ function rCmd(){
   var html='';
   D.commandes.slice().reverse().forEach(function(c){
     html+='<tr>';
-    html+='<td>'+c.date+'</td>';
+    html+='<td>'+fmtDateJour(c.date)+'</td>';
     html+='<td><span class="badge bpr">'+c.num+'</span></td>';
     html+='<td><strong>'+c.client+'</strong></td>';
     html+='<td>'+(c.tel?'<a href="tel:'+c.tel+'" style="color:var(--gr);font-size:.76rem;text-decoration:none">📞 '+c.tel+'</a>':'<span style="color:var(--tx3)">—</span>')+'</td>';
@@ -1667,7 +1691,7 @@ function rHisto(){
   var lastDateH=null;
   items.forEach(function(i){
     var isNewDayH=(i.date!==lastDateH); lastDateH=i.date;
-    html+='<tr><td>'+(isNewDayH?('<strong>'+(i.date||'—')+'</strong>'):'')+'</td><td><span class="badge '+(tc[i.type]||'bbr')+'">'+i.type+'</span></td><td>'+i.desc+'</td><td>'+(i.montant?fmt(i.montant):'—')+'</td></tr>';
+    html+='<tr><td>'+(isNewDayH?('<strong>'+(i.date?fmtDateJour(i.date):'—')+'</strong>'):'')+'</td><td><span class="badge '+(tc[i.type]||'bbr')+'">'+i.type+'</span></td><td>'+i.desc+'</td><td>'+(i.montant?fmt(i.montant):'—')+'</td></tr>';
   });
   tb.innerHTML=html;
 }
@@ -1680,7 +1704,7 @@ function rCorbeille(){
   var html='';
   D.corbeille.slice().reverse().forEach(function(c){
     html+='<div class="ci">';
-    html+='<div style="color:var(--tx2)"><span class="badge '+(tc[c.type]||'bgg')+'" style="margin-right:6px">'+c.type+'</span><strong>'+c.label+'</strong> <span style="font-size:.7rem;color:var(--tx3)">— '+c.date+'</span></div>';
+    html+='<div style="color:var(--tx2)"><span class="badge '+(tc[c.type]||'bgg')+'" style="margin-right:6px">'+c.type+'</span><strong>'+c.label+'</strong> <span style="font-size:.7rem;color:var(--tx3)">— '+fmtDateJour(c.date)+'</span></div>';
     html+='<div style="display:flex;gap:5px"><button class="btn bs bxs" onclick="restaurer('+c.id+')">♻️ Restaurer</button><button class="btn bd bxs" onclick="suppDef('+c.id+')">❌ Suppr. déf.</button></div>';
     html+='</div>';
   });
@@ -1688,21 +1712,15 @@ function rCorbeille(){
 }
 
 function updateKPIs(){
-  var enc=D.activites.reduce(function(s,a){ return s+a.paye; },0);
-  var ac=D.activites.reduce(function(s,a){ return s+(a.achat*(a.qte||1)); },0);
-  var dep=D.depenses.reduce(function(s,d){ return s+d.montant; },0);
-  var bb=enc-ac, r20=bb*0.20, net=bb-r20-dep;
-  var rst=D.activites.reduce(function(s,a){ return s+a.reste; },0);
-  var tp=D.perso.reduce(function(s,p){ return s+(p.totalDu-p.rembourse); },0);
-  var entDoit=Math.max(0,tp-ac-r20-(D.entDejaDeduit||0));
-  var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0)+D.dettesClot;
-  st('k-enc',fmt(enc)); st('k-ben',fmt(net)); st('k-map',fmt(net/2));
-  st('k-dep',fmt(dep)); st('k-rst',fmt(rst)); st('k-ent',fmt(entDoit)); st('k-det',fmt(totD));
+  var bd=calculerBilanData();
+  st('k-enc',fmt(bd.tp)); st('k-ben',fmt(bd.aD)); st('k-map',fmt(bd.mp));
+  st('k-dep',fmt(bd.tdep)); st('k-rst',fmt(bd.tr)); st('k-ent',fmt(Math.max(0,bd.resteEnt))); st('k-det',fmt(bd.totD));
+  var elAssoDoit=document.getElementById('k-assodoit'); if(elAssoDoit) st('k-assodoit',fmt(bd.resteAssocieDoit));
   st('k-act',D.activites.length);
   st('k-ven',D.activites.filter(function(a){ return a.type==='Vente'; }).length);
   st('k-rep',D.activites.filter(function(a){ return a.type!=='Vente'; }).length);
   var l5=D.histo.slice(-5).reverse();
-  var lohtml=l5.length?l5.map(function(h){ return '<div style="padding:3px 0;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between"><span style="font-size:.76rem">'+h.desc+'</span><span style="color:var(--tx2);font-size:.7rem">'+h.date+'</span></div>'; }).join(''):'Aucune opération.';
+  var lohtml=l5.length?l5.map(function(h){ return '<div style="padding:3px 0;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between"><span style="font-size:.76rem">'+h.desc+'</span><span style="color:var(--tx2);font-size:.7rem">'+fmtDateJour(h.date)+'</span></div>'; }).join(''):'Aucune opération.';
   document.getElementById('last-ops').innerHTML=lohtml;
 }
 
@@ -1796,8 +1814,50 @@ function exportExcel(){
       feuille('Historique', D.histo, [
         ['Date','date'],['Type','type'],['Description','desc'],['Montant','montant']
       ]);
+      feuille('Corbeille', D.corbeille, [
+        ['Date suppression','date'],['Type','type'],['Élément','label']
+      ]);
+      // --- Feuille BILAN : mêmes formules exactes que l'onglet Bilan de
+      // l'app, pour que l'export Excel ne soit jamais en décalage avec
+      // ce qui s'affiche à l'écran.
+      var tp=D.activites.reduce(function(s,a){ return s+a.paye; },0);
+      var ta=D.activites.reduce(function(s,a){ return s+(a.achat*(a.qte||1)); },0);
+      var tapy=D.activites.reduce(function(s,a){ return s+a.apayer; },0);
+      var trReste=D.activites.reduce(function(s,a){ return s+a.reste; },0);
+      var bb=tp-ta;
+      var tdep=D.depenses.reduce(function(s,d){ return s+d.montant; },0);
+      var d20=bb*0.20, a20=bb-d20, aD=a20-tdep;
+      var mp=aD/2, pab=aD/2;
+      var r15=pab*0.15, pa15=pab-r15;
+      var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0)+D.dettesClot;
+      var totP=D.paiements.reduce(function(s,p){ return s+p.montant; },0);
+      var dnBrut=Math.max(0,totD-totP);
+      var r15VersDette=Math.min(r15,dnBrut);
+      var r15Restant=Math.max(0,r15-dnBrut);
+      var dn=Math.max(0,dnBrut-r15);
+      var ra=pa15-dn;
+      var tperso=D.perso.reduce(function(s,p){ return s+(p.totalDu-(p.rembourse||0)); },0);
+      var entDoit=tperso;
+      var aDeduire=ta+d20+(D.entDejaDeduit||0);
+      var resteEnt=entDoit-aDeduire;
+      var bilanData=[
+        ['Total encaissé (payé)',tp],['Prix achat total (activités)',ta],['Total à payer (activités)',tapy],['Reste clients (impayé)',trReste],
+        ['Bénéfice brut',bb],['20% réinvestissement',d20],['Dépenses (période)',tdep],['Bénéfice net',aD],
+        ['Ma part (50%)',mp],
+        ['Part de base associé (50%)',pab],['15% retenu (de sa part)',r15],
+        ['Dette brute associé (actives + cumul clôtures)',totD],['Paiements reçus de l\'associé',totP],
+        ['Dette nette brute (avant 15%)',dnBrut],['15% appliqué en 1er paiement de dette',r15VersDette],
+        ['15% restant (non absorbé par la dette)',r15Restant],['Dette restante après 15%',dn],
+        ['Part associé nette (reçoit si positif, doit si négatif)',ra],
+        ['Stock perso — total dû',tperso],['− Prix achat total (période)',ta],['− 20% (période)',d20],
+        ['− Déjà déduit (cumul clôtures précédentes)',D.entDejaDeduit||0],
+        ['Reste que l\'entreprise vous doit (stock perso)',resteEnt],
+        ['Cumul dettes clôturées (dettesClot)',D.dettesClot]
+      ];
+      var wsB=XLSX.utils.json_to_sheet(bilanData.map(function(r){ return {'Libellé':r[0],'Valeur (GNF)':Math.round(r[1])}; }));
+      XLSX.utils.book_append_sheet(wb,wsB,'Bilan');
       XLSX.writeFile(wb,'boulliwel_'+td()+'.xlsx');
-      notif('✅ Export Excel généré');
+      notif('✅ Export Excel généré (toutes les données + Bilan)');
     }catch(err){
       console.error('[Export Excel]',err);
       notif('❌ Erreur export Excel : '+err.message,6000);
