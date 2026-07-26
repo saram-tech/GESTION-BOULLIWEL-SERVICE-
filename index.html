@@ -230,6 +230,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="logo">Boulliwel Pro <small>Gestion Intégrée v3</small></div>
   <div id="sync-status" class="sync-badge sync-offline" title="Statut de synchronisation">⚪ Vérification…</div>
   <div class="hbts">
+    <button class="btn bs bsm" onclick="ouvrirParametres()" title="Paramètres — contrôle total de l'application">⚙️ Paramètres</button>
     <button class="btn bh bsm" onclick="showChangerPass()" title="Changer mot de passe">🔑</button>
     <button class="btn bh bsm" onclick="exportData()">💾 Export</button>
     <button class="btn bh bsm" onclick="exportExcel()" title="Exporter toutes les données en fichier Excel (.xlsx)">📊 Excel</button>
@@ -468,6 +469,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div><div class="st">Commandes</div><div class="ss">Clients + Alertes stock faible → Fournisseurs</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn bo bsm" onclick="om('mc')">+ Nouvelle commande</button>
+      <button class="btn bg bsm" onclick="copierCmdFournisseur()" title="Copier la liste des produits à commander, prête pour WhatsApp">📲 Copier pour fournisseur</button>
       <button class="btn bd bsm" onclick="viderCommandes()">🗑️ Tout supprimer</button>
     </div>
   </div>
@@ -582,6 +584,57 @@ tbody tr:last-child td{border-bottom:none;}
     <div style="display:flex;gap:7px;justify-content:flex-end">
       <button class="btn bh" onclick="cm('mrp')">Annuler</button>
       <button class="btn bs" onclick="enrRembPerso()">✓ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- PARAMÈTRES / CONTRÔLE TOTAL -->
+<div class="ov" id="mparams">
+  <div class="modal" style="max-width:520px">
+    <div class="mhd">⚙️ Paramètres — Contrôle total<button class="mcl" onclick="cm('mparams')">✕</button></div>
+
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">💰 Pourcentages financiers</div>
+    <div class="fr">
+      <div class="fg"><label>% Réinvestissement (sur bénéfice brut)</label><input type="number" id="pr-reinvest" min="0" max="100" step="0.1"></div>
+      <div class="fg"><label>% Retenu sur part associé</label><input type="number" id="pr-retenu" min="0" max="100" step="0.1"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>% Stock Perso (créance = prix revient + X%)</label><input type="number" id="pr-perso" min="0" max="100" step="0.1"></div>
+    </div>
+    <div class="al alw" style="font-size:.74rem">⚠️ Modifier ces valeurs change immédiatement tous les calculs de l'app (Bilan, tableau de bord, nouveaux produits Stock Perso). Les articles déjà enregistrés gardent leur ancien pourcentage tant qu'ils ne sont pas modifiés.</div>
+
+    <hr class="sep">
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">📲 Fournisseur WhatsApp</div>
+    <div class="fr">
+      <div class="fg"><label>Numéro WhatsApp fournisseur (avec indicatif, ex: 224620000000)</label><input type="text" id="pr-fourn" placeholder="224620000000"></div>
+    </div>
+    <div style="font-size:.74rem;color:var(--tx2);margin-bottom:10px">Si renseigné, "📲 Copier pour fournisseur" enverra directement à ce numéro au lieu d'ouvrir le sélecteur de contact.</div>
+
+    <div style="display:flex;gap:7px;justify-content:flex-end;margin-bottom:14px">
+      <button class="btn bh" onclick="cm('mparams')">Annuler</button>
+      <button class="btn bs" onclick="enrParametres()">✓ Enregistrer</button>
+    </div>
+
+    <hr class="sep">
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">🗂️ Données</div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn bh bsm" onclick="exportData()">💾 Export JSON</button>
+      <button class="btn bh bsm" onclick="importData()">📂 Import JSON</button>
+      <button class="btn bh bsm" onclick="exportExcel()">📊 Export Excel</button>
+      <button class="btn bg bsm" onclick="saveCloud()">🔗 Lien partage</button>
+      <button class="btn bg bsm" onclick="testSupabaseConnection()">🔌 Test Cloud</button>
+    </div>
+
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">🔑 Compte</div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn bh bsm" onclick="cm('mparams');showChangerPass()">🔑 Changer mot de passe</button>
+      <button class="btn bh bsm" onclick="doLogout()">🚪 Déconnexion</button>
+    </div>
+
+    <div style="font-size:.78rem;color:var(--re);font-weight:700;text-transform:uppercase;margin:4px 0 8px">⚠️ Zone à risque</div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap">
+      <button class="btn bd bsm" onclick="cloturer()">🔄 Clôturer la période</button>
+      <button class="btn bd bsm" onclick="viderTout()">🗑️ Tout supprimer</button>
     </div>
   </div>
 </div>
@@ -793,13 +846,13 @@ let D = {
   activites:[],stock:[],perso:[],depenses:[],
   dettes:[],dettesClot:0,detteVerrou:false,
   paiements:[],commandes:[],histo:[],corbeille:[],
-  _o:1,_co:1,_del:{},auth:null,entDejaDeduit:0
+  _o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''}
 };
 
 function load(){
   try{
     const s=localStorage.getItem(KEY);
-    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0},d); if(!D._del) D._del={}; }
+    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''}},d); if(!D._del) D._del={}; }
   }catch(e){}
 }
 
@@ -898,6 +951,22 @@ function pAct(){
  * pour que le stock reste toujours synchronisé avec les activités réelles,
  * peu importe qu'une activité soit créée, modifiée, supprimée ou restaurée.
  */
+/** Accès sécurisé aux paramètres réglables (avec migration si absents). */
+function getParams(){
+  if(!D.params) D.params={reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''};
+  return D.params;
+}
+function ouvrirParametres(){
+  var p=getParams();
+  sv('pr-reinvest',p.reinvest); sv('pr-retenu',p.retenuAssocie); sv('pr-perso',p.stockPerso); sv('pr-fourn',p.fournisseurTel||'');
+  om('mparams');
+}
+function enrParametres(){
+  var reinvest=fl('pr-reinvest'), retenu=fl('pr-retenu'), perso=fl('pr-perso'), fourn=v('pr-fourn').trim().replace(/[^0-9]/g,'');
+  if(reinvest<0||reinvest>100||retenu<0||retenu>100||perso<0||perso>100){ notif('⚠️ Les pourcentages doivent être entre 0 et 100'); return; }
+  D.params={reinvest:reinvest,retenuAssocie:retenu,stockPerso:perso,fournisseurTel:fourn};
+  save(); cm('mparams'); notif('✅ Paramètres enregistrés');
+}
 function ajusterStockVendu(desig, delta){
   if(!desig || !delta) return;
   var pr=D.stock.find(function(p){ return p.nom.toLowerCase()===desig.toLowerCase(); });
@@ -1037,7 +1106,7 @@ function enrPerso(){
   var nom=v('p-nom').trim(),qte=parseInt(v('p-qte'))||0,achat=fl('p-achat'),vente=fl('p-vente'),date=v('p-date');
   if(!nom||qte<=0||achat<=0){ notif('⚠️ Champs obligatoires manquants'); return; }
   // Prix revient = achat × qte ; créance = prix revient × 1.15
-  var prixRevient=achat*qte, commission=prixRevient*0.15, totalDu=prixRevient+commission;
+  var prixRevient=achat*qte, commission=prixRevient*(getParams().stockPerso/100), totalDu=prixRevient+commission;
   var eid=v('p-eid');
   if(eid){
     var p=D.perso.find(function(x){ return x.id==eid; });
@@ -1266,6 +1335,50 @@ function cStatCmd(id,s){
   var c=D.commandes.find(function(x){ return x.id===id; });
   if(c){ c.statut=s; ah('commande','Statut → '+s+': '+c.client,0,td()); save(); }
 }
+/**
+ * Regroupe tous les produits de toutes les commandes clients actives
+ * (hors "Annulé") en une liste consolidée de quantités à commander,
+ * puis copie ce texte dans le presse-papier et propose de l'envoyer
+ * directement sur WhatsApp au fournisseur.
+ */
+function copierCmdFournisseur(){
+  var actives=D.commandes.filter(function(c){ return c.statut!=='Annulé'; });
+  if(!actives.length){ notif('⚠️ Aucune commande à envoyer'); return; }
+  var totaux={};
+  actives.forEach(function(c){
+    (c.produits||[]).forEach(function(l){
+      var nom=(l.produit||'').trim(); if(!nom) return;
+      totaux[nom]=(totaux[nom]||0)+(l.qte||0);
+    });
+  });
+  var noms=Object.keys(totaux);
+  if(!noms.length){ notif('⚠️ Aucun produit dans les commandes actives'); return; }
+  var txt='📦 *COMMANDE FOURNISSEUR — Boulliwel Service*\n'+fmtDateJour(td())+'\n\n';
+  noms.forEach(function(n,i){ txt+=(i+1)+'. '+n+' — '+totaux[n]+'\n'; });
+  txt+='\nMerci de confirmer la disponibilité et les prix. 🙏';
+  var envoyer=function(){
+    var tel=(getParams().fournisseurTel||'').trim();
+    var url=tel? ('https://wa.me/'+tel+'?text='+encodeURIComponent(txt)) : ('https://wa.me/?text='+encodeURIComponent(txt));
+    window.open(url,'_blank');
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){
+      notif('✅ Liste copiée — ouverture de WhatsApp…');
+      envoyer();
+    }).catch(function(){
+      notif('⚠️ Copie impossible, ouverture directe de WhatsApp…');
+      envoyer();
+    });
+  } else {
+    // Repli pour navigateurs/webviews sans API Clipboard moderne
+    var ta=document.createElement('textarea');
+    ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try{ document.execCommand('copy'); notif('✅ Liste copiée — ouverture de WhatsApp…'); }catch(e){ notif('⚠️ Copie impossible, ouverture directe de WhatsApp…'); }
+    document.body.removeChild(ta);
+    envoyer();
+  }
+}
 function appelClient(){
   var tel=v('c-tel').trim();
   if(!tel){ notif('⚠️ Aucun numéro de téléphone saisi'); return; }
@@ -1308,9 +1421,9 @@ function calculerBilanData(){
   var bb=tp-ta;
   var tdep=D.depenses.reduce(function(s,d){ return s+d.montant; },0);
   var tperso=D.perso.reduce(function(s,p){ return s+(p.totalDu-p.rembourse); },0);
-  var d20=bb*0.20, a20=bb-d20, aD=a20-tdep;
+  var d20=bb*(getParams().reinvest/100), a20=bb-d20, aD=a20-tdep;
   var mp=aD/2, pab=aD/2;
-  var r15=pab*0.15, pa15=pab-r15;
+  var r15=pab*(getParams().retenuAssocie/100), pa15=pab-r15;
   var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0)+D.dettesClot;
   var totP=D.paiements.reduce(function(s,p){ return s+p.montant; },0);
   var dnBrut=Math.max(0,totD-totP);
@@ -1487,7 +1600,7 @@ function cloturer(){
   var taPeriode=D.activites.reduce(function(s,a){ return s+(a.achat*(a.qte||1)); },0);
   var tpPeriode=D.activites.reduce(function(s,a){ return s+a.paye; },0);
   var bbPeriode=tpPeriode-taPeriode;
-  var d20Periode=bbPeriode*0.20;
+  var d20Periode=bbPeriode*(getParams().reinvest/100);
   D.entDejaDeduit=(D.entDejaDeduit||0)+taPeriode+d20Periode;
   // Marquer les tombstones AVANT de vider, pour que la suppression
   // se propage correctement lors de la prochaine synchronisation
@@ -1743,7 +1856,7 @@ function hImport(e){
   r.onload=function(ev){
     try{
       var d=JSON.parse(ev.target.result);
-      if(confirm('Remplacer toutes les données actuelles ?')){ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0},d); persist(); renderAll(); notif('✅ Données importées'); }
+      if(confirm('Remplacer toutes les données actuelles ?')){ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''}},d); persist(); renderAll(); notif('✅ Données importées'); }
     }catch(err){ notif('⚠️ Fichier invalide'); }
   };
   r.readAsText(f); e.target.value='';
@@ -1826,9 +1939,9 @@ function exportExcel(){
       var trReste=D.activites.reduce(function(s,a){ return s+a.reste; },0);
       var bb=tp-ta;
       var tdep=D.depenses.reduce(function(s,d){ return s+d.montant; },0);
-      var d20=bb*0.20, a20=bb-d20, aD=a20-tdep;
+      var d20=bb*(getParams().reinvest/100), a20=bb-d20, aD=a20-tdep;
       var mp=aD/2, pab=aD/2;
-      var r15=pab*0.15, pa15=pab-r15;
+      var r15=pab*(getParams().retenuAssocie/100), pa15=pab-r15;
       var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0)+D.dettesClot;
       var totP=D.paiements.reduce(function(s,p){ return s+p.montant; },0);
       var dnBrut=Math.max(0,totD-totP);
@@ -1889,7 +2002,7 @@ function saveCloud(){
 function loadFromHash(){
   var h=window.location.hash;
   if(h&&h.startsWith('#data=')){
-    try{ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0},JSON.parse(decodeURIComponent(atob(h.slice(6))))); persist(); notif('✅ Données restaurées !'); return true; }catch(e){}
+    try{ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''}},JSON.parse(decodeURIComponent(atob(h.slice(6))))); persist(); notif('✅ Données restaurées !'); return true; }catch(e){}
   } return false;
 }
 
@@ -2342,7 +2455,7 @@ function syncFromCloud() {
     .then(function (res) { return res.json(); })
     .then(function (rows) {
       if (rows && rows.length && rows[0].data) {
-        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0}, rows[0].data);
+        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''}}, rows[0].data);
         persist(); renderAll();
         notif('✅ Données restaurées depuis le cloud');
         return true;
@@ -2370,7 +2483,7 @@ function syncFromCloud() {
 // donc on peut combiner les entrées de deux appareils au lieu d'en
 // écraser une avec l'autre.
 var MERGEABLE_ARRAYS = ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille'];
-var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0};
+var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''}};
 
 /**
  * Fusionne deux tableaux d'éléments par leur "id" (union), sans perte,
@@ -2427,6 +2540,7 @@ function mergeAppData(cloudData, localData, cloudIsNewer) {
   // on garde celui de la version prioritaire, mais jamais un null qui
   // écraserait un mot de passe déjà défini par erreur.
   merged.auth = priorite.auth || base.auth || null;
+  merged.params = priorite.params || base.params || {reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''};
   MERGEABLE_ARRAYS.forEach(function (f) {
     merged[f] = mergeArraysById(base[f], priorite[f], mergedDel[f]);
   });
