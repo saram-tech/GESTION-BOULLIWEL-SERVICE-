@@ -272,6 +272,15 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="kpi"><div class="kl">Ventes</div><div class="kv b" id="k-ven">0</div></div>
     <div class="kpi"><div class="kl">Rép./Services</div><div class="kv pur" id="k-rep">0</div></div>
   </div>
+  <div class="ch" style="margin:4px 0 8px"><span class="dot" style="background:var(--go)"></span>📦 Vue d'ensemble du Stock</div>
+  <div class="g5" style="margin-bottom:12px">
+    <div class="kpi"><div class="kl">Prix Achat Total</div><div class="kv" id="k-stock-achat">0 GNF</div><div class="ks">Stock Entreprise</div></div>
+    <div class="kpi"><div class="kl">Valeur du Stock</div><div class="kv g" id="k-stock-valeur">0 GNF</div><div class="ks">Restant × Prix achat</div></div>
+    <div class="kpi"><div class="kl">Produits</div><div class="kv b" id="k-stock-nb">0</div><div class="ks">Référencés</div></div>
+    <div class="kpi"><div class="kl">Qté Totale en Stock</div><div class="kv b" id="k-stock-qte">0</div></div>
+    <div class="kpi"><div class="kl">Produits en Rupture</div><div class="kv r" id="k-stock-rupture">0</div></div>
+    <div class="kpi"><div class="kl">Stock Faible</div><div class="kv gold" id="k-stock-faible">0</div></div>
+  </div>
   <div class="g2">
     <div class="card"><div class="ch"><span class="dot"></span>Actions rapides</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px">
@@ -665,13 +674,31 @@ tbody tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
+<!-- CONFIRMATION SÉCURISÉE (actions critiques) -->
+<div class="ov" id="msecure">
+  <div class="modal" style="max-width:460px">
+    <div class="mhd">🔒 Confirmation de sécurité<button class="mcl" onclick="cm('msecure')">✕</button></div>
+    <div id="sec-titre" style="font-weight:700;font-size:.95rem;margin-bottom:8px"></div>
+    <div id="sec-details" style="background:var(--bg4);border-radius:9px;padding:12px;font-size:.82rem;line-height:1.7;margin-bottom:10px"></div>
+    <div id="sec-irrev" class="al ald" style="font-size:.78rem;margin-bottom:10px">⚠️ Cette action est <strong>IRRÉVERSIBLE</strong>. Aucune récupération possible après confirmation.</div>
+    <div class="fr">
+      <div class="fg"><label>Mot de passe de l'application *</label><input type="password" id="sec-pass" placeholder="Entrez le mot de passe" onkeydown="if(event.key==='Enter')validerActionSecurisee()"></div>
+    </div>
+    <div id="sec-err" style="color:var(--re);font-size:.78rem;min-height:1.2em;margin-bottom:6px"></div>
+    <div style="display:flex;gap:7px;justify-content:flex-end">
+      <button class="btn bh" onclick="cm('msecure')">Annuler</button>
+      <button class="btn bd" onclick="validerActionSecurisee()">✓ Confirmer et exécuter</button>
+    </div>
+  </div>
+</div>
+
 <!-- STOCK -->
 <div class="ov" id="ms">
   <div class="modal">
     <div class="mhd"><span id="ms-t">📦 Entrée Stock</span><button class="mcl" onclick="cm('ms');rSF()">✕</button></div>
     <input type="hidden" id="s-eid">
     <div class="fr">
-      <div class="fg"><label>Nom produit *</label><input type="text" id="s-nom" placeholder="Ex: Riz 25kg" list="dl-prod" onblur="capitaliserChamp('s-nom')"></div>
+      <div class="fg"><label>Nom produit *</label><input type="text" id="s-nom" placeholder="Ex: Riz 25kg" list="dl-prod" oninput="autoPS()" onblur="capitaliserChamp('s-nom');autoPS()"></div>
       <div class="fg"><label>Quantité initiale *</label><input type="number" id="s-qte" placeholder="0" min="1"></div>
     </div>
     <div class="fr">
@@ -697,7 +724,7 @@ tbody tr:last-child td{border-bottom:none;}
     <input type="hidden" id="p-eid">
     <div class="al alw" style="font-size:.77rem">Créance = (Prix achat × Qté) × 1.15 — Prix revient + 15%</div>
     <div class="fr">
-      <div class="fg"><label>Nom produit *</label><input type="text" id="p-nom" placeholder="Ex: Cahiers" list="dl-prod" onblur="capitaliserChamp('p-nom')"></div>
+      <div class="fg"><label>Nom produit *</label><input type="text" id="p-nom" placeholder="Ex: Cahiers" list="dl-prod" oninput="autoPP()" onblur="capitaliserChamp('p-nom');autoPP()"></div>
       <div class="fg"><label>Quantité *</label><input type="number" id="p-qte" placeholder="0" min="1"></div>
     </div>
     <div class="fr">
@@ -977,6 +1004,20 @@ function autoPA(){
   var pr=D.stock.concat(D.perso).find(function(p){ return p.nom.toLowerCase()===nom; });
   if(pr){ sv('a-achat',pr.achat||0); pAct(); }
 }
+/** Pré-remplit le prix d'achat en Stock Ent. si le produit existe déjà (Stock Ent. ou Perso). */
+function autoPS(){
+  if(v('s-eid')) return; // ne pas écraser une modification en cours
+  var nom=v('s-nom').trim().toLowerCase(); if(!nom) return;
+  var pr=D.stock.concat(D.perso).find(function(p){ return p.nom.toLowerCase()===nom; });
+  if(pr && !v('s-achat')) sv('s-achat',pr.achat||0);
+}
+/** Pré-remplit le prix d'achat en Stock Perso si le produit existe déjà (Stock Ent. ou Perso). */
+function autoPP(){
+  if(v('p-eid')) return; // ne pas écraser une modification en cours
+  var nom=v('p-nom').trim().toLowerCase(); if(!nom) return;
+  var pr=D.stock.concat(D.perso).find(function(p){ return p.nom.toLowerCase()===nom; });
+  if(pr && !v('p-achat')) sv('p-achat',pr.achat||0);
+}
 function pAct(){
   var ac=fl('a-achat'),qte=Math.max(1,parseInt(v('a-qte'))||1),ap=fl('a-apayer'),pa=fl('a-paye');
   var ta=ac*qte,r=Math.max(0,ap-pa),b=pa-ta;
@@ -1060,6 +1101,34 @@ function migrerStockPerso(){
   });
   D._migrePersoV2=true;
   persist();
+}
+/**
+ * Flux de confirmation sécurisée pour les actions critiques : affiche les
+ * conséquences exactes, demande une confirmation explicite, PUIS exige le
+ * mot de passe de l'application avant d'exécuter quoi que ce soit. Si le
+ * mot de passe est incorrect, RIEN n'est exécuté et une erreur claire
+ * s'affiche.
+ */
+var _secureCallback=null;
+function demanderConfirmationSecurisee(titre, detailsHtml, irreversible, callback){
+  st('sec-titre',titre);
+  document.getElementById('sec-details').innerHTML=detailsHtml;
+  document.getElementById('sec-irrev').style.display=irreversible?'block':'none';
+  sv('sec-pass','');
+  document.getElementById('sec-err').textContent='';
+  _secureCallback=callback;
+  om('msecure');
+}
+function validerActionSecurisee(){
+  var pass=v('sec-pass');
+  var auth=getAuth();
+  if(!pass || pass!==auth.pass){
+    document.getElementById('sec-err').textContent='❌ Mot de passe incorrect. Aucune modification n\'a été effectuée.';
+    return;
+  }
+  var cb=_secureCallback; _secureCallback=null;
+  cm('msecure');
+  if(typeof cb==='function') cb();
 }
 function ajusterStockVendu(desig, delta){
   if(!desig || !delta) return;
@@ -1309,9 +1378,16 @@ function delPerso(id){
   rb('perso',p.nom,p); save(); notif('Perso → corbeille (stock ajusté)');
 }
 function viderPerso(){
-  if(!confirm('Vider tout le suivi comptable Perso ? Les quantités correspondantes seront retirées du Stock Entreprise.')) return;
-  D.perso.forEach(function(p){ retirerDeStockEnt(p.nom,p.qteInitiale||0); markDeleted('perso',p.id); rb('perso', p.nom, p); });
-  D.perso=[]; save(); notif('✅ Perso vidé → corbeille (stock ajusté)');
+  var n=D.perso.length;
+  var totDu=D.perso.reduce(function(s,p){ return s+(p.totalDu-(p.rembourse||0)); },0);
+  var details='• '+n+' fiche(s) de suivi comptable Stock Perso seront supprimées<br>'+
+    '• Créance totale concernée : '+fmt(totDu)+'<br>'+
+    '• Les quantités correspondantes seront retirées du Stock Entreprise (stock physique réduit en conséquence)<br>'+
+    '• Chaque élément part en Corbeille (récupérable) — mais le suivi de dette associé sera perdu tant qu\'il n\'est pas restauré';
+  demanderConfirmationSecurisee('Vider le Stock Personnel (suivi comptable)', details, false, function(){
+    D.perso.forEach(function(p){ retirerDeStockEnt(p.nom,p.qteInitiale||0); markDeleted('perso',p.id); rb('perso', p.nom, p); });
+    D.perso=[]; save(); notif('✅ Perso vidé → corbeille (stock ajusté)');
+  });
 }
 
 // ================================================================
@@ -1740,7 +1816,17 @@ function vCorbeille(){
 // CLÔTURE
 // ================================================================
 function cloturer(){
-  if(!confirm('⚠️ CLÔTURE DE PÉRIODE\n\nActivités, dépenses et historique supprimés.\nDettes actives et paiements de la période fusionnés dans le cumul verrouillé.\n"Ce que l\'entreprise vous doit" (stock perso) reste exact — rien n\'est perdu.\nStock (entreprise + perso) et Commandes CONSERVÉS intégralement.\nLa saisie de nouvelles dettes reste possible pour la période suivante.\n\nContinuer ?')) return;
+  var nAct=D.activites.length, nDep=D.depenses.length, nDet=D.dettes.length, nPay=D.paiements.length;
+  var totD0=D.dettes.reduce(function(s,d){ return s+d.montant; },0);
+  var totP0=D.paiements.reduce(function(s,p){ return s+p.montant; },0);
+  var details='• '+nAct+' activité(s), '+nDep+' dépense(s) et l\'historique seront <strong>supprimés</strong><br>'+
+    '• '+nDet+' dette(s) + '+nPay+' paiement(s) (net : '+fmt(Math.max(0,totD0-totP0))+') seront fusionnés dans le cumul verrouillé<br>'+
+    '• Stock (Entreprise + Perso) et Commandes seront <strong>conservés intégralement</strong><br>'+
+    '• "Ce que l\'entreprise vous doit" (stock perso) reste exact, rien n\'est perdu<br>'+
+    '• De nouvelles dettes pourront être saisies dès la période suivante';
+  demanderConfirmationSecurisee('Clôturer la période', details, true, executerCloture);
+}
+function executerCloture(){
   var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0);
   var totP=D.paiements.reduce(function(s,p){ return s+p.montant; },0);
   D.dettesClot=Math.max(0,totD-totP)+D.dettesClot;
@@ -1832,10 +1918,12 @@ function rStock(){
   var tb=document.getElementById('tbl-stock');
   if(!D.stock.length){ tb.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit</td></tr>'; return; }
   var html='';
+  var totInit=0,totVendu=0,totRestant=0,totValeur=0;
   D.stock.forEach(function(s){
     var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
     var seuil=s.seuil||3;
     var niv=niveauStock(restant,seuil);
+    totInit+=s.qteInitiale||0; totVendu+=s.qteVendue||0; totRestant+=restant; totValeur+=restant*s.achat;
     html+='<tr>';
     html+='<td><strong>'+s.nom+'</strong>'+(s.origPerso>0?' <span class="badge bor" style="font-size:.65rem" title="Dont '+s.origPerso+' unité(s) apportée(s) personnellement">👤 dont '+s.origPerso+'</span>':'')+'</td>';
     html+='<td>'+s.qteInitiale+'</td>';
@@ -1850,6 +1938,10 @@ function rStock(){
     html+='<td class="ac"><button class="btn bh bxs" onclick="editStock('+s.id+')">✏️</button><button class="btn bd bxs" onclick="delStock('+s.id+')">🗑️</button></td>';
     html+='</tr>';
   });
+  html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
+  html+='<td>TOTAL</td><td>'+totInit+'</td><td style="color:var(--or)">'+totVendu+'</td><td>'+totRestant+'</td>';
+  html+='<td>—</td><td>—</td><td>—</td><td>—</td><td style="color:var(--go)">'+fmt(totValeur)+'</td><td>—</td><td>—</td>';
+  html+='</tr>';
   tb.innerHTML=html;
 }
 
@@ -1857,10 +1949,13 @@ function rPerso(){
   var tb=document.getElementById('tbl-perso');
   if(!D.perso.length){ tb.innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr>'; st('t-perso','0 GNF'); return; }
   var tot=0, html='';
+  var totInit=0,totVendu=0,totRestant=0,totRevient=0,totCommission=0,totDu=0;
   D.perso.forEach(function(p){
     var r=p.totalDu-p.rembourse; tot+=r;
     var vr=calcPersoVenduRestant(p);
     var lie=D.stock.some(function(s){ return s.nom.toLowerCase()===p.nom.toLowerCase(); });
+    totInit+=p.qteInitiale||0; totVendu+=vr.vendu; totRestant+=vr.restant;
+    totRevient+=(p.prixRevient||p.achat*p.qteInitiale); totCommission+=p.commission||0; totDu+=p.totalDu||0;
     html+='<tr>';
     html+='<td><strong>'+p.nom+'</strong>'+(lie?' <span style="font-size:.65rem;color:var(--tx3)" title="Fusionné dans le Stock Entreprise">🔗</span>':' <span style="font-size:.65rem;color:var(--re)" title="Non retrouvé dans le Stock Entreprise">⚠️</span>')+'</td>';
     html+='<td>'+p.qteInitiale+'</td>';
@@ -1874,6 +1969,10 @@ function rPerso(){
     html+='<td class="ac"><button class="btn bh bxs" onclick="editPerso('+p.id+')">✏️</button>'+(r>0?'<button class="btn bg bxs" onclick="ouvrirRembPerso('+p.id+')" title="Enregistrer un remboursement">💰</button>':'')+'<button class="btn bd bxs" onclick="delPerso('+p.id+')">🗑️</button></td>';
     html+='</tr>';
   });
+  html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
+  html+='<td>TOTAL</td><td>'+totInit+'</td><td style="color:var(--or)">'+totVendu+'</td><td>'+totRestant+'</td>';
+  html+='<td>—</td><td style="color:var(--tx2)">'+fmt(totRevient)+'</td><td style="color:var(--gr)">+'+fmt(totCommission)+'</td><td style="color:var(--go)">'+fmt(totDu)+'</td><td>—</td><td>—</td>';
+  html+='</tr>';
   tb.innerHTML=html; st('t-perso',fmt(tot));
 }
 
@@ -1988,6 +2087,19 @@ function updateKPIs(){
   st('k-act',D.activites.length);
   st('k-ven',D.activites.filter(function(a){ return a.type==='Vente'; }).length);
   st('k-rep',D.activites.filter(function(a){ return a.type!=='Vente'; }).length);
+  // --- Vue d'ensemble du Stock (Stock Entreprise = stock physique unique)
+  var achatTotal=0,valeurStock=0,qteTotale=0,nbRupture=0,nbFaible=0;
+  D.stock.forEach(function(s){
+    var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
+    achatTotal+=(s.qteInitiale||0)*(s.achat||0);
+    valeurStock+=restant*(s.achat||0);
+    qteTotale+=restant;
+    var niv=niveauStock(restant,s.seuil||3);
+    if(niv.lvl===0) nbRupture++; else if(niv.lvl===1) nbFaible++;
+  });
+  st('k-stock-achat',fmt(achatTotal)); st('k-stock-valeur',fmt(valeurStock));
+  st('k-stock-nb',D.stock.length); st('k-stock-qte',qteTotale);
+  st('k-stock-rupture',nbRupture); st('k-stock-faible',nbFaible);
   var l5=D.histo.slice(-5).reverse();
   var lohtml=l5.length?l5.map(function(h){ return '<div style="padding:3px 0;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between"><span style="font-size:.76rem">'+h.desc+'</span><span style="color:var(--tx2);font-size:.7rem">'+fmtDateJour(h.date)+'</span></div>'; }).join(''):'Aucune opération.';
   document.getElementById('last-ops').innerHTML=lohtml;
@@ -2314,15 +2426,22 @@ function goBack() {
 // SUPPRESSION GLOBALE — VIDER TOUS LES MODULES
 // ================================================================
 function viderTout() {
-  if (!confirm('⚠️ SUPPRESSION TOTALE\n\nVous allez supprimer TOUS les éléments de TOUS les modules.\nCette action est irréversible.\n\nContinuer ?')) return;
-  if (!confirm('Dernière confirmation : supprimer TOUT ?')) return;
-  ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille'].forEach(function(field){
-    (D[field]||[]).forEach(function(it){ if(it&&it.id!=null) markDeleted(field,it.id); });
+  var counts=['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille'].map(function(f){
+    return (D[f]||[]).length+' '+f;
+  }).join(', ');
+  var details='• <strong>TOUS</strong> les modules seront vidés définitivement : '+counts+'<br>'+
+    '• Aucun passage par la corbeille — suppression directe et totale<br>'+
+    '• Compteurs et cumuls (dettes clôturées, créances) remis à zéro<br>'+
+    '• Cette opération sert uniquement à une remise à zéro complète de l\'application';
+  demanderConfirmationSecurisee('⚠️ Suppression TOTALE de l\'application', details, true, function(){
+    ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille'].forEach(function(field){
+      (D[field]||[]).forEach(function(it){ if(it&&it.id!=null) markDeleted(field,it.id); });
+    });
+    D.activites = []; D.stock = []; D.perso = []; D.depenses = [];
+    D.dettes = []; D.paiements = []; D.commandes = []; D.histo = []; D.corbeille = [];
+    D.dettesClot = 0; D.detteVerrou = false; D._o = 1; D._co = 1; D.entDejaDeduit = 0;
+    save(); notif('✅ Tous les éléments supprimés.');
   });
-  D.activites = []; D.stock = []; D.perso = []; D.depenses = [];
-  D.dettes = []; D.paiements = []; D.commandes = []; D.histo = []; D.corbeille = [];
-  D.dettesClot = 0; D.detteVerrou = false; D._o = 1; D._co = 1; D.entDejaDeduit = 0;
-  save(); notif('✅ Tous les éléments supprimés.');
 }
 
 function viderActivites() {
@@ -2368,8 +2487,8 @@ function viderDep() {
 
 // Identifiants par défaut (modifiables par l'utilisateur)
 // Stockés dans localStorage sous clé sécurisée
-var APP_VERSION = 'v22';
-var APP_DERNIERE_MAJ = '2026-07-28T08:30:00'; // Date/heure de cette mise à jour (fusion stocks, majuscules auto, suggestions, paramètres, WhatsApp fournisseur)
+var APP_VERSION = 'v23';
+var APP_DERNIERE_MAJ = '2026-07-28T09:15:00'; // Date/heure de cette mise à jour (fusion stocks, majuscules auto, suggestions, paramètres, WhatsApp fournisseur)
 var AUTH_KEY = 'bpro_auth_v1';
 var RESET_CODE = 'BWL-2026-RESET'; // Code unique de réinitialisation
 
