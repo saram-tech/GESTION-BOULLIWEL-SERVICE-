@@ -344,13 +344,14 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- STOCK PERSO -->
 <div id="tab-perso" class="tab-panel">
   <div class="sh">
-    <div><div class="st">Stock Personnel</div><div class="ss">Vos produits — créance = prix revient + 15%</div></div>
+    <div><div class="st">Stock Personnel</div><div class="ss">Suivi comptable — vos produits sont fusionnés au Stock Entreprise</div></div>
     <div style="display:flex;gap:6px">
       <button class="btn bg bsm" onclick="om('mp')">+ Ajouter</button>
       <button class="btn bd bsm" onclick="viderPerso()">🗑️ Vider</button>
     </div>
   </div>
   <div class="al alw" style="font-size:.77rem">
+    🔗 <strong>Ce n'est plus un stock séparé.</strong> Chaque produit ajouté ici est automatiquement fusionné dans le Stock Entreprise (stock physique unique) — cette page ne sert qu'à suivre ce que l'entreprise vous doit.<br>
     🏷️ <strong>Créance = (Prix achat × Qté) × 1.15</strong> — L'entreprise vous doit le prix de revient + 15%.<br>
     Exemple : 5 unités à 100 000 GNF = revient 500 000 GNF → entreprise vous doit <strong>575 000 GNF</strong>.<br>
     Le bénéfice de vente est partagé 50/50 avec l'associé.
@@ -526,7 +527,7 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="fr">
       <div class="fg" style="flex:2"><label>Désignation / Produit *</label>
-        <input type="text" id="a-desig" placeholder="Ex: iPhone 12..." oninput="autoPA()" list="dl-prod">
+        <input type="text" id="a-desig" placeholder="Ex: iPhone 12..." oninput="autoPA()" onblur="capitaliserChamp('a-desig')" list="dl-prod">
         <datalist id="dl-prod"></datalist>
       </div>
       <div class="fg"><label>Panne</label><input type="text" id="a-panne" placeholder="Ex: Écran cassé"></div>
@@ -616,6 +617,11 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
 
     <hr class="sep">
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">ℹ️ Informations</div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn bh bsm" onclick="ouvrirAPropos()">ℹ️ À propos / Dernière mise à jour</button>
+    </div>
+
     <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">🗂️ Données</div>
     <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">
       <button class="btn bh bsm" onclick="exportData()">💾 Export JSON</button>
@@ -639,13 +645,33 @@ tbody tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
+<!-- À PROPOS -->
+<div class="ov" id="mabout">
+  <div class="modal" style="max-width:440px">
+    <div class="mhd">ℹ️ À propos<button class="mcl" onclick="cm('mabout')">✕</button></div>
+    <div style="text-align:center;padding:6px 0 14px">
+      <div style="font-family:Syne,sans-serif;font-size:1.3rem;font-weight:800;color:var(--ac)">Boulliwel Pro</div>
+      <div style="color:var(--tx2);font-size:.82rem">Gestion Intégrée</div>
+    </div>
+    <div style="background:var(--bg4);border-radius:9px;padding:12px;font-size:.83rem;line-height:1.9">
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--tx2)">Version</span><strong id="ap-version">—</strong></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--tx2)">Dernière mise à jour</span><strong id="ap-maj">—</strong></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--tx2)">Développé pour</span><strong>Boulliwel Service</strong></div>
+    </div>
+    <div class="al alw" style="font-size:.74rem;margin-top:10px">Dernière mise à jour majeure : fusion Stock Perso ↔ Stock Entreprise, majuscules automatiques, suggestions de produits, paramètres réglables, envoi WhatsApp fournisseur.</div>
+    <div style="display:flex;justify-content:flex-end;margin-top:12px">
+      <button class="btn bh" onclick="cm('mabout')">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <!-- STOCK -->
 <div class="ov" id="ms">
   <div class="modal">
     <div class="mhd"><span id="ms-t">📦 Entrée Stock</span><button class="mcl" onclick="cm('ms');rSF()">✕</button></div>
     <input type="hidden" id="s-eid">
     <div class="fr">
-      <div class="fg"><label>Nom produit *</label><input type="text" id="s-nom" placeholder="Ex: Riz 25kg"></div>
+      <div class="fg"><label>Nom produit *</label><input type="text" id="s-nom" placeholder="Ex: Riz 25kg" list="dl-prod" onblur="capitaliserChamp('s-nom')"></div>
       <div class="fg"><label>Quantité initiale *</label><input type="number" id="s-qte" placeholder="0" min="1"></div>
     </div>
     <div class="fr">
@@ -671,7 +697,7 @@ tbody tr:last-child td{border-bottom:none;}
     <input type="hidden" id="p-eid">
     <div class="al alw" style="font-size:.77rem">Créance = (Prix achat × Qté) × 1.15 — Prix revient + 15%</div>
     <div class="fr">
-      <div class="fg"><label>Nom produit *</label><input type="text" id="p-nom" placeholder="Ex: Cahiers"></div>
+      <div class="fg"><label>Nom produit *</label><input type="text" id="p-nom" placeholder="Ex: Cahiers" list="dl-prod" onblur="capitaliserChamp('p-nom')"></div>
       <div class="fg"><label>Quantité *</label><input type="number" id="p-qte" placeholder="0" min="1"></div>
     </div>
     <div class="fr">
@@ -886,6 +912,8 @@ function om(id){
   if(id==='mpp') fillPP();
   if(id==='ma') fillDL();
   if(id==='mc') fillDL();
+  if(id==='ms') fillDL();
+  if(id==='mp') fillDL();
 }
 function cm(id){ document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.ov').forEach(function(o){
@@ -928,6 +956,22 @@ function fillDL(){
     var o=document.createElement('option'); o.value=p.nom; dl.appendChild(o);
   });
 }
+/**
+ * Met en majuscule la première lettre de chaque mot (séparé par espace,
+ * tiret ou slash), SANS toucher au reste de chaque mot — pour préserver
+ * les abréviations (STD), les casses internes (iPhone) et les chiffres.
+ * Ex: "chargeur std" → "Chargeur STD" (STD déjà en capitales, inchangé)
+ *     "ecran a15"    → "Ecran A15"
+ *     "type-c"       → "Type-C"
+ */
+function capitaliserMots(str){
+  if(!str) return str;
+  return str.replace(/(^|[\s\-\/])(\p{L})/gu, function(m,sep,letter){ return sep+letter.toUpperCase(); });
+}
+function capitaliserChamp(id){
+  var el=document.getElementById(id); if(!el) return;
+  el.value=capitaliserMots(el.value);
+}
 function autoPA(){
   var nom=v('a-desig').trim().toLowerCase();
   var pr=D.stock.concat(D.perso).find(function(p){ return p.nom.toLowerCase()===nom; });
@@ -956,6 +1000,14 @@ function getParams(){
   if(!D.params) D.params={reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''};
   return D.params;
 }
+function ouvrirAPropos(){
+  st('ap-version',APP_VERSION);
+  var d=new Date(APP_DERNIERE_MAJ);
+  var jour=fmtDateJour(APP_DERNIERE_MAJ.slice(0,10));
+  var heure=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+  st('ap-maj',jour+' à '+heure);
+  om('mabout');
+}
 function ouvrirParametres(){
   var p=getParams();
   sv('pr-reinvest',p.reinvest); sv('pr-retenu',p.retenuAssocie); sv('pr-perso',p.stockPerso); sv('pr-fourn',p.fournisseurTel||'');
@@ -967,15 +1019,99 @@ function enrParametres(){
   D.params={reinvest:reinvest,retenuAssocie:retenu,stockPerso:perso,fournisseurTel:fourn};
   save(); cm('mparams'); notif('✅ Paramètres enregistrés');
 }
+/**
+ * MIGRATION UNIQUE — fusionne l'ancien "Stock Personnel" (qui était un
+ * stock physique indépendant) dans le Stock Entreprise unifié, la
+ * première fois que l'app démarre avec cette mise à jour. Ne s'exécute
+ * qu'une seule fois (protégé par D._migrePersoV2) et ne touche à rien
+ * si elle a déjà été faite — aucune donnée existante n'est perdue,
+ * seulement réorganisée : le stock devient unique, et Stock Perso
+ * garde son rôle de suivi comptable (montant dû) intact.
+ */
+function migrerStockPerso(){
+  if(D._migrePersoV2) return;
+  (D.perso||[]).forEach(function(p){
+    if(!p.nom || !p.qteInitiale) return;
+    var s=D.stock.find(function(x){ return x.nom.toLowerCase()===p.nom.toLowerCase(); });
+    if(s){
+      // Le produit existe déjà côté entreprise : on fusionne les quantités.
+      // Pour la quantité déjà vendue, on prend le maximum des deux compteurs
+      // plutôt que la somme, par prudence — certaines ventes peuvent avoir
+      // déjà été comptées des deux côtés séparément avant cette mise à jour,
+      // et additionner risquerait de compter deux fois les mêmes ventes.
+      s.qteInitiale=(s.qteInitiale||0)+(p.qteInitiale||0);
+      s.qteVendue=Math.max(s.qteVendue||0,p.qteVendue||0);
+      s.origPerso=(s.origPerso||0)+(p.qteInitiale||0);
+      s.qteRestante=Math.max(0,s.qteInitiale-(s.qteVendue||0));
+    } else {
+      D.stock.push({
+        id:Date.now()+Math.floor(Math.random()*10000),
+        nom:p.nom,
+        qteInitiale:p.qteInitiale||0,
+        qteVendue:p.qteVendue||0,
+        qteRestante:Math.max(0,(p.qteInitiale||0)-(p.qteVendue||0)),
+        achat:p.achat||0, vente:p.vente||p.achat||0, seuil:3,
+        date:p.date||td(), origPerso:p.qteInitiale||0
+      });
+    }
+    // p.qteVendue/p.qteRestante ne sont plus utilisés (calcul dérivé
+    // désormais via calcPersoVenduRestant) mais on les laisse tels quels
+    // dans les anciennes données, ça ne gêne rien.
+  });
+  D._migrePersoV2=true;
+  persist();
+}
 function ajusterStockVendu(desig, delta){
   if(!desig || !delta) return;
   var pr=D.stock.find(function(p){ return p.nom.toLowerCase()===desig.toLowerCase(); });
   if(pr){ pr.qteVendue=Math.max(0,(pr.qteVendue||0)+delta); pr.qteRestante=Math.max(0,pr.qteInitiale-(pr.qteVendue||0)); }
-  var pp=D.perso.find(function(p){ return p.nom.toLowerCase()===desig.toLowerCase(); });
-  if(pp){ pp.qteVendue=Math.max(0,(pp.qteVendue||0)+delta); pp.qteRestante=Math.max(0,pp.qteInitiale-(pp.qteVendue||0)); }
+}
+/**
+ * Trouve le produit correspondant dans Stock Entreprise, ou le crée s'il
+ * n'existe pas, puis y fusionne une quantité apportée personnellement.
+ * C'est le cœur de la fusion Stock Perso → Stock Entreprise : il n'existe
+ * plus jamais deux stocks physiques séparés, seulement un suivi de qui a
+ * apporté quoi (champ origPerso) au sein du stock unique.
+ */
+function fusionnerDansStockEnt(nom, qte, achat, vente, date){
+  var s=D.stock.find(function(x){ return x.nom.toLowerCase()===nom.toLowerCase(); });
+  if(s){
+    s.qteInitiale=(s.qteInitiale||0)+qte;
+    s.origPerso=(s.origPerso||0)+qte;
+    if(!s.achat) s.achat=achat;
+    if(!s.vente && vente) s.vente=vente;
+    s.qteRestante=Math.max(0,s.qteInitiale-(s.qteVendue||0));
+    return s;
+  }
+  var ns={id:Date.now()+Math.floor(Math.random()*1000),nom:nom,qteInitiale:qte,qteVendue:0,qteRestante:qte,achat:achat,vente:vente||achat,seuil:3,date:date||td(),origPerso:qte};
+  D.stock.push(ns);
+  return ns;
+}
+/** Retire une quantité personnelle précédemment fusionnée (annulation/suppression). */
+function retirerDeStockEnt(nom, qte){
+  var s=D.stock.find(function(x){ return x.nom.toLowerCase()===nom.toLowerCase(); });
+  if(!s || !qte) return;
+  s.qteInitiale=Math.max(0,(s.qteInitiale||0)-qte);
+  s.origPerso=Math.max(0,(s.origPerso||0)-qte);
+  s.qteRestante=Math.max(0,s.qteInitiale-(s.qteVendue||0));
+}
+/**
+ * Calcule, pour une fiche du Stock Perso (ledger comptable), combien
+ * d'unités ont été vendues / restent — de façon PROPORTIONNELLE aux
+ * ventes réelles enregistrées sur le produit fusionné dans Stock
+ * Entreprise (puisque le stock physique est unique, on ne peut pas
+ * savoir avec certitude SI c'est une unité "perso" ou "entreprise" qui
+ * est partie — on répartit donc au prorata de l'apport personnel).
+ */
+function calcPersoVenduRestant(p){
+  var s=D.stock.find(function(x){ return x.nom.toLowerCase()===p.nom.toLowerCase(); });
+  if(!s || !s.qteInitiale) return {vendu:0,restant:p.qteInitiale};
+  var part=p.qteInitiale/s.qteInitiale;
+  var vendu=Math.min(p.qteInitiale,Math.round((s.qteVendue||0)*part));
+  return {vendu:vendu,restant:Math.max(0,p.qteInitiale-vendu)};
 }
 function enrAct(){
-  var date=v('a-date'),type=v('a-type'),desig=v('a-desig').trim();
+  var date=v('a-date'),type=v('a-type'),desig=capitaliserMots(v('a-desig').trim());
   var achat=fl('a-achat'),qte=Math.max(1,parseInt(v('a-qte'))||1);
   var apayer=fl('a-apayer'),paye=fl('a-paye');
   var ticket=v('a-ticket').trim(),panne=v('a-panne').trim(),client=v('a-client').trim();
@@ -1103,22 +1239,36 @@ function delStock(id){
 // STOCK PERSO
 // ================================================================
 function enrPerso(){
-  var nom=v('p-nom').trim(),qte=parseInt(v('p-qte'))||0,achat=fl('p-achat'),vente=fl('p-vente'),date=v('p-date');
+  var nom=capitaliserMots(v('p-nom').trim()),qte=parseInt(v('p-qte'))||0,achat=fl('p-achat'),vente=fl('p-vente'),date=v('p-date');
   if(!nom||qte<=0||achat<=0){ notif('⚠️ Champs obligatoires manquants'); return; }
-  // Prix revient = achat × qte ; créance = prix revient × 1.15
+  // Prix revient = achat × qte ; créance = prix revient × (X% réglable)
   var prixRevient=achat*qte, commission=prixRevient*(getParams().stockPerso/100), totalDu=prixRevient+commission;
   var eid=v('p-eid');
   if(eid){
     var p=D.perso.find(function(x){ return x.id==eid; });
-    if(p){ p.nom=nom;p.qteInitiale=qte;p.achat=achat;p.vente=vente;p.prixRevient=prixRevient;p.commission=commission;p.totalDu=totalDu;p.qteRestante=Math.max(0,qte-(p.qteVendue||0)); }
+    if(p){
+      // Répercute la DIFFÉRENCE de quantité sur le stock fusionné, pas la
+      // quantité totale (sinon on la compterait deux fois).
+      var deltaQte=qte-(p.qteInitiale||0);
+      if(deltaQte>0) fusionnerDansStockEnt(nom,deltaQte,achat,vente,date);
+      else if(deltaQte<0) retirerDeStockEnt(p.nom,-deltaQte);
+      if(nom.toLowerCase()!==p.nom.toLowerCase()){
+        // Renommage : on déplace toute la quantité de l'ancien nom vers le nouveau
+        retirerDeStockEnt(p.nom,qte-Math.max(0,deltaQte));
+        fusionnerDansStockEnt(nom,qte-Math.max(0,deltaQte),achat,vente,date);
+      }
+      p.nom=nom;p.qteInitiale=qte;p.achat=achat;p.vente=vente;p.prixRevient=prixRevient;p.commission=commission;p.totalDu=totalDu;
+    }
     ah('perso','Modif perso: '+nom,totalDu,date);
   } else {
-    var ex=D.perso.find(function(p){ return p.nom.toLowerCase()===nom.toLowerCase(); });
-    if(ex){ ex.qteInitiale+=qte;ex.prixRevient+=prixRevient;ex.commission+=commission;ex.totalDu+=totalDu;ex.qteRestante=Math.max(0,ex.qteInitiale-(ex.qteVendue||0)); }
-    else D.perso.push({id:Date.now(),nom:nom,qteInitiale:qte,qteVendue:0,qteRestante:qte,achat:achat,vente:vente,prixRevient:prixRevient,commission:commission,totalDu:totalDu,rembourse:0,date:date});
-    ah('perso','Perso: '+nom+' x'+qte,totalDu,date);
+    var ex=D.perso.find(function(x){ return x.nom.toLowerCase()===nom.toLowerCase(); });
+    if(ex){ ex.qteInitiale+=qte;ex.prixRevient+=prixRevient;ex.commission+=commission;ex.totalDu+=totalDu; }
+    else D.perso.push({id:Date.now(),nom:nom,qteInitiale:qte,achat:achat,vente:vente,prixRevient:prixRevient,commission:commission,totalDu:totalDu,rembourse:0,date:date});
+    // Fusion immédiate et automatique dans le Stock Entreprise (stock physique unique)
+    fusionnerDansStockEnt(nom,qte,achat,vente,date);
+    ah('perso','Perso: '+nom+' x'+qte+' (fusionné au stock)',totalDu,date);
   }
-  save(); cm('mp'); rPF(); notif('✅ Produit perso. L\'entreprise vous doit: '+fmt(totalDu));
+  save(); cm('mp'); rPF(); notif('✅ Produit perso ajouté au stock entreprise. L\'entreprise vous doit: '+fmt(totalDu));
 }
 function rPF(){
   ['p-nom','p-qte','p-achat','p-vente','p-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
@@ -1152,12 +1302,17 @@ function enrRembPerso(){
 }
 function delPerso(id){
   var p=D.perso.find(function(x){ return x.id===id; }); if(!p) return;
-  if(!confirm('Supprimer ?')) return;
+  if(!confirm('Supprimer cette fiche ? La quantité correspondante sera retirée du Stock Entreprise.')) return;
+  retirerDeStockEnt(p.nom,p.qteInitiale||0);
   D.perso=D.perso.filter(function(x){ return x.id!==id; });
   markDeleted('perso',id);
-  rb('perso',p.nom,p); save(); notif('Perso → corbeille');
+  rb('perso',p.nom,p); save(); notif('Perso → corbeille (stock ajusté)');
 }
-function viderPerso(){ if(!confirm('Vider tous les produits personnels ?')) return; D.perso.forEach(function(p){ markDeleted('perso',p.id); rb('perso', p.nom, p); }); D.perso=[]; save(); notif('✅ Perso vidé → corbeille'); }
+function viderPerso(){
+  if(!confirm('Vider tout le suivi comptable Perso ? Les quantités correspondantes seront retirées du Stock Entreprise.')) return;
+  D.perso.forEach(function(p){ retirerDeStockEnt(p.nom,p.qteInitiale||0); markDeleted('perso',p.id); rb('perso', p.nom, p); });
+  D.perso=[]; save(); notif('✅ Perso vidé → corbeille (stock ajusté)');
+}
 
 // ================================================================
 // DETTES
@@ -1552,7 +1707,7 @@ function restaurer(id){
   var c=D.corbeille.find(function(x){ return x.id===id; }); if(!c) return;
   if(c.type==='activite'){ D.activites.push(c.data); ajusterStockVendu(c.data.desig, c.data.qte||0); }
   else if(c.type==='stock') D.stock.push(c.data);
-  else if(c.type==='perso') D.perso.push(c.data);
+  else if(c.type==='perso'){ D.perso.push(c.data); fusionnerDansStockEnt(c.data.nom,c.data.qteInitiale||0,c.data.achat,c.data.vente,c.data.date); }
   else if(c.type==='depense') D.depenses.push(c.data);
   else if(c.type==='dette') D.dettes.push(c.data);
   else if(c.type==='paiement') D.paiements.push(c.data);
@@ -1682,7 +1837,7 @@ function rStock(){
     var seuil=s.seuil||3;
     var niv=niveauStock(restant,seuil);
     html+='<tr>';
-    html+='<td><strong>'+s.nom+'</strong></td>';
+    html+='<td><strong>'+s.nom+'</strong>'+(s.origPerso>0?' <span class="badge bor" style="font-size:.65rem" title="Dont '+s.origPerso+' unité(s) apportée(s) personnellement">👤 dont '+s.origPerso+'</span>':'')+'</td>';
     html+='<td>'+s.qteInitiale+'</td>';
     html+='<td style="color:var(--or)">'+(s.qteVendue||0)+'</td>';
     html+='<td><strong style="color:'+niv.color+'">'+restant+'</strong></td>';
@@ -1704,12 +1859,13 @@ function rPerso(){
   var tot=0, html='';
   D.perso.forEach(function(p){
     var r=p.totalDu-p.rembourse; tot+=r;
-    var restant=p.qteRestante!==undefined?p.qteRestante:p.qteInitiale;
+    var vr=calcPersoVenduRestant(p);
+    var lie=D.stock.some(function(s){ return s.nom.toLowerCase()===p.nom.toLowerCase(); });
     html+='<tr>';
-    html+='<td><strong>'+p.nom+'</strong></td>';
+    html+='<td><strong>'+p.nom+'</strong>'+(lie?' <span style="font-size:.65rem;color:var(--tx3)" title="Fusionné dans le Stock Entreprise">🔗</span>':' <span style="font-size:.65rem;color:var(--re)" title="Non retrouvé dans le Stock Entreprise">⚠️</span>')+'</td>';
     html+='<td>'+p.qteInitiale+'</td>';
-    html+='<td style="color:var(--or)">'+(p.qteVendue||0)+'</td>';
-    html+='<td><strong style="color:'+(restant<3?'var(--re)':'var(--gr)')+'">'+restant+'</strong></td>';
+    html+='<td style="color:var(--or)">'+vr.vendu+'</td>';
+    html+='<td><strong style="color:'+(vr.restant<3?'var(--re)':'var(--gr)')+'">'+vr.restant+'</strong></td>';
     html+='<td>'+fmt(p.achat)+'</td>';
     html+='<td style="color:var(--tx2)">'+fmt(p.prixRevient||p.achat*p.qteInitiale)+'</td>';
     html+='<td style="color:var(--gr)">+'+fmt(p.commission)+'</td>';
@@ -1903,12 +2059,15 @@ function exportExcel(){
       feuille('Stock Entreprise', D.stock, [
         ['Nom','nom'],['Qté initiale','qteInitiale'],['Qté vendue','qteVendue'],
         ['Qté restante',function(s){return s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;}],
+        ['Dont apporté perso','origPerso'],
         ['Seuil alerte','seuil'],['Prix achat','achat'],['Prix vente','vente'],['Date','date']
       ]);
-      feuille('Stock Perso', D.perso, [
-        ['Nom','nom'],['Qté initiale','qteInitiale'],['Qté vendue','qteVendue'],['Qté restante','qteRestante'],
+      feuille('Stock Perso (comptable)', D.perso, [
+        ['Nom','nom'],['Qté apportée','qteInitiale'],
+        ['Qté vendue (estimée)',function(p){return calcPersoVenduRestant(p).vendu;}],
+        ['Qté restante (estimée)',function(p){return calcPersoVenduRestant(p).restant;}],
         ['Prix achat','achat'],['Prix vente','vente'],['Prix revient','prixRevient'],
-        ['Commission (15%)','commission'],['Total dû','totalDu'],['Remboursé','rembourse'],['Date','date']
+        ['Commission','commission'],['Total dû','totalDu'],['Remboursé','rembourse'],['Date','date']
       ]);
       feuille('Dettes', D.dettes, [
         ['Date','date'],['Type','type'],['Description','desc'],['Montant','montant']
@@ -2209,6 +2368,8 @@ function viderDep() {
 
 // Identifiants par défaut (modifiables par l'utilisateur)
 // Stockés dans localStorage sous clé sécurisée
+var APP_VERSION = 'v22';
+var APP_DERNIERE_MAJ = '2026-07-28T08:30:00'; // Date/heure de cette mise à jour (fusion stocks, majuscules auto, suggestions, paramètres, WhatsApp fournisseur)
 var AUTH_KEY = 'bpro_auth_v1';
 var RESET_CODE = 'BWL-2026-RESET'; // Code unique de réinitialisation
 
@@ -2328,6 +2489,7 @@ function doChangerPass() {
 // INIT
 document.addEventListener('DOMContentLoaded',function(){
   var fh=loadFromHash(); if(!fh) load();
+  migrerStockPerso();
   cmdLignes=[]; rCL(); renderAll();
   // Restaurer l'onglet actif avant l'actualisation, au lieu de toujours
   // revenir au tableau de bord.
