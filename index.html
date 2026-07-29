@@ -227,35 +227,41 @@ tbody tr:last-child td{border-bottom:none;}
 </div>
 
 <header>
-  <div class="logo">Boulliwel Pro <small>Gestion Intégrée v3</small></div>
+  <div class="logo">Boulliwel Pro <small>Gestion Intégrée v3 · <span id="hdr-maj" onclick="ouvrirAPropos()" style="cursor:pointer;text-decoration:underline dotted" title="Voir les détails de la dernière mise à jour">MAJ —</span></small></div>
   <div id="sync-status" class="sync-badge sync-offline" title="Statut de synchronisation">⚪ Vérification…</div>
   <div class="hbts">
     <button class="btn bs bsm" onclick="ouvrirParametres()" title="Paramètres — contrôle total de l'application">⚙️ Paramètres</button>
     <button class="btn bh bsm" onclick="showChangerPass()" title="Changer mot de passe">🔑</button>
-    <button class="btn bh bsm" onclick="exportData()">💾 Export</button>
+    <button class="btn bh bsm" onclick="exportData()" title="Télécharger une sauvegarde complète des données (.json)">💾 Export</button>
     <button class="btn bh bsm" onclick="exportExcel()" title="Exporter toutes les données en fichier Excel (.xlsx)">📊 Excel</button>
-    <button class="btn bh bsm" onclick="importData()">📂 Import</button>
+    <button class="btn bh bsm" onclick="importData()" title="Restaurer les données depuis un fichier de sauvegarde (.json)">📂 Import</button>
     <button class="btn bg bsm" onclick="saveCloud()" title="Génère un lien de partage manuel (différent de la synchronisation cloud automatique)">🔗 Lien partage</button>
     <button class="btn bg bsm" onclick="testSupabaseConnection()" title="Vérifier la connexion Supabase">🔌 Test Cloud</button>
-    <button class="btn bd bsm" onclick="cloturer()">🔄 Clôture</button>
+    <button class="btn bd bsm" onclick="cloturer()" title="Clôturer la période : archive dettes/activités, remet les compteurs à zéro (mot de passe requis)">🔄 Clôture</button>
     <button class="btn bh bsm" onclick="doLogout()" title="Se déconnecter">🚪 Déco.</button>
-    <button class="btn bd bsm" onclick="viderTout()" title="Supprimer TOUT">🗑️ Tout</button>
+    <button class="btn bd bsm" onclick="viderTout()" title="Supprimer TOUT — remise à zéro complète de l'application (mot de passe requis)">🗑️ Tout</button>
     <button id="btn-install" class="btn bs bsm" style="display:none">📲 Installer</button>
   </div>
 </header>
 <nav><div class="ni">
-  <button class="nb active" onclick="gt('dashboard',this)">📊 Bord</button>
-  <button class="nb" onclick="gt('activites',this)">📋 Activités</button>
-  <button class="nb" onclick="gt('stock',this)">📦 Stock Ent.</button>
-  <button class="nb" onclick="gt('perso',this)">🏷️ Stock Perso</button>
-  <button class="nb" onclick="gt('bilan',this)">💰 Bilan</button>
-  <button class="nb" onclick="gt('associe',this)">🤝 Associé</button>
-  <button class="nb" onclick="gt('depenses',this)">💸 Dépenses</button>
-  <button class="nb" onclick="gt('commandes',this)">📑 Commandes</button>
-  <button class="nb" onclick="gt('historique',this)">📋 Historique</button>
-  <button class="nb" onclick="gt('corbeille',this)">🗑️ Corbeille</button>
+  <button class="nb active" onclick="gt('dashboard',this)" title="Tableau de bord : vue d'ensemble des chiffres clés et du stock">📊 Bord</button>
+  <button class="nb" onclick="gt('activites',this)" title="Enregistrer et consulter les ventes, réparations et services">📋 Activités</button>
+  <button class="nb" onclick="gt('stock',this)" title="Gérer le stock physique commun de l'entreprise (quantités, prix, seuils)">📦 Stock Ent.</button>
+  <button class="nb" onclick="gt('perso',this)" title="Suivre les produits que vous avez apportés personnellement et ce que l'entreprise vous doit">🏷️ Stock Perso</button>
+  <button class="nb" onclick="gt('bilan',this)" title="Calcul automatique du bénéfice et de la répartition 50/50 avec l'associé">💰 Bilan</button>
+  <button class="nb" onclick="gt('associe',this)" title="Gérer les dettes de l'associé et enregistrer ses paiements">🤝 Associé</button>
+  <button class="nb" onclick="gt('depenses',this)" title="Enregistrer les dépenses de l'entreprise (transport, loyer, salaires, etc.)">💸 Dépenses</button>
+  <button class="nb" onclick="gt('commandes',this)" title="Commandes clients et fiches de réapprovisionnement fournisseur">📑 Commandes</button>
+  <button class="nb" onclick="gt('historique',this)" title="Journal complet de toutes les opérations effectuées, avec date et heure">📋 Historique</button>
+  <button class="nb" onclick="gt('corbeille',this)" title="Éléments supprimés, récupérables avant suppression définitive">🗑️ Corbeille</button>
 </div></nav>
 <main>
+
+<!-- BARRE DE RECHERCHE GLOBALE -->
+<div style="position:relative;max-width:640px;margin:0 auto 12px" id="gs-wrap">
+  <input type="text" id="gs-input" placeholder="🔍 Rechercher un produit, client, dette, commande, dépense..." oninput="globalSearch()" onfocus="globalSearch()" style="width:100%;background:var(--bg3);border:1px solid var(--bd2);border-radius:20px;padding:10px 16px;color:var(--tx);font-family:var(--font-body);font-size:.83rem;outline:none">
+  <div id="gs-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg3);border:1px solid var(--bd2);border-radius:10px;margin-top:5px;max-height:340px;overflow-y:auto;z-index:250;box-shadow:0 10px 26px rgba(0,0,0,.5)"></div>
+</div>
 
 <!-- DASHBOARD -->
 <div id="tab-dashboard" class="tab-panel active">
@@ -305,7 +311,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn bp bsm" onclick="om('ma')">+ Nouvelle</button>
       <button class="btn bh bsm" onclick="om('mpp')">💳 Paiement partiel</button>
-      <button class="btn bd bsm" onclick="viderActivites()">🗑️ Tout supprimer</button>
+      <button class="btn bd bsm" onclick="viderActivites()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
     </div>
   </div>
   <div class="al ali" style="font-size:.77rem">
@@ -316,6 +322,9 @@ tbody tr:last-child td{border-bottom:none;}
     <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
       <select id="f-type" onchange="rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
         <option value="">Tous</option><option value="Vente">Ventes</option><option value="Réparation">Réparations</option><option value="Service">Services</option>
+      </select>
+      <select id="f-periode-act" onchange="rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
+        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option>
       </select>
       <input type="text" id="f-search" placeholder="🔍 Rechercher..." oninput="rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:100px;outline:none">
     </div>
@@ -337,7 +346,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div><div class="st">Stock Entreprise</div><div class="ss">Marchandises communes — seuil d'alerte par produit</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn bp bsm" onclick="om('ms')">+ Entrée stock</button>
-      <button class="btn bd bsm" onclick="viderStock()">🗑️ Tout supprimer</button>
+      <button class="btn bd bsm" onclick="viderStock()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
     </div>
   </div>
   <div class="al ali" style="font-size:.77rem">
@@ -345,8 +354,8 @@ tbody tr:last-child td{border-bottom:none;}
     🔴 Quand Stock Restant ≤ Seuil → alerte + fiche commande fournisseur dans l'onglet <strong>Commandes</strong>.
   </div>
   <div class="card"><div class="tw"><table>
-    <thead><tr><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>Niveau</th><th>Seuil</th><th>P.Achat</th><th>P.Vente</th><th>Valeur</th><th>Date</th><th>Actions</th></tr></thead>
-    <tbody id="tbl-stock"><tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit</td></tr></tbody>
+    <thead><tr><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>Niveau</th><th>Seuil</th><th>P.Achat</th><th>P.Vente</th><th>Total Achat</th><th>Total Vente</th><th>Valeur</th><th>Date</th><th>Actions</th></tr></thead>
+    <tbody id="tbl-stock"><tr><td colspan="13" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit</td></tr></tbody>
   </table></div></div>
 </div>
 
@@ -356,7 +365,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div><div class="st">Stock Personnel</div><div class="ss">Suivi comptable — vos produits sont fusionnés au Stock Entreprise</div></div>
     <div style="display:flex;gap:6px">
       <button class="btn bg bsm" onclick="om('mp')">+ Ajouter</button>
-      <button class="btn bd bsm" onclick="viderPerso()">🗑️ Vider</button>
+      <button class="btn bd bsm" onclick="viderPerso()" title="🔒 Mot de passe requis">🗑️ Vider</button>
     </div>
   </div>
   <div class="al alw" style="font-size:.77rem">
@@ -366,8 +375,8 @@ tbody tr:last-child td{border-bottom:none;}
     Le bénéfice de vente est partagé 50/50 avec l'associé.
   </div>
   <div class="card"><div class="tw"><table>
-    <thead><tr><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>P.Achat</th><th>Prix Revient</th><th>+15%</th><th>Total Dû</th><th>Statut</th><th>Actions</th></tr></thead>
-    <tbody id="tbl-perso"><tr><td colspan="10" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr></tbody>
+    <thead><tr><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>P.Achat</th><th>Total P.Achat</th><th>Prix Revient</th><th>+15%</th><th>Total Dû</th><th>Statut</th><th>Actions</th></tr></thead>
+    <tbody id="tbl-perso"><tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr></tbody>
   </table></div>
   <div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--bd);display:flex;justify-content:space-between">
     <span style="color:var(--tx2)">Total que l'entreprise vous doit :</span>
@@ -419,8 +428,8 @@ tbody tr:last-child td{border-bottom:none;}
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn bd bsm" id="btn-add-dette" onclick="om('mdet')">➕ Ajouter dette</button>
       <button class="btn bs bsm" onclick="om('mpaym')">💳 Paiement</button>
-      <button class="btn bd bsm" onclick="viderDettes()">🗑️ Dettes</button>
-      <button class="btn bd bsm" onclick="viderPaiements()">🗑️ Paiements</button>
+      <button class="btn bd bsm" onclick="viderDettes()" title="🔒 Mot de passe requis">🗑️ Dettes</button>
+      <button class="btn bd bsm" onclick="viderPaiements()" title="🔒 Mot de passe requis">🗑️ Paiements</button>
     </div>
   </div>
   <div id="al-clot" class="al ald" style="display:none">🔒 Anomalie détectée : les dettes sont restées verrouillées d'une ancienne clôture. <button class="btn bh bxs" onclick="deverrouillerDettes()" style="margin-left:6px">🔓 Déverrouiller</button></div>
@@ -457,7 +466,7 @@ tbody tr:last-child td{border-bottom:none;}
 <div id="tab-depenses" class="tab-panel">
   <div class="sh"><div><div class="st">Dépenses</div></div><div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn bp bsm" onclick="om('md')">+ Ajouter</button>
-      <button class="btn bd bsm" onclick="viderDep()">🗑️ Tout supprimer</button>
+      <button class="btn bd bsm" onclick="viderDep()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
     </div></div>
   <div class="al ali" style="font-size:.77rem">
     💸 <strong>Total = Quantité × Prix unitaire</strong> (calculé automatiquement).<br>
@@ -467,7 +476,13 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="kpi"><div class="kl">Total période</div><div class="kv r" id="k-dt">0 GNF</div></div>
     <div class="kpi"><div class="kl">Ce mois</div><div class="kv r" id="k-dm">0 GNF</div></div>
   </div>
-  <div class="card"><div class="tw"><table>
+  <div class="card">
+    <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
+      <select id="f-periode-dep" onchange="rDep()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
+        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option>
+      </select>
+    </div>
+    <div class="tw"><table>
     <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>Qté</th><th>Prix Unit.</th><th>Total</th><th>Actions</th></tr></thead>
     <tbody id="tbl-dep"><tr><td colspan="7" style="text-align:center;color:var(--tx2);padding:20px">Aucune dépense</td></tr></tbody>
   </table></div></div>
@@ -480,7 +495,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn bo bsm" onclick="om('mc')">+ Nouvelle commande</button>
       <button class="btn bg bsm" onclick="copierCmdFournisseur()" title="Copier la liste des produits à commander, prête pour WhatsApp">📲 Copier pour fournisseur</button>
-      <button class="btn bd bsm" onclick="viderCommandes()">🗑️ Tout supprimer</button>
+      <button class="btn bd bsm" onclick="viderCommandes()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
     </div>
   </div>
   <div class="al alw" style="font-size:.77rem">
@@ -490,7 +505,13 @@ tbody tr:last-child td{border-bottom:none;}
   <!-- ALERTES STOCK FAIBLE -->
   <div id="alertes-stock"></div>
   <!-- COMMANDES CLIENTS -->
-  <div class="card"><div class="tw"><table>
+  <div class="card">
+    <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
+      <select id="f-periode-cmd" onchange="rCmd()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
+        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option>
+      </select>
+    </div>
+    <div class="tw"><table>
     <thead><tr><th>Date</th><th>N° Cmd</th><th>Client</th><th>Téléphone</th><th>Produits</th><th>Total</th><th>Statut</th><th>Actions</th></tr></thead>
     <tbody id="tbl-cmd"><tr><td colspan="8" style="text-align:center;color:var(--tx2);padding:20px">Aucune commande</td></tr></tbody>
   </table></div></div>
@@ -503,7 +524,10 @@ tbody tr:last-child td{border-bottom:none;}
       <select id="f-histo" onchange="rHisto()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
         <option value="">Tout</option><option value="activite">Activités</option><option value="stock">Stock</option><option value="depense">Dépenses</option><option value="paiement">Paiements</option><option value="dette">Dettes</option><option value="commande">Commandes</option>
       </select>
-      <button class="btn bd bsm" onclick="vHisto()">🗑️ Vider</button>
+      <select id="f-periode-histo" onchange="rHisto()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
+        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option>
+      </select>
+      <button class="btn bd bsm" onclick="vHisto()" title="🔒 Mot de passe requis">🗑️ Vider</button>
     </div>
   </div>
   <div class="card"><div class="tw"><table>
@@ -516,7 +540,7 @@ tbody tr:last-child td{border-bottom:none;}
 <div id="tab-corbeille" class="tab-panel">
   <div class="sh">
     <div><div class="st">Corbeille</div><div class="ss">Éléments supprimés — récupérables</div></div>
-    <button class="btn bd bsm" onclick="vCorbeille()">❌ Vider définitivement</button>
+    <button class="btn bd bsm" onclick="vCorbeille()" title="🔒 Mot de passe requis">❌ Vider définitivement</button>
   </div>
   <div class="al alw" style="font-size:.77rem">♻️ Restaurez ou supprimez définitivement. Les éléments supprimés de la corbeille sont irrécupérables.</div>
   <div class="card"><div id="corbeille-list"><div style="text-align:center;color:var(--tx2);padding:26px">La corbeille est vide.</div></div></div>
@@ -594,6 +618,21 @@ tbody tr:last-child td{border-bottom:none;}
     <div style="display:flex;gap:7px;justify-content:flex-end">
       <button class="btn bh" onclick="cm('mrp')">Annuler</button>
       <button class="btn bs" onclick="enrRembPerso()">✓ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- AJOUTER QUANTITÉ (Stock Ent. / Stock Perso) -->
+<div class="ov" id="maq">
+  <div class="modal" style="max-width:420px">
+    <div class="mhd">➕ Ajouter une quantité<button class="mcl" onclick="cm('maq')">✕</button></div>
+    <input type="hidden" id="aq-id"><input type="hidden" id="aq-type">
+    <div id="aq-inf" style="background:var(--bg4);border-radius:7px;padding:8px;margin-bottom:9px;font-size:.79rem"></div>
+    <div class="fr"><div class="fg"><label>Quantité à ajouter *</label><input type="number" id="aq-qte" placeholder="0" min="1"></div></div>
+    <div class="al ali" style="font-size:.74rem">Cette quantité s'additionne automatiquement à la quantité déjà existante du produit.</div>
+    <div style="display:flex;gap:7px;justify-content:flex-end">
+      <button class="btn bh" onclick="cm('maq')">Annuler</button>
+      <button class="btn bs" onclick="enrAjoutQte()">✓ Ajouter</button>
     </div>
   </div>
 </div>
@@ -969,8 +1008,35 @@ function fl(id){ return parseFloat(v(id))||0; }
 function sv(id,val){ var e=document.getElementById(id); if(e) e.value=val; }
 function st(id,val){ var e=document.getElementById(id); if(e) e.textContent=val; }
 function td(){ return new Date().toISOString().split('T')[0]; }
-function ah(type,desc,montant,date){ D.histo.push({id:Date.now(),type:type,desc:desc,montant:montant,date:date||td()}); }
-function rb(type,label,data){ D.corbeille.push({id:Date.now(),type:type,label:label,data:JSON.parse(JSON.stringify(data)),date:td()}); }
+/** Heure actuelle au format HH:MM (heure locale de l'appareil). */
+function nowHM(){ var d=new Date(); return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
+/** Combine une date (JJ-MM-AAAA, via fmtDateJour) et une heure HH:MM pour affichage dans les tableaux. */
+function fmtDateHeure(dateStr,heure){
+  var dj=dateStr?fmtDateJour(dateStr):'—';
+  return heure?(dj+' <span style="color:var(--tx3);font-size:.68rem">🕒 '+heure+'</span>'):dj;
+}
+/**
+ * Vérifie si une date 'YYYY-MM-DD' appartient à la période demandée
+ * ('jour' = aujourd'hui, 'semaine' = semaine en cours du lundi au dimanche,
+ * 'mois' = mois calendaire en cours). Chaîne vide ou valeur inconnue =
+ * aucun filtrage (tout est accepté).
+ */
+function matchPeriode(dateStr, periode){
+  if(!periode || !dateStr) return true;
+  if(periode==='jour') return dateStr===td();
+  if(periode==='mois') return dateStr.slice(0,7)===td().slice(0,7);
+  if(periode==='semaine'){
+    var d=new Date(dateStr+'T00:00:00'); if(isNaN(d.getTime())) return true;
+    var now=new Date(); now.setHours(0,0,0,0);
+    var day=now.getDay(); var diffToMonday=(day===0?-6:1-day);
+    var monday=new Date(now); monday.setDate(now.getDate()+diffToMonday);
+    var sunday=new Date(monday); sunday.setDate(monday.getDate()+6); sunday.setHours(23,59,59,999);
+    return d>=monday && d<=sunday;
+  }
+  return true;
+}
+function ah(type,desc,montant,date){ D.histo.push({id:Date.now(),type:type,desc:desc,montant:montant,date:date||td(),heure:nowHM()}); }
+function rb(type,label,data){ D.corbeille.push({id:Date.now(),type:type,label:label,data:JSON.parse(JSON.stringify(data)),date:td(),heure:nowHM()}); }
 
 // ================================================================
 // ACTIVITÉS
@@ -1165,6 +1231,41 @@ function retirerDeStockEnt(nom, qte){
   s.qteRestante=Math.max(0,s.qteInitiale-(s.qteVendue||0));
 }
 /**
+ * Ouvre le formulaire d'ajout rapide de quantité pour une fiche du Stock
+ * Entreprise ('stock') ou du Stock Perso ('perso'). La quantité saisie
+ * s'additionne automatiquement à la quantité déjà existante — jamais de
+ * remplacement, seulement une addition, pour ne jamais perdre d'historique
+ * de quantité.
+ */
+function ouvrirAjoutQte(id,type){
+  var item=(type==='stock'?D.stock:D.perso).find(function(x){ return x.id===id; });
+  if(!item) return;
+  sv('aq-id',id); sv('aq-type',type); sv('aq-qte','');
+  document.getElementById('aq-inf').innerHTML='<strong>'+item.nom+'</strong> — Quantité actuelle : <strong>'+item.qteInitiale+'</strong>';
+  om('maq');
+}
+function enrAjoutQte(){
+  var id=v('aq-id'), type=v('aq-type'), delta=parseInt(v('aq-qte'))||0;
+  if(delta<=0){ notif('⚠️ Entrez une quantité valide (> 0)'); return; }
+  if(type==='stock'){
+    var s=D.stock.find(function(x){ return x.id==id; }); if(!s) return;
+    s.qteInitiale=(s.qteInitiale||0)+delta;
+    s.qteRestante=Math.max(0,s.qteInitiale-(s.qteVendue||0));
+    ah('stock','Ajout quantité: '+s.nom+' +'+delta,0,td());
+    save(); cm('maq'); notif('✅ '+s.nom+' : +'+delta+' unité(s) ajoutée(s)');
+  } else {
+    var p=D.perso.find(function(x){ return x.id==id; }); if(!p) return;
+    p.qteInitiale=(p.qteInitiale||0)+delta;
+    var addRevient=(p.achat||0)*delta, addCommission=addRevient*(getParams().stockPerso/100);
+    p.prixRevient=(p.prixRevient||0)+addRevient;
+    p.commission=(p.commission||0)+addCommission;
+    p.totalDu=(p.totalDu||0)+addRevient+addCommission;
+    fusionnerDansStockEnt(p.nom,delta,p.achat,p.vente,td());
+    ah('perso','Ajout quantité perso: '+p.nom+' +'+delta,0,td());
+    save(); cm('maq'); notif('✅ '+p.nom+' : +'+delta+' unité(s) ajoutée(s) (fusionné au stock entreprise)');
+  }
+}
+/**
  * Calcule, pour une fiche du Stock Perso (ledger comptable), combien
  * d'unités ont été vendues / restent — de façon PROPORTIONNELLE aux
  * ventes réelles enregistrées sur le produit fusionné dans Stock
@@ -1207,7 +1308,7 @@ function enrAct(){
     }
     ah('activite','Modif: '+desig,paye,date);
   } else {
-    D.activites.push({id:Date.now(),date:date,ordre:D._o++,ticket:ticket,type:type,desig:desig,panne:panne,achat:achat,qte:qte,apayer:apayer,paye:paye,reste:reste,benefice:ben,client:client});
+    D.activites.push({id:Date.now(),date:date,heure:nowHM(),ordre:D._o++,ticket:ticket,type:type,desig:desig,panne:panne,achat:achat,qte:qte,apayer:apayer,paye:paye,reste:reste,benefice:ben,client:client});
     ah('activite',type+': '+desig,paye,date);
     ajusterStockVendu(desig, qte);
   }
@@ -1280,7 +1381,7 @@ function enrStock(){
   } else {
     var ex=D.stock.find(function(x){ return x.nom.toLowerCase()===nom.toLowerCase(); });
     if(ex){ ex.qteInitiale+=qte;ex.achat=achat;ex.vente=vente;ex.seuil=seuil;ex.qteRestante=Math.max(0,ex.qteInitiale-(ex.qteVendue||0)); }
-    else D.stock.push({id:Date.now(),nom:nom,qteInitiale:qte,qteVendue:0,qteRestante:qte,achat:achat,vente:vente,seuil:seuil,date:date});
+    else D.stock.push({id:Date.now(),nom:nom,qteInitiale:qte,qteVendue:0,qteRestante:qte,achat:achat,vente:vente,seuil:seuil,date:date,heure:nowHM()});
     ah('stock','Entrée: '+nom+' x'+qte,achat*qte,date);
   }
   save(); cm('ms'); rSF(); notif('✅ Stock: '+nom);
@@ -1332,7 +1433,7 @@ function enrPerso(){
   } else {
     var ex=D.perso.find(function(x){ return x.nom.toLowerCase()===nom.toLowerCase(); });
     if(ex){ ex.qteInitiale+=qte;ex.prixRevient+=prixRevient;ex.commission+=commission;ex.totalDu+=totalDu; }
-    else D.perso.push({id:Date.now(),nom:nom,qteInitiale:qte,achat:achat,vente:vente,prixRevient:prixRevient,commission:commission,totalDu:totalDu,rembourse:0,date:date});
+    else D.perso.push({id:Date.now(),nom:nom,qteInitiale:qte,achat:achat,vente:vente,prixRevient:prixRevient,commission:commission,totalDu:totalDu,rembourse:0,date:date,heure:nowHM()});
     // Fusion immédiate et automatique dans le Stock Entreprise (stock physique unique)
     fusionnerDansStockEnt(nom,qte,achat,vente,date);
     ah('perso','Perso: '+nom+' x'+qte+' (fusionné au stock)',totalDu,date);
@@ -1403,7 +1504,7 @@ function enrDette(){
     if(d){ d.date=date;d.type=type;d.desc=desc;d.montant=m; }
     ah('dette','Modif dette: '+desc,m,date);
   } else {
-    D.dettes.push({id:Date.now(),date:date,type:type,desc:desc,montant:m});
+    D.dettes.push({id:Date.now(),date:date,heure:nowHM(),type:type,desc:desc,montant:m});
     ah('dette','Dette: '+desc,m,date);
   }
   save(); cm('mdet'); rDF(); notif('✅ Dette enregistrée: '+fmt(m));
@@ -1441,7 +1542,7 @@ function enrPaym(){
     if(p){ p.montant=m;p.type=type;p.note=note;p.date=date; }
     ah('paiement','Modif paiement: '+note,m,date);
   } else {
-    D.paiements.push({id:Date.now(),montant:m,type:type,note:note,date:date});
+    D.paiements.push({id:Date.now(),montant:m,type:type,note:note,date:date,heure:nowHM()});
     ah('paiement','Paiement ('+type+'): '+note,m,date);
   }
   save(); cm('mpaym'); rPAF(); notif('✅ Paiement: '+fmt(m));
@@ -1478,7 +1579,7 @@ function enrDep(){
     if(d){ d.cat=cat;d.desc=desc;d.qte=qte;d.prix=prix;d.montant=total;d.date=date; }
     ah('depense','Modif dépense: '+desc,total,date);
   } else {
-    D.depenses.push({id:Date.now(),cat:cat,desc:desc,qte:qte,prix:prix,montant:total,date:date});
+    D.depenses.push({id:Date.now(),cat:cat,desc:desc,qte:qte,prix:prix,montant:total,date:date,heure:nowHM()});
     ah('depense','Dépense '+cat+': '+desc,total,date);
   }
   save(); cm('md'); rDepF(); notif('✅ Dépense enregistrée');
@@ -1513,7 +1614,7 @@ function rCL(){
   cmdLignes.forEach(function(l,i){
     html+='<div class="fr" style="margin-bottom:6px;align-items:flex-end">';
     html+='<div class="fg"><label>Produit</label><input type="text" value="'+(l.produit||'')+'" oninput="cmdLignes['+i+'].produit=this.value" placeholder="Nom produit..." list="dl-prod"></div>';
-    html+='<div class="fg" style="max-width:80px"><label>Qté</label><input type="number" value="'+l.qte+'" min="1" oninput="cmdLignes['+i+'].qte=parseInt(this.value)||1;uCT()"></div>';
+    html+='<div class="fg" style="max-width:80px"><label>Qté</label><input type="number" value="'+l.qte+'" min="0" oninput="var _v=parseInt(this.value);cmdLignes['+i+'].qte=isNaN(_v)?0:_v;uCT()"></div>';
     html+='<div class="fg" style="max-width:120px"><label>Prix (GNF)</label><input type="number" value="'+l.prix+'" oninput="cmdLignes['+i+'].prix=parseFloat(this.value)||0;uCT()"></div>';
     html+='<button type="button" class="btn bd bxs" style="margin-bottom:1px" onclick="cmdLignes.splice('+i+',1);rCL()">✕</button>';
     html+='</div>';
@@ -1529,6 +1630,8 @@ function enrCmd(){
   var date=v('c-date'),client=v('c-client').trim(),tel=v('c-tel').trim();
   if(!date||!client){ notif('⚠️ Date et client obligatoires'); return; }
   if(!cmdLignes.length){ notif('⚠️ Ajoutez au moins un produit'); return; }
+  var qteTotale=cmdLignes.reduce(function(s,l){ return s+(l.qte||0); },0);
+  if(qteTotale<=0){ notif('⚠️ La commande ne peut pas contenir uniquement des quantités à 0. Saisissez au moins une quantité valide.'); return; }
   var total=cmdLignes.reduce(function(s,l){ return s+l.qte*l.prix; },0);
   var num=v('c-num').trim()||('CMD-'+String(D._co).padStart(3,'0'));
   var eid=v('c-eid');
@@ -1538,7 +1641,7 @@ function enrCmd(){
     ah('commande','Modif commande: '+client,total,date);
   } else {
     D._co++;
-    D.commandes.push({id:Date.now(),date:date,num:num,client:client,tel:tel,adresse:v('c-adr'),produits:cmdLignes.slice(),total:total,statut:v('c-st'),note:v('c-note')});
+    D.commandes.push({id:Date.now(),date:date,heure:nowHM(),num:num,client:client,tel:tel,adresse:v('c-adr'),produits:cmdLignes.slice(),total:total,statut:v('c-st'),note:v('c-note')});
     ah('commande','Commande: '+client+' — '+num,total,date);
   }
   save(); cm('mc'); rCF(); notif('✅ Commande enregistrée');
@@ -1585,8 +1688,11 @@ function copierCmdFournisseur(){
   var noms=Object.keys(totaux);
   if(!noms.length){ notif('⚠️ Aucun produit dans les commandes actives'); return; }
   var txt='📦 *COMMANDE FOURNISSEUR — Boulliwel Service*\n'+fmtDateJour(td())+'\n\n';
-  noms.forEach(function(n,i){ txt+=(i+1)+'. '+n+' — '+totaux[n]+'\n'; });
-  txt+='\nMerci de confirmer la disponibilité et les prix. 🙏';
+  // Un produit par ligne, format compact ("n. Nom x Qté") pour éviter tout
+  // retour à la ligne intempestif dans l'aperçu WhatsApp, quel que soit
+  // l'écran (Android, ordinateur, etc.) — pas d'espace ni de tiret long
+  // superflu qui allongerait inutilement la ligne.
+  noms.forEach(function(n,i){ txt+=(i+1)+'. '+n+' x'+totaux[n]+'\n'; });
   var envoyer=function(){
     var tel=(getParams().fournisseurTel||'').trim();
     var url=tel? ('https://wa.me/'+tel+'?text='+encodeURIComponent(txt)) : ('https://wa.me/?text='+encodeURIComponent(txt));
@@ -1807,9 +1913,11 @@ function suppDef(id){
   save(); notif('Suppression définitive effectuée');
 }
 function vCorbeille(){
-  if(!confirm('Vider toute la corbeille définitivement ?')) return;
-  D.corbeille.forEach(function(c){ markDeleted('corbeille',c.id); });
-  D.corbeille=[]; save(); notif('Corbeille vidée');
+  var n=D.corbeille.length;
+  demanderConfirmationSecurisee('❌ Vider la Corbeille définitivement', '• <strong>'+n+'</strong> élément(s) seront supprimés définitivement et deviendront <strong>irrécupérables</strong>', true, function(){
+    D.corbeille.forEach(function(c){ markDeleted('corbeille',c.id); });
+    D.corbeille=[]; save(); notif('Corbeille vidée');
+  });
 }
 
 // ================================================================
@@ -1875,9 +1983,10 @@ function deverrouillerDettes(){
 // ================================================================
 function rAct(){
   var tb=document.getElementById('tbl-act');
-  var ft=v('f-type'),fs=v('f-search').toLowerCase();
+  var ft=v('f-type'),fs=v('f-search').toLowerCase(),fp=v('f-periode-act');
   var items=D.activites.slice().reverse();
   if(ft) items=items.filter(function(a){ return a.type===ft; });
+  if(fp) items=items.filter(function(a){ return matchPeriode(a.date,fp); });
   if(fs) items=items.filter(function(a){ return a.desig.toLowerCase().indexOf(fs)>-1||(a.client||'').toLowerCase().indexOf(fs)>-1||(a.panne||'').toLowerCase().indexOf(fs)>-1; });
   if(!items.length){
     tb.innerHTML='<tr><td colspan="13" style="text-align:center;color:var(--tx2);padding:20px">Aucune activité</td></tr>';
@@ -1892,7 +2001,7 @@ function rAct(){
     var isNewDay=(a.date!==lastDate);
     lastDate=a.date;
     html+='<tr>';
-    html+='<td>'+(isNewDay?('<strong>'+fmtDateJour(a.date)+'</strong>'):'')+'</td>';
+    html+='<td>'+(isNewDay?('<strong>'+fmtDateJour(a.date)+'</strong>'):'')+(a.heure?' <span style="color:var(--tx3);font-size:.66rem">🕒'+a.heure+'</span>':'')+'</td>';
     html+='<td style="color:var(--tx2);font-weight:600">'+numAffiche+'</td>';
     html+='<td>'+(a.ticket?'<span class="badge bpr" style="font-size:.66rem">'+a.ticket+'</span>':'<span style="color:var(--tx3)">—</span>')+'</td>';
     html+='<td><span class="badge '+tcc+'">'+a.type+'</span></td>';
@@ -1916,14 +2025,16 @@ function rAct(){
 
 function rStock(){
   var tb=document.getElementById('tbl-stock');
-  if(!D.stock.length){ tb.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit</td></tr>'; return; }
+  if(!D.stock.length){ tb.innerHTML='<tr><td colspan="13" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit</td></tr>'; return; }
   var html='';
-  var totInit=0,totVendu=0,totRestant=0,totValeur=0;
+  var totInit=0,totVendu=0,totRestant=0,totValeur=0,totAchatG=0,totVenteG=0;
   D.stock.forEach(function(s){
     var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
     var seuil=s.seuil||3;
     var niv=niveauStock(restant,seuil);
+    var totAchat=(s.qteInitiale||0)*(s.achat||0), totVente=(s.qteInitiale||0)*(s.vente||0);
     totInit+=s.qteInitiale||0; totVendu+=s.qteVendue||0; totRestant+=restant; totValeur+=restant*s.achat;
+    totAchatG+=totAchat; totVenteG+=totVente;
     html+='<tr>';
     html+='<td><strong>'+s.nom+'</strong>'+(s.origPerso>0?' <span class="badge bor" style="font-size:.65rem" title="Dont '+s.origPerso+' unité(s) apportée(s) personnellement">👤 dont '+s.origPerso+'</span>':'')+'</td>';
     html+='<td>'+s.qteInitiale+'</td>';
@@ -1933,28 +2044,31 @@ function rStock(){
     html+='<td style="color:var(--tx2)">'+seuil+'</td>';
     html+='<td>'+fmt(s.achat)+'</td>';
     html+='<td>'+fmt(s.vente||0)+'</td>';
+    html+='<td style="color:var(--re)">'+fmt(totAchat)+'</td>';
+    html+='<td style="color:var(--gr)">'+fmt(totVente)+'</td>';
     html+='<td>'+fmt(restant*s.achat)+'</td>';
-    html+='<td>'+(s.date?fmtDateJour(s.date):'—')+'</td>';
-    html+='<td class="ac"><button class="btn bh bxs" onclick="editStock('+s.id+')">✏️</button><button class="btn bd bxs" onclick="delStock('+s.id+')">🗑️</button></td>';
+    html+='<td>'+fmtDateHeure(s.date,s.heure)+'</td>';
+    html+='<td class="ac"><button class="btn bs bxs" onclick="ouvrirAjoutQte('+s.id+',\'stock\')" title="Ajouter une quantité (s\'additionne au stock existant)">➕</button><button class="btn bh bxs" onclick="editStock('+s.id+')">✏️</button><button class="btn bd bxs" onclick="delStock('+s.id+')">🗑️</button></td>';
     html+='</tr>';
   });
   html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
   html+='<td>TOTAL</td><td>'+totInit+'</td><td style="color:var(--or)">'+totVendu+'</td><td>'+totRestant+'</td>';
-  html+='<td>—</td><td>—</td><td>—</td><td>—</td><td style="color:var(--go)">'+fmt(totValeur)+'</td><td>—</td><td>—</td>';
+  html+='<td>—</td><td>—</td><td>—</td><td>—</td><td style="color:var(--re)">'+fmt(totAchatG)+'</td><td style="color:var(--gr)">'+fmt(totVenteG)+'</td><td style="color:var(--go)">'+fmt(totValeur)+'</td><td>—</td><td>—</td>';
   html+='</tr>';
   tb.innerHTML=html;
 }
 
 function rPerso(){
   var tb=document.getElementById('tbl-perso');
-  if(!D.perso.length){ tb.innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr>'; st('t-perso','0 GNF'); return; }
+  if(!D.perso.length){ tb.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr>'; st('t-perso','0 GNF'); return; }
   var tot=0, html='';
-  var totInit=0,totVendu=0,totRestant=0,totRevient=0,totCommission=0,totDu=0;
+  var totInit=0,totVendu=0,totRestant=0,totAchatG=0,totRevient=0,totCommission=0,totDu=0;
   D.perso.forEach(function(p){
     var r=p.totalDu-p.rembourse; tot+=r;
     var vr=calcPersoVenduRestant(p);
     var lie=D.stock.some(function(s){ return s.nom.toLowerCase()===p.nom.toLowerCase(); });
-    totInit+=p.qteInitiale||0; totVendu+=vr.vendu; totRestant+=vr.restant;
+    var totAchat=(p.achat||0)*(p.qteInitiale||0);
+    totInit+=p.qteInitiale||0; totVendu+=vr.vendu; totRestant+=vr.restant; totAchatG+=totAchat;
     totRevient+=(p.prixRevient||p.achat*p.qteInitiale); totCommission+=p.commission||0; totDu+=p.totalDu||0;
     html+='<tr>';
     html+='<td><strong>'+p.nom+'</strong>'+(lie?' <span style="font-size:.65rem;color:var(--tx3)" title="Fusionné dans le Stock Entreprise">🔗</span>':' <span style="font-size:.65rem;color:var(--re)" title="Non retrouvé dans le Stock Entreprise">⚠️</span>')+'</td>';
@@ -1962,16 +2076,17 @@ function rPerso(){
     html+='<td style="color:var(--or)">'+vr.vendu+'</td>';
     html+='<td><strong style="color:'+(vr.restant<3?'var(--re)':'var(--gr)')+'">'+vr.restant+'</strong></td>';
     html+='<td>'+fmt(p.achat)+'</td>';
+    html+='<td style="color:var(--re)">'+fmt(totAchat)+'</td>';
     html+='<td style="color:var(--tx2)">'+fmt(p.prixRevient||p.achat*p.qteInitiale)+'</td>';
     html+='<td style="color:var(--gr)">+'+fmt(p.commission)+'</td>';
     html+='<td style="color:var(--go)">'+fmt(p.totalDu)+'</td>';
     html+='<td><span class="badge '+(r>0?'bor':'bgr')+'">'+(r>0?'En attente':'Remboursé')+'</span></td>';
-    html+='<td class="ac"><button class="btn bh bxs" onclick="editPerso('+p.id+')">✏️</button>'+(r>0?'<button class="btn bg bxs" onclick="ouvrirRembPerso('+p.id+')" title="Enregistrer un remboursement">💰</button>':'')+'<button class="btn bd bxs" onclick="delPerso('+p.id+')">🗑️</button></td>';
+    html+='<td class="ac"><button class="btn bs bxs" onclick="ouvrirAjoutQte('+p.id+',\'perso\')" title="Ajouter une quantité (s\'additionne au stock existant)">➕</button><button class="btn bh bxs" onclick="editPerso('+p.id+')">✏️</button>'+(r>0?'<button class="btn bg bxs" onclick="ouvrirRembPerso('+p.id+')" title="Enregistrer un remboursement">💰</button>':'')+'<button class="btn bd bxs" onclick="delPerso('+p.id+')">🗑️</button></td>';
     html+='</tr>';
   });
   html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
   html+='<td>TOTAL</td><td>'+totInit+'</td><td style="color:var(--or)">'+totVendu+'</td><td>'+totRestant+'</td>';
-  html+='<td>—</td><td style="color:var(--tx2)">'+fmt(totRevient)+'</td><td style="color:var(--gr)">+'+fmt(totCommission)+'</td><td style="color:var(--go)">'+fmt(totDu)+'</td><td>—</td><td>—</td>';
+  html+='<td>—</td><td style="color:var(--re)">'+fmt(totAchatG)+'</td><td style="color:var(--tx2)">'+fmt(totRevient)+'</td><td style="color:var(--gr)">+'+fmt(totCommission)+'</td><td style="color:var(--go)">'+fmt(totDu)+'</td><td>—</td><td>—</td>';
   html+='</tr>';
   tb.innerHTML=html; st('t-perso',fmt(tot));
 }
@@ -1986,7 +2101,7 @@ function rDettes(){
   else{
     var html='';
     D.dettes.forEach(function(d){
-      html+='<tr><td>'+(d.date?fmtDateJour(d.date):'—')+'</td><td>'+d.desc+'</td>';
+      html+='<tr><td>'+fmtDateHeure(d.date,d.heure)+'</td><td>'+d.desc+'</td>';
       html+='<td><span class="badge bnr">'+d.type+'</span></td>';
       html+='<td style="color:var(--re)">'+fmt(d.montant)+'</td>';
       html+='<td class="ac">'+(locked?'<span class="badge bgg">🔒</span>':'<button class="btn bh bxs" onclick="editDette('+d.id+')">✏️</button><button class="btn bd bxs" onclick="delDette('+d.id+')">🗑️</button>')+'</td></tr>';
@@ -2000,7 +2115,7 @@ function rDettes(){
   else{
     var html2='';
     D.paiements.slice().reverse().forEach(function(p){
-      html2+='<tr><td>'+fmtDateJour(p.date)+'</td><td><span class="badge bgr">'+p.type+'</span></td>';
+      html2+='<tr><td>'+fmtDateHeure(p.date,p.heure)+'</td><td><span class="badge bgr">'+p.type+'</span></td>';
       html2+='<td style="font-size:.76rem">'+(p.note||'—')+'</td>';
       html2+='<td style="color:var(--gr)">'+fmt(p.montant)+'</td>';
       html2+='<td class="ac"><button class="btn bh bxs" onclick="editPaym('+p.id+')">✏️</button><button class="btn bd bxs" onclick="delPaym('+p.id+')">🗑️</button></td></tr>';
@@ -2011,13 +2126,16 @@ function rDettes(){
 
 function rDep(){
   var tb=document.getElementById('tbl-dep');
-  if(!D.depenses.length){ tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--tx2);padding:20px">Aucune dépense</td></tr>'; return; }
+  var fp=v('f-periode-dep');
+  var items=D.depenses.slice();
+  if(fp) items=items.filter(function(d){ return matchPeriode(d.date,fp); });
+  if(!items.length){ tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--tx2);padding:20px">Aucune dépense</td></tr>'; st('k-dt','0 GNF'); st('k-dm','0 GNF'); return; }
   var tot=0, mois=0, m=new Date().toISOString().slice(0,7), html='';
   var lastDateDep=null;
-  D.depenses.forEach(function(d){
+  items.forEach(function(d){
     tot+=d.montant; if(d.date&&d.date.startsWith(m)) mois+=d.montant;
     var isNewDayDep=(d.date!==lastDateDep); lastDateDep=d.date;
-    html+='<tr><td>'+(isNewDayDep?('<strong>'+(d.date?fmtDateJour(d.date):'—')+'</strong>'):'')+'</td><td><span class="badge bbr">'+d.cat+'</span></td>';
+    html+='<tr><td>'+(isNewDayDep?('<strong>'+(d.date?fmtDateJour(d.date):'—')+'</strong>'):'')+(d.heure?' <span style="color:var(--tx3);font-size:.66rem">🕒'+d.heure+'</span>':'')+'</td><td><span class="badge bbr">'+d.cat+'</span></td>';
     html+='<td>'+(d.desc||'—')+'</td><td>'+(d.qte||1)+'</td>';
     html+='<td>'+fmt(d.prix||d.montant)+'</td>';
     html+='<td style="color:var(--re)"><strong>'+fmt(d.montant)+'</strong></td>';
@@ -2028,12 +2146,15 @@ function rDep(){
 
 function rCmd(){
   var tb=document.getElementById('tbl-cmd');
-  if(!D.commandes.length){ tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--tx2);padding:20px">Aucune commande</td></tr>'; return; }
+  var fp=v('f-periode-cmd');
+  var items=D.commandes.slice().reverse();
+  if(fp) items=items.filter(function(c){ return matchPeriode(c.date,fp); });
+  if(!items.length){ tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--tx2);padding:20px">Aucune commande</td></tr>'; return; }
   var sc={'En attente':'bnr','En cours':'bbr','Livré':'bgr','Annulé':'bdr'};
   var html='';
-  D.commandes.slice().reverse().forEach(function(c){
+  items.forEach(function(c){
     html+='<tr>';
-    html+='<td>'+fmtDateJour(c.date)+'</td>';
+    html+='<td>'+fmtDateHeure(c.date,c.heure)+'</td>';
     html+='<td><span class="badge bpr">'+c.num+'</span></td>';
     html+='<td><strong>'+c.client+'</strong></td>';
     html+='<td>'+(c.tel?'<a href="tel:'+c.tel+'" style="color:var(--gr);font-size:.76rem;text-decoration:none">📞 '+c.tel+'</a>':'<span style="color:var(--tx3)">—</span>')+'</td>';
@@ -2050,20 +2171,25 @@ function rCmd(){
 
 function rHisto(){
   var tb=document.getElementById('tbl-histo');
-  var ft=v('f-histo');
+  var ft=v('f-histo'),fp=v('f-periode-histo');
   var items=D.histo.slice().reverse();
   if(ft) items=items.filter(function(i){ return i.type===ft; });
+  if(fp) items=items.filter(function(i){ return matchPeriode(i.date,fp); });
   if(!items.length){ tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--tx2);padding:20px">Aucun historique</td></tr>'; return; }
   var tc={activite:'bbr',stock:'bgr',depense:'bdr',paiement:'bor',dette:'bnr',perso:'bpr',commande:'btr'};
   var html='';
-  var lastDateH=null;
   items.forEach(function(i){
-    var isNewDayH=(i.date!==lastDateH); lastDateH=i.date;
-    html+='<tr><td>'+(isNewDayH?('<strong>'+(i.date?fmtDateJour(i.date):'—')+'</strong>'):'')+'</td><td><span class="badge '+(tc[i.type]||'bbr')+'">'+i.type+'</span></td><td>'+i.desc+'</td><td>'+(i.montant?fmt(i.montant):'—')+'</td></tr>';
+    html+='<tr><td>'+fmtDateHeure(i.date,i.heure)+'</td><td><span class="badge '+(tc[i.type]||'bbr')+'">'+i.type+'</span></td><td>'+i.desc+'</td><td>'+(i.montant?fmt(i.montant):'—')+'</td></tr>';
   });
   tb.innerHTML=html;
 }
-function vHisto(){ if(!confirm('Vider tout l\'historique ?')) return; D.histo=[]; save(); rHisto(); }
+function vHisto(){
+  var n=D.histo.length;
+  demanderConfirmationSecurisee('🗑️ Vider tout l\'historique', '• <strong>'+n+'</strong> entrée(s) d\'historique seront supprimées définitivement (pas de corbeille pour l\'historique)', true, function(){
+    D.histo.forEach(function(h){ markDeleted('histo',h.id); });
+    D.histo=[]; save(); rHisto(); notif('✅ Historique vidé');
+  });
+}
 
 function rCorbeille(){
   var el=document.getElementById('corbeille-list');
@@ -2072,7 +2198,7 @@ function rCorbeille(){
   var html='';
   D.corbeille.slice().reverse().forEach(function(c){
     html+='<div class="ci">';
-    html+='<div style="color:var(--tx2)"><span class="badge '+(tc[c.type]||'bgg')+'" style="margin-right:6px">'+c.type+'</span><strong>'+c.label+'</strong> <span style="font-size:.7rem;color:var(--tx3)">— '+fmtDateJour(c.date)+'</span></div>';
+    html+='<div style="color:var(--tx2)"><span class="badge '+(tc[c.type]||'bgg')+'" style="margin-right:6px">'+c.type+'</span><strong>'+c.label+'</strong> <span style="font-size:.7rem;color:var(--tx3)">— '+fmtDateJour(c.date)+(c.heure?' 🕒 '+c.heure:'')+'</span></div>';
     html+='<div style="display:flex;gap:5px"><button class="btn bs bxs" onclick="restaurer('+c.id+')">♻️ Restaurer</button><button class="btn bd bxs" onclick="suppDef('+c.id+')">❌ Suppr. déf.</button></div>';
     html+='</div>';
   });
@@ -2353,6 +2479,49 @@ function togglePass(inputId, icon) {
 var navHistory = [];
 var tabOrder = ['dashboard','activites','stock','perso','bilan','associe','depenses','commandes','historique','corbeille'];
 
+// ================================================================
+// RECHERCHE GLOBALE
+// ================================================================
+/**
+ * Recherche transversale dans tous les modules de l'application (Stock
+ * Entreprise, Stock Perso, Activités, Dettes, Paiements, Dépenses,
+ * Commandes) à partir de la barre de recherche globale. Affiche une liste
+ * de résultats cliquables ; chaque clic ouvre l'onglet correspondant.
+ */
+function globalSearch(){
+  var q=v('gs-input').trim().toLowerCase();
+  var res=document.getElementById('gs-results');
+  if(!q){ res.style.display='none'; res.innerHTML=''; return; }
+  var hits=[];
+  D.stock.forEach(function(s){ if(s.nom.toLowerCase().indexOf(q)>-1) hits.push({tab:'stock',icon:'📦',label:s.nom,sub:'Stock Ent. — Restant: '+(s.qteRestante!==undefined?s.qteRestante:s.qteInitiale)}); });
+  D.perso.forEach(function(p){ if(p.nom.toLowerCase().indexOf(q)>-1) hits.push({tab:'perso',icon:'🏷️',label:p.nom,sub:'Stock Perso — Dû: '+fmt(p.totalDu-(p.rembourse||0))}); });
+  D.activites.forEach(function(a){ if(a.desig.toLowerCase().indexOf(q)>-1||(a.client||'').toLowerCase().indexOf(q)>-1||(a.ticket||'').toLowerCase().indexOf(q)>-1) hits.push({tab:'activites',icon:'📋',label:a.desig+(a.client?' — '+a.client:''),sub:a.type+' — '+fmtDateJour(a.date)}); });
+  D.dettes.forEach(function(d){ if(d.desc.toLowerCase().indexOf(q)>-1) hits.push({tab:'associe',icon:'🤝',label:d.desc,sub:'Dette — '+fmt(d.montant)}); });
+  D.paiements.forEach(function(p){ if((p.note||'').toLowerCase().indexOf(q)>-1) hits.push({tab:'associe',icon:'💳',label:p.note||'Paiement',sub:'Paiement — '+fmt(p.montant)}); });
+  D.depenses.forEach(function(d){ if((d.desc||'').toLowerCase().indexOf(q)>-1||d.cat.toLowerCase().indexOf(q)>-1) hits.push({tab:'depenses',icon:'💸',label:d.desc||d.cat,sub:'Dépense — '+fmt(d.montant)}); });
+  D.commandes.forEach(function(c){
+    var prodMatch=(c.produits||[]).some(function(l){ return (l.produit||'').toLowerCase().indexOf(q)>-1; });
+    if(c.client.toLowerCase().indexOf(q)>-1||c.num.toLowerCase().indexOf(q)>-1||prodMatch) hits.push({tab:'commandes',icon:'📑',label:c.client+' ('+c.num+')',sub:'Commande — '+c.statut});
+  });
+  if(!hits.length){ res.innerHTML='<div style="padding:14px;text-align:center;color:var(--tx2);font-size:.8rem">Aucun résultat pour "'+q+'"</div>'; res.style.display='block'; return; }
+  var html='';
+  hits.slice(0,25).forEach(function(h){
+    html+='<div onclick="gsGoto(\''+h.tab+'\')" style="padding:10px 13px;border-bottom:1px solid var(--bd);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px" onmouseover="this.style.background=\'var(--bg4)\'" onmouseout="this.style.background=\'transparent\'">';
+    html+='<div><span style="margin-right:6px">'+h.icon+'</span><strong style="font-size:.8rem">'+h.label+'</strong></div>';
+    html+='<span style="font-size:.68rem;color:var(--tx2)">'+h.sub+'</span>';
+    html+='</div>';
+  });
+  res.innerHTML=html; res.style.display='block';
+}
+function gsGoto(tab){
+  document.getElementById('gs-results').style.display='none';
+  gt(tab,null);
+}
+document.addEventListener('click',function(e){
+  var wrap=document.getElementById('gs-wrap');
+  if(wrap && !wrap.contains(e.target)) document.getElementById('gs-results').style.display='none';
+});
+
 function gt(id, btn) {
   // Enregistrer l'onglet actuel avant de changer
   var current = document.querySelector('.tab-panel.active');
@@ -2445,40 +2614,59 @@ function viderTout() {
 }
 
 function viderActivites() {
-  if (!confirm('Supprimer toutes les activités ?')) return;
-  D.activites.forEach(function(a){ markDeleted('activites',a.id); ajusterStockVendu(a.desig, -(a.qte||0)); rb('activite', a.desig, a); });
-  D.activites = []; save(); notif('✅ Activités vidées → corbeille');
+  var n=D.activites.length;
+  var details='• <strong>'+n+'</strong> activité(s) seront supprimées et envoyées à la Corbeille (récupérables)<br>• Le stock lié sera automatiquement réajusté';
+  demanderConfirmationSecurisee('🗑️ Supprimer toutes les activités', details, false, function(){
+    D.activites.forEach(function(a){ markDeleted('activites',a.id); ajusterStockVendu(a.desig, -(a.qte||0)); rb('activite', a.desig, a); });
+    D.activites = []; save(); notif('✅ Activités vidées → corbeille');
+  });
 }
 
 function viderStock() {
-  if (!confirm('Supprimer tout le stock entreprise ?')) return;
-  D.stock.forEach(function(s){ markDeleted('stock',s.id); rb('stock', s.nom, s); });
-  D.stock = []; save(); notif('✅ Stock entreprise vidé → corbeille');
+  var n=D.stock.length;
+  var details='• <strong>'+n+'</strong> produit(s) du Stock Entreprise seront supprimés et envoyés à la Corbeille (récupérables)';
+  demanderConfirmationSecurisee('🗑️ Supprimer tout le Stock Entreprise', details, false, function(){
+    D.stock.forEach(function(s){ markDeleted('stock',s.id); rb('stock', s.nom, s); });
+    D.stock = []; save(); notif('✅ Stock entreprise vidé → corbeille');
+  });
 }
 
 function viderDettes() {
   if (D.detteVerrou) { notif('🔒 Dettes verrouillées'); return; }
-  if (!confirm('Supprimer toutes les dettes actives ?')) return;
-  D.dettes.forEach(function(d){ markDeleted('dettes',d.id); rb('dette', d.desc, d); });
-  D.dettes = []; save(); notif('✅ Dettes vidées → corbeille');
+  var n=D.dettes.length;
+  var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0);
+  var details='• <strong>'+n+'</strong> dette(s) actives seront supprimées et envoyées à la Corbeille (récupérables)<br>• Montant total concerné : '+fmt(totD);
+  demanderConfirmationSecurisee('🗑️ Supprimer toutes les dettes', details, false, function(){
+    D.dettes.forEach(function(d){ markDeleted('dettes',d.id); rb('dette', d.desc, d); });
+    D.dettes = []; save(); notif('✅ Dettes vidées → corbeille');
+  });
 }
 
 function viderPaiements() {
-  if (!confirm('Supprimer tous les paiements reçus ?')) return;
-  D.paiements.forEach(function(p){ markDeleted('paiements',p.id); rb('paiement', 'Paiement '+fmt(p.montant), p); });
-  D.paiements = []; save(); notif('✅ Paiements vidés → corbeille');
+  var n=D.paiements.length;
+  var details='• <strong>'+n+'</strong> paiement(s) reçus seront supprimés et envoyés à la Corbeille (récupérables)';
+  demanderConfirmationSecurisee('🗑️ Supprimer tous les paiements', details, false, function(){
+    D.paiements.forEach(function(p){ markDeleted('paiements',p.id); rb('paiement', 'Paiement '+fmt(p.montant), p); });
+    D.paiements = []; save(); notif('✅ Paiements vidés → corbeille');
+  });
 }
 
 function viderCommandes() {
-  if (!confirm('Supprimer toutes les commandes ?')) return;
-  D.commandes.forEach(function(c){ markDeleted('commandes',c.id); rb('commande', c.num+': '+c.client, c); });
-  D.commandes = []; save(); notif('✅ Commandes vidées → corbeille');
+  var n=D.commandes.length;
+  var details='• <strong>'+n+'</strong> commande(s) seront supprimées et envoyées à la Corbeille (récupérables)';
+  demanderConfirmationSecurisee('🗑️ Supprimer toutes les commandes', details, false, function(){
+    D.commandes.forEach(function(c){ markDeleted('commandes',c.id); rb('commande', c.num+': '+c.client, c); });
+    D.commandes = []; save(); notif('✅ Commandes vidées → corbeille');
+  });
 }
 
 function viderDep() {
-  if (!confirm('Supprimer toutes les dépenses ?')) return;
-  D.depenses.forEach(function(d){ markDeleted('depenses',d.id); rb('depense', d.desc, d); });
-  D.depenses = []; save(); notif('✅ Dépenses vidées → corbeille');
+  var n=D.depenses.length;
+  var details='• <strong>'+n+'</strong> dépense(s) seront supprimées et envoyées à la Corbeille (récupérables)';
+  demanderConfirmationSecurisee('🗑️ Supprimer toutes les dépenses', details, false, function(){
+    D.depenses.forEach(function(d){ markDeleted('depenses',d.id); rb('depense', d.desc, d); });
+    D.depenses = []; save(); notif('✅ Dépenses vidées → corbeille');
+  });
 }
 
 // ================================================================
@@ -2610,6 +2798,15 @@ document.addEventListener('DOMContentLoaded',function(){
   var fh=loadFromHash(); if(!fh) load();
   migrerStockPerso();
   cmdLignes=[]; rCL(); renderAll();
+  // Heure de la dernière mise à jour de l'application, affichée dans l'en-tête
+  (function(){
+    var el=document.getElementById('hdr-maj'); if(!el) return;
+    var d=new Date(APP_DERNIERE_MAJ);
+    if(isNaN(d.getTime())){ el.textContent='MAJ —'; return; }
+    var jj=('0'+d.getDate()).slice(-2), mm=('0'+(d.getMonth()+1)).slice(-2), aa=d.getFullYear();
+    var hh=('0'+d.getHours()).slice(-2), mn=('0'+d.getMinutes()).slice(-2);
+    el.textContent='MAJ '+jj+'-'+mm+'-'+aa+' à '+hh+':'+mn;
+  })();
   // Restaurer l'onglet actif avant l'actualisation, au lieu de toujours
   // revenir au tableau de bord.
   try{
