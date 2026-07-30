@@ -3,7 +3,7 @@
 <head>
   <!-- Encodage et affichage responsive -->
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
 
   <!-- SEO / métadonnées de base -->
   <title>Boulliwel Pro — Gestion de Stock &amp; Service Téléphones</title>
@@ -56,11 +56,12 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:var(--font-body);background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden;}
 body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 20% 0%,rgba(79,142,247,.07)0%,transparent 60%),radial-gradient(ellipse 60% 40% at 90% 80%,rgba(123,95,245,.05)0%,transparent 60%);pointer-events:none;z-index:0;}
-header{position:sticky;top:0;z-index:200;background:rgba(7,11,20,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);padding:0 14px;height:54px;display:flex;align-items:center;justify-content:space-between;gap:7px;}
-.logo{font-family:var(--font-display);font-size:.95rem;font-weight:800;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+header{position:sticky;top:0;z-index:200;background:rgba(7,11,20,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);padding:0 14px;height:54px;display:flex;align-items:center;justify-content:space-between;gap:7px;overflow:hidden;}
+.logo{font-family:var(--font-display);font-size:.95rem;font-weight:800;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw;}
 .logo small{font-size:.6rem;color:var(--tx2);display:block;-webkit-text-fill-color:var(--tx2);font-family:var(--font-body);font-weight:400;}
-.hbts{display:flex;gap:4px;flex-wrap:wrap;}
-.sync-badge{font-size:.68rem;font-weight:600;padding:4px 10px;border-radius:20px;white-space:nowrap;transition:background .3s,color .3s;}
+.hbts{display:flex;gap:4px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;min-width:0;flex:1 1 auto;justify-content:flex-end;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.hbts::-webkit-scrollbar{display:none;}
+.sync-badge{font-size:.68rem;font-weight:600;padding:4px 10px;border-radius:20px;white-space:nowrap;transition:background .3s,color .3s;flex-shrink:0;}
 .sync-online{background:rgba(34,197,94,.15);color:#22c55e;}
 .sync-syncing{background:rgba(251,191,36,.15);color:#fbbf24;}
 .sync-error{background:rgba(239,68,68,.15);color:#ef4444;}
@@ -121,7 +122,7 @@ tbody tr:last-child td{border-bottom:none;}
 .bnr{background:rgba(249,115,22,.15);color:var(--or);}.bgg{background:rgba(90,100,128,.15);color:var(--tx2);}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:12px;}
 .ov.open{display:flex;}
-.modal{background:var(--bg2);border:1px solid var(--bd2);border-radius:17px;padding:20px;max-width:640px;width:100%;max-height:92vh;overflow-y:auto;}
+.modal{background:var(--bg2);border:1px solid var(--bd2);border-radius:17px;padding:20px;max-width:640px;width:100%;max-height:min(92vh,92%);overflow-y:auto;}
 .mhd{font-family:var(--font-display);font-size:.97rem;font-weight:700;color:var(--tx);margin-bottom:15px;display:flex;justify-content:space-between;align-items:center;}
 .mcl{background:none;border:none;color:var(--tx2);cursor:pointer;font-size:1.1rem;padding:3px;}.mcl:hover{color:var(--re);}
 .dv{display:flex;align-items:center;gap:9px;margin:11px 0;color:var(--tx3);font-size:.67rem;text-transform:uppercase;letter-spacing:.07em;}
@@ -371,7 +372,7 @@ tbody tr:last-child td{border-bottom:none;}
       </span>
     </div>
     <div class="tw"><table>
-    <thead><tr><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>Niveau</th><th>Seuil</th><th>P.Achat</th><th>P.Vente</th><th>Valeur</th><th>Date</th><th>Actions</th></tr></thead>
+    <thead><tr><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>Niveau</th><th>Seuil</th><th>Prix Unitaire</th><th>P.Vente</th><th>Valeur</th><th>Date</th><th>Actions</th></tr></thead>
     <tbody id="tbl-stock"><tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit</td></tr></tbody>
   </table></div></div>
 </div>
@@ -404,7 +405,7 @@ tbody tr:last-child td{border-bottom:none;}
       </span>
     </div>
     <div class="tw"><table>
-    <thead><tr><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>P.Achat</th><th>Prix Revient</th><th>+15%</th><th>Total Dû</th><th>Statut</th><th>Actions</th></tr></thead>
+    <thead><tr><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>Prix Unitaire</th><th>Prix Revient</th><th>+15%</th><th>Total Dû</th><th>Statut</th><th>Actions</th></tr></thead>
     <tbody id="tbl-perso"><tr><td colspan="10" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr></tbody>
   </table></div>
   <div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--bd);display:flex;justify-content:space-between">
@@ -509,6 +510,9 @@ tbody tr:last-child td{border-bottom:none;}
         <thead><tr><th>Date</th><th>Type</th><th>Note</th><th>Montant</th><th>Actions</th></tr></thead>
         <tbody id="tbl-paym"><tr><td colspan="5" style="text-align:center;color:var(--tx2);padding:12px">Aucun paiement</td></tr></tbody>
       </table></div>
+      <div style="margin-top:9px;padding:9px;background:var(--bg4);border-radius:8px">
+        <div style="display:flex;justify-content:space-between"><span style="font-weight:600">Total payé :</span><span id="tot-pp" style="color:var(--gr);font-family:'Syne',sans-serif;font-size:1rem">0 GNF</span></div>
+      </div>
     </div>
   </div>
 </div>
@@ -646,7 +650,8 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="fr">
       <div class="fg"><label>Payé (GNF)</label><input type="number" id="a-paye" placeholder="0" oninput="pAct()"></div>
-      <div class="fg"><label>Client / Adresse</label><input type="text" id="a-client" placeholder="Nom ou adresse"></div>
+      <div class="fg"><label>Client / Adresse</label><input type="text" id="a-client" placeholder="Nom ou adresse" list="dl-client" onblur="capitaliserChamp('a-client')"></div>
+      <datalist id="dl-client"></datalist>
     </div>
     <div id="a-prev" style="background:var(--bg4);border-radius:8px;padding:10px;margin-bottom:11px;font-size:.8rem;display:none">
       <div style="display:flex;gap:15px;flex-wrap:wrap">
@@ -942,7 +947,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="fr">
       <div class="fg"><label>Date *</label><input type="date" id="c-date"></div>
       <div class="fg"><label>N° Commande (optionnel)</label><input type="text" id="c-num" placeholder="Laisser vide ou saisir"></div>
-      <div class="fg"><label>Client *</label><input type="text" id="c-client" placeholder="Nom client"></div>
+      <div class="fg"><label>Client *</label><input type="text" id="c-client" placeholder="Nom client" list="dl-client" onblur="capitaliserChamp('c-client')"></div>
     </div>
     <div class="fr">
       <div class="fg">
@@ -1092,8 +1097,8 @@ function om(id){
   var t=td();
   document.querySelectorAll('#'+id+' input[type=date]').forEach(function(i){ if(!i.value) i.value=t; });
   if(id==='mpp') fillPP();
-  if(id==='ma') fillDL();
-  if(id==='mc') fillDL();
+  if(id==='ma'){ fillDL(); fillDLClients(); }
+  if(id==='mc'){ fillDL(); fillDLClients(); }
   if(id==='ms') fillDL();
   if(id==='mp') fillDL();
 }
@@ -1210,6 +1215,28 @@ function fillDL(){
   D.stock.concat(D.perso).forEach(function(p){
     var o=document.createElement('option'); o.value=p.nom; dl.appendChild(o);
   });
+}
+/**
+ * Solution A (Clients/Fournisseurs) : aucune nouvelle table Supabase.
+ * On se contente de proposer, en suggestion (datalist), les noms de
+ * clients déjà tapés dans Activités et Commandes — pour réduire les
+ * fautes de frappe/doublons ("Mamadou Diallo" vs "Mamadou Dialo") sans
+ * créer de fiche séparée ni toucher à la structure des données.
+ */
+function fillDLClients(){
+  var dl=document.getElementById('dl-client');
+  if(!dl) return;
+  dl.innerHTML='';
+  var vus={}; var noms=[];
+  D.activites.concat(D.commandes).forEach(function(x){
+    var n=(x.client||'').trim();
+    if(!n) return;
+    var cle=normSearch(n);
+    if(vus[cle]) return;
+    vus[cle]=true; noms.push(n);
+  });
+  noms.sort(function(a,b){ return a.localeCompare(b); });
+  noms.forEach(function(n){ var o=document.createElement('option'); o.value=n; dl.appendChild(o); });
 }
 /**
  * Met en majuscule la première lettre de chaque mot (séparé par espace,
@@ -1549,8 +1576,8 @@ function enrStock(){
   save(); cm('ms'); rSF(); notif('✅ Stock: '+nom);
 }
 function rSF(){
-  ['s-nom','s-qte','s-achat','s-vente','s-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
-  sv('s-seuil',3); st('ms-t','📦 Entrée Stock');
+  ['s-nom','s-qte','s-achat','s-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+  sv('s-vente',0); sv('s-seuil',3); st('ms-t','📦 Entrée Stock');
   var b=document.getElementById('btn-ss'); b.textContent='✓ Enregistrer'; b.onclick=enrStock;
 }
 function editStock(id){
@@ -1603,7 +1630,8 @@ function enrPerso(){
   save(); cm('mp'); rPF(); notif('✅ Produit perso ajouté au stock entreprise. L\'entreprise vous doit: '+fmt(totalDu));
 }
 function rPF(){
-  ['p-nom','p-qte','p-achat','p-vente','p-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+  ['p-nom','p-qte','p-achat','p-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+  sv('p-vente',0);
   st('mp-t','🏷️ Produit Personnel');
   var b=document.getElementById('btn-sp'); b.textContent='✓ Enregistrer'; b.onclick=enrPerso;
 }
@@ -2274,7 +2302,7 @@ function rStock(){
   });
   html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
   html+='<td>TOTAL</td><td>'+totInit+'</td><td style="color:var(--or)">'+totVendu+'</td><td>'+totRestant+'</td>';
-  html+='<td>—</td><td>—</td><td>'+fmt(totAchatU)+'</td><td>'+fmt(totVenteU)+'</td><td style="color:var(--go)">'+fmt(totValeur)+'</td><td>—</td><td>—</td>';
+  html+='<td>—</td><td>—</td><td>—</td><td>'+fmt(totVenteU)+'</td><td style="color:var(--go)">'+fmt(totValeur)+'</td><td>—</td><td>—</td>';
   html+='</tr>';
   tb.innerHTML=html;
 }
@@ -2308,7 +2336,7 @@ function rPerso(){
   });
   html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
   html+='<td>TOTAL</td><td>'+totInit+'</td><td style="color:var(--or)">'+totVendu+'</td><td>'+totRestant+'</td>';
-  html+='<td style="color:var(--tx2)">'+fmt(totAchatU)+'</td><td style="color:var(--tx2)">'+fmt(totRevient)+'</td><td style="color:var(--gr)">+'+fmt(totCommission)+'</td><td style="color:var(--go)">'+fmt(totDu)+'</td><td>—</td><td>—</td>';
+  html+='<td>—</td><td style="color:var(--tx2)">'+fmt(totRevient)+'</td><td style="color:var(--gr)">+'+fmt(totCommission)+'</td><td style="color:var(--go)">'+fmt(totDu)+'</td><td>—</td><td>—</td>';
   html+='</tr>';
   tb.innerHTML=html; st('t-perso',fmt(tot));
 }
@@ -2353,6 +2381,12 @@ function rDettes(){
     });
     tb2.innerHTML=html2;
   }
+  // Total payé officiel (non affecté par la recherche/le filtre affiché,
+  // même logique que "Dettes actives / Cumulé clôtures / TOTAL" ci-dessus) :
+  // recalculé automatiquement à chaque rendu, donc après tout ajout,
+  // modification, suppression ou synchronisation.
+  var totPaye=D.paiements.reduce(function(s,p){ return s+(p.montant||0); },0);
+  st('tot-pp',fmt(totPaye));
 }
 
 function rDep(){
@@ -2921,8 +2955,8 @@ function viderDep() {
 
 // Identifiants par défaut (modifiables par l'utilisateur)
 // Stockés dans localStorage sous clé sécurisée
-var APP_VERSION = 'v26';
-var APP_DERNIERE_MAJ = '2026-07-29T11:00:00'; // Audit complet : recherche/filtres/totaux vérifiés fonctionnels sur toutes les tables, ajout d'un différé (debounce) sur la recherche pour la fluidité sur téléphone d'entrée de gamme
+var APP_VERSION = 'v28';
+var APP_DERNIERE_MAJ = '2026-07-30T09:45:00'; // Solution A Clients/Fournisseurs : suggestions de noms (Activités/Commandes) + normalisation de casse, aucune nouvelle table Supabase
 var AUTH_KEY = 'bpro_auth_v1';
 var RESET_CODE = 'BWL-2026-RESET'; // Code unique de réinitialisation
 
@@ -3046,6 +3080,33 @@ function doChangerPass() {
 }
 
 // INIT
+/**
+ * Adaptation dynamique au clavier virtuel Android (et iOS) pour toutes les
+ * fenêtres de saisie (.ov / .modal) : sans ça, sur certains navigateurs
+ * /WebView, le clavier se contente de RECOUVRIR le bas de l'écran sans que
+ * la mise en page ne le sache, ce qui masque les derniers champs et le
+ * bouton "Enregistrer". On synchronise la hauteur réellement visible
+ * (window.visualViewport) sur l'overlay de la fenêtre ouverte, pour que le
+ * centrage vertical se fasse par rapport à l'espace VRAIMENT visible.
+ */
+(function(){
+  if(!window.visualViewport) return;
+  function adjustForKeyboard(){
+    var vv=window.visualViewport;
+    document.querySelectorAll('.ov').forEach(function(ov){
+      if(getComputedStyle(ov).display==='none') return;
+      ov.style.height=vv.height+'px';
+      ov.style.top=vv.offsetTop+'px';
+    });
+  }
+  window.visualViewport.addEventListener('resize', adjustForKeyboard);
+  window.visualViewport.addEventListener('scroll', adjustForKeyboard);
+  document.addEventListener('focusin', function(e){
+    if(e.target && (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')){
+      setTimeout(adjustForKeyboard,50); setTimeout(adjustForKeyboard,300);
+    }
+  });
+})();
 document.addEventListener('DOMContentLoaded',function(){
  try{
   var fh=loadFromHash(); if(!fh) load();
