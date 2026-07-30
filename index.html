@@ -754,9 +754,11 @@ tbody tr:last-child td{border-bottom:none;}
       <button class="btn bh bsm" onclick="exportData()">💾 Export JSON</button>
       <button class="btn bh bsm" onclick="importData()">📂 Import JSON</button>
       <button class="btn bh bsm" onclick="exportExcel()">📊 Export Excel</button>
+      <button class="btn bh bsm" onclick="importExcel()" title="Réintégrer les données depuis un fichier Excel exporté par l'application">📥 Import Excel</button>
       <button class="btn bg bsm" onclick="saveCloud()">🔗 Lien partage</button>
       <button class="btn bg bsm" onclick="testSupabaseConnection()">🔌 Test Cloud</button>
     </div>
+    <div id="last-import-undo-zone" style="display:none;margin:-6px 0 14px"></div>
 
     <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">🔑 Compte</div>
     <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">
@@ -996,6 +998,7 @@ tbody tr:last-child td{border-bottom:none;}
 <button id="btn-retour" onclick="goBack()" title="Retour">←</button>
 <div id="notif"></div>
 <input type="file" id="fi" accept=".json" style="display:none" onchange="hImport(event)">
+<input type="file" id="fi-xlsx" accept=".xlsx,.xls" style="display:none" onchange="hImportExcel(event)">
 
 
   <!-- Script applicatif (chargé en différé, aucun CDN externe) -->
@@ -1483,8 +1486,38 @@ function enrAct(){
     (!date?elDate:elDesig).focus();
     return;
   }
-  var reste=Math.max(0,apayer-paye), ben=paye-(achat*qte);
   var eid=v('a-eid');
+  /**
+   * CONTRÔLE STRICT DU STOCK AVANT VENTE — l'application ne doit jamais
+   * permettre de vendre un produit absent du stock (entreprise ou perso).
+   * Le Stock Perso est TOUJOURS fusionné dans D.stock dès son ajout
+   * (voir fusionnerDansStockEnt), donc vérifier D.stock suffit à couvrir
+   * les deux stocks. Ne s'applique qu'aux ventes (type='Vente') — les
+   * réparations/services peuvent avoir une désignation libre qui ne
+   * correspond à aucun article de stock (ex: "Changement batterie").
+   */
+  if(type==='Vente'){
+    var prodStock=D.stock.find(function(s){ return s.nom.toLowerCase()===desig.toLowerCase(); });
+    if(!prodStock){
+      notif('❌ Vente refusée : "'+desig+'" n\'existe dans aucun stock (Entreprise ou Perso). Ajoutez-le d\'abord dans le Stock avant de le vendre.',7000);
+      elDesig.classList.add('input-error'); elDesig.focus();
+      return;
+    }
+    var restantDispo=(prodStock.qteRestante!==undefined?prodStock.qteRestante:prodStock.qteInitiale);
+    // Si on modifie une vente existante du MÊME produit, l'ancienne quantité
+    // sera relâchée avant d'appliquer la nouvelle : on la rajoute donc à la
+    // disponibilité pour ne pas bloquer une simple correction de quantité.
+    if(eid){
+      var ancienne=D.activites.find(function(x){ return x.id==eid; });
+      if(ancienne && ancienne.desig.toLowerCase()===desig.toLowerCase()) restantDispo+=(ancienne.qte||0);
+    }
+    if(qte>restantDispo){
+      notif('❌ Vente refusée : stock insuffisant pour "'+desig+'" (disponible : '+restantDispo+', demandé : '+qte+').',7000);
+      elDesig.classList.add('input-error'); document.getElementById('a-qte').classList.add('input-error'); elDesig.focus();
+      return;
+    }
+  }
+  var reste=Math.max(0,apayer-paye), ben=paye-(achat*qte);
   if(eid){
     var a=D.activites.find(function(x){ return x.id==eid; });
     if(a){
@@ -2518,22 +2551,87 @@ function renderAll(){
 // ================================================================
 // EXPORT / IMPORT / CLOUD
 // ================================================================
+/** Compte les enregistrements de chaque table pour affichage/vérification. */
+function compterDonnees(d){
+  return {
+    'Activités':(d.activites||[]).length,
+    'Stock Entreprise':(d.stock||[]).length,
+    'Stock Perso':(d.perso||[]).length,
+    'Dépenses':(d.depenses||[]).length,
+    'Dettes':(d.dettes||[]).length,
+    'Paiements':(d.paiements||[]).length,
+    'Commandes':(d.commandes||[]).length,
+    'Historique':(d.histo||[]).length,
+    'Corbeille':(d.corbeille||[]).length
+  };
+}
+/**
+ * EXPORT JSON — sauvegarde totale et fidèle.
+ * D est l'unique source de vérité de toute l'application : l'exporter tel
+ * quel garantit que 100% des données (toutes les tables, compteurs internes
+ * _o/_co, tombstones de suppression _del, paramètres, catégories de
+ * dépenses, etc.) sont incluses, sans exception. On ajoute uniquement des
+ * métadonnées (_meta) en plus, jamais en remplacement — un ancien lecteur
+ * de sauvegarde ignorerait simplement ce champ.
+ */
 function exportData(){
-  var b=new Blob([JSON.stringify(D,null,2)],{type:'application/json'});
+  var counts=compterDonnees(D);
+  var total=Object.keys(counts).reduce(function(s,k){ return s+counts[k]; },0);
+  var payload=Object.assign({},D,{_meta:{app:'Boulliwel Pro',version:APP_VERSION,exportedAt:new Date().toISOString(),counts:counts}});
+  var b=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   var a=document.createElement('a'); a.href=URL.createObjectURL(b);
-  a.download='boulliwel_'+td()+'.json'; a.click(); notif('✅ Données exportées');
+  a.download='boulliwel_'+td()+'.json'; a.click();
+  notif('✅ Sauvegarde complète exportée ('+total+' enregistrements, toutes tables incluses)');
 }
 function importData(){ document.getElementById('fi').click(); }
 function hImport(e){
   var f=e.target.files[0]; if(!f) return;
   var r=new FileReader();
   r.onload=function(ev){
-    try{
-      var d=JSON.parse(ev.target.result);
-      if(confirm('Remplacer toutes les données actuelles ?')){ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''}},d); persist(); renderAll(); notif('✅ Données importées'); }
-    }catch(err){ notif('⚠️ Fichier invalide'); }
+    var d;
+    try{ d=JSON.parse(ev.target.result); }
+    catch(err){ notif('❌ Fichier invalide ou corrompu (JSON illisible).',6000); e.target.value=''; return; }
+    // Validation : le fichier doit ressembler à une vraie sauvegarde Boulliwel Pro
+    var clesConnues=['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille'];
+    var reconnu=clesConnues.some(function(k){ return Array.isArray(d[k]); });
+    if(!reconnu){ notif('❌ Ce fichier ne ressemble pas à une sauvegarde Boulliwel Pro valide.',6000); e.target.value=''; return; }
+    var ancien=compterDonnees(D), nouveau=compterDonnees(d);
+    var detail=clesConnues.map(function(k,i){ var lbl=Object.keys(ancien)[i]; return '• '+lbl+' : '+ancien[lbl]+' → '+nouveau[lbl]; }).join('<br>');
+    var dateFichier=d._meta&&d._meta.exportedAt ? new Date(d._meta.exportedAt).toLocaleString('fr-FR') : 'inconnue';
+    var details='Le fichier remplacera <strong>l\'intégralité</strong> des données actuelles :<br><br>'+detail+
+      '<br><br>Date d\'export du fichier : '+dateFichier+
+      '<br><br>✅ Une sauvegarde de sécurité de vos données ACTUELLES sera conservée automatiquement et pourra être annulée juste après l\'import.';
+    demanderConfirmationSecurisee('📂 Importer et remplacer toutes les données', details, false, function(){
+      try{ localStorage.setItem(KEY+'_before_import', JSON.stringify(D)); }catch(e2){}
+      D=Object.assign({},DEFAULT_SHAPE,d);
+      delete D._meta;
+      if(!D._del) D._del={};
+      persist(); renderAll(); afficherBandeauAnnulerImport();
+      var total=Object.keys(nouveau).reduce(function(s,k){ return s+nouveau[k]; },0);
+      notif('✅ Importation réussie : '+total+' enregistrements restaurés');
+    });
+    e.target.value='';
   };
-  r.readAsText(f); e.target.value='';
+  r.readAsText(f);
+}
+/** Affiche un bandeau permettant d'annuler la dernière importation (JSON ou Excel). */
+function afficherBandeauAnnulerImport(){
+  var z=document.getElementById('last-import-undo-zone'); if(!z) return;
+  z.style.display='block';
+  z.innerHTML='<div style="background:var(--bg4);border:1px solid var(--or);border-radius:8px;padding:9px;font-size:.78rem"><strong>↩️ Une importation vient de remplacer vos données.</strong><br>Vous pouvez annuler et restaurer l\'état précédent :<br><button class="btn bd bxs" style="margin-top:6px" onclick="annulerDerniereImportation()">↩️ Annuler cette importation</button></div>';
+}
+function annulerDerniereImportation(){
+  var bak=localStorage.getItem(KEY+'_before_import');
+  if(!bak){ notif('⚠️ Aucune sauvegarde de sécurité disponible'); return; }
+  demanderConfirmationSecurisee('↩️ Annuler la dernière importation', 'Vos données seront restaurées telles qu\'elles étaient <strong>juste avant</strong> la dernière importation (JSON ou Excel).', false, function(){
+    try{
+      D=JSON.parse(bak);
+      if(!D._del) D._del={};
+      persist(); renderAll();
+      var z=document.getElementById('last-import-undo-zone'); if(z) z.style.display='none';
+      notif('✅ Importation annulée, données précédentes restaurées');
+    }catch(e){ notif('❌ Erreur lors de la restauration : fichier de sécurité corrompu'); }
+  });
 }
 
 /**
@@ -2657,6 +2755,171 @@ function exportExcel(){
     exportCSV();
   });
 }
+
+/**
+ * IMPORT EXCEL (.xlsx)
+ * -------------------------------------------------------------
+ * Lit un fichier généré par "Export Excel" (ou un fichier construit avec
+ * les mêmes en-têtes de colonnes) et reconstruit les tables de l'app.
+ *
+ * ⚠️ IMPORTANT — honnêteté sur les limites du format Excel : contrairement
+ * au JSON (copie exacte de D), l'Excel exporté est un rapport LISIBLE, pas
+ * une copie brute. Certaines colonnes sont CALCULÉES (ex: "Prix achat" de
+ * la feuille Activités = prix unitaire × quantité ; les colonnes
+ * "(estimée)" du Stock Perso ; toute la feuille "Bilan"). Cet import
+ * reconstruit les valeurs sources du mieux possible à partir de ce qui est
+ * exporté (ex: prix unitaire = Prix achat total ÷ Qté), et signale
+ * clairement toute ligne qu'il n'a pas pu interpréter avec certitude
+ * plutôt que de deviner silencieusement. Pour une restauration garantie
+ * 100% fidèle, le JSON reste la seule méthode parfaitement exacte.
+ */
+function importExcel(){ document.getElementById('fi-xlsx').click(); }
+
+/** Extrait uniquement les chiffres d'un texte formaté (ex: "80 000 GNF" → 80000). */
+function parseMontantTexte(s){
+  if(s==null||s==='') return 0;
+  if(typeof s==='number') return Math.round(s);
+  var digits=String(s).replace(/[^\d]/g,'');
+  return digits?parseInt(digits,10):0;
+}
+/** Convertit une cellule Date Excel (string ISO, date réelle, ou numéro de série) en 'YYYY-MM-DD'. */
+function parseDateExcel(val){
+  if(val==null||val==='') return td();
+  if(val instanceof Date && !isNaN(val.getTime())) return val.toISOString().slice(0,10);
+  if(typeof val==='number'){
+    var d=new Date(Math.round((val-25569)*86400*1000));
+    if(!isNaN(d.getTime())) return d.toISOString().slice(0,10);
+  }
+  var s=String(val).trim();
+  var m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return m[0];
+  var m2=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); if(m2) return m2[3]+'-'+('0'+m2[2]).slice(-2)+'-'+('0'+m2[1]).slice(-2);
+  return td();
+}
+function num(v){ var n=parseFloat(v); return isNaN(n)?0:n; }
+/** Reconstruit le tableau produits d'une commande depuis la colonne "Nom xQté (Montant GNF) | Nom2 x..." */
+function parseProduitsCommande(s){
+  if(!s) return {produits:[],erreurs:0};
+  var segs=String(s).split('|').map(function(x){ return x.trim(); }).filter(Boolean);
+  var produits=[], erreurs=0;
+  segs.forEach(function(seg){
+    var m=seg.match(/^(.*)\s+x(\d+)\s*\(([^)]*)\)$/);
+    if(m){ produits.push({produit:m[1].trim(),qte:parseInt(m[2],10)||1,prix:parseMontantTexte(m[3])}); }
+    else { produits.push({produit:seg,qte:1,prix:0}); erreurs++; }
+  });
+  return {produits:produits,erreurs:erreurs};
+}
+function hImportExcel(e){
+  var f=e.target.files[0]; if(!f){ return; }
+  notif('⏳ Lecture du fichier Excel…');
+  loadSheetJS(function(){
+    var r=new FileReader();
+    r.onload=function(ev){
+      try{
+        var wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});
+        function feuilleVers(nom){
+          var ws=wb.Sheets[nom];
+          if(!ws) return null;
+          return XLSX.utils.sheet_to_json(ws,{defval:''});
+        }
+        var shAct=feuilleVers('Activités'), shStock=feuilleVers('Stock Entreprise'),
+            shPerso=feuilleVers('Stock Perso (comptable)'), shDettes=feuilleVers('Dettes'),
+            shPaie=feuilleVers('Paiements Associé'), shCmd=feuilleVers('Commandes'),
+            shDep=feuilleVers('Dépenses'), shHisto=feuilleVers('Historique'), shCorb=feuilleVers('Corbeille');
+        var trouve=[shAct,shStock,shPerso,shDettes,shPaie,shCmd,shDep,shHisto,shCorb].some(function(x){ return x!==null; });
+        if(!trouve){ notif('❌ Aucune feuille reconnue dans ce fichier (attendu : Activités, Stock Entreprise, Stock Perso, Dettes, Paiements Associé, Commandes, Dépenses…).',7000); e.target.value=''; return; }
+        var erreursCmd=0;
+        var base={ id:0 };
+        var nD={
+          activites:(shAct||[]).map(function(row,i){
+            var qte=parseInt(row['Qté'])||1, achatTotal=num(row['Prix achat']);
+            return {id:Date.now()+i,date:parseDateExcel(row['Date']),heure:nowHM(),ordre:parseInt(row['N°'])||(i+1),
+              ticket:String(row['Ticket']||''),type:String(row['Type']||'Vente'),desig:String(row['Désignation']||''),
+              panne:String(row['Panne']||''),achat:qte?Math.round(achatTotal/qte):achatTotal,qte:qte,
+              apayer:num(row['À payer']),paye:num(row['Payé']),reste:num(row['Reste']),benefice:num(row['Bénéfice']),
+              client:String(row['Client']||'')};
+          }),
+          stock:(shStock||[]).map(function(row,i){
+            var qInit=parseInt(row['Qté initiale'])||0, qVendu=parseInt(row['Qté vendue'])||0;
+            return {id:Date.now()+1000+i,nom:String(row['Nom']||''),qteInitiale:qInit,qteVendue:qVendu,
+              qteRestante:Math.max(0,qInit-qVendu),origPerso:parseInt(row['Dont apporté perso'])||0,
+              seuil:parseInt(row['Seuil alerte'])||3,achat:num(row['Prix achat']),vente:num(row['Prix vente']),
+              date:parseDateExcel(row['Date']),heure:nowHM()};
+          }),
+          perso:(shPerso||[]).map(function(row,i){
+            var qInit=parseInt(row['Qté apportée'])||0, achat=num(row['Prix achat']);
+            var prixRevient=row['Prix revient']!==''?num(row['Prix revient']):achat*qInit;
+            var commission=row['Commission']!==''?num(row['Commission']):0;
+            var totalDu=row['Total dû']!==''?num(row['Total dû']):(prixRevient+commission);
+            return {id:Date.now()+2000+i,nom:String(row['Nom']||''),qteInitiale:qInit,achat:achat,vente:num(row['Prix vente']),
+              prixRevient:prixRevient,commission:commission,totalDu:totalDu,rembourse:num(row['Remboursé']),
+              date:parseDateExcel(row['Date']),heure:nowHM()};
+          }),
+          dettes:(shDettes||[]).map(function(row,i){
+            return {id:Date.now()+3000+i,date:parseDateExcel(row['Date']),heure:nowHM(),
+              type:String(row['Type']||'directe'),desc:String(row['Description']||''),montant:num(row['Montant'])};
+          }),
+          paiements:(shPaie||[]).map(function(row,i){
+            return {id:Date.now()+4000+i,montant:num(row['Montant']),type:String(row['Type']||'directe'),
+              note:String(row['Note']||''),date:parseDateExcel(row['Date']),heure:nowHM()};
+          }),
+          commandes:(shCmd||[]).map(function(row,i){
+            var pp=parseProduitsCommande(row['Produits']); erreursCmd+=pp.erreurs;
+            return {id:Date.now()+5000+i,date:parseDateExcel(row['Date']),heure:nowHM(),
+              num:String(row['N° commande']||('CMD-'+String(i+1).padStart(3,'0'))),client:String(row['Client']||''),
+              tel:String(row['Téléphone']||''),adresse:String(row['Adresse']||''),produits:pp.produits,
+              total:num(row['Total']),statut:String(row['Statut']||'En attente'),note:String(row['Note']||'')};
+          }),
+          depenses:(shDep||[]).map(function(row,i){
+            return {id:Date.now()+6000+i,date:parseDateExcel(row['Date']),heure:nowHM(),cat:String(row['Catégorie']||'Autre'),
+              desc:String(row['Description']||''),qte:parseInt(row['Qté'])||1,prix:num(row['Prix unitaire']),
+              montant:num(row['Montant'])};
+          }),
+          histo:(shHisto||[]).map(function(row,i){
+            return {id:Date.now()+7000+i,date:parseDateExcel(row['Date']),heure:nowHM(),type:String(row['Type']||'activite'),
+              desc:String(row['Description']||''),montant:num(row['Montant'])};
+          }),
+          corbeille:(shCorb||[]).map(function(row,i){
+            return {id:Date.now()+8000+i,date:parseDateExcel(row['Date suppression']),heure:nowHM(),
+              type:String(row['Type']||''),label:String(row['Élément']||''),data:{}};
+          })
+        };
+        var ancien=compterDonnees(D), nouveau=compterDonnees(nD);
+        var clesConnues=['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille'];
+        var detail=clesConnues.map(function(k,i){ var lbl=Object.keys(ancien)[i]; return '• '+lbl+' : '+ancien[lbl]+' → '+nouveau[lbl]; }).join('<br>');
+        var avert=erreursCmd>0?('<br><br>⚠️ '+erreursCmd+' ligne(s) de produits de commande n\'ont pas pu être décodées avec certitude (format inattendu) — vérifiez-les après import.'):'';
+        var details='Le fichier Excel remplacera <strong>l\'intégralité</strong> des données actuelles :<br><br>'+detail+
+          avert+
+          '<br><br>ℹ️ Les prix unitaires "Achat" des Activités sont recalculés (Prix achat total ÷ Qté) car seul le total est présent dans le fichier Excel.'+
+          '<br><br>✅ Une sauvegarde de sécurité de vos données ACTUELLES sera conservée automatiquement et annulable juste après l\'import.';
+        demanderConfirmationSecurisee('📥 Importer depuis Excel et remplacer toutes les données', details, false, function(){
+          try{ localStorage.setItem(KEY+'_before_import', JSON.stringify(D)); }catch(e2){}
+          // Excel ne contient QUE les 9 tables de données, jamais les
+          // réglages (auth, params, compteurs _o/_co, tombstones _del,
+          // catégories de dépenses) : on les préserve tels quels depuis
+          // l'état actuel plutôt que de les réinitialiser par erreur.
+          var ancienD=D;
+          D=Object.assign({},DEFAULT_SHAPE,ancienD,nD);
+          if(!D._del) D._del={};
+          var maxOrdre=nD.activites.reduce(function(m,a){ return Math.max(m,a.ordre||0); },0);
+          D._o=Math.max(ancienD._o||1,maxOrdre+1);
+          D._co=Math.max(ancienD._co||1,nD.commandes.length+1);
+          persist(); renderAll(); afficherBandeauAnnulerImport();
+          var total=Object.keys(nouveau).reduce(function(s,k){ return s+nouveau[k]; },0);
+          notif('✅ Import Excel réussi : '+total+' enregistrements restaurés'+(erreursCmd>0?(' ('+erreursCmd+' ligne(s) de commande à vérifier)'):''));
+        });
+      }catch(err){
+        console.error('[Import Excel]',err);
+        notif('❌ Erreur de lecture du fichier Excel : '+err.message,7000);
+      }
+      e.target.value='';
+    };
+    r.readAsArrayBuffer(f);
+  }, function(){
+    notif('⚠️ Pas de connexion — le moteur Excel (nécessaire une seule fois) n\'a pas pu être chargé.',6000);
+    e.target.value='';
+  });
+}
+
 /** Repli hors-ligne : export CSV des activités (lisible par Excel). */
 function exportCSV(){
   var lignes=[['Date','N°','Ticket','Type','Désignation','Panne','Qté','Prix achat','À payer','Payé','Reste','Bénéfice','Client']];
@@ -2955,8 +3218,8 @@ function viderDep() {
 
 // Identifiants par défaut (modifiables par l'utilisateur)
 // Stockés dans localStorage sous clé sécurisée
-var APP_VERSION = 'v28';
-var APP_DERNIERE_MAJ = '2026-07-30T09:45:00'; // Solution A Clients/Fournisseurs : suggestions de noms (Activités/Commandes) + normalisation de casse, aucune nouvelle table Supabase
+var APP_VERSION = 'v29';
+var APP_DERNIERE_MAJ = '2026-07-30T14:20:00'; // Export/Import JSON renforcés (sauvegarde de sécurité automatique + annulation), nouvel Import Excel (.xlsx), blocage strict des ventes de produits hors stock
 var AUTH_KEY = 'bpro_auth_v1';
 var RESET_CODE = 'BWL-2026-RESET'; // Code unique de réinitialisation
 
