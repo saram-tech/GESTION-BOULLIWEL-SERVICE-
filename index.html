@@ -108,9 +108,9 @@ main{padding:12px;max-width:1400px;margin:0 auto;position:relative;z-index:1;}
 .bo{background:rgba(249,115,22,.15);border:1px solid rgba(249,115,22,.3);color:var(--or);}.bo:hover{background:rgba(249,115,22,.25);}
 .bsm{padding:5px 10px;font-size:.74rem;border-radius:7px;}
 .bxs{padding:3px 8px;font-size:.69rem;border-radius:5px;}
-.tw{overflow-x:auto;border-radius:9px;}
+.tw{overflow-x:auto;overflow-y:auto;max-height:min(64vh,620px);border-radius:9px;}
 table{width:100%;border-collapse:collapse;font-size:.77rem;}
-thead th{background:var(--bg4);color:var(--tx2);padding:8px 10px;text-align:left;font-weight:600;font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--bd);white-space:nowrap;}
+thead th{background:var(--bg4);color:var(--tx2);padding:8px 10px;text-align:left;font-weight:600;font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--bd);white-space:nowrap;position:sticky;top:0;z-index:6;}
 tbody td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle;}
 tbody tr:hover td{background:rgba(79,142,247,.04);}
 tbody tr:last-child td{border-bottom:none;}
@@ -259,7 +259,7 @@ tbody tr:last-child td{border-bottom:none;}
 
 <!-- BARRE DE RECHERCHE GLOBALE -->
 <div style="position:relative;max-width:640px;margin:0 auto 12px" id="gs-wrap">
-  <input type="text" id="gs-input" placeholder="🔍 Rechercher un produit, client, dette, commande, dépense..." oninput="globalSearch()" onfocus="globalSearch()" style="width:100%;background:var(--bg3);border:1px solid var(--bd2);border-radius:20px;padding:10px 16px;color:var(--tx);font-family:var(--font-body);font-size:.83rem;outline:none">
+  <input type="text" id="gs-input" placeholder="🔍 Rechercher un produit, client, dette, commande, dépense..." oninput="deb('gs',globalSearch)" onfocus="globalSearch()" style="width:100%;background:var(--bg3);border:1px solid var(--bd2);border-radius:20px;padding:10px 16px;color:var(--tx);font-family:var(--font-body);font-size:.83rem;outline:none">
   <div id="gs-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg3);border:1px solid var(--bd2);border-radius:10px;margin-top:5px;max-height:340px;overflow-y:auto;z-index:250;box-shadow:0 10px 26px rgba(0,0,0,.5)"></div>
 </div>
 
@@ -290,11 +290,11 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="g2">
     <div class="card"><div class="ch"><span class="dot"></span>Actions rapides</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px">
-        <button class="btn bp bsm" onclick="gt('activites',null);om('ma')">+ Activité</button>
-        <button class="btn bg bsm" onclick="gt('stock',null);om('ms')">+ Stock</button>
-        <button class="btn bh bsm" onclick="gt('depenses',null);om('md')">+ Dépense</button>
-        <button class="btn bt bsm" onclick="gt('perso',null);om('mp')">+ Perso</button>
-        <button class="btn bo bsm" onclick="gt('commandes',null);om('mc')">+ Commande</button>
+        <button class="btn bp bsm" onclick="gt('activites',null);rAF();om('ma')">+ Activité</button>
+        <button class="btn bg bsm" onclick="gt('stock',null);rSF();om('ms')">+ Stock</button>
+        <button class="btn bh bsm" onclick="gt('depenses',null);rDepF();om('md')">+ Dépense</button>
+        <button class="btn bt bsm" onclick="gt('perso',null);rPF();om('mp')">+ Perso</button>
+        <button class="btn bo bsm" onclick="gt('commandes',null);rCF();om('mc')">+ Commande</button>
         <button class="btn bh bsm" onclick="gt('bilan',null);calculerBilan()">📊 Bilan</button>
       </div>
     </div>
@@ -309,7 +309,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st">Activités</div><div class="ss">Ventes · Réparations · Services</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bp bsm" onclick="om('ma')">+ Nouvelle</button>
+      <button class="btn bp bsm" onclick="rAF();om('ma')">+ Nouvelle</button>
       <button class="btn bh bsm" onclick="om('mpp')">💳 Paiement partiel</button>
       <button class="btn bd bsm" onclick="viderActivites()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
     </div>
@@ -323,10 +323,15 @@ tbody tr:last-child td{border-bottom:none;}
       <select id="f-type" onchange="rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
         <option value="">Tous</option><option value="Vente">Ventes</option><option value="Réparation">Réparations</option><option value="Service">Services</option>
       </select>
-      <select id="f-periode-act" onchange="rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option>
+      <select id="f-periode-act" onchange="togglePeriodeCustom('f-periode-act');rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
+        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
       </select>
-      <input type="text" id="f-search" placeholder="🔍 Rechercher..." oninput="rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:100px;outline:none">
+      <span id="f-periode-act-range" style="display:none;gap:5px;align-items:center">
+        <input type="date" id="f-periode-act-start" onchange="rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
+        <span style="color:var(--tx3);font-size:.7rem">→</span>
+        <input type="date" id="f-periode-act-end" onchange="rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
+      </span>
+      <input type="text" id="f-search" placeholder="🔍 Rechercher..." oninput="deb('act',rAct)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:100px;outline:none">
     </div>
     <div class="tw"><table>
       <thead><tr><th>Date</th><th>#</th><th>Ticket</th><th>Type</th><th>Désignation</th><th>Panne</th><th>P.Achat×Qté</th><th>À Payer</th><th>Payé</th><th>Reste</th><th>Client</th><th>Bénéfice</th><th>Actions</th></tr></thead>
@@ -345,7 +350,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st">Stock Entreprise</div><div class="ss">Marchandises communes — seuil d'alerte par produit</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bp bsm" onclick="om('ms')">+ Entrée stock</button>
+      <button class="btn bp bsm" onclick="rSF();om('ms')">+ Entrée stock</button>
       <button class="btn bd bsm" onclick="viderStock()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
     </div>
   </div>
@@ -353,7 +358,19 @@ tbody tr:last-child td{border-bottom:none;}
     📦 <strong>Stock Restant = Initial − Vendu</strong> (mis à jour automatiquement à chaque vente).<br>
     🔴 Quand Stock Restant ≤ Seuil → alerte + fiche commande fournisseur dans l'onglet <strong>Commandes</strong>.
   </div>
-  <div class="card"><div class="tw"><table>
+  <div class="card">
+    <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
+      <input type="text" id="f-search-stock" placeholder="🔍 Rechercher un produit..." oninput="deb('stock',rStock)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
+      <select id="f-periode-stock" onchange="togglePeriodeCustom('f-periode-stock');rStock()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
+        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
+      </select>
+      <span id="f-periode-stock-range" style="display:none;gap:5px;align-items:center">
+        <input type="date" id="f-periode-stock-start" onchange="rStock()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
+        <span style="color:var(--tx3);font-size:.7rem">→</span>
+        <input type="date" id="f-periode-stock-end" onchange="rStock()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
+      </span>
+    </div>
+    <div class="tw"><table>
     <thead><tr><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>Niveau</th><th>Seuil</th><th>P.Achat</th><th>P.Vente</th><th>Valeur</th><th>Date</th><th>Actions</th></tr></thead>
     <tbody id="tbl-stock"><tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit</td></tr></tbody>
   </table></div></div>
@@ -364,7 +381,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st">Stock Personnel</div><div class="ss">Suivi comptable — vos produits sont fusionnés au Stock Entreprise</div></div>
     <div style="display:flex;gap:6px">
-      <button class="btn bg bsm" onclick="om('mp')">+ Ajouter</button>
+      <button class="btn bg bsm" onclick="rPF();om('mp')">+ Ajouter</button>
       <button class="btn bd bsm" onclick="viderPerso()" title="🔒 Mot de passe requis">🗑️ Vider</button>
     </div>
   </div>
@@ -374,7 +391,19 @@ tbody tr:last-child td{border-bottom:none;}
     Exemple : 5 unités à 100 000 GNF = revient 500 000 GNF → entreprise vous doit <strong>575 000 GNF</strong>.<br>
     Le bénéfice de vente est partagé 50/50 avec l'associé.
   </div>
-  <div class="card"><div class="tw"><table>
+  <div class="card">
+    <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
+      <input type="text" id="f-search-perso" placeholder="🔍 Rechercher un produit..." oninput="deb('perso',rPerso)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
+      <select id="f-periode-perso" onchange="togglePeriodeCustom('f-periode-perso');rPerso()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
+        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
+      </select>
+      <span id="f-periode-perso-range" style="display:none;gap:5px;align-items:center">
+        <input type="date" id="f-periode-perso-start" onchange="rPerso()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
+        <span style="color:var(--tx3);font-size:.7rem">→</span>
+        <input type="date" id="f-periode-perso-end" onchange="rPerso()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
+      </span>
+    </div>
+    <div class="tw"><table>
     <thead><tr><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>P.Achat</th><th>Prix Revient</th><th>+15%</th><th>Total Dû</th><th>Statut</th><th>Actions</th></tr></thead>
     <tbody id="tbl-perso"><tr><td colspan="10" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr></tbody>
   </table></div>
@@ -426,7 +455,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st">Associé & Dettes</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bd bsm" id="btn-add-dette" onclick="om('mdet')">➕ Ajouter dette</button>
+      <button class="btn bd bsm" id="btn-add-dette" onclick="rDF();om('mdet')">➕ Ajouter dette</button>
       <button class="btn bs bsm" onclick="om('mpaym')">💳 Paiement</button>
       <button class="btn bd bsm" onclick="viderDettes()" title="🔒 Mot de passe requis">🗑️ Dettes</button>
       <button class="btn bd bsm" onclick="viderPaiements()" title="🔒 Mot de passe requis">🗑️ Paiements</button>
@@ -441,6 +470,17 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="g2">
     <div class="card">
       <div class="ch"><span class="dot" style="background:var(--re)"></span>Dettes enregistrées <span id="lkb" style="display:none" class="lkb">🔒 Verrouillé</span></div>
+      <div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">
+        <input type="text" id="f-search-dettes" placeholder="🔍 Rechercher..." oninput="deb('dettes',rDettes)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 8px;color:var(--tx);font-size:.72rem;flex:1;min-width:90px;outline:none">
+        <select id="f-periode-dettes" onchange="togglePeriodeCustom('f-periode-dettes');rDettes()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.7rem">
+          <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Semaine</option><option value="mois">Mois</option><option value="annee">Année</option><option value="custom">Personnalisé</option>
+        </select>
+        <span id="f-periode-dettes-range" style="display:none;gap:4px;align-items:center;width:100%">
+          <input type="date" id="f-periode-dettes-start" onchange="rDettes()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.7rem;flex:1">
+          <span style="color:var(--tx3);font-size:.68rem">→</span>
+          <input type="date" id="f-periode-dettes-end" onchange="rDettes()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.7rem;flex:1">
+        </span>
+      </div>
       <div class="tw"><table>
         <thead><tr><th>Date</th><th>Description</th><th>Type</th><th>Montant</th><th>Actions</th></tr></thead>
         <tbody id="tbl-dettes"><tr><td colspan="5" style="text-align:center;color:var(--tx2);padding:14px">Aucune dette</td></tr></tbody>
@@ -454,6 +494,17 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="card">
       <div class="ch"><span class="dot" style="background:var(--gr)"></span>Paiements reçus</div>
+      <div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">
+        <input type="text" id="f-search-paiements" placeholder="🔍 Rechercher..." oninput="deb('paiements',rDettes)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 8px;color:var(--tx);font-size:.72rem;flex:1;min-width:90px;outline:none">
+        <select id="f-periode-paiements" onchange="togglePeriodeCustom('f-periode-paiements');rDettes()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.7rem">
+          <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Semaine</option><option value="mois">Mois</option><option value="annee">Année</option><option value="custom">Personnalisé</option>
+        </select>
+        <span id="f-periode-paiements-range" style="display:none;gap:4px;align-items:center;width:100%">
+          <input type="date" id="f-periode-paiements-start" onchange="rDettes()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.7rem;flex:1">
+          <span style="color:var(--tx3);font-size:.68rem">→</span>
+          <input type="date" id="f-periode-paiements-end" onchange="rDettes()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.7rem;flex:1">
+        </span>
+      </div>
       <div class="tw" style="max-height:200px;overflow-y:auto"><table>
         <thead><tr><th>Date</th><th>Type</th><th>Note</th><th>Montant</th><th>Actions</th></tr></thead>
         <tbody id="tbl-paym"><tr><td colspan="5" style="text-align:center;color:var(--tx2);padding:12px">Aucun paiement</td></tr></tbody>
@@ -465,7 +516,7 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- DÉPENSES -->
 <div id="tab-depenses" class="tab-panel">
   <div class="sh"><div><div class="st">Dépenses</div></div><div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bp bsm" onclick="om('md')">+ Ajouter</button>
+      <button class="btn bp bsm" onclick="rDepF();om('md')">+ Ajouter</button>
       <button class="btn bd bsm" onclick="viderDep()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
     </div></div>
   <div class="al ali" style="font-size:.77rem">
@@ -478,9 +529,15 @@ tbody tr:last-child td{border-bottom:none;}
   </div>
   <div class="card">
     <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
-      <select id="f-periode-dep" onchange="rDep()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option>
+      <input type="text" id="f-search-dep" placeholder="🔍 Rechercher (catégorie, description)..." oninput="deb('dep',rDep)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
+      <select id="f-periode-dep" onchange="togglePeriodeCustom('f-periode-dep');rDep()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
+        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
       </select>
+      <span id="f-periode-dep-range" style="display:none;gap:5px;align-items:center">
+        <input type="date" id="f-periode-dep-start" onchange="rDep()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
+        <span style="color:var(--tx3);font-size:.7rem">→</span>
+        <input type="date" id="f-periode-dep-end" onchange="rDep()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
+      </span>
     </div>
     <div class="tw"><table>
     <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>Qté</th><th>Prix Unit.</th><th>Total</th><th>Actions</th></tr></thead>
@@ -493,7 +550,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st">Commandes</div><div class="ss">Clients + Alertes stock faible → Fournisseurs</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bo bsm" onclick="om('mc')">+ Nouvelle commande</button>
+      <button class="btn bo bsm" onclick="rCF();om('mc')">+ Nouvelle commande</button>
       <button class="btn bg bsm" onclick="copierCmdFournisseur()" title="Copier la liste des produits à commander, prête pour WhatsApp">📲 Copier pour fournisseur</button>
       <button class="btn bd bsm" onclick="viderCommandes()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
     </div>
@@ -507,9 +564,15 @@ tbody tr:last-child td{border-bottom:none;}
   <!-- COMMANDES CLIENTS -->
   <div class="card">
     <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
-      <select id="f-periode-cmd" onchange="rCmd()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option>
+      <input type="text" id="f-search-cmd" placeholder="🔍 Rechercher (client, n° cmd, produit)..." oninput="deb('cmd',rCmd)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
+      <select id="f-periode-cmd" onchange="togglePeriodeCustom('f-periode-cmd');rCmd()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
+        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
       </select>
+      <span id="f-periode-cmd-range" style="display:none;gap:5px;align-items:center">
+        <input type="date" id="f-periode-cmd-start" onchange="rCmd()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
+        <span style="color:var(--tx3);font-size:.7rem">→</span>
+        <input type="date" id="f-periode-cmd-end" onchange="rCmd()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
+      </span>
     </div>
     <div class="tw"><table>
     <thead><tr><th>Date</th><th>N° Cmd</th><th>Client</th><th>Téléphone</th><th>Produits</th><th>Total</th><th>Statut</th><th>Actions</th></tr></thead>
@@ -520,13 +583,19 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- HISTORIQUE -->
 <div id="tab-historique" class="tab-panel">
   <div class="sh"><div class="st">Historique</div>
-    <div style="display:flex;gap:6px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <input type="text" id="f-search-histo" placeholder="🔍 Rechercher..." oninput="deb('histo',rHisto)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;min-width:110px;outline:none">
       <select id="f-histo" onchange="rHisto()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
         <option value="">Tout</option><option value="activite">Activités</option><option value="stock">Stock</option><option value="depense">Dépenses</option><option value="paiement">Paiements</option><option value="dette">Dettes</option><option value="commande">Commandes</option>
       </select>
-      <select id="f-periode-histo" onchange="rHisto()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option>
+      <select id="f-periode-histo" onchange="togglePeriodeCustom('f-periode-histo');rHisto()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
+        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
       </select>
+      <span id="f-periode-histo-range" style="display:none;gap:5px;align-items:center">
+        <input type="date" id="f-periode-histo-start" onchange="rHisto()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
+        <span style="color:var(--tx3);font-size:.7rem">→</span>
+        <input type="date" id="f-periode-histo-end" onchange="rHisto()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
+      </span>
       <button class="btn bd bsm" onclick="vHisto()" title="🔒 Mot de passe requis">🗑️ Vider</button>
     </div>
   </div>
@@ -543,7 +612,12 @@ tbody tr:last-child td{border-bottom:none;}
     <button class="btn bd bsm" onclick="vCorbeille()" title="🔒 Mot de passe requis">❌ Vider définitivement</button>
   </div>
   <div class="al alw" style="font-size:.77rem">♻️ Restaurez ou supprimez définitivement. Les éléments supprimés de la corbeille sont irrécupérables.</div>
-  <div class="card"><div id="corbeille-list"><div style="text-align:center;color:var(--tx2);padding:26px">La corbeille est vide.</div></div></div>
+  <div class="card">
+    <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
+      <input type="text" id="f-search-corbeille" placeholder="🔍 Rechercher..." oninput="deb('corbeille',rCorbeille)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
+    </div>
+    <div id="corbeille-list"><div style="text-align:center;color:var(--tx2);padding:26px">La corbeille est vide.</div></div>
+  </div>
 </div>
 </main>
 
@@ -829,7 +903,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="mhd"><span id="md-t">💸 Nouvelle Dépense</span><button class="mcl" onclick="cm('md');rDepF()">✕</button></div>
     <input type="hidden" id="dep-eid">
     <div class="fr">
-      <div class="fg"><label>Catégorie</label><select id="dep-cat"><option>Transport</option><option>Loyer</option><option>Électricité</option><option>Salaire</option><option>Fournitures</option><option>Communication</option><option>Pièces détachées</option><option>Autre</option></select></div>
+      <div class="fg"><label>Catégorie <button type="button" onclick="ouvrirGestionCategories()" style="background:none;border:none;color:var(--ac);cursor:pointer;font-size:.68rem;text-decoration:underline;padding:0;margin-left:5px" title="Ajouter, renommer ou supprimer une catégorie">🏷️ Gérer</button></label><input type="text" id="dep-cat" list="dep-cat-list" placeholder="Nouvelle ou existante..." autocomplete="off"><datalist id="dep-cat-list"></datalist></div>
       <div class="fg"><label>Description *</label><input type="text" id="dep-desc" placeholder="Détail..."></div>
     </div>
     <div class="fr">
@@ -841,6 +915,21 @@ tbody tr:last-child td{border-bottom:none;}
     <div style="display:flex;gap:7px;justify-content:flex-end">
       <button class="btn bh" onclick="cm('md');rDepF()">Annuler</button>
       <button class="btn bp" id="btn-sdep" onclick="enrDep()">✓ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- GESTION CATÉGORIES DÉPENSES -->
+<div class="ov" id="mcat">
+  <div class="modal" style="max-width:440px">
+    <div class="mhd">🏷️ Catégories de dépenses<button class="mcl" onclick="cm('mcat')">✕</button></div>
+    <div id="mcat-list" style="max-height:280px;overflow-y:auto;margin-bottom:12px"></div>
+    <div class="fr">
+      <div class="fg" style="flex:1"><label>Nouvelle catégorie</label><input type="text" id="mcat-new" placeholder="Nom de la catégorie" onkeydown="if(event.key==='Enter')ajouterCategorieDep()"></div>
+    </div>
+    <div style="display:flex;gap:7px;justify-content:flex-end">
+      <button class="btn bh" onclick="cm('mcat')">Fermer</button>
+      <button class="btn bs" onclick="ajouterCategorieDep()">✓ Ajouter</button>
     </div>
   </div>
 </div>
@@ -1031,6 +1120,18 @@ function fmtDateJour(dateStr){
   return JOURS_FR[dt.getDay()]+' '+m[3]+'-'+m[2]+'-'+m[1];
 }
 function v(id){ var e=document.getElementById(id); return e?e.value:''; }
+/**
+ * Différé léger (150ms) pour les champs de recherche : évite de
+ * recalculer/redessiner tout le tableau à chaque frappe sur un appareil
+ * d'entrée de gamme, ce qui peut donner l'impression que la recherche
+ * "ne répond pas". La barre reste réactive (150ms est imperceptible)
+ * mais épargne le CPU pendant une frappe rapide.
+ */
+var _debTimers={};
+function deb(key,fn,delay){
+  if(_debTimers[key]) clearTimeout(_debTimers[key]);
+  _debTimers[key]=setTimeout(fn,delay||150);
+}
 function fl(id){ return parseFloat(v(id))||0; }
 function sv(id,val){ var e=document.getElementById(id); if(e) e.value=val; }
 function st(id,val){ var e=document.getElementById(id); if(e) e.textContent=val; }
@@ -1048,10 +1149,20 @@ function fmtDateHeure(dateStr,heure){
  * 'mois' = mois calendaire en cours). Chaîne vide ou valeur inconnue =
  * aucun filtrage (tout est accepté).
  */
+/**
+ * Normalise une chaîne pour la recherche : minuscules + suppression des
+ * accents (é→e, à→a, etc.). Corrige le bug de recherche qui ne trouvait
+ * pas "ecran" quand le produit était enregistré "Écran" — la comparaison
+ * insensible à la casse seule ne suffit pas en français.
+ */
+function normSearch(s){
+  return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
 function matchPeriode(dateStr, periode){
   if(!periode || !dateStr) return true;
   if(periode==='jour') return dateStr===td();
   if(periode==='mois') return dateStr.slice(0,7)===td().slice(0,7);
+  if(periode==='annee') return dateStr.slice(0,4)===td().slice(0,4);
   if(periode==='semaine'){
     var d=new Date(dateStr+'T00:00:00'); if(isNaN(d.getTime())) return true;
     var now=new Date(); now.setHours(0,0,0,0);
@@ -1061,6 +1172,30 @@ function matchPeriode(dateStr, periode){
     return d>=monday && d<=sunday;
   }
   return true;
+}
+/**
+ * Filtre de période complet pour un tableau : lit le select #<periodeId>
+ * ('jour'/'semaine'/'mois'/'annee'/'custom'/'') et, si 'custom', les deux
+ * champs date #<periodeId>-start / #<periodeId>-end. Utilisé par toutes
+ * les fonctions de rendu de tableau pour un comportement identique et
+ * cohérent partout dans l'application.
+ */
+function matchPeriodeFull(dateStr, periodeId){
+  var p=v(periodeId);
+  if(!p) return true;
+  if(p==='custom'){
+    if(!dateStr) return true;
+    var start=v(periodeId+'-start'), end=v(periodeId+'-end');
+    if(start && dateStr<start) return false;
+    if(end && dateStr>end) return false;
+    return true;
+  }
+  return matchPeriode(dateStr, p);
+}
+/** Affiche/masque les deux champs de date personnalisée liés à un select de période. */
+function togglePeriodeCustom(periodeId){
+  var sel=document.getElementById(periodeId), rng=document.getElementById(periodeId+'-range');
+  if(sel && rng) rng.style.display = sel.value==='custom' ? 'inline-flex' : 'none';
 }
 function ah(type,desc,montant,date){ D.histo.push({id:Date.now(),type:type,desc:desc,montant:montant,date:date||td(),heure:nowHM()}); }
 function rb(type,label,data){ D.corbeille.push({id:Date.now(),type:type,label:label,data:JSON.parse(JSON.stringify(data)),date:td(),heure:nowHM()}); }
@@ -1597,9 +1732,59 @@ function delPaym(id){
 // DÉPENSES
 // ================================================================
 function cDepTot(){ var q=Math.max(1,parseInt(v('dep-qte'))||1),p=fl('dep-prix'); sv('dep-tot',q*p); }
+var DEFAULT_DEP_CATEGORIES=['Transport','Loyer','Électricité','Salaire','Fournitures','Communication','Pièces détachées','Autre'];
+/** Retourne la liste des catégories de dépenses (créée à la volée si absente, sans jamais toucher aux dépenses déjà enregistrées). */
+function getDepCategories(){
+  if(!D.depCategories || !D.depCategories.length) D.depCategories=DEFAULT_DEP_CATEGORIES.slice();
+  return D.depCategories;
+}
+/** Rafraîchit la liste de suggestions (datalist) du champ Catégorie. */
+function rCatList(){
+  var dl=document.getElementById('dep-cat-list'); if(!dl) return;
+  dl.innerHTML=getDepCategories().map(function(c){ return '<option value="'+String(c).replace(/"/g,'&quot;')+'">'; }).join('');
+}
+function ouvrirGestionCategories(){ rMcatList(); sv('mcat-new',''); om('mcat'); }
+function rMcatList(){
+  var el=document.getElementById('mcat-list'); if(!el) return;
+  var cats=getDepCategories();
+  var html='';
+  cats.forEach(function(c,i){
+    var nbUsage=D.depenses.filter(function(d){ return d.cat===c; }).length;
+    html+='<div style="display:flex;align-items:center;justify-content:space-between;gap:7px;padding:8px 0;border-bottom:1px solid var(--bd)">';
+    html+='<span style="font-size:.81rem">'+c+' <span style="color:var(--tx3);font-size:.68rem">('+nbUsage+' dépense'+(nbUsage>1?'s':'')+')</span></span>';
+    html+='<span style="display:flex;gap:5px"><button class="btn bh bxs" onclick="renommerCategorieDep('+i+')" title="Renommer">✏️</button><button class="btn bd bxs" onclick="supprimerCategorieDep('+i+')" title="Retirer de la liste de suggestions">🗑️</button></span>';
+    html+='</div>';
+  });
+  el.innerHTML=html||'<div style="color:var(--tx2);font-size:.8rem;text-align:center;padding:14px">Aucune catégorie</div>';
+}
+function ajouterCategorieDep(){
+  var n=v('mcat-new').trim(); if(!n){ notif('⚠️ Entrez un nom de catégorie'); return; }
+  var cats=getDepCategories();
+  if(cats.some(function(c){ return normSearch(c)===normSearch(n); })){ notif('⚠️ Cette catégorie existe déjà'); return; }
+  cats.push(n); save(); rCatList(); rMcatList(); sv('mcat-new',''); notif('✅ Catégorie « '+n+' » ajoutée');
+}
+function renommerCategorieDep(i){
+  var cats=getDepCategories(); var old=cats[i]; if(old===undefined) return;
+  var nn=prompt('Renommer « '+old+' » en :', old);
+  if(nn===null) return;
+  nn=nn.trim(); if(!nn||nn===old) return;
+  cats[i]=nn;
+  D.depenses.forEach(function(d){ if(d.cat===old) d.cat=nn; });
+  save(); rCatList(); rMcatList(); rDep(); notif('✅ Catégorie renommée en « '+nn+' »');
+}
+function supprimerCategorieDep(i){
+  var cats=getDepCategories(); var name=cats[i]; if(name===undefined) return;
+  var nbUsage=D.depenses.filter(function(d){ return d.cat===name; }).length;
+  var msg='Retirer « '+name+' » de la liste de suggestions ?'+(nbUsage>0?(' Les '+nbUsage+' dépense(s) déjà enregistrée(s) avec cette catégorie ne seront PAS supprimées.'):'');
+  if(!confirm(msg)) return;
+  cats.splice(i,1); save(); rCatList(); rMcatList(); notif('Catégorie retirée de la liste de suggestions');
+}
 function enrDep(){
-  var cat=v('dep-cat'),desc=v('dep-desc').trim(),qte=Math.max(1,parseInt(v('dep-qte'))||1),prix=fl('dep-prix'),total=qte*prix,date=v('dep-date');
+  var cat=v('dep-cat').trim(),desc=v('dep-desc').trim(),qte=Math.max(1,parseInt(v('dep-qte'))||1),prix=fl('dep-prix'),total=qte*prix,date=v('dep-date');
+  if(!cat){ notif('⚠️ Choisissez ou saisissez une catégorie'); return; }
   if(total<=0){ notif('⚠️ Prix invalide'); return; }
+  var cats=getDepCategories();
+  if(!cats.some(function(c){ return normSearch(c)===normSearch(cat); })){ cats.push(cat); rCatList(); }
   var eid=v('dep-eid');
   if(eid){
     var d=D.depenses.find(function(x){ return x.id==eid; });
@@ -1612,8 +1797,8 @@ function enrDep(){
   save(); cm('md'); rDepF(); notif('✅ Dépense enregistrée');
 }
 function rDepF(){
-  ['dep-desc','dep-prix','dep-tot','dep-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
-  sv('dep-qte',1); st('md-t','💸 Nouvelle Dépense');
+  ['dep-desc','dep-prix','dep-tot','dep-eid','dep-cat'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+  sv('dep-qte',1); st('md-t','💸 Nouvelle Dépense'); rCatList();
   var b=document.getElementById('btn-sdep'); b.textContent='✓ Enregistrer'; b.onclick=enrDep;
 }
 function editDep(id){
@@ -2010,11 +2195,11 @@ function deverrouillerDettes(){
 // ================================================================
 function rAct(){
   var tb=document.getElementById('tbl-act');
-  var ft=v('f-type'),fs=v('f-search').toLowerCase(),fp=v('f-periode-act');
+  var ft=v('f-type'),fs=normSearch(v('f-search')),fp='f-periode-act';
   var items=D.activites.slice().reverse();
   if(ft) items=items.filter(function(a){ return a.type===ft; });
-  if(fp) items=items.filter(function(a){ return matchPeriode(a.date,fp); });
-  if(fs) items=items.filter(function(a){ return a.desig.toLowerCase().indexOf(fs)>-1||(a.client||'').toLowerCase().indexOf(fs)>-1||(a.panne||'').toLowerCase().indexOf(fs)>-1; });
+  items=items.filter(function(a){ return matchPeriodeFull(a.date,fp); });
+  if(fs) items=items.filter(function(a){ return normSearch(a.desig).indexOf(fs)>-1||normSearch(a.client).indexOf(fs)>-1||normSearch(a.panne).indexOf(fs)>-1||normSearch(a.ticket).indexOf(fs)>-1; });
   if(!items.length){
     tb.innerHTML='<tr><td colspan="13" style="text-align:center;color:var(--tx2);padding:20px">Aucune activité</td></tr>';
     st('t-enc','0 GNF'); st('t-ben','0 GNF'); st('t-rst','0 GNF'); return;
@@ -2043,6 +2228,15 @@ function rAct(){
     html+='<td class="ac"><button class="btn bh bxs" onclick="editAct('+a.id+')">✏️</button><button class="btn bd bxs" onclick="delAct('+a.id+')">🗑️</button></td>';
     html+='</tr>';
   });
+  var totAchatQte=items.reduce(function(s,a){ return s+a.achat*(a.qte||1); },0);
+  var totApayer=items.reduce(function(s,a){ return s+a.apayer; },0);
+  var totPaye=items.reduce(function(s,a){ return s+a.paye; },0);
+  var totReste=items.reduce(function(s,a){ return s+a.reste; },0);
+  var totBenefice=items.reduce(function(s,a){ return s+a.benefice; },0);
+  html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
+  html+='<td colspan="6">TOTAL ('+items.length+' ligne'+(items.length>1?'s':'')+')</td>';
+  html+='<td>'+fmt(totAchatQte)+'</td><td>'+fmt(totApayer)+'</td><td style="color:var(--gr)">'+fmt(totPaye)+'</td><td style="color:'+(totReste>0?'var(--or)':'var(--gr)')+'">'+fmt(totReste)+'</td><td>—</td><td style="color:'+(totBenefice>=0?'var(--gr)':'var(--re)')+'">'+fmt(totBenefice)+'</td><td>—</td>';
+  html+='</tr>';
   tb.innerHTML=html;
   var enc=items.reduce(function(s,a){ return s+a.paye; },0);
   var ben=items.reduce(function(s,a){ return s+a.benefice; },0);
@@ -2052,10 +2246,13 @@ function rAct(){
 
 function rStock(){
   var tb=document.getElementById('tbl-stock');
-  if(!D.stock.length){ tb.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit</td></tr>'; return; }
+  var fs=normSearch(v('f-search-stock'));
+  var items=D.stock.filter(function(s){ return matchPeriodeFull(s.date,'f-periode-stock'); });
+  if(fs) items=items.filter(function(s){ return normSearch(s.nom).indexOf(fs)>-1; });
+  if(!items.length){ tb.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit</td></tr>'; return; }
   var html='';
   var totInit=0,totVendu=0,totRestant=0,totValeur=0,totAchatU=0,totVenteU=0;
-  D.stock.forEach(function(s){
+  items.forEach(function(s){
     var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
     var seuil=s.seuil||3;
     var niv=niveauStock(restant,seuil);
@@ -2084,10 +2281,13 @@ function rStock(){
 
 function rPerso(){
   var tb=document.getElementById('tbl-perso');
-  if(!D.perso.length){ tb.innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr>'; st('t-perso','0 GNF'); return; }
+  var fs=normSearch(v('f-search-perso'));
+  var items=D.perso.filter(function(p){ return matchPeriodeFull(p.date,'f-periode-perso'); });
+  if(fs) items=items.filter(function(p){ return normSearch(p.nom).indexOf(fs)>-1; });
+  if(!items.length){ tb.innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr>'; st('t-perso','0 GNF'); return; }
   var tot=0, html='';
   var totInit=0,totVendu=0,totRestant=0,totAchatU=0,totRevient=0,totCommission=0,totDu=0;
-  D.perso.forEach(function(p){
+  items.forEach(function(p){
     var r=p.totalDu-p.rembourse; tot+=r;
     var vr=calcPersoVenduRestant(p);
     var lie=D.stock.some(function(s){ return s.nom.toLowerCase()===p.nom.toLowerCase(); });
@@ -2119,10 +2319,13 @@ function rDettes(){
   document.getElementById('al-clot').style.display=locked?'block':'none';
   var ba=document.getElementById('btn-add-dette'); ba.disabled=locked; ba.style.opacity=locked?'.4':'1';
   var tb=document.getElementById('tbl-dettes');
-  if(!D.dettes.length) tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--tx2);padding:12px">Aucune dette active</td></tr>';
+  var fsD=normSearch(v('f-search-dettes'));
+  var itemsD=D.dettes.filter(function(d){ return matchPeriodeFull(d.date,'f-periode-dettes'); });
+  if(fsD) itemsD=itemsD.filter(function(d){ return normSearch(d.desc).indexOf(fsD)>-1||normSearch(d.type).indexOf(fsD)>-1; });
+  if(!itemsD.length) tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--tx2);padding:12px">'+(D.dettes.length?'Aucun résultat':'Aucune dette active')+'</td></tr>';
   else{
     var html='';
-    D.dettes.forEach(function(d){
+    itemsD.forEach(function(d){
       html+='<tr><td>'+fmtDateHeure(d.date,d.heure)+'</td><td>'+d.desc+'</td>';
       html+='<td><span class="badge bnr">'+d.type+'</span></td>';
       html+='<td style="color:var(--re)">'+fmt(d.montant)+'</td>';
@@ -2130,13 +2333,19 @@ function rDettes(){
     });
     tb.innerHTML=html;
   }
+  // Les totaux KPI (Dettes actives / Cumulé clôtures / TOTAL) restent des
+  // totaux OFFICIELS non filtrés — ils alimentent aussi le Bilan. La
+  // recherche/le filtre n'affecte que les lignes affichées ci-dessus.
   var ta=D.dettes.reduce(function(s,d){ return s+d.montant; },0);
   st('tot-da',fmt(ta)); st('tot-dc',fmt(D.dettesClot)); st('tot-dg',fmt(ta+D.dettesClot));
   var tb2=document.getElementById('tbl-paym');
-  if(!D.paiements.length) tb2.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--tx2);padding:10px">Aucun paiement</td></tr>';
+  var fsP=normSearch(v('f-search-paiements'));
+  var itemsP=D.paiements.filter(function(p){ return matchPeriodeFull(p.date,'f-periode-paiements'); });
+  if(fsP) itemsP=itemsP.filter(function(p){ return normSearch(p.note).indexOf(fsP)>-1||normSearch(p.type).indexOf(fsP)>-1; });
+  if(!itemsP.length) tb2.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--tx2);padding:10px">'+(D.paiements.length?'Aucun résultat':'Aucun paiement')+'</td></tr>';
   else{
     var html2='';
-    D.paiements.slice().reverse().forEach(function(p){
+    itemsP.slice().reverse().forEach(function(p){
       html2+='<tr><td>'+fmtDateHeure(p.date,p.heure)+'</td><td><span class="badge bgr">'+p.type+'</span></td>';
       html2+='<td style="font-size:.76rem">'+(p.note||'—')+'</td>';
       html2+='<td style="color:var(--gr)">'+fmt(p.montant)+'</td>';
@@ -2148,10 +2357,10 @@ function rDettes(){
 
 function rDep(){
   var tb=document.getElementById('tbl-dep');
-  var fp=v('f-periode-dep');
-  var items=D.depenses.slice();
-  if(fp) items=items.filter(function(d){ return matchPeriode(d.date,fp); });
-  if(!items.length){ tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--tx2);padding:20px">Aucune dépense</td></tr>'; st('k-dt','0 GNF'); st('k-dm','0 GNF'); return; }
+  var fs=normSearch(v('f-search-dep'));
+  var items=D.depenses.filter(function(d){ return matchPeriodeFull(d.date,'f-periode-dep'); });
+  if(fs) items=items.filter(function(d){ return normSearch(d.cat).indexOf(fs)>-1||normSearch(d.desc).indexOf(fs)>-1; });
+  if(!items.length){ tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--tx2);padding:20px">'+(D.depenses.length?'Aucun résultat':'Aucune dépense')+'</td></tr>'; st('k-dt','0 GNF'); st('k-dm','0 GNF'); return; }
   var tot=0, mois=0, m=new Date().toISOString().slice(0,7), html='';
   var lastDateDep=null;
   items.forEach(function(d){
@@ -2163,15 +2372,22 @@ function rDep(){
     html+='<td style="color:var(--re)"><strong>'+fmt(d.montant)+'</strong></td>';
     html+='<td class="ac"><button class="btn bh bxs" onclick="editDep('+d.id+')">✏️</button><button class="btn bd bxs" onclick="delDep('+d.id+')">🗑️</button></td></tr>';
   });
+  var totQte=items.reduce(function(s,d){ return s+(d.qte||1); },0);
+  html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
+  html+='<td colspan="3">TOTAL GÉNÉRAL ('+items.length+' dépense'+(items.length>1?'s':'')+')</td><td>'+totQte+'</td><td>—</td><td style="color:var(--re)">'+fmt(tot)+'</td><td>—</td>';
+  html+='</tr>';
   tb.innerHTML=html; st('k-dt',fmt(tot)); st('k-dm',fmt(mois));
 }
 
 function rCmd(){
   var tb=document.getElementById('tbl-cmd');
-  var fp=v('f-periode-cmd');
-  var items=D.commandes.slice().reverse();
-  if(fp) items=items.filter(function(c){ return matchPeriode(c.date,fp); });
-  if(!items.length){ tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--tx2);padding:20px">Aucune commande</td></tr>'; return; }
+  var fs=normSearch(v('f-search-cmd'));
+  var items=D.commandes.slice().reverse().filter(function(c){ return matchPeriodeFull(c.date,'f-periode-cmd'); });
+  if(fs) items=items.filter(function(c){
+    var prodMatch=(c.produits||[]).some(function(l){ return normSearch(l.produit).indexOf(fs)>-1; });
+    return normSearch(c.client).indexOf(fs)>-1||normSearch(c.num).indexOf(fs)>-1||normSearch(c.tel).indexOf(fs)>-1||prodMatch;
+  });
+  if(!items.length){ tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--tx2);padding:20px">'+(D.commandes.length?'Aucun résultat':'Aucune commande')+'</td></tr>'; return; }
   var sc={'En attente':'bnr','En cours':'bbr','Livré':'bgr','Annulé':'bdr'};
   var html='';
   items.forEach(function(c){
@@ -2188,16 +2404,21 @@ function rCmd(){
     html+='<td class="ac"><button class="btn bh bxs" onclick="editCmd('+c.id+')">✏️</button>'+(c.tel?'<button class="btn bs bxs" onclick="appelClientById('+c.id+')" title="Appeler">📞</button>':'')+'<button class="btn bd bxs" onclick="delCmd('+c.id+')">🗑️</button></td>';
     html+='</tr>';
   });
+  var totCmd=items.reduce(function(s,c){ return s+(c.total||0); },0);
+  html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
+  html+='<td colspan="5">TOTAL ('+items.length+' commande'+(items.length>1?'s':'')+')</td><td style="color:var(--go)">'+fmt(totCmd)+'</td><td>—</td><td>—</td>';
+  html+='</tr>';
   tb.innerHTML=html;
 }
 
 function rHisto(){
   var tb=document.getElementById('tbl-histo');
-  var ft=v('f-histo'),fp=v('f-periode-histo');
+  var ft=v('f-histo'),fs=normSearch(v('f-search-histo'));
   var items=D.histo.slice().reverse();
   if(ft) items=items.filter(function(i){ return i.type===ft; });
-  if(fp) items=items.filter(function(i){ return matchPeriode(i.date,fp); });
-  if(!items.length){ tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--tx2);padding:20px">Aucun historique</td></tr>'; return; }
+  items=items.filter(function(i){ return matchPeriodeFull(i.date,'f-periode-histo'); });
+  if(fs) items=items.filter(function(i){ return normSearch(i.desc).indexOf(fs)>-1||normSearch(i.type).indexOf(fs)>-1; });
+  if(!items.length){ tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--tx2);padding:20px">'+(D.histo.length?'Aucun résultat':'Aucun historique')+'</td></tr>'; return; }
   var tc={activite:'bbr',stock:'bgr',depense:'bdr',paiement:'bor',dette:'bnr',perso:'bpr',commande:'btr'};
   var html='';
   items.forEach(function(i){
@@ -2215,10 +2436,13 @@ function vHisto(){
 
 function rCorbeille(){
   var el=document.getElementById('corbeille-list');
-  if(!D.corbeille.length){ el.innerHTML='<div style="text-align:center;color:var(--tx2);padding:26px">La corbeille est vide.</div>'; return; }
+  var fs=normSearch(v('f-search-corbeille'));
+  var items=D.corbeille.slice().reverse();
+  if(fs) items=items.filter(function(c){ return normSearch(c.label).indexOf(fs)>-1||normSearch(c.type).indexOf(fs)>-1; });
+  if(!items.length){ el.innerHTML='<div style="text-align:center;color:var(--tx2);padding:26px">'+(D.corbeille.length?'Aucun résultat':'La corbeille est vide.')+'</div>'; return; }
   var tc={activite:'bbr',stock:'bgr',depense:'bdr',paiement:'bor',dette:'bnr',perso:'bpr',commande:'btr'};
   var html='';
-  D.corbeille.slice().reverse().forEach(function(c){
+  items.forEach(function(c){
     html+='<div class="ci">';
     html+='<div style="color:var(--tx2)"><span class="badge '+(tc[c.type]||'bgg')+'" style="margin-right:6px">'+c.type+'</span><strong>'+c.label+'</strong> <span style="font-size:.7rem;color:var(--tx3)">— '+fmtDateJour(c.date)+(c.heure?' 🕒 '+c.heure:'')+'</span></div>';
     html+='<div style="display:flex;gap:5px"><button class="btn bs bxs" onclick="restaurer('+c.id+')">♻️ Restaurer</button><button class="btn bd bxs" onclick="suppDef('+c.id+')">❌ Suppr. déf.</button></div>';
@@ -2254,7 +2478,7 @@ function updateKPIs(){
 }
 
 function renderAll(){
-  rAct(); rStock(); rPerso(); rDettes(); rDep(); rCmd(); rHisto(); rCorbeille(); rAlertesStock(); updateKPIs(); calculerBilan();
+  rAct(); rStock(); rPerso(); rDettes(); rDep(); rCmd(); rHisto(); rCorbeille(); rAlertesStock(); updateKPIs(); calculerBilan(); rCatList();
 }
 
 // ================================================================
@@ -2511,21 +2735,21 @@ var tabOrder = ['dashboard','activites','stock','perso','bilan','associe','depen
  * de résultats cliquables ; chaque clic ouvre l'onglet correspondant.
  */
 function globalSearch(){
-  var q=v('gs-input').trim().toLowerCase();
+  var q=normSearch(v('gs-input').trim());
   var res=document.getElementById('gs-results');
   if(!q){ res.style.display='none'; res.innerHTML=''; return; }
   var hits=[];
-  D.stock.forEach(function(s){ if(s.nom.toLowerCase().indexOf(q)>-1) hits.push({tab:'stock',icon:'📦',label:s.nom,sub:'Stock Ent. — Restant: '+(s.qteRestante!==undefined?s.qteRestante:s.qteInitiale)}); });
-  D.perso.forEach(function(p){ if(p.nom.toLowerCase().indexOf(q)>-1) hits.push({tab:'perso',icon:'🏷️',label:p.nom,sub:'Stock Perso — Dû: '+fmt(p.totalDu-(p.rembourse||0))}); });
-  D.activites.forEach(function(a){ if(a.desig.toLowerCase().indexOf(q)>-1||(a.client||'').toLowerCase().indexOf(q)>-1||(a.ticket||'').toLowerCase().indexOf(q)>-1) hits.push({tab:'activites',icon:'📋',label:a.desig+(a.client?' — '+a.client:''),sub:a.type+' — '+fmtDateJour(a.date)}); });
-  D.dettes.forEach(function(d){ if(d.desc.toLowerCase().indexOf(q)>-1) hits.push({tab:'associe',icon:'🤝',label:d.desc,sub:'Dette — '+fmt(d.montant)}); });
-  D.paiements.forEach(function(p){ if((p.note||'').toLowerCase().indexOf(q)>-1) hits.push({tab:'associe',icon:'💳',label:p.note||'Paiement',sub:'Paiement — '+fmt(p.montant)}); });
-  D.depenses.forEach(function(d){ if((d.desc||'').toLowerCase().indexOf(q)>-1||d.cat.toLowerCase().indexOf(q)>-1) hits.push({tab:'depenses',icon:'💸',label:d.desc||d.cat,sub:'Dépense — '+fmt(d.montant)}); });
+  D.stock.forEach(function(s){ if(normSearch(s.nom).indexOf(q)>-1) hits.push({tab:'stock',icon:'📦',label:s.nom,sub:'Stock Ent. — Restant: '+(s.qteRestante!==undefined?s.qteRestante:s.qteInitiale)}); });
+  D.perso.forEach(function(p){ if(normSearch(p.nom).indexOf(q)>-1) hits.push({tab:'perso',icon:'🏷️',label:p.nom,sub:'Stock Perso — Dû: '+fmt(p.totalDu-(p.rembourse||0))}); });
+  D.activites.forEach(function(a){ if(normSearch(a.desig).indexOf(q)>-1||normSearch(a.client).indexOf(q)>-1||normSearch(a.ticket).indexOf(q)>-1) hits.push({tab:'activites',icon:'📋',label:a.desig+(a.client?' — '+a.client:''),sub:a.type+' — '+fmtDateJour(a.date)}); });
+  D.dettes.forEach(function(d){ if(normSearch(d.desc).indexOf(q)>-1) hits.push({tab:'associe',icon:'🤝',label:d.desc,sub:'Dette — '+fmt(d.montant)}); });
+  D.paiements.forEach(function(p){ if(normSearch(p.note).indexOf(q)>-1) hits.push({tab:'associe',icon:'💳',label:p.note||'Paiement',sub:'Paiement — '+fmt(p.montant)}); });
+  D.depenses.forEach(function(d){ if(normSearch(d.desc).indexOf(q)>-1||normSearch(d.cat).indexOf(q)>-1) hits.push({tab:'depenses',icon:'💸',label:d.desc||d.cat,sub:'Dépense — '+fmt(d.montant)}); });
   D.commandes.forEach(function(c){
-    var prodMatch=(c.produits||[]).some(function(l){ return (l.produit||'').toLowerCase().indexOf(q)>-1; });
-    if(c.client.toLowerCase().indexOf(q)>-1||c.num.toLowerCase().indexOf(q)>-1||prodMatch) hits.push({tab:'commandes',icon:'📑',label:c.client+' ('+c.num+')',sub:'Commande — '+c.statut});
+    var prodMatch=(c.produits||[]).some(function(l){ return normSearch(l.produit).indexOf(q)>-1; });
+    if(normSearch(c.client).indexOf(q)>-1||normSearch(c.num).indexOf(q)>-1||prodMatch) hits.push({tab:'commandes',icon:'📑',label:c.client+' ('+c.num+')',sub:'Commande — '+c.statut});
   });
-  if(!hits.length){ res.innerHTML='<div style="padding:14px;text-align:center;color:var(--tx2);font-size:.8rem">Aucun résultat pour "'+q+'"</div>'; res.style.display='block'; return; }
+  if(!hits.length){ res.innerHTML='<div style="padding:14px;text-align:center;color:var(--tx2);font-size:.8rem">Aucun résultat</div>'; res.style.display='block'; return; }
   var html='';
   hits.slice(0,25).forEach(function(h){
     html+='<div onclick="gsGoto(\''+h.tab+'\')" style="padding:10px 13px;border-bottom:1px solid var(--bd);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px" onmouseover="this.style.background=\'var(--bg4)\'" onmouseout="this.style.background=\'transparent\'">';
@@ -2697,8 +2921,8 @@ function viderDep() {
 
 // Identifiants par défaut (modifiables par l'utilisateur)
 // Stockés dans localStorage sous clé sécurisée
-var APP_VERSION = 'v25';
-var APP_DERNIERE_MAJ = '2026-07-29T10:05:00'; // Filet de sécurité : toute erreur JS est désormais affichée à l'écran au lieu d'échouer silencieusement
+var APP_VERSION = 'v26';
+var APP_DERNIERE_MAJ = '2026-07-29T11:00:00'; // Audit complet : recherche/filtres/totaux vérifiés fonctionnels sur toutes les tables, ajout d'un différé (debounce) sur la recherche pour la fluidité sur téléphone d'entrée de gamme
 var AUTH_KEY = 'bpro_auth_v1';
 var RESET_CODE = 'BWL-2026-RESET'; // Code unique de réinitialisation
 
