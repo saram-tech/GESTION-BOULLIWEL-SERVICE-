@@ -6,9 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
 
   <!-- SEO / métadonnées de base -->
-  <title>Boulliwel Pro — Gestion de Stock &amp; Service Téléphones</title>
+  <title>GESTION-BOULLIWEL-SERVICE.app — Gestion de Stock &amp; Service Téléphones</title>
   <meta name="description" content="Application de gestion intégrée pour service et vente de téléphones : stock, activités, dettes, paiements, dépenses, commandes et bilan.">
-  <meta name="author" content="Boulliwel Pro">
+  <meta name="author" content="GESTION-BOULLIWEL-SERVICE.app">
   <meta name="robots" content="noindex, nofollow">
 
   <!-- PWA — thème et manifeste -->
@@ -17,12 +17,12 @@
 
   <!-- PWA — comportement standalone (Android / navigateurs Chromium) -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="application-name" content="Boulliwel Pro">
+  <meta name="application-name" content="GESTION-BOULLIWEL-SERVICE.app">
 
   <!-- PWA — comportement standalone sur iOS / Safari -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Boulliwel Pro">
+  <meta name="apple-mobile-web-app-title" content="GESTION-BOULLIWEL-SERVICE.app">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
   <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
@@ -35,7 +35,7 @@
   <!-- Feuille de style (aucun CDN externe) -->
   <style>
 /* =====================================================================
-   BOULLIWEL PRO — Feuille de style principale
+   GESTION-BOULLIWEL-SERVICE.app — Feuille de style principale
    PWA de gestion de stock et service pour téléphones
    Design : sobre, professionnel, mode sombre, mobile-first
    Aucun CDN externe : polices système natives uniquement
@@ -187,18 +187,25 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- ===== ÉCRAN DE CONNEXION ===== -->
 <div id="login-screen">
   <div class="login-box">
-    <div class="login-logo">Boulliwel Pro</div>
+    <div class="login-logo">GESTION-BOULLIWEL-SERVICE.app</div>
     <div class="login-sub">Système de Gestion Intégrée</div>
 
     <!-- TAB: CONNEXION -->
     <div id="tab-login" class="login-tab active">
-      <div class="fg"><label>Login administrateur</label><input type="text" id="inp-login" placeholder="Entrez votre login" autocomplete="username"></div>
+      <div class="fg"><label>Identifiant</label><input type="text" id="inp-login" placeholder="Login Administrateur ou Associé" autocomplete="username"></div>
       <div class="fg"><label>Mot de passe</label><div style="position:relative">
           <input type="password" id="inp-pass" placeholder="Entrez votre mot de passe" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" style="padding-right:40px">
           <span onclick="togglePass('inp-pass',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem;user-select:none">👁</span>
         </div></div>
       <div class="login-err" id="login-err"></div>
       <button class="login-btn" onclick="doLogin()">🔐 Se connecter</button>
+      <div id="login-forgot-zone" style="display:none;margin-top:10px;padding:10px;background:var(--bg4);border-radius:8px;font-size:.78rem">
+        <div style="margin-bottom:7px;color:var(--tx2)">Mot de passe oublié ?</div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <button class="btn bh bsm" onclick="ouvrirDemandeCode()">🔑 Demander un code de réinitialisation</button>
+        </div>
+        <div style="margin-top:7px;color:var(--tx3)">Ou veuillez contacter l'Administrateur.</div>
+      </div>
       <div class="login-divider">Mot de passe oublié ?</div>
       <span class="login-link" onclick="showReset()">Réinitialiser le mot de passe</span>
     </div>
@@ -206,9 +213,15 @@ tbody tr:last-child td{border-bottom:none;}
     <!-- TAB: RÉINITIALISATION -->
     <div id="tab-reset" class="login-tab">
       <div class="reset-info">
-        🔑 Entrez le <strong>code de réinitialisation unique</strong> fourni par l'administrateur système, puis définissez votre nouveau mot de passe.
+        🔑 Choisissez le compte concerné, demandez un code, puis entrez-le ci-dessous avec votre nouveau mot de passe. Le code est <strong>unique, à usage unique et expire après 7 minutes</strong>.
       </div>
-      <div class="fg"><label>Code de réinitialisation</label><input type="text" id="inp-reset-code" placeholder="Code unique de réinitialisation"></div>
+      <div class="fg"><label>Compte concerné</label><select id="inp-reset-role" onchange="document.getElementById('reset-role-info').textContent=''">
+        <option value="associe">Associé</option>
+        <option value="admin">Administrateur</option>
+      </select></div>
+      <button type="button" class="btn bh bsm" style="margin-bottom:9px" onclick="genererEtAfficherCode(v('inp-reset-role'))">📩 Générer un code pour ce compte</button>
+      <div id="reset-role-info" style="font-size:.76rem;color:var(--tx2);margin-bottom:9px"></div>
+      <div class="fg"><label>Code de réinitialisation</label><input type="text" id="inp-reset-code" placeholder="Code à 6 chiffres" inputmode="numeric" maxlength="6"></div>
       <div class="fg"><label>Nouveau mot de passe</label><div style="position:relative">
           <input type="password" id="inp-new-pass" placeholder="Nouveau mot de passe (min. 4 caractères)" style="padding-right:40px">
           <span onclick="togglePass('inp-new-pass',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem;user-select:none">👁</span>
@@ -228,9 +241,9 @@ tbody tr:last-child td{border-bottom:none;}
 </div>
 
 <header>
-  <div class="logo">Boulliwel Pro <small>Gestion Intégrée v3 · <span id="hdr-maj" onclick="ouvrirAPropos()" style="cursor:pointer;text-decoration:underline dotted" title="Voir les détails de la dernière mise à jour">MAJ —</span></small></div>
+  <div class="logo">GESTION-BOULLIWEL-SERVICE.app <small>Gestion Intégrée v3 · <span id="hdr-maj" onclick="ouvrirAPropos()" style="cursor:pointer;text-decoration:underline dotted" title="Voir les détails de la dernière mise à jour">MAJ —</span></small></div>
   <div id="sync-status" class="sync-badge sync-offline" title="Statut de synchronisation">⚪ Vérification…</div>
-  <div class="hbts">
+  <div id="hbts-admin" class="hbts">
     <button class="btn bs bsm" onclick="ouvrirParametres()" title="Paramètres — contrôle total de l'application">⚙️ Paramètres</button>
     <button class="btn bh bsm" onclick="showChangerPass()" title="Changer mot de passe">🔑</button>
     <button class="btn bh bsm" onclick="exportData()" title="Télécharger une sauvegarde complète des données (.json)">💾 Export</button>
@@ -243,8 +256,12 @@ tbody tr:last-child td{border-bottom:none;}
     <button class="btn bd bsm" onclick="viderTout()" title="Supprimer TOUT — remise à zéro complète de l'application (mot de passe requis)">🗑️ Tout</button>
     <button id="btn-install" class="btn bs bsm" style="display:none">📲 Installer</button>
   </div>
+  <div id="hbts-associe" class="hbts" style="display:none">
+    <button class="btn bh bsm" onclick="showChangerPass()" title="Changer mon mot de passe">🔑 Mon mot de passe</button>
+    <button class="btn bh bsm" onclick="doLogout()" title="Se déconnecter">🚪 Déconnexion</button>
+  </div>
 </header>
-<nav><div class="ni">
+<nav id="main-nav"><div class="ni">
   <button class="nb active" onclick="gt('dashboard',this)" title="Tableau de bord : vue d'ensemble des chiffres clés et du stock">📊 Bord</button>
   <button class="nb" onclick="gt('activites',this)" title="Enregistrer et consulter les ventes, réparations et services">📋 Activités</button>
   <button class="nb" onclick="gt('stock',this)" title="Gérer le stock physique commun de l'entreprise (quantités, prix, seuils)">📦 Stock Ent.</button>
@@ -258,11 +275,43 @@ tbody tr:last-child td{border-bottom:none;}
 </div></nav>
 <main>
 
-<!-- BARRE DE RECHERCHE GLOBALE -->
+<!-- BARRE DE RECHERCHE GLOBALE (Administrateur uniquement) -->
 <div style="position:relative;max-width:640px;margin:0 auto 12px" id="gs-wrap">
   <input type="text" id="gs-input" placeholder="🔍 Rechercher un produit, client, dette, commande, dépense..." oninput="deb('gs',globalSearch)" onfocus="globalSearch()" style="width:100%;background:var(--bg3);border:1px solid var(--bd2);border-radius:20px;padding:10px 16px;color:var(--tx);font-family:var(--font-body);font-size:.83rem;outline:none">
   <div id="gs-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg3);border:1px solid var(--bd2);border-radius:10px;margin-top:5px;max-height:340px;overflow-y:auto;z-index:250;box-shadow:0 10px 26px rgba(0,0,0,.5)"></div>
 </div>
+
+<!-- ================================================================
+     VUE ASSOCIÉ — interface restreinte, affichée uniquement pour le
+     rôle "associe". Ne contient JAMAIS d'informations confidentielles
+     de l'Administrateur (dépenses, stock, autres activités, etc.)
+     ================================================================ -->
+<div id="vue-associe" style="display:none">
+  <div class="g3" style="margin-bottom:14px">
+    <div class="kpi"><div class="kl">Votre capital actuel</div><div class="kv g" id="va-capital">0 GNF</div><div class="ks">Produits saisis directement en Stock Ent. ÷ 2</div></div>
+    <div class="kpi"><div class="kl">Votre part d'intérêt actuelle</div><div class="kv" id="va-interet">0 GNF</div><div class="ks">Part 50% après retenue</div></div>
+    <div class="kpi"><div class="kl">Reste que vous devez à votre associé</div><div class="kv r" id="va-reste">0 GNF</div></div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <h3 style="margin:0">📋 Vos activités</h3>
+      <button class="btn bs bsm" onclick="om('ma')" title="Enregistrer une nouvelle vente/réparation/service">➕ Nouvelle activité</button>
+    </div>
+    <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
+      <select id="va-periode" onchange="rVueAssocie()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
+        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option>
+      </select>
+      <input type="text" id="va-search" placeholder="🔍 Rechercher..." oninput="deb('va',rVueAssocie)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Date</th><th>Heure</th><th>Produit</th><th>Qté</th><th>Prix Unitaire</th><th>Montant</th><th>Client</th><th>Statut</th><th>Actions</th></tr></thead>
+      <tbody id="tbl-vue-associe"><tr><td colspan="9" style="text-align:center;color:var(--tx2);padding:20px">Aucune activité</td></tr></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- CONTENU ADMINISTRATEUR (onglets normaux) -->
+<div id="zone-admin">
 
 <!-- DASHBOARD -->
 <div id="tab-dashboard" class="tab-panel active">
@@ -623,6 +672,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div id="corbeille-list"><div style="text-align:center;color:var(--tx2);padding:26px">La corbeille est vide.</div></div>
   </div>
 </div>
+</div><!-- /zone-admin -->
 </main>
 
 <!-- ===== MODALS ===== -->
@@ -738,6 +788,15 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div style="font-size:.74rem;color:var(--tx2);margin-bottom:10px">Si renseigné, "📲 Copier pour fournisseur" enverra directement à ce numéro au lieu d'ouvrir le sélecteur de contact.</div>
 
+    <hr class="sep">
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">🔐 Récupération de mot de passe</div>
+    <div class="fr">
+      <div class="fg"><label>Téléphone de récupération</label><input type="text" id="pr-recup-tel" placeholder="620000000"></div>
+      <div class="fg"><label>E-mail de récupération</label><input type="email" id="pr-recup-email" placeholder="admin@exemple.com"></div>
+    </div>
+    <div class="al alw" style="font-size:.73rem">⚠️ Ces coordonnées ne servent qu'à identifier qu'un contact de récupération existe. Cette application n'ayant pas de serveur d'envoi SMS/e-mail connecté, les codes de réinitialisation générés s'affichent directement dans l'app (voir ci-dessous pour l'Associé) plutôt que d'être envoyés automatiquement.</div>
+    <div id="zone-codes-attente" style="margin-top:9px"></div>
+
     <div style="display:flex;gap:7px;justify-content:flex-end;margin-bottom:14px">
       <button class="btn bh" onclick="cm('mparams')">Annuler</button>
       <button class="btn bs" onclick="enrParametres()">✓ Enregistrer</button>
@@ -779,7 +838,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="modal" style="max-width:440px">
     <div class="mhd">ℹ️ À propos<button class="mcl" onclick="cm('mabout')">✕</button></div>
     <div style="text-align:center;padding:6px 0 14px">
-      <div style="font-family:Syne,sans-serif;font-size:1.3rem;font-weight:800;color:var(--ac)">Boulliwel Pro</div>
+      <div style="font-family:Syne,sans-serif;font-size:1.3rem;font-weight:800;color:var(--ac)">GESTION-BOULLIWEL-SERVICE.app</div>
       <div style="color:var(--tx2);font-size:.82rem">Gestion Intégrée</div>
     </div>
     <div style="background:var(--bg4);border-radius:9px;padding:12px;font-size:.83rem;line-height:1.9">
@@ -1032,7 +1091,7 @@ tbody tr:last-child td{border-bottom:none;}
   window.__showFatalError = showFatalError;
 })();
 /* =====================================================================
-   BOULLIWEL PRO — Logique applicative (app.js)
+   GESTION-BOULLIWEL-SERVICE.app — Logique applicative (app.js)
    PWA de gestion de stock et service pour téléphones
    -----------------------------------------------------------------
    Architecture :
@@ -1307,16 +1366,55 @@ function ouvrirAPropos(){
   st('ap-maj',jour+' à '+heure);
   om('mabout');
 }
+/**
+ * GARDE-FOU RÉEL (pas un simple masquage d'interface) : bloque
+ * l'exécution d'une action réservée à l'Administrateur, même si elle
+ * est déclenchée directement (ex: console développeur) plutôt que via
+ * un bouton — puisque les boutons correspondants sont de toute façon
+ * absents de l'interface Associé. Voir le rapport de livraison pour la
+ * limite honnête de cette protection (elle s'exécute côté client,
+ * donc pas une garantie cryptographique face à un accès root/devtools
+ * au même appareil).
+ */
+function exigerAdmin(){
+  if(isAssocie()){
+    notif('🚫 Action réservée à l\'Administrateur.');
+    return false;
+  }
+  return true;
+}
 function ouvrirParametres(){
+  if(!exigerAdmin()) return;
   var p=getParams();
   sv('pr-reinvest',p.reinvest); sv('pr-retenu',p.retenuAssocie); sv('pr-perso',p.stockPerso); sv('pr-fourn',p.fournisseurTel||'');
+  sv('pr-recup-tel',p.recupTel||''); sv('pr-recup-email',p.recupEmail||'');
+  rZoneCodesAttente();
   om('mparams');
 }
 function enrParametres(){
   var reinvest=fl('pr-reinvest'), retenu=fl('pr-retenu'), perso=fl('pr-perso'), fourn=v('pr-fourn').trim().replace(/[^0-9]/g,'');
+  var recupTel=v('pr-recup-tel').trim().replace(/[^0-9]/g,''), recupEmail=v('pr-recup-email').trim();
   if(reinvest<0||reinvest>100||retenu<0||retenu>100||perso<0||perso>100){ notif('⚠️ Les pourcentages doivent être entre 0 et 100'); return; }
-  D.params={reinvest:reinvest,retenuAssocie:retenu,stockPerso:perso,fournisseurTel:fourn};
+  D.params={reinvest:reinvest,retenuAssocie:retenu,stockPerso:perso,fournisseurTel:fourn,recupTel:recupTel,recupEmail:recupEmail};
   save(); cm('mparams'); notif('✅ Paramètres enregistrés');
+}
+/**
+ * Affiche, dans les Paramètres de l'Administrateur, tout code de
+ * réinitialisation généré pour le compte ASSOCIÉ encore valide (non
+ * utilisé, non expiré) — à charge pour l'Administrateur de le relayer
+ * de vive voix/SMS à l'Associé. Se rafraîchit à chaque minute pendant
+ * que la fenêtre Paramètres est ouverte pour refléter l'expiration.
+ */
+function rZoneCodesAttente(){
+  var z=document.getElementById('zone-codes-attente'); if(!z) return;
+  var actifs=(D.resetCodes||[]).filter(function(c){ return c.role==='associe' && !c.used && Date.now()<c.expiresAt; });
+  if(!actifs.length){ z.innerHTML='<div style="font-size:.73rem;color:var(--tx3)">Aucun code de réinitialisation Associé en attente.</div>'; return; }
+  var html='<div style="font-size:.76rem;color:var(--tx2);margin-bottom:5px">🔑 Code(s) Associé à relayer :</div>';
+  actifs.forEach(function(c){
+    var resteSec=Math.max(0,Math.round((c.expiresAt-Date.now())/1000));
+    html+='<div style="background:var(--bg4);border-radius:7px;padding:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center"><strong style="font-size:1.05rem;letter-spacing:2px">'+c.code+'</strong><span style="font-size:.7rem;color:var(--tx3)">expire dans '+Math.floor(resteSec/60)+'m'+(resteSec%60)+'s</span></div>';
+  });
+  z.innerHTML=html;
 }
 /**
  * MIGRATION UNIQUE — fusionne l'ancien "Stock Personnel" (qui était un
@@ -1379,7 +1477,7 @@ function demanderConfirmationSecurisee(titre, detailsHtml, irreversible, callbac
 }
 function validerActionSecurisee(){
   var pass=v('sec-pass');
-  var auth=getAuth();
+  var auth=getAuthFull()[getRole()];
   if(!pass || pass!==auth.pass){
     document.getElementById('sec-err').textContent='❌ Mot de passe incorrect. Aucune modification n\'a été effectuée.';
     return;
@@ -1530,7 +1628,7 @@ function enrAct(){
     }
     ah('activite','Modif: '+desig,paye,date);
   } else {
-    D.activites.push({id:Date.now(),date:date,heure:nowHM(),ordre:D._o++,ticket:ticket,type:type,desig:desig,panne:panne,achat:achat,qte:qte,apayer:apayer,paye:paye,reste:reste,benefice:ben,client:client});
+    D.activites.push({id:Date.now(),date:date,heure:nowHM(),ordre:D._o++,ticket:ticket,type:type,desig:desig,panne:panne,achat:achat,qte:qte,apayer:apayer,paye:paye,reste:reste,benefice:ben,client:client,auteur:(isAssocie()?'Associé':'Administrateur')});
     ah('activite',type+': '+desig,paye,date);
     ajusterStockVendu(desig, qte);
   }
@@ -1552,11 +1650,12 @@ function editAct(id){
 }
 function delAct(id){
   var a=D.activites.find(function(x){ return x.id===id; }); if(!a) return;
-  if(!confirm('Supprimer cette activité ?')) return;
-  ajusterStockVendu(a.desig, -(a.qte||0));
-  D.activites=D.activites.filter(function(x){ return x.id!==id; });
-  markDeleted('activites',id);
-  rb('activite',a.desig+' ('+a.type+')',a); save(); notif('Activité → corbeille');
+  demanderConfirmationSecurisee('🗑️ Supprimer cette activité', '• '+a.type+' : <strong>'+a.desig+'</strong><br>• Montant payé : '+fmt(a.paye||0)+'<br>• Le stock lié sera automatiquement réajusté.', false, function(){
+    ajusterStockVendu(a.desig, -(a.qte||0));
+    D.activites=D.activites.filter(function(x){ return x.id!==id; });
+    markDeleted('activites',id);
+    rb('activite',a.desig+' ('+a.type+')',a); save(); notif('Activité → corbeille');
+  });
 }
 
 // Paiement partiel
@@ -1702,6 +1801,7 @@ function delPerso(id){
   rb('perso',p.nom,p); save(); notif('Perso → corbeille (stock ajusté)');
 }
 function viderPerso(){
+  if(!exigerAdmin()) return;
   var n=D.perso.length;
   var totDu=D.perso.reduce(function(s,p){ return s+(p.totalDu-(p.rembourse||0)); },0);
   var details='• '+n+' fiche(s) de suivi comptable Stock Perso seront supprimées<br>'+
@@ -2023,6 +2123,50 @@ function creerCmdFournisseur(stockId){
  * (tableau de bord) et exportExcel() (export) — pour ne plus jamais avoir
  * deux formules différentes qui affichent des chiffres différents.
  */
+/**
+ * CAPITAL DE L'ASSOCIÉ — formule imposée :
+ * (Prix d'achat total des produits saisis DIRECTEMENT dans le Stock
+ * Entreprise) ÷ 2. Les produits venant du Stock Perso (apports de
+ * l'Administrateur, fusionnés dans le même stock physique unique via
+ * origPerso) sont EXCLUS de ce calcul, même s'ils apparaissent dans le
+ * Stock Entreprise. On utilise donc (qteInitiale − origPerso), jamais
+ * qteInitiale seule.
+ */
+function calculerCapitalAssocie(){
+  var totalAchatDirect = D.stock.reduce(function(s,p){
+    var qteDirecte = Math.max(0, (p.qteInitiale||0) - (p.origPerso||0));
+    return s + qteDirecte*(p.achat||0);
+  }, 0);
+  return totalAchatDirect/2;
+}
+/**
+ * Rendu complet de la vue Associé : 3 indicateurs (capital, part
+ * d'intérêt, reste dû) + tableau de SES PROPRES activités uniquement
+ * (auteur === 'Associé'), avec recherche, filtre de période et total.
+ */
+function rVueAssocie(){
+  var bd=calculerBilanData();
+  st('va-capital', fmt(calculerCapitalAssocie()));
+  st('va-interet', fmt(bd.pa15));
+  st('va-reste', fmt(bd.resteAssocieDoit));
+
+  var tb=document.getElementById('tbl-vue-associe');
+  var q=normSearch(v('va-search')), periode=v('va-periode');
+  var items=D.activites.filter(function(a){ return a.auteur==='Associé'; }).slice().reverse();
+  if(periode) items=items.filter(function(a){ return matchPeriode(a.date,periode); });
+  if(q) items=items.filter(function(a){ return normSearch(a.desig).indexOf(q)>-1||normSearch(a.client||'').indexOf(q)>-1; });
+  if(!items.length){ tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--tx2);padding:20px">Aucune activité</td></tr>'; return; }
+  var total=0, html='';
+  items.forEach(function(a){
+    total+=a.paye||0;
+    html+='<tr><td>'+fmtDateJour(a.date)+'</td><td>'+(a.heure||'—')+'</td><td>'+a.desig+'</td><td>'+(a.qte||1)+'</td>'+
+      '<td>'+fmt(a.achat)+'</td><td>'+fmt(a.paye)+'</td><td>'+(a.client||'—')+'</td>'+
+      '<td><span class="badge '+(a.reste>0?'bor':'bgr')+'">'+(a.reste>0?'Partiel':'Payé')+'</span></td>'+
+      '<td class="ac"><button class="btn bh bxs" onclick="editAct('+a.id+')" title="Modifier cette activité">✏️</button></td></tr>';
+  });
+  html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)"><td colspan="5">TOTAL</td><td>'+fmt(total)+'</td><td colspan="3">—</td></tr>';
+  tb.innerHTML=html;
+}
 function calculerBilanData(){
   var tp=D.activites.reduce(function(s,a){ return s+a.paye; },0);
   var ta=D.activites.reduce(function(s,a){ return s+(a.achat*(a.qte||1)); },0);
@@ -2186,6 +2330,7 @@ function suppDef(id){
   save(); notif('Suppression définitive effectuée');
 }
 function vCorbeille(){
+  if(!exigerAdmin()) return;
   var n=D.corbeille.length;
   demanderConfirmationSecurisee('❌ Vider la Corbeille définitivement', '• <strong>'+n+'</strong> élément(s) seront supprimés définitivement et deviendront <strong>irrécupérables</strong>', true, function(){
     D.corbeille.forEach(function(c){ markDeleted('corbeille',c.id); });
@@ -2197,6 +2342,7 @@ function vCorbeille(){
 // CLÔTURE
 // ================================================================
 function cloturer(){
+  if(!exigerAdmin()) return;
   var nAct=D.activites.length, nDep=D.depenses.length, nDet=D.dettes.length, nPay=D.paiements.length;
   var totD0=D.dettes.reduce(function(s,d){ return s+d.montant; },0);
   var totP0=D.paiements.reduce(function(s,p){ return s+p.montant; },0);
@@ -2278,7 +2424,7 @@ function rAct(){
     html+='<td style="color:var(--tx2);font-weight:600">'+numAffiche+'</td>';
     html+='<td>'+(a.ticket?'<span class="badge bpr" style="font-size:.66rem">'+a.ticket+'</span>':'<span style="color:var(--tx3)">—</span>')+'</td>';
     html+='<td><span class="badge '+tcc+'">'+a.type+'</span></td>';
-    html+='<td><strong>'+a.desig+'</strong>'+(a.qte>1?' <span style="color:var(--tx2);font-size:.73rem">×'+a.qte+'</span>':'')+'</td>';
+    html+='<td><strong>'+a.desig+'</strong>'+(a.qte>1?' <span style="color:var(--tx2);font-size:.73rem">×'+a.qte+'</span>':'')+(a.auteur==='Associé'?' <span class="badge bpr" style="font-size:.6rem" title="Activité créée par l\'Associé">👤 Associé</span>':'')+'</td>';
     html+='<td style="color:var(--tx2);font-size:.75rem">'+(a.panne||'—')+'</td>';
     html+='<td>'+fmt(a.achat*(a.qte||1))+'</td>';
     html+='<td>'+fmt(a.apayer)+'</td>';
@@ -2494,6 +2640,7 @@ function rHisto(){
   tb.innerHTML=html;
 }
 function vHisto(){
+  if(!exigerAdmin()) return;
   var n=D.histo.length;
   demanderConfirmationSecurisee('🗑️ Vider tout l\'historique', '• <strong>'+n+'</strong> entrée(s) d\'historique seront supprimées définitivement (pas de corbeille pour l\'historique)', true, function(){
     D.histo.forEach(function(h){ markDeleted('histo',h.id); });
@@ -2546,6 +2693,7 @@ function updateKPIs(){
 
 function renderAll(){
   rAct(); rStock(); rPerso(); rDettes(); rDep(); rCmd(); rHisto(); rCorbeille(); rAlertesStock(); updateKPIs(); calculerBilan(); rCatList();
+  if(isLoggedIn() && isAssocie()) rVueAssocie();
 }
 
 // ================================================================
@@ -2575,26 +2723,28 @@ function compterDonnees(d){
  * de sauvegarde ignorerait simplement ce champ.
  */
 function exportData(){
+  if(!exigerAdmin()) return;
   var counts=compterDonnees(D);
   var total=Object.keys(counts).reduce(function(s,k){ return s+counts[k]; },0);
-  var payload=Object.assign({},D,{_meta:{app:'Boulliwel Pro',version:APP_VERSION,exportedAt:new Date().toISOString(),counts:counts}});
+  var payload=Object.assign({},D,{_meta:{app:'GESTION-BOULLIWEL-SERVICE.app',version:APP_VERSION,exportedAt:new Date().toISOString(),counts:counts}});
   var b=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   var a=document.createElement('a'); a.href=URL.createObjectURL(b);
-  a.download='boulliwel_'+td()+'.json'; a.click();
+  a.download='GESTION-BOULLIWEL-SERVICE_'+td()+'.json'; a.click();
   notif('✅ Sauvegarde complète exportée ('+total+' enregistrements, toutes tables incluses)');
 }
-function importData(){ document.getElementById('fi').click(); }
+function importData(){ if(!exigerAdmin()) return; document.getElementById('fi').click(); }
 function hImport(e){
+  if(!exigerAdmin()) return;
   var f=e.target.files[0]; if(!f) return;
   var r=new FileReader();
   r.onload=function(ev){
     var d;
     try{ d=JSON.parse(ev.target.result); }
     catch(err){ notif('❌ Fichier invalide ou corrompu (JSON illisible).',6000); e.target.value=''; return; }
-    // Validation : le fichier doit ressembler à une vraie sauvegarde Boulliwel Pro
+    // Validation : le fichier doit ressembler à une vraie sauvegarde GESTION-BOULLIWEL-SERVICE.app
     var clesConnues=['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille'];
     var reconnu=clesConnues.some(function(k){ return Array.isArray(d[k]); });
-    if(!reconnu){ notif('❌ Ce fichier ne ressemble pas à une sauvegarde Boulliwel Pro valide.',6000); e.target.value=''; return; }
+    if(!reconnu){ notif('❌ Ce fichier ne ressemble pas à une sauvegarde GESTION-BOULLIWEL-SERVICE.app valide.',6000); e.target.value=''; return; }
     var ancien=compterDonnees(D), nouveau=compterDonnees(d);
     var detail=clesConnues.map(function(k,i){ var lbl=Object.keys(ancien)[i]; return '• '+lbl+' : '+ancien[lbl]+' → '+nouveau[lbl]; }).join('<br>');
     var dateFichier=d._meta&&d._meta.exportedAt ? new Date(d._meta.exportedAt).toLocaleString('fr-FR') : 'inconnue';
@@ -2621,6 +2771,7 @@ function afficherBandeauAnnulerImport(){
   z.innerHTML='<div style="background:var(--bg4);border:1px solid var(--or);border-radius:8px;padding:9px;font-size:.78rem"><strong>↩️ Une importation vient de remplacer vos données.</strong><br>Vous pouvez annuler et restaurer l\'état précédent :<br><button class="btn bd bxs" style="margin-top:6px" onclick="annulerDerniereImportation()">↩️ Annuler cette importation</button></div>';
 }
 function annulerDerniereImportation(){
+  if(!exigerAdmin()) return;
   var bak=localStorage.getItem(KEY+'_before_import');
   if(!bak){ notif('⚠️ Aucune sauvegarde de sécurité disponible'); return; }
   demanderConfirmationSecurisee('↩️ Annuler la dernière importation', 'Vos données seront restaurées telles qu\'elles étaient <strong>juste avant</strong> la dernière importation (JSON ou Excel).', false, function(){
@@ -2654,6 +2805,7 @@ function loadSheetJS(cb, onerr){
   document.head.appendChild(s);
 }
 function exportExcel(){
+  if(!exigerAdmin()) return;
   notif('⏳ Préparation du fichier Excel…');
   loadSheetJS(function(){
     try{
@@ -2744,7 +2896,7 @@ function exportExcel(){
       ];
       var wsB=XLSX.utils.json_to_sheet(bilanData.map(function(r){ return {'Libellé':r[0],'Valeur (GNF)':Math.round(r[1])}; }));
       XLSX.utils.book_append_sheet(wb,wsB,'Bilan');
-      XLSX.writeFile(wb,'boulliwel_'+td()+'.xlsx');
+      XLSX.writeFile(wb,'GESTION-BOULLIWEL-SERVICE_'+td()+'.xlsx');
       notif('✅ Export Excel généré (toutes les données + Bilan)');
     }catch(err){
       console.error('[Export Excel]',err);
@@ -2773,7 +2925,7 @@ function exportExcel(){
  * plutôt que de deviner silencieusement. Pour une restauration garantie
  * 100% fidèle, le JSON reste la seule méthode parfaitement exacte.
  */
-function importExcel(){ document.getElementById('fi-xlsx').click(); }
+function importExcel(){ if(!exigerAdmin()) return; document.getElementById('fi-xlsx').click(); }
 
 /** Extrait uniquement les chiffres d'un texte formaté (ex: "80 000 GNF" → 80000). */
 function parseMontantTexte(s){
@@ -2809,6 +2961,7 @@ function parseProduitsCommande(s){
   return {produits:produits,erreurs:erreurs};
 }
 function hImportExcel(e){
+  if(!exigerAdmin()) return;
   var f=e.target.files[0]; if(!f){ return; }
   notif('⏳ Lecture du fichier Excel…');
   loadSheetJS(function(){
@@ -2922,6 +3075,7 @@ function hImportExcel(e){
 
 /** Repli hors-ligne : export CSV des activités (lisible par Excel). */
 function exportCSV(){
+  if(!exigerAdmin()) return;
   var lignes=[['Date','N°','Ticket','Type','Désignation','Panne','Qté','Prix achat','À payer','Payé','Reste','Bénéfice','Client']];
   D.activites.forEach(function(a){
     lignes.push([a.date,a.ordre,a.ticket||'',a.type,a.desig,a.panne||'',a.qte,a.achat*(a.qte||1),a.apayer,a.paye,a.reste,a.benefice,a.client||'']);
@@ -2929,10 +3083,11 @@ function exportCSV(){
   var csv=lignes.map(function(l){ return l.map(function(v){ return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'; }).join(';'); }).join('\r\n');
   var b=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
   var a=document.createElement('a'); a.href=URL.createObjectURL(b);
-  a.download='boulliwel_activites_'+td()+'.csv'; a.click();
+  a.download='GESTION-BOULLIWEL-SERVICE_activites_'+td()+'.csv'; a.click();
   notif('✅ Export CSV généré (Activités)');
 }
 function saveCloud(){
+  if(!exigerAdmin()) return;
   var enc=btoa(encodeURIComponent(JSON.stringify(D)));
   var url=window.location.href.split('#')[0]+'#data='+enc;
   navigator.clipboard.writeText(url).then(function(){ notif('✅ Lien copié ! Collez-le dans Gmail.'); }).catch(function(){
@@ -3066,6 +3221,7 @@ document.addEventListener('click',function(e){
 });
 
 function gt(id, btn) {
+  if (isAssocie()) { notif('🚫 Section réservée à l\'Administrateur.'); return; }
   // Enregistrer l'onglet actuel avant de changer
   var current = document.querySelector('.tab-panel.active');
   if (current && current.id) {
@@ -3138,6 +3294,7 @@ function goBack() {
 // SUPPRESSION GLOBALE — VIDER TOUS LES MODULES
 // ================================================================
 function viderTout() {
+  if(!exigerAdmin()) return;
   var counts=['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille'].map(function(f){
     return (D[f]||[]).length+' '+f;
   }).join(', ');
@@ -3157,6 +3314,7 @@ function viderTout() {
 }
 
 function viderActivites() {
+  if(!exigerAdmin()) return;
   var n=D.activites.length;
   var details='• <strong>'+n+'</strong> activité(s) seront supprimées et envoyées à la Corbeille (récupérables)<br>• Le stock lié sera automatiquement réajusté';
   demanderConfirmationSecurisee('🗑️ Supprimer toutes les activités', details, false, function(){
@@ -3166,6 +3324,7 @@ function viderActivites() {
 }
 
 function viderStock() {
+  if(!exigerAdmin()) return;
   var n=D.stock.length;
   var details='• <strong>'+n+'</strong> produit(s) du Stock Entreprise seront supprimés et envoyés à la Corbeille (récupérables)';
   demanderConfirmationSecurisee('🗑️ Supprimer tout le Stock Entreprise', details, false, function(){
@@ -3175,6 +3334,7 @@ function viderStock() {
 }
 
 function viderDettes() {
+  if(!exigerAdmin()) return;
   if (D.detteVerrou) { notif('🔒 Dettes verrouillées'); return; }
   var n=D.dettes.length;
   var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0);
@@ -3186,6 +3346,7 @@ function viderDettes() {
 }
 
 function viderPaiements() {
+  if(!exigerAdmin()) return;
   var n=D.paiements.length;
   var details='• <strong>'+n+'</strong> paiement(s) reçus seront supprimés et envoyés à la Corbeille (récupérables)';
   demanderConfirmationSecurisee('🗑️ Supprimer tous les paiements', details, false, function(){
@@ -3195,6 +3356,7 @@ function viderPaiements() {
 }
 
 function viderCommandes() {
+  if(!exigerAdmin()) return;
   var n=D.commandes.length;
   var details='• <strong>'+n+'</strong> commande(s) seront supprimées et envoyées à la Corbeille (récupérables)';
   demanderConfirmationSecurisee('🗑️ Supprimer toutes les commandes', details, false, function(){
@@ -3204,6 +3366,7 @@ function viderCommandes() {
 }
 
 function viderDep() {
+  if(!exigerAdmin()) return;
   var n=D.depenses.length;
   var details='• <strong>'+n+'</strong> dépense(s) seront supprimées et envoyées à la Corbeille (récupérables)';
   demanderConfirmationSecurisee('🗑️ Supprimer toutes les dépenses', details, false, function(){
@@ -3213,63 +3376,90 @@ function viderDep() {
 }
 
 // ================================================================
-// SYSTÈME DE CONNEXION
+// SYSTÈME DE CONNEXION — MODE ASSOCIÉ SÉCURISÉ (2 rôles, 1 seule base)
 // ================================================================
+// Architecture : PAS de seconde application ni de seconde base de
+// données — un seul objet D partagé, comme demandé. Le rôle ne change
+// que l'affichage (interface restreinte) et les autorisations côté
+// client. Voir la limitation de sécurité documentée dans le rapport de
+// livraison : dans une PWA 100% offline-first sans serveur, l'appareil
+// de l'Associé télécharge nécessairement une copie complète de D (y
+// compris l'objet auth) pour fonctionner hors-ligne ; il n'existe pas
+// de moyen purement client-side de garantir qu'un Associé techniquement
+// averti ne puisse JAMAIS accéder au mot de passe Admin stocké dans ce
+// même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
+// utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-// Identifiants par défaut (modifiables par l'utilisateur)
-// Stockés dans localStorage sous clé sécurisée
-var APP_VERSION = 'v29';
-var APP_DERNIERE_MAJ = '2026-07-30T14:20:00'; // Export/Import JSON renforcés (sauvegarde de sécurité automatique + annulation), nouvel Import Excel (.xlsx), blocage strict des ventes de produits hors stock
+var APP_VERSION = 'v31';
+var APP_DERNIERE_MAJ = '2026-08-01T09:00:00'; // Renommage complet en GESTION-BOULLIWEL-SERVICE.app ; garde-fous de rôle réels au niveau du code (pas juste l'interface) sur toutes les actions Administrateur
 var AUTH_KEY = 'bpro_auth_v1';
-var RESET_CODE = 'BWL-2026-RESET'; // Code unique de réinitialisation
 
 var DEFAULT_LOGIN = 'admin';
 var DEFAULT_PASS  = 'boulliwel2026';
+var DEFAULT_ASSOCIE_LOGIN = 'associe';
+var DEFAULT_ASSOCIE_PASS  = 'associe2026';
 
-function getAuth() {
-  if (D && D.auth && D.auth.pass) return D.auth;
-  // Migration : ancien système où le mot de passe était stocké uniquement
-  // en localStorage local (donc jamais synchronisé entre appareils).
-  try {
-    var s = localStorage.getItem(AUTH_KEY);
-    if (s) {
-      var old = JSON.parse(s);
-      if (D) { D.auth = old; save(); }
-      return old;
-    }
-  } catch(e) {}
-  return { login: DEFAULT_LOGIN, pass: DEFAULT_PASS };
+/**
+ * Retourne TOUJOURS la structure à deux comptes {admin:{login,pass},
+ * associe:{login,pass}}. Migre automatiquement et une seule fois
+ * l'ancien format à compte unique (D.auth={login,pass}) en créant un
+ * compte Associé par défaut à ce moment-là — sans jamais toucher au
+ * mot de passe Administrateur existant.
+ */
+function getAuthFull() {
+  if (D && D.auth && D.auth.admin && D.auth.associe) return D.auth;
+  var ancien = (D && D.auth && D.auth.pass) ? D.auth : null;
+  if (!ancien) {
+    try { var s = localStorage.getItem(AUTH_KEY); if (s) ancien = JSON.parse(s); } catch(e) {}
+  }
+  var compteAdmin = ancien ? { login: ancien.login || DEFAULT_LOGIN, pass: ancien.pass || DEFAULT_PASS } : { login: DEFAULT_LOGIN, pass: DEFAULT_PASS };
+  var full = { admin: compteAdmin, associe: { login: DEFAULT_ASSOCIE_LOGIN, pass: DEFAULT_ASSOCIE_PASS } };
+  if (D) { D.auth = full; save(); }
+  try { localStorage.removeItem(AUTH_KEY); } catch(e) {}
+  return full;
 }
+/** Compatibilité : ancien nom de fonction utilisé ailleurs dans le code. */
+function getAuth(){ return getAuthFull(); }
 
-function saveAuth(login, pass) {
-  D.auth = { login: login, pass: pass };
-  // save() persiste localement ET pousse immédiatement vers Supabase,
-  // pour que le nouveau mot de passe soit disponible sur tous les
-  // appareils dès leur prochaine synchronisation (au démarrage).
-  save();
-  try { localStorage.removeItem(AUTH_KEY); } catch(e) {} // nettoyage ancien système
+function saveAuthRole(role, login, pass) {
+  var full = getAuthFull();
+  full[role] = { login: login, pass: pass };
+  D.auth = full;
+  save(); // persiste localement ET pousse vers Supabase
 }
 
 function isLoggedIn() {
   return sessionStorage.getItem('bpro_session') === '1';
 }
+function getRole(){
+  return sessionStorage.getItem('bpro_role') === 'associe' ? 'associe' : 'admin';
+}
+function isAssocie(){ return getRole()==='associe'; }
 
 function doLogin() {
  try{
   var login = document.getElementById('inp-login').value.trim();
   var pass  = document.getElementById('inp-pass').value;
   var err   = document.getElementById('login-err');
-  var auth  = getAuth();
+  var zoneOubli = document.getElementById('login-forgot-zone');
+  if (zoneOubli) zoneOubli.style.display = 'none';
+  var auth  = getAuthFull();
   if (!login || !pass) { err.textContent = '⚠️ Veuillez remplir tous les champs.'; return; }
-  if (login === auth.login && pass === auth.pass) {
+  var role = null;
+  if (login === auth.admin.login && pass === auth.admin.pass) role = 'admin';
+  else if (login === auth.associe.login && pass === auth.associe.pass) role = 'associe';
+  if (role) {
     sessionStorage.setItem('bpro_session', '1');
+    sessionStorage.setItem('bpro_role', role);
     document.getElementById('login-screen').classList.add('hidden');
     err.textContent = '';
-    notif('✅ Bienvenue ' + login + ' !');
+    activerInterfaceSelonRole();
+    notif('✅ Bienvenue ' + (role==='admin'?'Administrateur':'Associé') + ' !');
   } else {
-    err.textContent = '❌ Login ou mot de passe incorrect.';
+    err.textContent = '❌ Mot de passe incorrect.';
     document.getElementById('inp-pass').value = '';
     document.getElementById('inp-pass').focus();
+    if (zoneOubli) zoneOubli.style.display = 'block';
   }
  }catch(e){
    if(window.__showFatalError) window.__showFatalError('doLogin : '+(e&&e.message?e.message:e));
@@ -3278,8 +3468,30 @@ function doLogin() {
  }
 }
 
+/**
+ * Bascule l'interface entière selon le rôle connecté. Appelée après
+ * connexion réussie ET au chargement si une session est déjà active.
+ * Pour l'Associé : masque intégralement la navigation, les outils
+ * d'administration, la recherche globale (qui traverse tous les
+ * modules confidentiels) — seule "vue-associe" reste visible.
+ */
+function activerInterfaceSelonRole(){
+  var associe = isAssocie();
+  var elNav=document.getElementById('main-nav'), elZoneAdmin=document.getElementById('zone-admin'),
+      elVueAssocie=document.getElementById('vue-associe'), elGs=document.getElementById('gs-wrap'),
+      elHbtsAdmin=document.getElementById('hbts-admin'), elHbtsAssocie=document.getElementById('hbts-associe');
+  if(elNav) elNav.style.display = associe?'none':'';
+  if(elZoneAdmin) elZoneAdmin.style.display = associe?'none':'';
+  if(elVueAssocie) elVueAssocie.style.display = associe?'block':'none';
+  if(elGs) elGs.style.display = associe?'none':'';
+  if(elHbtsAdmin) elHbtsAdmin.style.display = associe?'none':'flex';
+  if(elHbtsAssocie) elHbtsAssocie.style.display = associe?'flex':'none';
+  if(associe) rVueAssocie();
+}
+
 function doLogout() {
   sessionStorage.removeItem('bpro_session');
+  sessionStorage.removeItem('bpro_role');
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('inp-login').value = '';
   document.getElementById('inp-pass').value = '';
@@ -3288,13 +3500,74 @@ function doLogout() {
   notif('Déconnecté.');
 }
 
+// ---------------------------------------------------------------
+// RÉINITIALISATION DE MOT DE PASSE — code réel, aléatoire, à usage
+// unique, expirant après 7 minutes (D.resetCodes, synchronisé comme le
+// reste de D — aucune nouvelle table Supabase, juste un nouveau champ
+// dans le même objet JSON déjà stocké).
+// ⚠️ Limitation honnête : cette application n'a ni serveur ni service
+// d'envoi SMS/e-mail connecté (ça nécessiterait un compte payant type
+// Twilio/SendGrid + une fonction serveur, à valider séparément). Le
+// code est donc affiché DANS l'app plutôt qu'envoyé par SMS/e-mail :
+// - Code Associé → apparaît dans Paramètres (Administrateur) pour être
+//   relayé de vive voix/SMS par l'Administrateur, qui reste l'autorité.
+// - Code Administrateur → affiché directement à l'écran de
+//   réinitialisation (aucune autre personne de confiance à qui le
+//   montrer dans cette architecture), avec avertissement explicite.
+// ---------------------------------------------------------------
+var DUREE_CODE_MS = 7*60*1000;
+function genererCodeNumerique(){
+  var arr = new Uint32Array(1);
+  (window.crypto||window.msCrypto).getRandomValues(arr);
+  return String(100000 + (arr[0] % 900000)); // 6 chiffres, 100000-999999
+}
+function demanderCodeReset(role){
+  if(!D.resetCodes) D.resetCodes=[];
+  // Invalide tout code précédent non utilisé pour ce rôle (un seul actif à la fois)
+  D.resetCodes.forEach(function(c){ if(c.role===role && !c.used) c.used=true; });
+  var code=genererCodeNumerique();
+  var now=Date.now();
+  D.resetCodes.push({id:now,role:role,code:code,createdAt:now,expiresAt:now+DUREE_CODE_MS,used:false});
+  save();
+  return code;
+}
+function codeResetValide(role,code){
+  if(!D.resetCodes) return null;
+  var c=D.resetCodes.slice().reverse().find(function(x){ return x.role===role && x.code===code; });
+  if(!c) return null;
+  if(c.used) return {erreur:'Ce code a déjà été utilisé.'};
+  if(Date.now()>c.expiresAt) return {erreur:'Ce code a expiré (validité 7 minutes). Demandez-en un nouveau.'};
+  return {ok:true,entry:c};
+}
+function ouvrirDemandeCode(){
+  document.getElementById('login-err').textContent='';
+  document.getElementById('reset-role-info').textContent='';
+  showReset();
+}
+function genererEtAfficherCode(role){
+  var p=D&&D.params||{};
+  if(!p.recupTel && !p.recupEmail && role==='associe'){
+    document.getElementById('reset-role-info').innerHTML='⚠️ Aucun contact de récupération n\'a été configuré par l\'Administrateur. <strong>Veuillez contacter directement l\'Administrateur.</strong>';
+    return;
+  }
+  var code=demanderCodeReset(role);
+  var info;
+  if(role==='admin'){
+    info='🔑 Code de réinitialisation Administrateur : <strong style="font-size:1.1rem;letter-spacing:2px">'+code+'</strong><br><span style="color:var(--tx3)">Valable 7 minutes, usage unique. Aucun autre compte ne peut voir ce code.</span>';
+  } else {
+    info='✅ Un code a été généré pour l\'Associé. <strong>Il est visible par l\'Administrateur</strong> (Paramètres → Codes de réinitialisation en attente) qui doit vous le communiquer. Valable 7 minutes.';
+  }
+  document.getElementById('reset-role-info').innerHTML=info;
+}
 function showReset() {
   document.getElementById('tab-login').classList.remove('active');
   document.getElementById('tab-reset').classList.add('active');
+  document.getElementById('inp-reset-role').value='associe';
   document.getElementById('inp-reset-code').value = '';
   document.getElementById('inp-new-pass').value = '';
   document.getElementById('inp-confirm-pass').value = '';
   document.getElementById('reset-err').textContent = '';
+  document.getElementById('reset-role-info').textContent='';
 }
 
 function showLogin() {
@@ -3304,19 +3577,23 @@ function showLogin() {
 }
 
 function doReset() {
+  var role    = document.getElementById('inp-reset-role').value;
   var code    = document.getElementById('inp-reset-code').value.trim();
   var newPass = document.getElementById('inp-new-pass').value;
   var confirm = document.getElementById('inp-confirm-pass').value;
   var err     = document.getElementById('reset-err');
   if (!code || !newPass || !confirm) { err.textContent = '⚠️ Tous les champs sont obligatoires.'; return; }
-  if (code !== RESET_CODE) { err.textContent = '❌ Code de réinitialisation incorrect.'; return; }
+  var verif=codeResetValide(role,code);
+  if(!verif){ err.textContent='❌ Code de réinitialisation incorrect.'; return; }
+  if(verif.erreur){ err.textContent='❌ '+verif.erreur; return; }
   if (newPass.length < 4) { err.textContent = '⚠️ Mot de passe trop court (minimum 4 caractères).'; return; }
   if (newPass !== confirm) { err.textContent = '❌ Les mots de passe ne correspondent pas.'; return; }
-  var auth = getAuth();
-  saveAuth(auth.login, newPass);
+  verif.entry.used=true;
+  var auth = getAuthFull();
+  saveAuthRole(role, auth[role].login, newPass);
   err.textContent = '';
   showLogin();
-  notif('✅ Mot de passe réinitialisé avec succès. Vous pouvez vous connecter.');
+  notif('✅ Mot de passe '+(role==='admin'?'Administrateur':'Associé')+' réinitialisé avec succès. Vous pouvez vous connecter.');
 }
 
 function showChangerPass() {
@@ -3332,12 +3609,14 @@ function doChangerPass() {
   var nouveau = document.getElementById('cp-nouveau').value;
   var confirm = document.getElementById('cp-confirm').value;
   var err     = document.getElementById('cp-err');
-  var auth    = getAuth();
+  var role    = getRole();
+  var auth    = getAuthFull();
+  var compte  = auth[role];
   if (!actuel || !nouveau || !confirm) { err.textContent = '⚠️ Tous les champs sont obligatoires.'; return; }
-  if (actuel !== auth.pass) { err.textContent = '❌ Mot de passe actuel incorrect.'; return; }
+  if (actuel !== compte.pass) { err.textContent = '❌ Mot de passe actuel incorrect.'; return; }
   if (nouveau.length < 4) { err.textContent = '⚠️ Nouveau mot de passe trop court (min. 4 caractères).'; return; }
   if (nouveau !== confirm) { err.textContent = '❌ Les mots de passe ne correspondent pas.'; return; }
-  saveAuth(auth.login, nouveau);
+  saveAuthRole(role, compte.login, nouveau);
   cm('m-changer-pass');
   notif('✅ Mot de passe modifié avec succès !');
 }
@@ -3385,14 +3664,18 @@ document.addEventListener('DOMContentLoaded',function(){
     el.textContent='MAJ '+jj+'-'+mm+'-'+aa+' à '+hh+':'+mn;
   })();
   // Restaurer l'onglet actif avant l'actualisation, au lieu de toujours
-  // revenir au tableau de bord.
+  // revenir au tableau de bord (Administrateur uniquement — la vue
+  // Associé n'a pas d'onglets à restaurer).
   try{
-    var lastTab=localStorage.getItem('bpro_last_tab');
-    if(lastTab && document.getElementById('tab-'+lastTab)) gt(lastTab, null);
+    if(!isAssocie()){
+      var lastTab=localStorage.getItem('bpro_last_tab');
+      if(lastTab && document.getElementById('tab-'+lastTab)) gt(lastTab, null);
+    }
   }catch(e){}
   // Vérifier session
   if(isLoggedIn()){
     document.getElementById('login-screen').classList.add('hidden');
+    activerInterfaceSelonRole();
   } else {
     document.getElementById('inp-login').focus();
   }
@@ -3545,7 +3828,7 @@ function syncFromCloud() {
 // donc on peut combiner les entrées de deux appareils au lieu d'en
 // écraser une avec l'autre.
 var MERGEABLE_ARRAYS = ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille'];
-var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''}};
+var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],resetCodes:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''}};
 
 /**
  * Fusionne deux tableaux d'éléments par leur "id" (union), sans perte,
@@ -3659,6 +3942,7 @@ function reconcileOnStartup() {
  * que soit la cause de l'échec.
  */
 function testSupabaseConnection() {
+  if(!exigerAdmin()) return;
   notif('⏳ Test de connexion en cours…', 3000);
 
   if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.anonKey) {
@@ -3704,7 +3988,7 @@ function testSupabaseConnection() {
        SCRIPT SQL A COLLER DANS SUPABASE > SQL EDITOR (une seule fois)
        Ce script ne s'execute PAS dans le navigateur, il est ici pour reference.
   -- =====================================================================
-       -- BOULLIWEL PRO - Configuration Supabase (stockage JSON unique)
+       -- GESTION-BOULLIWEL-SERVICE.app - Configuration Supabase (stockage JSON unique)
        -- A executer une seule fois dans Supabase > SQL Editor
        -- =====================================================================
        
