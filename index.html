@@ -59,7 +59,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 header{position:sticky;top:0;z-index:200;background:rgba(7,11,20,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);padding:0 14px;height:54px;display:flex;align-items:center;justify-content:space-between;gap:7px;overflow:hidden;}
 .logo{font-family:var(--font-display);font-size:.95rem;font-weight:800;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw;}
 .logo small{font-size:.6rem;color:var(--tx2);display:block;-webkit-text-fill-color:var(--tx2);font-family:var(--font-body);font-weight:400;}
-.hbts{display:flex;gap:4px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;min-width:0;flex:1 1 auto;justify-content:flex-end;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.hbts{display:flex;gap:4px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;min-width:0;flex:1 1 auto;justify-content:flex-start;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 .hbts::-webkit-scrollbar{display:none;}
 .sync-badge{font-size:.68rem;font-weight:600;padding:4px 10px;border-radius:20px;white-space:nowrap;transition:background .3s,color .3s;flex-shrink:0;}
 .sync-online{background:rgba(34,197,94,.15);color:#22c55e;}
@@ -3439,8 +3439,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v32';
-var APP_DERNIERE_MAJ = '2026-08-01T14:00:00'; // Icône de rafraîchissement (Admin+Associé), Capital total de l'entreprise au tableau de bord, carte "part d'intérêt" recalculée (montant réel après tous les calculs), total des activités Associé
+var APP_VERSION = 'v33';
+var APP_DERNIERE_MAJ = '2026-08-01T15:00:00'; // Correction critique Android : "Paramètres" et "Export" étaient inaccessibles (bug CSS justify-content/overflow introduit avec l'icône de rafraîchissement)
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
