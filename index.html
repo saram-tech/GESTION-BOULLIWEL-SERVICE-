@@ -75,6 +75,11 @@ nav{background:var(--bg2);border-bottom:1px solid var(--bd);position:sticky;top:
 main{padding:12px;max-width:1400px;margin:0 auto;position:relative;z-index:1;}
 .tab-panel{display:none;animation:fi .2s ease;}.tab-panel.active{display:block;}
 @keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spinRafraichir{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.btn-refresh{background:transparent;border:1px solid var(--bd2);border-radius:50%;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;color:var(--tx2);cursor:pointer;font-size:1rem;transition:color .2s,border-color .2s,transform .15s;flex-shrink:0;}
+.btn-refresh:hover{color:var(--ac);border-color:var(--ac);}
+.btn-refresh:active{transform:scale(.9);}
+.btn-refresh.spin{animation:spinRafraichir .7s linear;color:var(--ac);}
 .card{background:var(--bg2);border:1px solid var(--bd);border-radius:13px;padding:16px;margin-bottom:12px;}
 .ch{font-family:var(--font-display);font-size:.88rem;font-weight:700;color:var(--tx);margin-bottom:12px;display:flex;align-items:center;gap:7px;}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--ac);flex-shrink:0;}
@@ -244,6 +249,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="logo">GESTION-BOULLIWEL-SERVICE.app <small>Gestion Intégrée v3 · <span id="hdr-maj" onclick="ouvrirAPropos()" style="cursor:pointer;text-decoration:underline dotted" title="Voir les détails de la dernière mise à jour">MAJ —</span></small></div>
   <div id="sync-status" class="sync-badge sync-offline" title="Statut de synchronisation">⚪ Vérification…</div>
   <div id="hbts-admin" class="hbts">
+    <button id="btn-refresh-admin" class="btn-refresh" onclick="rafraichirDonnees()" title="Rafraîchir les données affichées">⟳</button>
     <button class="btn bs bsm" onclick="ouvrirParametres()" title="Paramètres — contrôle total de l'application">⚙️ Paramètres</button>
     <button class="btn bh bsm" onclick="showChangerPass()" title="Changer mot de passe">🔑</button>
     <button class="btn bh bsm" onclick="exportData()" title="Télécharger une sauvegarde complète des données (.json)">💾 Export</button>
@@ -257,6 +263,7 @@ tbody tr:last-child td{border-bottom:none;}
     <button id="btn-install" class="btn bs bsm" style="display:none">📲 Installer</button>
   </div>
   <div id="hbts-associe" class="hbts" style="display:none">
+    <button id="btn-refresh-associe" class="btn-refresh" onclick="rafraichirDonnees()" title="Rafraîchir les données affichées">⟳</button>
     <button class="btn bh bsm" onclick="showChangerPass()" title="Changer mon mot de passe">🔑 Mon mot de passe</button>
     <button class="btn bh bsm" onclick="doLogout()" title="Se déconnecter">🚪 Déconnexion</button>
   </div>
@@ -289,7 +296,7 @@ tbody tr:last-child td{border-bottom:none;}
 <div id="vue-associe" style="display:none">
   <div class="g3" style="margin-bottom:14px">
     <div class="kpi"><div class="kl">Votre capital actuel</div><div class="kv g" id="va-capital">0 GNF</div><div class="ks">Produits saisis directement en Stock Ent. ÷ 2</div></div>
-    <div class="kpi"><div class="kl">Votre part d'intérêt actuelle</div><div class="kv" id="va-interet">0 GNF</div><div class="ks">Part 50% après retenue</div></div>
+    <div class="kpi"><div class="kl">Votre part d'intérêt actuelle</div><div class="kv" id="va-interet">0 GNF</div><div class="ks">Votre part = Bénéfice total ÷ 2 (partage 50/50)</div></div>
     <div class="kpi"><div class="kl">Reste que vous devez à votre associé</div><div class="kv r" id="va-reste">0 GNF</div></div>
   </div>
   <div class="card">
@@ -331,6 +338,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="ch" style="margin:4px 0 8px"><span class="dot" style="background:var(--go)"></span>📦 Vue d'ensemble du Stock</div>
   <div class="g5" style="margin-bottom:12px">
     <div class="kpi"><div class="kl">Prix Achat Total</div><div class="kv" id="k-stock-achat">0 GNF</div><div class="ks">Stock Entreprise</div></div>
+    <div class="kpi"><div class="kl">Capital total de l'entreprise</div><div class="kv b" id="k-capital-total">0 GNF</div><div class="ks">Produits saisis directement, hors Stock Perso</div></div>
     <div class="kpi"><div class="kl">Valeur du Stock</div><div class="kv g" id="k-stock-valeur">0 GNF</div><div class="ks">Restant × Prix achat</div></div>
     <div class="kpi"><div class="kl">Produits</div><div class="kv b" id="k-stock-nb">0</div><div class="ks">Référencés</div></div>
     <div class="kpi"><div class="kl">Qté Totale en Stock</div><div class="kv b" id="k-stock-qte">0</div></div>
@@ -2124,20 +2132,22 @@ function creerCmdFournisseur(stockId){
  * deux formules différentes qui affichent des chiffres différents.
  */
 /**
- * CAPITAL DE L'ASSOCIÉ — formule imposée :
- * (Prix d'achat total des produits saisis DIRECTEMENT dans le Stock
- * Entreprise) ÷ 2. Les produits venant du Stock Perso (apports de
- * l'Administrateur, fusionnés dans le même stock physique unique via
- * origPerso) sont EXCLUS de ce calcul, même s'ils apparaissent dans le
- * Stock Entreprise. On utilise donc (qteInitiale − origPerso), jamais
- * qteInitiale seule.
+ * CAPITAL TOTAL DE L'ENTREPRISE — somme du prix d'achat de tous les
+ * produits saisis DIRECTEMENT dans le Stock Entreprise (les produits
+ * venant du Stock Perso, fusionnés via origPerso, sont exclus).
+ * Recalculé à chaque rendu (donc après tout ajout/modif/suppression/
+ * vente/achat/transfert/synchronisation, puisque tout passe par
+ * renderAll() → updateKPIs()).
  */
-function calculerCapitalAssocie(){
-  var totalAchatDirect = D.stock.reduce(function(s,p){
+function calculerCapitalTotalEntreprise(){
+  return D.stock.reduce(function(s,p){
     var qteDirecte = Math.max(0, (p.qteInitiale||0) - (p.origPerso||0));
     return s + qteDirecte*(p.achat||0);
   }, 0);
-  return totalAchatDirect/2;
+}
+/** Capital de l'Associé = sa part (50%) du capital total de l'entreprise. */
+function calculerCapitalAssocie(){
+  return calculerCapitalTotalEntreprise()/2;
 }
 /**
  * Rendu complet de la vue Associé : 3 indicateurs (capital, part
@@ -2147,7 +2157,7 @@ function calculerCapitalAssocie(){
 function rVueAssocie(){
   var bd=calculerBilanData();
   st('va-capital', fmt(calculerCapitalAssocie()));
-  st('va-interet', fmt(bd.pa15));
+  st('va-interet', fmt(Math.max(0,bd.ra)));
   st('va-reste', fmt(bd.resteAssocieDoit));
 
   var tb=document.getElementById('tbl-vue-associe');
@@ -2164,7 +2174,7 @@ function rVueAssocie(){
       '<td><span class="badge '+(a.reste>0?'bor':'bgr')+'">'+(a.reste>0?'Partiel':'Payé')+'</span></td>'+
       '<td class="ac"><button class="btn bh bxs" onclick="editAct('+a.id+')" title="Modifier cette activité">✏️</button></td></tr>';
   });
-  html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)"><td colspan="5">TOTAL</td><td>'+fmt(total)+'</td><td colspan="3">—</td></tr>';
+  html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)"><td colspan="5">Montant total de mes activités</td><td>'+fmt(total)+'</td><td colspan="3">—</td></tr>';
   tb.innerHTML=html;
 }
 function calculerBilanData(){
@@ -2686,6 +2696,7 @@ function updateKPIs(){
   st('k-stock-achat',fmt(achatTotal)); st('k-stock-valeur',fmt(valeurStock));
   st('k-stock-nb',D.stock.length); st('k-stock-qte',qteTotale);
   st('k-stock-rupture',nbRupture); st('k-stock-faible',nbFaible);
+  st('k-capital-total',fmt(calculerCapitalTotalEntreprise()));
   var l5=D.histo.slice(-5).reverse();
   var lohtml=l5.length?l5.map(function(h){ return '<div style="padding:3px 0;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between"><span style="font-size:.76rem">'+h.desc+'</span><span style="color:var(--tx2);font-size:.7rem">'+fmtDateJour(h.date)+'</span></div>'; }).join(''):'Aucune opération.';
   document.getElementById('last-ops').innerHTML=lohtml;
@@ -2694,6 +2705,44 @@ function updateKPIs(){
 function renderAll(){
   rAct(); rStock(); rPerso(); rDettes(); rDep(); rCmd(); rHisto(); rCorbeille(); rAlertesStock(); updateKPIs(); calculerBilan(); rCatList();
   if(isLoggedIn() && isAssocie()) rVueAssocie();
+}
+/**
+ * Rafraîchit uniquement les données déjà affichées : recalcule les
+ * totaux/indicateurs et met à jour l'interface, SANS recharger toute
+ * l'application, sans jamais créer de doublon ni modifier/supprimer de
+ * donnée existante. Si en ligne, redemande aussi la dernière version au
+ * cloud (fusion, jamais un remplacement brutal — mergeAppData()
+ * s'assure qu'aucune donnée n'est dupliquée ou perdue).
+ */
+function rafraichirDonnees(){
+  var btn=document.getElementById(isAssocie()?'btn-refresh-associe':'btn-refresh-admin');
+  if(btn){ btn.classList.remove('spin'); void btn.offsetWidth; btn.classList.add('spin'); }
+  if (navigator.onLine && SUPABASE_CONFIG.enabled) {
+    reconcileOnStartup(); // fusionne (jamais de doublon) puis renderAll() en interne
+  } else {
+    renderAll();
+    notif('✅ Données actualisées');
+  }
+}
+/**
+ * Info-bulle tactile : le `title` HTML natif ne s'affiche pas de façon
+ * fiable au toucher sur Android. On simule donc un "appui long" (>500ms
+ * sans déplacement) qui affiche le texte via une notification, sans
+ * déclencher l'action du bouton — un simple tap déclenche l'action
+ * normalement.
+ */
+function attacherAppuiLong(id, texte){
+  var el=document.getElementById(id); if(!el) return;
+  var timer=null, declenche=false;
+  el.addEventListener('touchstart', function(){
+    declenche=false;
+    timer=setTimeout(function(){ declenche=true; notif('ℹ️ '+texte,2500); }, 500);
+  }, {passive:true});
+  el.addEventListener('touchend', function(e){
+    if(timer) clearTimeout(timer);
+    if(declenche) e.preventDefault(); // appui long déjà géré, ne pas déclencher aussi le clic
+  });
+  el.addEventListener('touchmove', function(){ if(timer) clearTimeout(timer); });
 }
 
 // ================================================================
@@ -3390,8 +3439,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v31';
-var APP_DERNIERE_MAJ = '2026-08-01T09:00:00'; // Renommage complet en GESTION-BOULLIWEL-SERVICE.app ; garde-fous de rôle réels au niveau du code (pas juste l'interface) sur toutes les actions Administrateur
+var APP_VERSION = 'v32';
+var APP_DERNIERE_MAJ = '2026-08-01T14:00:00'; // Icône de rafraîchissement (Admin+Associé), Capital total de l'entreprise au tableau de bord, carte "part d'intérêt" recalculée (montant réel après tous les calculs), total des activités Associé
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
@@ -3679,6 +3728,8 @@ document.addEventListener('DOMContentLoaded',function(){
   } else {
     document.getElementById('inp-login').focus();
   }
+  attacherAppuiLong('btn-refresh-admin','Rafraîchir les données affichées');
+  attacherAppuiLong('btn-refresh-associe','Rafraîchir les données affichées');
   // Statut initial de synchronisation
   if (!navigator.onLine) {
     setSyncStatus('offline', '⚪ Hors ligne');
