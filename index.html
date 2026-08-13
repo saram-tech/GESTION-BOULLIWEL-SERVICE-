@@ -256,28 +256,62 @@ tbody tr:last-child td{border-bottom:none;}
 
     <!-- TAB: RÉINITIALISATION -->
     <div id="tab-reset" class="login-tab">
-      <div class="reset-info">
-        🔑 Choisissez le compte concerné, demandez un code, puis entrez-le ci-dessous avec votre nouveau mot de passe. Le code est <strong>unique, à usage unique et expire après 7 minutes</strong>.
+
+      <!-- Parcours réel : lien de récupération envoyé par Supabase Auth -->
+      <div id="reset-email-zone">
+        <div class="reset-info">
+          🔑 Saisissez l'adresse e-mail associée à votre compte. Vous recevrez un lien pour définir un nouveau mot de passe, sans avoir besoin d'ouvrir Supabase.
+        </div>
+        <div class="fg"><label>Adresse e-mail</label><input type="email" id="inp-forgot-email" placeholder="votre@email.com" autocomplete="email" onkeydown="if(event.key==='Enter')doForgotPassword()"></div>
+        <div class="login-err" id="forgot-err"></div>
+        <button class="login-btn" id="btn-forgot" onclick="doForgotPassword()">📩 Envoyer le lien de réinitialisation</button>
       </div>
-      <div class="fg"><label>Compte concerné</label><select id="inp-reset-role" onchange="document.getElementById('reset-role-info').textContent=''">
-        <option value="associe">Associé</option>
-        <option value="admin">Administrateur</option>
-      </select></div>
-      <button type="button" class="btn bh bsm" style="margin-bottom:9px" onclick="genererEtAfficherCode(v('inp-reset-role'))">📩 Générer un code pour ce compte</button>
-      <div id="reset-role-info" style="font-size:.76rem;color:var(--tx2);margin-bottom:9px"></div>
-      <div class="fg"><label>Code de réinitialisation</label><input type="text" id="inp-reset-code" placeholder="Code à 6 chiffres" inputmode="numeric" maxlength="6"></div>
-      <div class="fg"><label>Nouveau mot de passe</label><div style="position:relative">
-          <input type="password" id="inp-new-pass" placeholder="Nouveau mot de passe (min. 4 caractères)" style="padding-right:40px">
-          <span onclick="togglePass('inp-new-pass',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem;user-select:none">👁</span>
-        </div></div>
-      <div class="fg"><label>Confirmer le mot de passe</label><div style="position:relative">
-          <input type="password" id="inp-confirm-pass" placeholder="Répétez le nouveau mot de passe" style="padding-right:40px">
-          <span onclick="togglePass('inp-confirm-pass',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem;user-select:none">👁</span>
-        </div></div>
-      <div class="login-err" id="reset-err"></div>
-      <button class="login-btn" onclick="doReset()">✓ Réinitialiser</button>
+
+      <!-- Repli : ancien système de code local, utilisé seulement si la -->
+      <!-- vraie authentification Supabase (AUTH_EMAIL_ADMIN) n'est pas active. -->
+      <div id="reset-legacy-zone" style="display:none">
+        <div class="reset-info">
+          🔑 Choisissez le compte concerné, demandez un code, puis entrez-le ci-dessous avec votre nouveau mot de passe. Le code est <strong>unique, à usage unique et expire après 7 minutes</strong>.
+        </div>
+        <div class="fg"><label>Compte concerné</label><select id="inp-reset-role" onchange="document.getElementById('reset-role-info').textContent=''">
+          <option value="associe">Associé</option>
+          <option value="admin">Administrateur</option>
+        </select></div>
+        <button type="button" class="btn bh bsm" style="margin-bottom:9px" onclick="genererEtAfficherCode(v('inp-reset-role'))">📩 Générer un code pour ce compte</button>
+        <div id="reset-role-info" style="font-size:.76rem;color:var(--tx2);margin-bottom:9px"></div>
+        <div class="fg"><label>Code de réinitialisation</label><input type="text" id="inp-reset-code" placeholder="Code à 6 chiffres" inputmode="numeric" maxlength="6"></div>
+        <div class="fg"><label>Nouveau mot de passe</label><div style="position:relative">
+            <input type="password" id="inp-new-pass" placeholder="Nouveau mot de passe (min. 4 caractères)" style="padding-right:40px">
+            <span onclick="togglePass('inp-new-pass',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem;user-select:none">👁</span>
+          </div></div>
+        <div class="fg"><label>Confirmer le mot de passe</label><div style="position:relative">
+            <input type="password" id="inp-confirm-pass" placeholder="Répétez le nouveau mot de passe" style="padding-right:40px">
+            <span onclick="togglePass('inp-confirm-pass',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem;user-select:none">👁</span>
+          </div></div>
+        <div class="login-err" id="reset-err"></div>
+        <button class="login-btn" onclick="doReset()">✓ Réinitialiser</button>
+      </div>
+
       <div class="login-divider"></div>
       <span class="login-link" onclick="showLogin()">← Retour à la connexion</span>
+    </div>
+
+    <!-- TAB: NOUVEAU MOT DE PASSE — affiché automatiquement quand l'utilisateur -->
+    <!-- arrive depuis le lien reçu par e-mail (jamais ouvert manuellement) -->
+    <div id="tab-nouveau-mdp" class="login-tab">
+      <div class="reset-info">
+        🔐 Choisissez un nouveau mot de passe pour votre compte.
+      </div>
+      <div class="fg"><label>Nouveau mot de passe</label><div style="position:relative">
+          <input type="password" id="np-nouveau" placeholder="Nouveau mot de passe (min. 4 caractères)" style="padding-right:40px">
+          <span onclick="togglePass('np-nouveau',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem;user-select:none">👁</span>
+        </div></div>
+      <div class="fg"><label>Confirmer le nouveau mot de passe</label><div style="position:relative">
+          <input type="password" id="np-confirm" placeholder="Répétez le nouveau mot de passe" style="padding-right:40px">
+          <span onclick="togglePass('np-confirm',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem;user-select:none">👁</span>
+        </div></div>
+      <div class="login-err" id="np-err"></div>
+      <button class="login-btn" onclick="doDefinirNouveauMotDePasse()">✓ Enregistrer le nouveau mot de passe</button>
     </div>
 
     <!-- TAB: CHANGER MOT DE PASSE (dans app) -->
@@ -4258,13 +4292,27 @@ function genererEtAfficherCode(role){
 }
 function showReset() {
   document.getElementById('tab-login').classList.remove('active');
+  document.getElementById('tab-nouveau-mdp').classList.remove('active');
   document.getElementById('tab-reset').classList.add('active');
-  document.getElementById('inp-reset-role').value='associe';
-  document.getElementById('inp-reset-code').value = '';
-  document.getElementById('inp-new-pass').value = '';
-  document.getElementById('inp-confirm-pass').value = '';
-  document.getElementById('reset-err').textContent = '';
-  document.getElementById('reset-role-info').textContent='';
+  var emailZone  = document.getElementById('reset-email-zone');
+  var legacyZone = document.getElementById('reset-legacy-zone');
+  if (typeof AUTH_EMAIL_ADMIN !== 'undefined') {
+    // Vraie authentification Supabase active : parcours par e-mail réel.
+    emailZone.style.display = '';
+    legacyZone.style.display = 'none';
+    document.getElementById('inp-forgot-email').value = '';
+    document.getElementById('forgot-err').textContent = '';
+  } else {
+    // Repli : ancien système de code local (aucun compte Supabase configuré).
+    emailZone.style.display = 'none';
+    legacyZone.style.display = '';
+    document.getElementById('inp-reset-role').value='associe';
+    document.getElementById('inp-reset-code').value = '';
+    document.getElementById('inp-new-pass').value = '';
+    document.getElementById('inp-confirm-pass').value = '';
+    document.getElementById('reset-err').textContent = '';
+    document.getElementById('reset-role-info').textContent='';
+  }
 }
 
 function showLogin() {
@@ -4530,6 +4578,106 @@ function doReset() {
   notif('✅ Mot de passe '+(role==='admin'?'Administrateur':'Associé')+' réinitialisé avec succès. Vous pouvez vous connecter.');
 }
 
+/**
+ * Étape 1 du parcours "mot de passe oublié" — demande à Supabase Auth
+ * d'envoyer automatiquement un e-mail de récupération. Ne révèle jamais
+ * si l'adresse existe ou non (comportement standard de Supabase), pour
+ * éviter de laisser deviner quels comptes existent.
+ */
+function doForgotPassword(){
+  var email = document.getElementById('inp-forgot-email').value.trim();
+  var err   = document.getElementById('forgot-err');
+  var btn   = document.getElementById('btn-forgot');
+  if (!email) { err.textContent = '⚠️ Veuillez saisir votre adresse e-mail.'; return; }
+  if (!navigator.onLine) { err.textContent = '⚠️ Connexion Internet requise pour recevoir le lien.'; return; }
+  err.textContent = '';
+  btn.disabled = true; btn.textContent = '⏳ Envoi en cours…';
+  fetch(SUPABASE_CONFIG.url + '/auth/v1/recover?redirect_to=' + encodeURIComponent(URL_REDIRECTION_RESET), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_CONFIG.anonKey },
+    body: JSON.stringify({ email: email })
+  }).then(function(res){
+    btn.disabled = false; btn.textContent = '📩 Envoyer le lien de réinitialisation';
+    // Toujours le même message, que l'e-mail existe ou non côté Supabase.
+    document.getElementById('inp-forgot-email').value = '';
+    notif('✅ Si cette adresse est associée à un compte, un e-mail de récupération vient d\'être envoyé. Vérifiez votre boîte de réception (et vos spams).', 6000);
+    showLogin();
+  }).catch(function(e){
+    btn.disabled = false; btn.textContent = '📩 Envoyer le lien de réinitialisation';
+    err.textContent = '⚠️ Erreur réseau — réessayez.';
+    console.error('[doForgotPassword]', e);
+  });
+}
+
+/** Jeton d'accès temporaire extrait du lien de récupération reçu par e-mail. */
+var RECOVERY_ACCESS_TOKEN = null;
+
+/**
+ * Au chargement de la page, détecte si l'utilisateur arrive depuis le
+ * lien "Reset password" reçu par e-mail (Supabase y ajoute
+ * #access_token=...&type=recovery=... dans l'URL après vérification du
+ * lien). Si oui, affiche directement l'écran "Nouveau mot de passe",
+ * sans jamais faire passer l'utilisateur par le tableau de bord Supabase.
+ */
+function detecterLienRecuperation(){
+  var h = window.location.hash;
+  if (!h || h.indexOf('type=recovery') === -1) return false;
+  var params = new URLSearchParams(h.replace(/^#/, ''));
+  var token = params.get('access_token');
+  if (!token) return false;
+  RECOVERY_ACCESS_TOKEN = token;
+  // Nettoie l'URL (le jeton ne doit pas rester visible dans la barre
+  // d'adresse ni dans l'historique du navigateur).
+  history.replaceState(null, '', window.location.pathname + window.location.search);
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('tab-login').classList.remove('active');
+  document.getElementById('tab-visiteur').classList.remove('active');
+  document.getElementById('tab-reset').classList.remove('active');
+  document.getElementById('tab-nouveau-mdp').classList.add('active');
+  document.getElementById('np-nouveau').value = '';
+  document.getElementById('np-confirm').value = '';
+  document.getElementById('np-err').textContent = '';
+  return true;
+}
+
+/**
+ * Étape 2 du parcours "mot de passe oublié" — enregistre le nouveau mot
+ * de passe directement dans Supabase Auth, grâce au jeton temporaire
+ * fourni par le lien de récupération (aucun accès au tableau de bord
+ * Supabase requis, ni pour l'Administrateur ni pour l'Associé).
+ */
+function doDefinirNouveauMotDePasse(){
+  var nouveau = document.getElementById('np-nouveau').value;
+  var confirm = document.getElementById('np-confirm').value;
+  var err     = document.getElementById('np-err');
+  if (!RECOVERY_ACCESS_TOKEN) { err.textContent = '⚠️ Lien invalide ou expiré. Refaites une demande de réinitialisation.'; return; }
+  if (!nouveau || !confirm) { err.textContent = '⚠️ Tous les champs sont obligatoires.'; return; }
+  if (nouveau.length < 4) { err.textContent = '⚠️ Mot de passe trop court (minimum 4 caractères).'; return; }
+  if (nouveau !== confirm) { err.textContent = '❌ Les mots de passe ne correspondent pas.'; return; }
+  if (!navigator.onLine) { err.textContent = '⚠️ Connexion Internet requise.'; return; }
+  err.textContent = '⏳ Enregistrement…';
+  fetch(SUPABASE_CONFIG.url + '/auth/v1/user', {
+    method: 'PUT',
+    headers: { 'Content-Type':'application/json', 'apikey': SUPABASE_CONFIG.anonKey, 'Authorization':'Bearer '+RECOVERY_ACCESS_TOKEN },
+    body: JSON.stringify({ password: nouveau })
+  }).then(function(r){
+    return r.json().then(function(body){ return {ok:r.ok, body:body}; });
+  }).then(function(res){
+    if (!res.ok) {
+      err.textContent = '❌ Le lien a expiré ou a déjà été utilisé. Refaites une demande de réinitialisation.';
+      return;
+    }
+    RECOVERY_ACCESS_TOKEN = null;
+    err.textContent = '';
+    document.getElementById('tab-nouveau-mdp').classList.remove('active');
+    showLogin();
+    notif('✅ Votre mot de passe a été réinitialisé avec succès. Vous pouvez vous reconnecter.', 5000);
+  }).catch(function(e){
+    err.textContent = '⚠️ Erreur réseau — réessayez.';
+    console.error('[doDefinirNouveauMotDePasse]', e);
+  });
+}
+
 function showChangerPass() {
   document.getElementById('cp-actuel').value = '';
   document.getElementById('cp-nouveau').value = '';
@@ -4609,6 +4757,11 @@ function doChangerPass() {
 })();
 document.addEventListener('DOMContentLoaded',function(){
  try{
+  // Lien "Reset password" reçu par e-mail : détecté avant tout le reste.
+  // Le chargement normal des données continue en dessous (comme d'habitude,
+  // aucune fonctionnalité existante n'est modifiée) ; seul l'écran affiché
+  // au final change (voir plus bas, à la place de l'écran de connexion).
+  var enRecuperation = detecterLienRecuperation();
   var fh=loadFromHash(); if(!fh) load();
   migrerStockPerso();
   cmdLignes=[]; rCL(); renderAll();
@@ -4630,8 +4783,12 @@ document.addEventListener('DOMContentLoaded',function(){
       if(lastTab && document.getElementById('tab-'+lastTab)) gt(lastTab, null);
     }
   }catch(e){}
-  // Vérifier session
-  if(isLoggedIn()){
+  // Vérifier session — sauf si l'utilisateur vient d'arriver depuis le
+  // lien de récupération de mot de passe : cet écran a toujours priorité,
+  // même si une session était déjà active sur cet appareil.
+  if (enRecuperation) {
+    document.getElementById('login-screen').classList.remove('hidden');
+  } else if(isLoggedIn()){
     document.getElementById('login-screen').classList.add('hidden');
     activerInterfaceSelonRole();
   } else {
@@ -4700,6 +4857,16 @@ var AUTH_EMAIL_ADMIN   = 'bahousmane611@gmail.com';
 var AUTH_EMAIL_ASSOCIE = 'diallo201528@gmail.com';
 var AUTH_EMAIL_VISITEUR = 'COLLER_EMAIL_VISITEUR_ICI'; // remplacer par l'email réel du compte Visiteur créé dans Supabase
 var SESSION_KEY = 'bpro_session_v2';
+
+// ================================================================
+// RÉCUPÉRATION DE MOT DE PASSE — 100% intégrée à l'application
+// ================================================================
+// L'e-mail envoyé par Supabase Auth renvoie toujours vers cette URL de
+// production (jamais localhost:3000), à condition qu'elle soit aussi
+// déclarée dans Supabase → Authentication → URL Configuration → Site
+// URL / Redirect URLs (réglage à faire une seule fois, dans le
+// tableau de bord, pas dans le code — voir note en bas de ce fichier).
+var URL_REDIRECTION_RESET = 'https://gestion-boulliwel-service.vercel.app/';
 
 function getSession(){
   try{ return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); }catch(e){ return null; }
