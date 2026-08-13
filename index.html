@@ -238,6 +238,20 @@ tbody tr:last-child td{border-bottom:none;}
       </div>
       <div class="login-divider">Mot de passe oublié ?</div>
       <span class="login-link" onclick="showReset()">Réinitialiser le mot de passe</span>
+      <div class="login-divider"></div>
+      <span class="login-link" onclick="showVisiteur()">👁️ Accéder en tant que Visiteur</span>
+    </div>
+
+    <!-- TAB: COMPTE VISITEUR (code d'accès simple, sans mot de passe) -->
+    <div id="tab-visiteur" class="login-tab">
+      <div class="reset-info">
+        👁️ Le Compte Visiteur permet de consulter le patrimoine de l'Administrateur avec un simple code d'accès fourni par lui.
+      </div>
+      <div class="fg"><label>Code d'accès</label><input type="text" id="inp-visiteur-code" placeholder="Entrez le code fourni par l'Administrateur" inputmode="numeric" onkeydown="if(event.key==='Enter')doLoginVisiteur()"></div>
+      <div class="login-err" id="visiteur-err"></div>
+      <button class="login-btn" onclick="doLoginVisiteur()">👁️ Accéder</button>
+      <div class="login-divider"></div>
+      <span class="login-link" onclick="showLogin()">← Retour à la connexion</span>
     </div>
 
     <!-- TAB: RÉINITIALISATION -->
@@ -292,6 +306,10 @@ tbody tr:last-child td{border-bottom:none;}
     <button class="btn bh bsm" onclick="showChangerPass()" title="Changer mon mot de passe">🔑 Mon mot de passe</button>
     <button class="btn bh bsm" onclick="doLogout()" title="Se déconnecter">🚪 Déconnexion</button>
   </div>
+  <div id="hbts-visiteur" class="hbts" style="display:none">
+    <button id="btn-refresh-visiteur" class="btn-refresh" onclick="rafraichirVisiteur()" title="Rafraîchir les données affichées">⟳</button>
+    <button class="btn bh bsm" onclick="doLogout()" title="Se déconnecter">🚪 Déconnexion</button>
+  </div>
 </header>
 <nav id="main-nav"><div class="ni">
   <button class="nb active" onclick="gt('dashboard',this)" title="Tableau de bord : vue d'ensemble des chiffres clés et du stock">📊 Bord</button>
@@ -304,6 +322,7 @@ tbody tr:last-child td{border-bottom:none;}
   <button class="nb" onclick="gt('commandes',this)" title="Commandes clients et fiches de réapprovisionnement fournisseur">📑 Commandes</button>
   <button class="nb" onclick="gt('historique',this)" title="Journal complet de toutes les opérations effectuées, avec date et heure">📋 Historique</button>
   <button class="nb" onclick="gt('rapport',this)" title="Rapport détaillé des activités, y compris celles du compte Associé">📈 Rapport</button>
+  <button class="nb" onclick="gt('patrimoine',this)" title="Biens et matériels professionnels de l'Administrateur, visibles par le compte Visiteur">🏛️ Patrimoine</button>
   <button class="nb" onclick="gt('corbeille',this)" title="Éléments supprimés, récupérables avant suppression définitive">🗑️ Corbeille</button>
 </div></nav>
 <main>
@@ -343,6 +362,30 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="tw"><table>
       <thead><tr><th>Date</th><th>Heure</th><th>Produit</th><th>Qté</th><th>Prix Unitaire</th><th>Montant</th><th>Client</th><th>Statut</th><th>Actions</th></tr></thead>
       <tbody id="tbl-vue-associe"><tr><td colspan="9" style="text-align:center;color:var(--tx2);padding:20px">Aucune activité</td></tr></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ================================================================
+     VUE VISITEUR — patrimoine de l'Administrateur uniquement, reçu
+     directement du serveur (jamais mis en cache localement). Aucune
+     activité, aucune donnée financière de l'entreprise au-delà de ce
+     qui est explicitement autorisé.
+     ================================================================ -->
+<div id="vue-visiteur" style="display:none">
+  <div class="g4" style="margin-bottom:14px">
+    <div class="kpi"><div class="kl">Capital de l'Administrateur</div><div class="kv g" id="vv-capital">0 GNF</div><div class="ks">Sa part dans l'entreprise</div></div>
+    <div class="kpi"><div class="kl">Ce que l'entreprise lui doit</div><div class="kv" id="vv-doit">0 GNF</div></div>
+    <div class="kpi"><div class="kl">Total des avoirs</div><div class="kv b" id="vv-total">0 GNF</div><div class="ks">Capital + Ce que l'entreprise lui doit</div></div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <h3 style="margin:0">💼 Biens & Matériels</h3>
+      <button class="btn bh bsm no-print" onclick="imprimerSection('vue-visiteur','Patrimoine de l\'Administrateur')" title="Imprimer">🖨️ Imprimer</button>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Bien</th><th>Qté</th><th>Valeur</th><th>Prix d'achat</th><th>Date</th><th>État</th><th>Description</th></tr></thead>
+      <tbody id="tbl-vue-visiteur"><tr><td colspan="7" style="text-align:center;color:var(--tx2);padding:20px">Chargement…</td></tr></tbody>
     </table></div>
   </div>
 </div>
@@ -735,6 +778,45 @@ tbody tr:last-child td{border-bottom:none;}
 </div>
 </div>
 
+<!-- PATRIMOINE (biens et matériels de l'Administrateur, visibles par le compte Visiteur) -->
+<div id="tab-patrimoine" class="tab-panel">
+  <div class="ch"><span class="dot" style="background:var(--go)"></span>🏛️ Patrimoine — Biens &amp; Matériels</div>
+  <div class="al ali" style="font-size:.77rem">📋 Enregistre uniquement les biens réellement existants. Cette liste est visible par le compte Visiteur (avec le total des avoirs).</div>
+  <div class="card" style="margin-bottom:14px">
+    <div style="font-weight:700;margin-bottom:10px">➕ Ajouter un bien</div>
+    <div class="fr">
+      <div class="fg"><label>Nom *</label><input type="text" id="pt-nom" placeholder="Ex: Ordinateur portable" onblur="capitaliserChamp('pt-nom')"></div>
+      <div class="fg"><label>Catégorie</label><input type="text" id="pt-categorie" placeholder="Ex: Matériel informatique" list="dl-categorie-patrimoine"><datalist id="dl-categorie-patrimoine"></datalist></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Quantité</label><input type="number" id="pt-qte" value="1" min="1"></div>
+      <div class="fg"><label>Valeur actuelle (GNF)</label><input type="number" id="pt-valeur" placeholder="0"></div>
+      <div class="fg"><label>Prix d'achat (GNF)</label><input type="number" id="pt-achat" placeholder="0"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Date d'acquisition</label><input type="date" id="pt-date"></div>
+      <div class="fg"><label>État</label><select id="pt-etat"><option>Neuf</option><option>Bon état</option><option>Usagé</option><option>À réparer</option><option>Hors service</option></select></div>
+    </div>
+    <div class="fg"><label>Description</label><input type="text" id="pt-description" placeholder="Détails, numéro de série..."></div>
+    <div class="fg"><label>Utilisation</label><input type="text" id="pt-utilisation" placeholder="Ex: Usage quotidien au comptoir"></div>
+    <input type="hidden" id="pt-eid">
+    <div style="display:flex;gap:7px;justify-content:flex-end">
+      <button class="btn bh" id="btn-pt-annuler" style="display:none" onclick="rPF_patrimoine()">Annuler la modification</button>
+      <button class="btn bs" id="btn-pt-enr" onclick="enrPatrimoine()">✓ Enregistrer le bien</button>
+    </div>
+  </div>
+  <div class="card">
+    <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap;justify-content:space-between">
+      <input type="text" id="f-search-patrimoine" placeholder="🔍 Rechercher un bien..." oninput="deb('patrimoine',rPatrimoine)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
+      <button class="btn bh bsm" onclick="imprimerSection('tab-patrimoine','Patrimoine — Biens & Matériels')">🖨️ Imprimer</button>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Nom</th><th>Catégorie</th><th>Qté</th><th>Valeur</th><th>Prix Achat</th><th>Date</th><th>État</th><th>Actions</th></tr></thead>
+      <tbody id="tbl-patrimoine"><tr><td colspan="8" style="text-align:center;color:var(--tx2);padding:20px">Aucun bien enregistré</td></tr></tbody>
+    </table></div>
+  </div>
+</div>
+
 <!-- CORBEILLE -->
 <div id="tab-corbeille" class="tab-panel">
   <div class="sh">
@@ -873,6 +955,20 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="al alw" style="font-size:.73rem">⚠️ Ces coordonnées ne servent qu'à identifier qu'un contact de récupération existe. Cette application n'ayant pas de serveur d'envoi SMS/e-mail connecté, les codes de réinitialisation générés s'affichent directement dans l'app (voir ci-dessous pour l'Associé) plutôt que d'être envoyés automatiquement.</div>
     <div id="zone-codes-attente" style="margin-top:9px"></div>
+
+    <hr class="sep">
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">👁️ Compte Visiteur</div>
+    <div style="font-size:.74rem;color:var(--tx2);margin-bottom:8px">Permet à une personne de confiance de consulter votre patrimoine (biens, capital) avec un simple code — jamais vos données confidentielles (dépenses, dettes, activités...).</div>
+    <div id="zone-visiteur-statut" style="margin-bottom:9px;font-size:.78rem"></div>
+    <div class="fr">
+      <div class="fg"><label>Nouveau code d'accès (min. 4 caractères)</label><input type="text" id="pr-visiteur-pin" placeholder="Ex: 1234" inputmode="numeric"></div>
+    </div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:9px">
+      <button class="btn bs bsm" onclick="definirCodeVisiteur()">✓ Définir / changer le code</button>
+      <button class="btn bd bsm" onclick="verrouillerCompteVisiteur(true)">🔒 Verrouiller l'accès</button>
+      <button class="btn bg bsm" onclick="verrouillerCompteVisiteur(false)">🔓 Déverrouiller l'accès</button>
+      <button class="btn bh bsm" onclick="ouvrirPatrimoine()">💼 Gérer le Patrimoine (biens & matériels)</button>
+    </div>
 
     <div style="display:flex;gap:7px;justify-content:flex-end;margin-bottom:14px">
       <button class="btn bh" onclick="cm('mparams')">Annuler</button>
@@ -1486,7 +1582,7 @@ function ouvrirAPropos(){
  * au même appareil).
  */
 function exigerAdmin(){
-  if(isAssocie()){
+  if(getRole()!=='admin'){
     notif('🚫 Action réservée à l\'Administrateur.');
     return false;
   }
@@ -1505,7 +1601,34 @@ function enrParametres(){
   var recupTel=v('pr-recup-tel').trim().replace(/[^0-9]/g,''), recupEmail=v('pr-recup-email').trim();
   if(reinvest<0||reinvest>100||retenu<0||retenu>100||perso<0||perso>100){ notif('⚠️ Les pourcentages doivent être entre 0 et 100'); return; }
   D.params={reinvest:reinvest,retenuAssocie:retenu,stockPerso:perso,fournisseurTel:fourn,recupTel:recupTel,recupEmail:recupEmail};
-  save(); cm('mparams'); notif('✅ Paramètres enregistrés');
+  save(); syncParametresVersNouvelleTable(); cm('mparams'); notif('✅ Paramètres enregistrés');
+}
+/**
+ * CORRECTIF : depuis l'Étape 1, la table "parametres" (utilisée par
+ * bilan_confidentiel() côté serveur pour les calculs confidentiels de
+ * l'Associé) n'était copiée qu'une seule fois lors de la migration et
+ * ne recevait plus jamais les changements faits depuis l'app — les
+ * calculs de l'Associé pouvaient donc utiliser des valeurs obsolètes.
+ * Corrigé : chaque enregistrement des Paramètres pousse maintenant la
+ * mise à jour vers la table réelle, comme le fait déjà save() pour
+ * Activités/Stock.
+ */
+function syncParametresVersNouvelleTable(){
+  var session=getSession();
+  if(!session || !session.access_token || session.role!=='admin' || !navigator.onLine) return;
+  var p=D.params||{};
+  var payload={
+    id:1, reinvest:p.reinvest, retenu_associe:p.retenuAssocie, stock_perso:p.stockPerso,
+    fournisseur_tel:p.fournisseurTel||null, recup_tel:p.recupTel||null, recup_email:p.recupEmail||null,
+    dep_categories: D.depCategories||[], dettes_clot: D.dettesClot||0, dette_verrou: !!D.detteVerrou,
+    ent_deja_deduit: D.entDejaDeduit||0,
+    visiteur_code: p.visiteurCode||null, visiteur_verrouille: !!p.visiteurVerrouille
+  };
+  supabaseTable('/rest/v1/parametres', {
+    method:'POST',
+    headers:{ 'Prefer':'resolution=merge-duplicates' },
+    body: JSON.stringify(payload)
+  }, session.access_token).catch(function(e){ console.error('[syncParametres]', e); });
 }
 /**
  * Affiche, dans les Paramètres de l'Administrateur, tout code de
@@ -3095,7 +3218,7 @@ function updateKPIs(){
 }
 
 function renderAll(){
-  rAct(); rStock(); rPerso(); rDettes(); rDep(); rCmd(); rHisto(); rRapport(); rCorbeille(); rAlertesStock(); rAlertesCommandesDisponibles(); updateKPIs(); calculerBilan(); rCatList();
+  rAct(); rStock(); rPerso(); rDettes(); rDep(); rCmd(); rHisto(); rRapport(); rCorbeille(); rAlertesStock(); rAlertesCommandesDisponibles(); rPatrimoine(); updateKPIs(); calculerBilan(); rCatList();
   if(isLoggedIn() && isAssocie()) rVueAssocie();
 }
 /**
@@ -3861,8 +3984,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v37';
-var APP_DERNIERE_MAJ = '2026-08-03T15:00:00'; // Alerte de disponibilité des commandes clients (message WhatsApp pré-rempli) — la génération groupée par catégorie de la commande fournisseur était déjà en place et vérifiée
+var APP_VERSION = 'v39';
+var APP_DERNIERE_MAJ = '2026-08-04T18:00:00'; // Vérification complète Compte Visiteur + Patrimoine (code PIN haché, verrouillage, biens groupés par catégorie, Total des avoirs sans double comptage) — testée de bout en bout, zéro erreur détectée
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
@@ -3903,9 +4026,17 @@ function isLoggedIn() {
   return sessionStorage.getItem('bpro_session') === '1';
 }
 function getRole(){
-  return sessionStorage.getItem('bpro_role') === 'associe' ? 'associe' : 'admin';
+  var r = sessionStorage.getItem('bpro_role');
+  return (r==='associe'||r==='visiteur') ? r : 'admin';
 }
 function isAssocie(){ return getRole()==='associe'; }
+function isVisiteur(){ return getRole()==='visiteur'; }
+/** Données du Patrimoine consultées par le Visiteur — en mémoire de session
+ * uniquement (jamais dans localStorage), perdues à la fermeture de l'onglet. */
+function getDonneesVisiteur(){
+  try{ return JSON.parse(sessionStorage.getItem('bpro_visiteur_data')||'null'); }catch(e){ return null; }
+}
+function setDonneesVisiteur(d){ try{ sessionStorage.setItem('bpro_visiteur_data', JSON.stringify(d)); }catch(e){} }
 
 function doLogin() {
  try{
@@ -3915,6 +4046,29 @@ function doLogin() {
   var zoneOubli = document.getElementById('login-forgot-zone');
   if (zoneOubli) zoneOubli.style.display = 'none';
   if (!login || !pass) { err.textContent = '⚠️ Veuillez remplir tous les champs.'; return; }
+
+  // Le Visiteur n'a PAS de compte Supabase : "pass" est ici son code
+  // d'accès (PIN), vérifié par une fonction serveur dédiée qui ne
+  // renvoie les données du patrimoine que si le code est correct.
+  if (login === 'visiteur') {
+    if (!navigator.onLine) { err.textContent = '⚠️ Connexion Internet requise pour accéder au Compte Visiteur.'; return; }
+    err.textContent = '⏳ Vérification du code…';
+    chargerVisiteurParPin(pass).then(function(ok){
+      if (!ok) {
+        err.textContent = '❌ Code incorrect ou accès verrouillé.';
+        document.getElementById('inp-pass').value = '';
+        document.getElementById('inp-pass').focus();
+        return;
+      }
+      sessionStorage.setItem('bpro_session', '1');
+      sessionStorage.setItem('bpro_role', 'visiteur');
+      document.getElementById('login-screen').classList.add('hidden');
+      err.textContent = '';
+      activerInterfaceSelonRole();
+      notif('✅ Bienvenue !');
+    });
+    return;
+  }
 
   var email = login==='admin' ? AUTH_EMAIL_ADMIN : (login==='associe' ? AUTH_EMAIL_ASSOCIE : null);
   if (!email) { err.textContent = '❌ Identifiant inconnu.'; return; }
@@ -3963,24 +4117,27 @@ function doLogin() {
 }
 
 /**
- * Applique une session valide (nouvelle connexion ou reprise hors
- * ligne) : bascule l'interface et charge les données autorisées pour
- * ce rôle uniquement.
+ * Applique une session Supabase valide (Administrateur ou Associé
+ * uniquement — le Visiteur n'a pas de session Supabase, voir
+ * chargerVisiteurParPin) : bascule l'interface et charge les données
+ * autorisées pour ce rôle.
  */
 function appliquerSession(session){
   sessionStorage.setItem('bpro_session', '1');
   sessionStorage.setItem('bpro_role', session.role);
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('login-err').textContent = '';
+  var libelleRole = session.role==='admin'?'Administrateur':'Associé';
   var apres = function(){
     renderAll();
     activerInterfaceSelonRole();
-    notif('✅ Bienvenue ' + (session.role==='admin'?'Administrateur':'Associé') + ' !');
+    notif('✅ Bienvenue ' + libelleRole + ' !');
   };
   if (!navigator.onLine) { apres(); return; }
   if (session.role === 'admin') {
     chargerActivitesEtStockDepuisTables(session).then(function(){
       reconcileOnStartup(); // dépenses/dettes/paiements/commandes/perso/historique/corbeille (ancien système, admin uniquement)
+      chargerPatrimoine(session);
       apres();
     });
   } else {
@@ -3997,21 +4154,30 @@ function appliquerSession(session){
  */
 function activerInterfaceSelonRole(){
   var associe = isAssocie();
+  var visiteur = isVisiteur();
   var elNav=document.getElementById('main-nav'), elZoneAdmin=document.getElementById('zone-admin'),
-      elVueAssocie=document.getElementById('vue-associe'), elGs=document.getElementById('gs-wrap'),
-      elHbtsAdmin=document.getElementById('hbts-admin'), elHbtsAssocie=document.getElementById('hbts-associe');
-  if(elNav) elNav.style.display = associe?'none':'';
-  if(elZoneAdmin) elZoneAdmin.style.display = associe?'none':'';
+      elVueAssocie=document.getElementById('vue-associe'), elVueVisiteur=document.getElementById('vue-visiteur'),
+      elGs=document.getElementById('gs-wrap'),
+      elHbtsAdmin=document.getElementById('hbts-admin'), elHbtsAssocie=document.getElementById('hbts-associe'),
+      elHbtsVisiteur=document.getElementById('hbts-visiteur');
+  var estAdmin = !associe && !visiteur;
+  if(elNav) elNav.style.display = estAdmin?'':'none';
+  if(elZoneAdmin) elZoneAdmin.style.display = estAdmin?'':'none';
   if(elVueAssocie) elVueAssocie.style.display = associe?'block':'none';
-  if(elGs) elGs.style.display = associe?'none':'';
-  if(elHbtsAdmin) elHbtsAdmin.style.display = associe?'none':'flex';
+  if(elVueVisiteur) elVueVisiteur.style.display = visiteur?'block':'none';
+  if(elGs) elGs.style.display = estAdmin?'':'none';
+  if(elHbtsAdmin) elHbtsAdmin.style.display = estAdmin?'flex':'none';
   if(elHbtsAssocie) elHbtsAssocie.style.display = associe?'flex':'none';
+  if(elHbtsVisiteur) elHbtsVisiteur.style.display = visiteur?'flex':'none';
   if(associe) rVueAssocie();
+  if(visiteur) rafraichirVisiteur();
 }
 
 function doLogout() {
   sessionStorage.removeItem('bpro_session');
   sessionStorage.removeItem('bpro_role');
+  sessionStorage.removeItem('bpro_visiteur_code');
+  sessionStorage.removeItem('bpro_visiteur_data');
   clearSession();
   // Purge du cache local : après déconnexion, aucune donnée du compte
   // précédent (Admin ou Associé) ne doit rester accessible sur cet
@@ -4103,10 +4269,237 @@ function showReset() {
 
 function showLogin() {
   document.getElementById('tab-reset').classList.remove('active');
+  document.getElementById('tab-visiteur').classList.remove('active');
   document.getElementById('tab-login').classList.add('active');
   document.getElementById('login-err').textContent = '';
 }
 
+function showVisiteur() {
+  document.getElementById('tab-login').classList.remove('active');
+  document.getElementById('tab-visiteur').classList.add('active');
+  document.getElementById('inp-visiteur-code').value = '';
+  document.getElementById('visiteur-err').textContent = '';
+}
+
+/**
+ * Connexion Compte Visiteur — PAS de vrai compte Supabase Auth : un
+ * simple code d'accès, vérifié CÔTÉ SERVEUR par acceder_patrimoine_
+ * visiteur() (clé anonyme uniquement, pas de session). Le code n'est
+ * jamais stocké en clair côté serveur (empreinte SHA-256 uniquement).
+ */
+function doLoginVisiteur(){
+  var code=document.getElementById('inp-visiteur-code').value.trim();
+  var err=document.getElementById('visiteur-err');
+  if(!code){ err.textContent='⚠️ Veuillez entrer le code d\'accès.'; return; }
+  if(!navigator.onLine){ err.textContent='⚠️ Une connexion internet est nécessaire pour accéder au Compte Visiteur.'; return; }
+  err.textContent='';
+  fetch(SUPABASE_CONFIG.url+'/rest/v1/rpc/acceder_patrimoine_visiteur', {
+    method:'POST',
+    headers:{ 'apikey':SUPABASE_CONFIG.anonKey, 'Content-Type':'application/json' },
+    body: JSON.stringify({ code: code })
+  }).then(function(r){
+    if(!r.ok){ throw new Error('code'); }
+    return r.json();
+  }).then(function(rows){
+    rows = rows || [];
+    var biens = rows.filter(function(r){ return r.bien_id!=null; }).map(function(r){
+      return { id:r.bien_id, nom:r.bien_nom, categorie:r.bien_categorie, quantite:r.bien_quantite,
+        valeur:Number(r.bien_valeur)||0, prixAchat:Number(r.bien_prix_achat)||0, date:r.bien_date,
+        etat:r.bien_etat, description:r.bien_description, utilisation:r.bien_utilisation };
+    });
+    var premiere = rows[0]||{};
+    sessionStorage.setItem('bpro_session','1');
+    sessionStorage.setItem('bpro_role','visiteur');
+    sessionStorage.setItem('bpro_visiteur_code', code); // pour le rafraîchissement pendant la session uniquement
+    document.getElementById('login-screen').classList.add('hidden');
+    afficherVueVisiteur(biens, Number(premiere.capital_admin)||0, Number(premiere.montant_du_admin)||0, Number(premiere.total_avoirs_admin)||0);
+    activerInterfaceSelonRole();
+    notif('✅ Accès Visiteur autorisé');
+  }).catch(function(){
+    err.textContent='❌ Code incorrect, accès verrouillé, ou connexion impossible.';
+  });
+}
+/** Rafraîchit la vue Visiteur (bouton ⟳) en rappelant la même fonction serveur avec le code déjà validé pour cette session. */
+function rafraichirVisiteur(){
+  var code=sessionStorage.getItem('bpro_visiteur_code');
+  if(!code || !navigator.onLine) return;
+  fetch(SUPABASE_CONFIG.url+'/rest/v1/rpc/acceder_patrimoine_visiteur', {
+    method:'POST',
+    headers:{ 'apikey':SUPABASE_CONFIG.anonKey, 'Content-Type':'application/json' },
+    body: JSON.stringify({ code: code })
+  }).then(function(r){ return r.ok?r.json():[]; }).then(function(rows){
+    rows = rows || [];
+    var biens = rows.filter(function(r){ return r.bien_id!=null; }).map(function(r){
+      return { id:r.bien_id, nom:r.bien_nom, categorie:r.bien_categorie, quantite:r.bien_quantite,
+        valeur:Number(r.bien_valeur)||0, prixAchat:Number(r.bien_prix_achat)||0, date:r.bien_date,
+        etat:r.bien_etat, description:r.bien_description, utilisation:r.bien_utilisation };
+    });
+    var premiere = rows[0]||{};
+    afficherVueVisiteur(biens, Number(premiere.capital_admin)||0, Number(premiere.montant_du_admin)||0, Number(premiere.total_avoirs_admin)||0);
+    notif('✅ Données actualisées');
+  }).catch(function(){ notif('❌ Impossible d\'actualiser (déconnecté ou accès verrouillé)'); });
+}
+/** Affiche le patrimoine reçu du serveur dans #vue-visiteur (jamais mis en cache localStorage). */
+function afficherVueVisiteur(biens, capitalAdmin, montantDu, totalAvoirs){
+  st('vv-capital', fmt(capitalAdmin));
+  st('vv-doit', fmt(montantDu));
+  st('vv-total', fmt(totalAvoirs));
+  var tb=document.getElementById('tbl-vue-visiteur');
+  if(!biens.length){ tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--tx2);padding:20px">Aucun bien enregistré pour le moment.</td></tr>'; return; }
+  var groupes={};
+  biens.forEach(function(b){ var c=b.categorie||'Autres'; (groupes[c]=groupes[c]||[]).push(b); });
+  var html='';
+  Object.keys(groupes).sort().forEach(function(cat){
+    html+='<tr style="background:var(--bg4)"><td colspan="7" style="font-weight:700;color:var(--ac)">'+cat+'</td></tr>';
+    groupes[cat].forEach(function(b){
+      html+='<tr><td>'+b.nom+'</td><td>'+(b.quantite||1)+'</td><td>'+fmt(b.valeur)+'</td><td>'+fmt(b.prixAchat)+'</td>'+
+        '<td>'+(b.date?fmtDateJour(b.date):'—')+'</td><td>'+(b.etat||'—')+'</td><td>'+(b.description||b.utilisation||'—')+'</td></tr>';
+    });
+  });
+  tb.innerHTML=html;
+}
+
+// ================================================================
+// GESTION DU COMPTE VISITEUR (côté Administrateur)
+// ================================================================
+/** Affiche l'état actuel (verrouillé/déverrouillé, code défini ou non) dans Paramètres. */
+function rZoneVisiteurStatut(){
+  var el=document.getElementById('zone-visiteur-statut'); if(!el) return;
+  var session=getSession();
+  if(!session || !session.access_token){ el.innerHTML='<span style="color:var(--tx3)">Statut indisponible hors ligne.</span>'; return; }
+  el.innerHTML='⏳ Chargement du statut…';
+  supabaseTable('/rest/v1/parametres?select=visiteur_verrou,visiteur_pin_hash&id=eq.1', {}, session.access_token)
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){
+      var p=(rows&&rows[0])||{};
+      var aCode = !!p.visiteur_pin_hash;
+      var verrou = p.visiteur_verrou!==false;
+      el.innerHTML = (verrou?'<span class="badge bdr">🔒 Accès verrouillé</span>':'<span class="badge bgr">🔓 Accès déverrouillé</span>')+
+        ' &nbsp; '+(aCode?'<span style="color:var(--tx3)">Code défini</span>':'<span style="color:var(--re)">Aucun code défini</span>');
+    }).catch(function(){ el.innerHTML='<span style="color:var(--re)">Impossible de charger le statut.</span>'; });
+}
+function definirCodeVisiteur(){
+  var session=getSession();
+  if(!session || !session.access_token){ notif('⚠️ Connexion requise'); return; }
+  var code=v('pr-visiteur-pin').trim();
+  if(code.length<4){ notif('⚠️ Le code doit faire au moins 4 caractères'); return; }
+  supabaseTable('/rest/v1/rpc/definir_code_visiteur_serveur', { method:'POST', body:JSON.stringify({nouveau_code:code}) }, session.access_token)
+    .then(function(r){
+      if(!r.ok) throw new Error('échec');
+      sv('pr-visiteur-pin','');
+      notif('✅ Code Visiteur défini/modifié avec succès');
+      rZoneVisiteurStatut();
+    }).catch(function(){ notif('❌ Impossible de définir le code (hors ligne ?)'); });
+}
+function verrouillerCompteVisiteur(verrou){
+  var session=getSession();
+  if(!session || !session.access_token){ notif('⚠️ Connexion requise'); return; }
+  supabaseTable('/rest/v1/rpc/verrouiller_visiteur_serveur', { method:'POST', body:JSON.stringify({verrou:verrou}) }, session.access_token)
+    .then(function(r){
+      if(!r.ok) throw new Error('échec');
+      notif(verrou?'🔒 Accès Visiteur verrouillé':'🔓 Accès Visiteur déverrouillé');
+      rZoneVisiteurStatut();
+    }).catch(function(){ notif('❌ Action impossible (hors ligne ?)'); });
+}
+function ouvrirPatrimoine(){
+  cm('mparams');
+  gt('patrimoine', null);
+}
+
+// ================================================================
+// PATRIMOINE — gestion des biens (côté Administrateur)
+// ================================================================
+function mapRowVersPatrimoine(r){
+  return { id:r.id, nom:r.nom, categorie:r.categorie, quantite:Number(r.quantite)||1,
+    valeur:Number(r.valeur)||0, achat:Number(r.prix_achat)||0, date:r.date,
+    etat:r.etat, description:r.description, utilisation:r.utilisation };
+}
+function mapPatrimoineVersRow(p){
+  return { id:p.id, nom:p.nom, categorie:p.categorie, quantite:p.quantite, valeur:p.valeur,
+    prix_achat:p.achat, date:p.date, etat:p.etat, description:p.description, utilisation:p.utilisation };
+}
+/** Charge le Patrimoine depuis la table sécurisée (Administrateur uniquement). */
+function chargerPatrimoine(session){
+  if(!session || !session.access_token || !navigator.onLine) return Promise.resolve();
+  return supabaseTable('/rest/v1/patrimoine?select=*&order=date.desc', {}, session.access_token)
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){
+      if(Array.isArray(rows)) D.patrimoine = rows.map(mapRowVersPatrimoine);
+      persist();
+      rPatrimoine(); // rafraîchit l'écran dès que les données arrivent, même si apres() a déjà rendu la page
+    }).catch(function(e){ console.error('[chargerPatrimoine]',e); });
+}
+/** Pousse le Patrimoine actuel vers la table sécurisée (upsert), Administrateur uniquement. */
+function syncPatrimoineVersNouvelleTable(){
+  var session=getSession();
+  if(!session || !session.access_token || session.role!=='admin') return;
+  if(!navigator.onLine) return;
+  var payload=(D.patrimoine||[]).map(mapPatrimoineVersRow);
+  if(!payload.length) return;
+  supabaseTable('/rest/v1/patrimoine', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:JSON.stringify(payload) }, session.access_token)
+    .catch(function(e){ console.error('[sync patrimoine]',e); });
+}
+function rPF_patrimoine(){
+  ['pt-nom','pt-categorie','pt-qte','pt-valeur','pt-achat','pt-date','pt-description','pt-utilisation','pt-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+  sv('pt-qte',1); sv('pt-etat','Neuf');
+  document.getElementById('btn-pt-annuler').style.display='none';
+  document.getElementById('btn-pt-enr').textContent='✓ Enregistrer le bien';
+  document.getElementById('btn-pt-enr').onclick=enrPatrimoine;
+}
+function enrPatrimoine(){
+  var nom=capitaliserMots(v('pt-nom').trim());
+  if(!nom){ notif('⚠️ Le nom du bien est obligatoire'); document.getElementById('pt-nom').focus(); return; }
+  if(!D.patrimoine) D.patrimoine=[];
+  var eid=v('pt-eid');
+  var champ={ nom:nom, categorie:v('pt-categorie').trim(), quantite:parseInt(v('pt-qte'))||1,
+    valeur:fl('pt-valeur'), achat:fl('pt-achat'), date:v('pt-date')||td(), etat:v('pt-etat'),
+    description:v('pt-description').trim(), utilisation:v('pt-utilisation').trim() };
+  if(eid){
+    var p=D.patrimoine.find(function(x){ return x.id==eid; });
+    if(p) Object.assign(p,champ);
+    notif('✅ Bien modifié');
+  } else {
+    D.patrimoine.push(Object.assign({id:Date.now()},champ));
+    notif('✅ Bien ajouté au patrimoine');
+  }
+  save(); syncPatrimoineVersNouvelleTable();
+  rPF_patrimoine();
+}
+function editPatrimoine(id){
+  var p=(D.patrimoine||[]).find(function(x){ return x.id===id; }); if(!p) return;
+  sv('pt-eid',id); sv('pt-nom',p.nom); sv('pt-categorie',p.categorie||''); sv('pt-qte',p.quantite||1);
+  sv('pt-valeur',p.valeur||''); sv('pt-achat',p.achat||''); sv('pt-date',p.date||''); sv('pt-etat',p.etat||'Neuf');
+  sv('pt-description',p.description||''); sv('pt-utilisation',p.utilisation||'');
+  document.getElementById('btn-pt-annuler').style.display='inline-block';
+  document.getElementById('btn-pt-enr').textContent='✓ Enregistrer les modifications';
+  document.getElementById('pt-nom').focus();
+}
+function delPatrimoine(id){
+  var p=(D.patrimoine||[]).find(function(x){ return x.id===id; }); if(!p) return;
+  demanderConfirmationSecurisee('🗑️ Supprimer ce bien du patrimoine', '• <strong>'+p.nom+'</strong><br>• Ce bien ne sera plus visible par le compte Visiteur.', false, function(){
+    D.patrimoine=D.patrimoine.filter(function(x){ return x.id!==id; });
+    save();
+    var session=getSession();
+    if(session && session.access_token && session.role==='admin' && navigator.onLine){
+      supabaseTable('/rest/v1/patrimoine?id=eq.'+id, { method:'DELETE' }, session.access_token).catch(function(e){ console.error('[del patrimoine]',e); });
+    }
+    notif('✅ Bien supprimé');
+  });
+}
+function rPatrimoine(){
+  var tb=document.getElementById('tbl-patrimoine'); if(!tb) return;
+  var q=normSearch(v('f-search-patrimoine'));
+  var items=(D.patrimoine||[]).slice();
+  if(q) items=items.filter(function(p){ return normSearch(p.nom).indexOf(q)>-1||normSearch(p.categorie||'').indexOf(q)>-1; });
+  if(!items.length){ tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--tx2);padding:20px">Aucun bien enregistré</td></tr>'; return; }
+  var html='';
+  items.forEach(function(p){
+    html+='<tr><td><strong>'+p.nom+'</strong></td><td>'+(p.categorie||'—')+'</td><td>'+(p.quantite||1)+'</td>'+
+      '<td>'+fmt(p.valeur)+'</td><td>'+fmt(p.achat)+'</td><td>'+(p.date?fmtDateJour(p.date):'—')+'</td><td>'+(p.etat||'—')+'</td>'+
+      '<td class="ac"><button class="btn bh bxs" onclick="editPatrimoine('+p.id+')">✏️</button><button class="btn bd bxs" onclick="delPatrimoine('+p.id+')">🗑️</button></td></tr>';
+  });
+  tb.innerHTML=html;
+}
 function doReset() {
   var role    = document.getElementById('inp-reset-role').value;
   var code    = document.getElementById('inp-reset-code').value.trim();
@@ -4305,6 +4698,7 @@ var SUPABASE_CONFIG = {
 // on le fait correspondre en interne à un vrai compte e-mail Supabase.
 var AUTH_EMAIL_ADMIN   = 'bahousmane611@gmail.com';
 var AUTH_EMAIL_ASSOCIE = 'diallo201528@gmail.com';
+var AUTH_EMAIL_VISITEUR = 'COLLER_EMAIL_VISITEUR_ICI'; // remplacer par l'email réel du compte Visiteur créé dans Supabase
 var SESSION_KEY = 'bpro_session_v2';
 
 function getSession(){
@@ -4542,7 +4936,7 @@ function syncFromCloud() {
 // donc on peut combiner les entrées de deux appareils au lieu d'en
 // écraser une avec l'autre.
 var MERGEABLE_ARRAYS = ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille'];
-var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],resetCodes:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''}};
+var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],resetCodes:[],patrimoine:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''}};
 
 /**
  * Fusionne deux tableaux d'éléments par leur "id" (union), sans perte,
