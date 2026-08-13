@@ -4597,8 +4597,23 @@ function doForgotPassword(){
     headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_CONFIG.anonKey },
     body: JSON.stringify({ email: email })
   }).then(function(res){
+    return res.json().catch(function(){ return {}; }).then(function(body){ return {ok:res.ok, status:res.status, body:body}; });
+  }).then(function(res){
     btn.disabled = false; btn.textContent = '📩 Envoyer le lien de réinitialisation';
-    // Toujours le même message, que l'e-mail existe ou non côté Supabase.
+    if (!res.ok) {
+      // Erreur RÉELLE (quota d'e-mails dépassé, SMTP non configuré côté
+      // Supabase, clé API invalide...) — on ne la cache plus derrière un
+      // faux message de succès, sinon impossible à diagnostiquer.
+      var detail = (res.body && (res.body.msg || res.body.message || res.body.error_description)) || ('HTTP '+res.status);
+      if (res.status === 429) {
+        err.textContent = '⚠️ Trop de demandes envoyées récemment (limite Supabase). Réessayez dans quelques minutes.';
+      } else {
+        err.textContent = '❌ Échec de l\'envoi : ' + detail;
+      }
+      console.error('[doForgotPassword]', res.status, res.body);
+      return;
+    }
+    // Ici uniquement si Supabase a VRAIMENT accepté la demande.
     document.getElementById('inp-forgot-email').value = '';
     notif('✅ Si cette adresse est associée à un compte, un e-mail de récupération vient d\'être envoyé. Vérifiez votre boîte de réception (et vos spams).', 6000);
     showLogin();
