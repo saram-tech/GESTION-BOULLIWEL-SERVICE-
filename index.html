@@ -377,6 +377,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="kpi"><div class="kl">Votre capital actuel</div><div class="kv g" id="va-capital">0 GNF</div><div class="ks">Produits saisis directement en Stock Ent. ÷ 2</div></div>
     <div class="kpi"><div class="kl">Votre part d'intérêt actuelle</div><div class="kv" id="va-interet">0 GNF</div><div class="ks">Votre part = Bénéfice total ÷ 2 (partage 50/50)</div></div>
     <div class="kpi"><div class="kl">Reste que vous devez à votre associé</div><div class="kv r" id="va-reste">0 GNF</div><button class="btn bh bxs" style="margin-top:6px" onclick="ouvrirDetailDette()">🔍 En savoir plus</button></div>
+    <div class="kpi"><div class="kl">Reste à payer</div><div class="kv r" id="va-restepayer">0 GNF</div><div class="ks">Même montant que ci-dessus</div></div>
     <div class="kpi"><div class="kl">Total dépenses</div><div class="kv r" id="va-depenses">0 GNF</div><div class="ks">Total uniquement — détail non visible</div></div>
   </div>
   <div class="card">
@@ -436,7 +437,6 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="kpi"><div class="kl">Ma Part</div><div class="kv b" id="k-map">0 GNF</div><div class="ks">50% bénéfice net</div></div>
     <div class="kpi"><div class="kl">Dépenses</div><div class="kv r" id="k-dep">0 GNF</div><div class="ks">Période</div></div>
     <div class="kpi"><div class="kl">Reste Clients</div><div class="kv gold" id="k-rst">0 GNF</div><div class="ks">Non soldés</div></div>
-    <div class="kpi"><div class="kl">Ent. Me Doit</div><div class="kv gold" id="k-ent">0 GNF</div></div>
     <div class="kpi"><div class="kl">Dette Associé</div><div class="kv r" id="k-det">0 GNF</div></div>
     <div class="kpi"><div class="kl">Reste Associé Me Doit</div><div class="kv r" id="k-assodoit">0 GNF</div></div>
     <div class="kpi"><div class="kl">Activités</div><div class="kv" id="k-act">0</div></div>
@@ -446,7 +446,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="ch" style="margin:4px 0 8px"><span class="dot" style="background:var(--go)"></span>💼 Total des avoirs de l'Administrateur</div>
   <div class="g4" style="margin-bottom:12px">
     <div class="kpi"><div class="kl">Mon capital dans l'entreprise</div><div class="kv" id="k-admin-capital">0 GNF</div><div class="ks">Produits saisis directement, hors Stock Perso</div></div>
-    <div class="kpi"><div class="kl">Total que l'entreprise me doit</div><div class="kv" id="k-admin-doit">0 GNF</div><div class="ks">Valeur due au titre du Stock Perso</div></div>
+    <div class="kpi"><div class="kl">Entreprise me doit en Stock perso</div><div class="kv" id="k-admin-doit">0 GNF</div><div class="ks">Valeur due au titre du Stock Perso</div></div>
     <div class="kpi"><div class="kl">Total des avoirs</div><div class="kv b" id="k-admin-total">0 GNF</div><div class="ks">Capital + Ce que l'entreprise me doit</div></div>
     <div class="kpi"><div class="kl">Mon bénéfice actuel dans l'entreprise</div><div class="kv g" id="k-admin-benefice">0 GNF</div><div class="ks">Affiché séparément, non inclus ci-dessus</div></div>
   </div>
@@ -1380,6 +1380,7 @@ function save(){
     // Solution A active sur cet appareil : synchroniser Activités/Stock
     // via les nouvelles tables sécurisées, pour les deux rôles.
     if (typeof syncActivitesEtStockVersNouvellesTables === 'function') syncActivitesEtStockVersNouvellesTables();
+    if (typeof syncDepensesDettesPaiementsVersNouvellesTables === 'function') syncDepensesDettesPaiementsVersNouvellesTables();
     // L'ancien "app_data" (dépenses, dettes, paiements, commandes,
     // perso, historique, corbeille, paramètres) reste réservé à
     // l'Administrateur — jamais appelé pour l'Associé.
@@ -2172,6 +2173,11 @@ function delDette(id){
   D.dettes=D.dettes.filter(function(x){ return x.id!==id; });
   markDeleted('dettes',id);
   rb('dette',d.desc,d); save(); notif('Dette → corbeille');
+  var session=getSession();
+  if(session && session.access_token && session.role==='admin' && navigator.onLine){
+    supabaseTable('/rest/v1/dettes?id=eq.'+id, { method:'DELETE' }, session.access_token)
+      .catch(function(e){ console.error('[delDette] suppression serveur',e); });
+  }
 }
 
 // ================================================================
@@ -2208,6 +2214,11 @@ function delPaym(id){
   D.paiements=D.paiements.filter(function(x){ return x.id!==id; });
   markDeleted('paiements',id);
   rb('paiement','Paiement '+fmt(p.montant),p); save(); notif('Paiement → corbeille');
+  var session=getSession();
+  if(session && session.access_token && session.role==='admin' && navigator.onLine){
+    supabaseTable('/rest/v1/paiements?id=eq.'+id, { method:'DELETE' }, session.access_token)
+      .catch(function(e){ console.error('[delPaym] suppression serveur',e); });
+  }
 }
 
 // ================================================================
@@ -2295,6 +2306,11 @@ function delDep(id){
   D.depenses=D.depenses.filter(function(x){ return x.id!==id; });
   markDeleted('depenses',id);
   rb('depense',d.desc,d); save(); notif('Dépense → corbeille');
+  var session=getSession();
+  if(session && session.access_token && session.role==='admin' && navigator.onLine){
+    supabaseTable('/rest/v1/depenses?id=eq.'+id, { method:'DELETE' }, session.access_token)
+      .catch(function(e){ console.error('[delDep] suppression serveur',e); });
+  }
 }
 
 // ================================================================
@@ -2564,22 +2580,23 @@ function calculerCapitalAssocie(){
 function chargerBilanConfidentiel(){
   var session=getSession();
   if(!session || !session.access_token || !navigator.onLine){
-    ['va-capital','va-interet','va-reste','va-depenses'].forEach(function(id){ st(id,'— (connexion requise)'); });
+    ['va-capital','va-interet','va-reste','va-restepayer','va-depenses'].forEach(function(id){ st(id,'— (connexion requise)'); });
     return;
   }
   supabaseTable('/rest/v1/rpc/bilan_confidentiel', { method:'POST' }, session.access_token)
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(rows){
       var b = rows && rows[0];
-      if(!b){ ['va-capital','va-interet','va-reste','va-depenses'].forEach(function(id){ st(id,'— (indisponible)'); }); return; }
+      if(!b){ ['va-capital','va-interet','va-reste','va-restepayer','va-depenses'].forEach(function(id){ st(id,'— (indisponible)'); }); return; }
       st('va-capital', fmt(Number(b.capital_associe)||0));
       st('va-interet', fmt(Number(b.part_interet)||0));
       st('va-reste', fmt(Number(b.reste_associe_doit)||0));
+      st('va-restepayer', fmt(Number(b.reste_associe_doit)||0)); // même valeur, même source — aucun nouveau calcul
       st('va-depenses', fmt(Number(b.total_depenses)||0));
     })
     .catch(function(e){
       console.error('[chargerBilanConfidentiel]', e);
-      ['va-capital','va-interet','va-reste','va-depenses'].forEach(function(id){ st(id,'— (erreur)'); });
+      ['va-capital','va-interet','va-reste','va-restepayer','va-depenses'].forEach(function(id){ st(id,'— (erreur)'); });
     });
 }
 function rVueAssocie(){
@@ -2641,7 +2658,8 @@ function ouvrirDetailDette(){
       document.getElementById('dd-resume').innerHTML =
         '<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Montant total concerné (dettes) :</span><strong>'+fmt(totalDettes)+'</strong></div>'+
         '<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Déjà réglé (paiements) :</span><strong style="color:var(--gr)">'+fmt(totalPayes)+'</strong></div>'+
-        '<div style="display:flex;justify-content:space-between;border-top:1px solid var(--bd);padding-top:6px;margin-top:4px"><span>Reste actuel :</span><strong style="color:var(--re)">'+resteAffiche+'</strong></div>';
+        '<div style="display:flex;justify-content:space-between;border-top:1px solid var(--bd);padding-top:6px;margin-top:4px"><span>Reste actuel :</span><strong style="color:var(--re)">'+resteAffiche+'</strong></div>'+
+        '<div style="display:flex;justify-content:space-between;margin-top:4px"><span>Reste à payer :</span><strong style="color:var(--re)">'+resteAffiche+'</strong></div>';
 
       var html='';
       if(dettes.length){
@@ -3259,7 +3277,7 @@ function rCorbeille(){
 function updateKPIs(){
   var bd=calculerBilanData();
   st('k-enc',fmt(bd.tp)); st('k-ben',fmt(bd.aD)); st('k-map',fmt(bd.mp));
-  st('k-dep',fmt(bd.tdep)); st('k-rst',fmt(bd.tr)); st('k-ent',fmt(Math.max(0,bd.resteEnt))); st('k-det',fmt(bd.totD));
+  st('k-dep',fmt(bd.tdep)); st('k-rst',fmt(bd.tr)); st('k-det',fmt(bd.totD));
   var elAssoDoit=document.getElementById('k-assodoit'); if(elAssoDoit) st('k-assodoit',fmt(bd.resteAssocieDoit));
   st('k-act',D.activites.length);
   st('k-ven',D.activites.filter(function(a){ return a.type==='Vente'; }).length);
@@ -4065,7 +4083,7 @@ function viderDep() {
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
 var APP_VERSION = 'v39';
-var APP_DERNIERE_MAJ = '2026-08-14T11:22:00'; // Total des avoirs Administrateur (Stock Perso au lieu du bénéfice), bénéfice affiché séparément, suppression réelle des activités côté serveur, vérification mot de passe via Supabase Auth
+var APP_DERNIERE_MAJ = '2026-08-14T22:51:00'; // Sync depenses/dettes/paiements vers Supabase (jusque-là jamais écrites), badge Associé rafraîchi après connexion, propagation des suppressions dettes/paiements/dépenses
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
@@ -4218,10 +4236,22 @@ function appliquerSession(session){
     chargerActivitesEtStockDepuisTables(session).then(function(){
       reconcileOnStartup(); // dépenses/dettes/paiements/commandes/perso/historique/corbeille (ancien système, admin uniquement)
       chargerPatrimoine(session);
+      // Alimente immédiatement les tables depenses/dettes/paiements
+      // (jusqu'ici jamais écrites) avec les données déjà existantes,
+      // pour que le calcul associé soit correct dès maintenant.
+      if (typeof syncDepensesDettesPaiementsVersNouvellesTables === 'function') syncDepensesDettesPaiementsVersNouvellesTables();
       apres();
     });
   } else {
-    chargerDonneesAssocie(session).then(apres);
+    chargerDonneesAssocie(session).then(function(){
+      // Le badge de statut était calculé une seule fois, avant la
+      // connexion (voir DOMContentLoaded) : jamais remis à jour après
+      // une connexion Associé réussie, il restait figé sur "Cloud
+      // désactivé". On réutilise ici exactement la même fonction/le
+      // même libellé, simplement déclenchés au bon moment.
+      if (typeof setSyncStatus === 'function') setSyncStatus('offline', '⚪ Mode Associé');
+      apres();
+    });
   }
 }
 
@@ -5070,6 +5100,40 @@ function syncActivitesEtStockVersNouvellesTables(){
   if (payloadStock && payloadStock.length) {
     supabaseTable('/rest/v1/stock', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:JSON.stringify(payloadStock) }, session.access_token)
       .catch(function(e){ console.error('[sync stock]', e); });
+  }
+}
+/**
+ * Pousse Dépenses/Dettes/Paiements (Admin uniquement) vers les tables
+ * Supabase dédiées "depenses"/"dettes"/"paiements" — jusqu'ici jamais
+ * alimentées, alors que bilan_confidentiel() (utilisée pour "Reste que
+ * vous devez à votre associé" côté Associé) les lit pour son calcul.
+ * Même pattern d'upsert que syncActivitesEtStockVersNouvellesTables()
+ * ci-dessus, table déjà existante — rien de nouveau créé côté Supabase.
+ */
+function syncDepensesDettesPaiementsVersNouvellesTables(){
+  var session = getSession();
+  if (!session || !session.access_token || session.role !== 'admin') return;
+  if (!navigator.onLine) return;
+  var payloadDep = D.depenses.map(function(d){
+    return { id:d.id, date:d.date, heure:d.heure||'', categorie:d.cat||'', description:d.desc||'', qte:d.qte||0, prix:d.prix||0, montant:d.montant||0 };
+  });
+  var payloadDettes = D.dettes.map(function(d){
+    return { id:d.id, date:d.date, heure:d.heure||'', type:d.type||'', description:d.desc||'', montant:d.montant||0 };
+  });
+  var payloadPaiements = D.paiements.map(function(p){
+    return { id:p.id, montant:p.montant||0, type:p.type||'', note:p.note||'', date:p.date, heure:p.heure||'' };
+  });
+  if (payloadDep.length) {
+    supabaseTable('/rest/v1/depenses', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:JSON.stringify(payloadDep) }, session.access_token)
+      .catch(function(e){ console.error('[sync depenses]', e); });
+  }
+  if (payloadDettes.length) {
+    supabaseTable('/rest/v1/dettes', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:JSON.stringify(payloadDettes) }, session.access_token)
+      .catch(function(e){ console.error('[sync dettes]', e); });
+  }
+  if (payloadPaiements.length) {
+    supabaseTable('/rest/v1/paiements', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:JSON.stringify(payloadPaiements) }, session.access_token)
+      .catch(function(e){ console.error('[sync paiements]', e); });
   }
 }
 
