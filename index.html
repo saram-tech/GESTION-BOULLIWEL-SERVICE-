@@ -444,10 +444,11 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="kpi"><div class="kl">Rép./Services</div><div class="kv pur" id="k-rep">0</div></div>
   </div>
   <div class="ch" style="margin:4px 0 8px"><span class="dot" style="background:var(--go)"></span>💼 Total des avoirs de l'Administrateur</div>
-  <div class="g3" style="margin-bottom:12px">
-    <div class="kpi"><div class="kl">Capital de l'Administrateur</div><div class="kv" id="k-admin-capital">0 GNF</div><div class="ks">Produits saisis directement, hors Stock Perso</div></div>
-    <div class="kpi"><div class="kl">Ce que l'entreprise lui doit</div><div class="kv" id="k-admin-doit">0 GNF</div><div class="ks">= Ma Part (déjà calculée)</div></div>
-    <div class="kpi"><div class="kl">Total des avoirs</div><div class="kv b" id="k-admin-total">0 GNF</div><div class="ks">Capital + Ce que l'entreprise lui doit</div></div>
+  <div class="g4" style="margin-bottom:12px">
+    <div class="kpi"><div class="kl">Mon capital dans l'entreprise</div><div class="kv" id="k-admin-capital">0 GNF</div><div class="ks">Produits saisis directement, hors Stock Perso</div></div>
+    <div class="kpi"><div class="kl">Total que l'entreprise me doit</div><div class="kv" id="k-admin-doit">0 GNF</div><div class="ks">Valeur due au titre du Stock Perso</div></div>
+    <div class="kpi"><div class="kl">Total des avoirs</div><div class="kv b" id="k-admin-total">0 GNF</div><div class="ks">Capital + Ce que l'entreprise me doit</div></div>
+    <div class="kpi"><div class="kl">Mon bénéfice actuel dans l'entreprise</div><div class="kv g" id="k-admin-benefice">0 GNF</div><div class="ks">Affiché séparément, non inclus ci-dessus</div></div>
   </div>
   <div class="ch" style="margin:4px 0 8px"><span class="dot" style="background:var(--go)"></span>📦 Vue d'ensemble du Stock</div>
   <div class="g5" style="margin-bottom:12px">
@@ -3278,15 +3279,19 @@ function updateKPIs(){
   st('k-stock-rupture',nbRupture); st('k-stock-faible',nbFaible);
   st('k-capital-total',fmt(calculerCapitalTotalEntreprise()));
   // Total des avoirs de l'Administrateur = Capital (même formule que
-  // pour l'Associé, ÷2 puisque le capital est partagé 50/50) + "Ma
-  // Part" déjà calculée ci-dessus (bd.mp) — aucune nouvelle formule,
-  // simple addition de deux valeurs déjà existantes, sans double
-  // comptage (le capital est une valeur de STOCK, "Ma Part" une valeur
-  // de BÉNÉFICE : deux choses différentes, additionnées une seule fois).
+  // pour l'Associé, ÷2 puisque le capital est partagé 50/50) + montant
+  // que l'entreprise doit personnellement à l'Administrateur au titre
+  // du Stock Perso (bd.resteEnt — déjà calculé et affiché ailleurs sous
+  // "Ent. Me Doit", aucune nouvelle formule créée). Le bénéfice ("Ma
+  // Part", bd.mp) est une donnée différente (partage du bénéfice de
+  // l'entreprise, pas une créance personnelle) : affiché séparément,
+  // volontairement exclu de ce total pour éviter toute confusion.
   var capitalAdmin = calculerCapitalTotalEntreprise()/2;
+  var entMeDoit = Math.max(0, bd.resteEnt);
   st('k-admin-capital', fmt(capitalAdmin));
-  st('k-admin-doit', fmt(bd.mp));
-  st('k-admin-total', fmt(capitalAdmin + bd.mp));
+  st('k-admin-doit', fmt(entMeDoit));
+  st('k-admin-total', fmt(capitalAdmin + entMeDoit));
+  var elAdminBenefice=document.getElementById('k-admin-benefice'); if(elAdminBenefice) st('k-admin-benefice', fmt(bd.mp));
   var l5=D.histo.slice(-5).reverse();
   var lohtml=l5.length?l5.map(function(h){ return '<div style="padding:3px 0;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between"><span style="font-size:.76rem">'+h.desc+'</span><span style="color:var(--tx2);font-size:.7rem">'+fmtDateJour(h.date)+'</span></div>'; }).join(''):'Aucune opération.';
   document.getElementById('last-ops').innerHTML=lohtml;
@@ -4060,7 +4065,7 @@ function viderDep() {
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
 var APP_VERSION = 'v39';
-var APP_DERNIERE_MAJ = '2026-08-04T18:00:00'; // Vérification complète Compte Visiteur + Patrimoine (code PIN haché, verrouillage, biens groupés par catégorie, Total des avoirs sans double comptage) — testée de bout en bout, zéro erreur détectée
+var APP_DERNIERE_MAJ = '2026-08-14T11:22:00'; // Total des avoirs Administrateur (Stock Perso au lieu du bénéfice), bénéfice affiché séparément, suppression réelle des activités côté serveur, vérification mot de passe via Supabase Auth
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
