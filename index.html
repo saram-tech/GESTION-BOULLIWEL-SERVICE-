@@ -819,10 +819,21 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="card" style="margin-bottom:14px">
     <div style="font-weight:700;margin-bottom:10px">➕ Ajouter un bien</div>
     <div class="fr">
-      <div class="fg" style="flex:2"><label>Nom *</label><input type="text" id="pt-nom" placeholder="Ex: Ordinateur portable" onblur="capitaliserChamp('pt-nom')"></div>
+      <div class="fg"><label>Nom *</label><input type="text" id="pt-nom" placeholder="Ex: Ordinateur portable" onblur="capitaliserChamp('pt-nom')"></div>
       <div class="fg"><label>Quantité</label><input type="number" id="pt-qte" value="1" min="1"></div>
+    </div>
+    <div class="fr">
       <div class="fg"><label>Date d'acquisition</label><input type="date" id="pt-date"></div>
     </div>
+    <!-- Champs conservés en arrière-plan (non affichés) pour ne pas effacer -->
+    <!-- les valeurs déjà enregistrées sur les biens existants lors d'une -->
+    <!-- modification via ce formulaire simplifié. -->
+    <input type="hidden" id="pt-categorie">
+    <input type="hidden" id="pt-valeur">
+    <input type="hidden" id="pt-achat">
+    <input type="hidden" id="pt-etat">
+    <input type="hidden" id="pt-description">
+    <input type="hidden" id="pt-utilisation">
     <input type="hidden" id="pt-eid">
     <div style="display:flex;gap:7px;justify-content:flex-end">
       <button class="btn bh" id="btn-pt-annuler" style="display:none" onclick="rPF_patrimoine()">Annuler la modification</button>
@@ -4165,16 +4176,7 @@ function appliquerSession(session){
       apres();
     });
   } else {
-    chargerDonneesAssocie(session).then(function(){
-      // Le badge restait figé sur le texte affiché AVANT la connexion
-      // (ex: "⚪ Cloud désactivé"), car aucune fonction ne le mettait à
-      // jour après une connexion Associé — alors que ses activités et
-      // le stock se synchronisent bien via les nouvelles tables (voir
-      // syncActivitesEtStockVersNouvellesTables, appelée dans save()).
-      var h = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-      setSyncStatus('online', '🟢 Connecté ' + h);
-      apres();
-    });
+    chargerDonneesAssocie(session).then(apres);
   }
 }
 
@@ -4481,8 +4483,8 @@ function syncPatrimoineVersNouvelleTable(){
     .catch(function(e){ console.error('[sync patrimoine]',e); });
 }
 function rPF_patrimoine(){
-  ['pt-nom','pt-qte','pt-date','pt-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
-  sv('pt-qte',1);
+  ['pt-nom','pt-categorie','pt-qte','pt-valeur','pt-achat','pt-date','pt-description','pt-utilisation','pt-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+  sv('pt-qte',1); sv('pt-etat','Neuf');
   document.getElementById('btn-pt-annuler').style.display='none';
   document.getElementById('btn-pt-enr').textContent='✓ Enregistrer le bien';
   document.getElementById('btn-pt-enr').onclick=enrPatrimoine;
@@ -4492,7 +4494,9 @@ function enrPatrimoine(){
   if(!nom){ notif('⚠️ Le nom du bien est obligatoire'); document.getElementById('pt-nom').focus(); return; }
   if(!D.patrimoine) D.patrimoine=[];
   var eid=v('pt-eid');
-  var champ={ nom:nom, quantite:parseInt(v('pt-qte'))||1, date:v('pt-date')||td() };
+  var champ={ nom:nom, categorie:v('pt-categorie').trim(), quantite:parseInt(v('pt-qte'))||1,
+    valeur:fl('pt-valeur'), achat:fl('pt-achat'), date:v('pt-date')||td(), etat:v('pt-etat'),
+    description:v('pt-description').trim(), utilisation:v('pt-utilisation').trim() };
   if(eid){
     var p=D.patrimoine.find(function(x){ return x.id==eid; });
     if(p) Object.assign(p,champ);
@@ -4506,7 +4510,9 @@ function enrPatrimoine(){
 }
 function editPatrimoine(id){
   var p=(D.patrimoine||[]).find(function(x){ return x.id===id; }); if(!p) return;
-  sv('pt-eid',id); sv('pt-nom',p.nom); sv('pt-qte',p.quantite||1); sv('pt-date',p.date||'');
+  sv('pt-eid',id); sv('pt-nom',p.nom); sv('pt-categorie',p.categorie||''); sv('pt-qte',p.quantite||1);
+  sv('pt-valeur',p.valeur||''); sv('pt-achat',p.achat||''); sv('pt-date',p.date||''); sv('pt-etat',p.etat||'Neuf');
+  sv('pt-description',p.description||''); sv('pt-utilisation',p.utilisation||'');
   document.getElementById('btn-pt-annuler').style.display='inline-block';
   document.getElementById('btn-pt-enr').textContent='✓ Enregistrer les modifications';
   document.getElementById('pt-nom').focus();
@@ -4527,7 +4533,7 @@ function rPatrimoine(){
   var tb=document.getElementById('tbl-patrimoine'); if(!tb) return;
   var q=normSearch(v('f-search-patrimoine'));
   var items=(D.patrimoine||[]).slice();
-  if(q) items=items.filter(function(p){ return normSearch(p.nom).indexOf(q)>-1; });
+  if(q) items=items.filter(function(p){ return normSearch(p.nom).indexOf(q)>-1||normSearch(p.categorie||'').indexOf(q)>-1; });
   if(!items.length){ tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--tx2);padding:20px">Aucun bien enregistré</td></tr>'; return; }
   var html='';
   items.forEach(function(p){
@@ -5055,17 +5061,6 @@ function setSyncStatus(state, text) {
 
 // Réagit immédiatement aux changements de connexion réseau
 window.addEventListener('online', function () {
-  // "app_data" (utilisé par reconcileOnStartup) est réservé à
-  // l'Administrateur côté RLS (role_actuel() = 'admin') — l'appeler
-  // pour l'Associé ou le Visiteur provoquait un vrai 403 à chaque
-  // reconnexion réseau, affiché comme "🔴 Erreur de synchronisation"
-  // alors qu'il n'y avait rien d'anormal.
-  if (isLoggedIn() && isAssocie()) {
-    var h = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    setSyncStatus('online', '🟢 Connecté ' + h);
-    return;
-  }
-  if (isLoggedIn() && isVisiteur()) { return; } // Visiteur : aucune synchro de fond à faire
   setSyncStatus('syncing', '🟠 Reconnexion…');
   reconcileOnStartup();
 });
