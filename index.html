@@ -1744,9 +1744,39 @@ function demanderConfirmationSecurisee(titre, detailsHtml, irreversible, callbac
 }
 function validerActionSecurisee(){
   var pass=v('sec-pass');
+  var err=document.getElementById('sec-err');
+  if(!pass){ err.textContent='❌ Mot de passe incorrect. Aucune modification n\'a été effectuée.'; return; }
+
+  if (typeof AUTH_EMAIL_ADMIN !== 'undefined') {
+    // Solution A active : le vrai mot de passe vit désormais dans Supabase
+    // Auth, plus dans une copie locale (D.auth) qui n'est plus mise à jour.
+    // On revérifie donc directement auprès du serveur, sans toucher à la
+    // session déjà ouverte (le jeton retourné ici n'est jamais utilisé).
+    var email = getRole()==='admin' ? AUTH_EMAIL_ADMIN : AUTH_EMAIL_ASSOCIE;
+    err.textContent = '⏳ Vérification…';
+    fetch(SUPABASE_CONFIG.url + '/auth/v1/token?grant_type=password', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'apikey': SUPABASE_CONFIG.anonKey },
+      body: JSON.stringify({ email: email, password: pass })
+    }).then(function(r){ return r.json().catch(function(){return{};}).then(function(b){ return {ok:r.ok, body:b}; }); })
+      .then(function(res){
+        if(!res.ok){
+          err.textContent='❌ Mot de passe incorrect. Aucune modification n\'a été effectuée.';
+          return;
+        }
+        err.textContent='';
+        var cb=_secureCallback; _secureCallback=null;
+        cm('msecure');
+        if(typeof cb==='function') cb();
+      }).catch(function(){
+        err.textContent='⚠️ Erreur réseau — impossible de vérifier le mot de passe. Réessayez.';
+      });
+    return;
+  }
+
   var auth=getAuthFull()[getRole()];
-  if(!pass || pass!==auth.pass){
-    document.getElementById('sec-err').textContent='❌ Mot de passe incorrect. Aucune modification n\'a été effectuée.';
+  if(pass!==auth.pass){
+    err.textContent='❌ Mot de passe incorrect. Aucune modification n\'a été effectuée.';
     return;
   }
   var cb=_secureCallback; _secureCallback=null;
@@ -4428,21 +4458,41 @@ function definirCodeVisiteur(){
   if(code.length<4){ notif('⚠️ Le code doit faire au moins 4 caractères'); return; }
   supabaseTable('/rest/v1/rpc/definir_code_visiteur_serveur', { method:'POST', body:JSON.stringify({nouveau_code:code}) }, session.access_token)
     .then(function(r){
-      if(!r.ok) throw new Error('échec');
-      sv('pr-visiteur-pin','');
-      notif('✅ Code Visiteur défini/modifié avec succès');
-      rZoneVisiteurStatut();
-    }).catch(function(){ notif('❌ Impossible de définir le code (hors ligne ?)'); });
+      if(r.ok){
+        sv('pr-visiteur-pin','');
+        notif('✅ Code Visiteur défini/modifié avec succès');
+        rZoneVisiteurStatut();
+        return;
+      }
+      return r.json().catch(function(){ return {}; }).then(function(body){
+        var detail = (body && (body.message || body.msg || body.hint || body.error_description)) || ('HTTP '+r.status);
+        notif('❌ Impossible de définir le code : ' + detail, 8000);
+        console.error('[definirCodeVisiteur]', r.status, body);
+      });
+    }).catch(function(e){
+      notif('❌ Erreur réseau — impossible de définir le code.');
+      console.error('[definirCodeVisiteur]', e);
+    });
 }
 function verrouillerCompteVisiteur(verrou){
   var session=getSession();
   if(!session || !session.access_token){ notif('⚠️ Connexion requise'); return; }
   supabaseTable('/rest/v1/rpc/verrouiller_visiteur_serveur', { method:'POST', body:JSON.stringify({verrou:verrou}) }, session.access_token)
     .then(function(r){
-      if(!r.ok) throw new Error('échec');
-      notif(verrou?'🔒 Accès Visiteur verrouillé':'🔓 Accès Visiteur déverrouillé');
-      rZoneVisiteurStatut();
-    }).catch(function(){ notif('❌ Action impossible (hors ligne ?)'); });
+      if(r.ok){
+        notif(verrou?'🔒 Accès Visiteur verrouillé':'🔓 Accès Visiteur déverrouillé');
+        rZoneVisiteurStatut();
+        return;
+      }
+      return r.json().catch(function(){ return {}; }).then(function(body){
+        var detail = (body && (body.message || body.msg || body.hint || body.error_description)) || ('HTTP '+r.status);
+        notif('❌ Action impossible : ' + detail, 8000);
+        console.error('[verrouillerCompteVisiteur]', r.status, body);
+      });
+    }).catch(function(e){
+      notif('❌ Erreur réseau — action impossible.');
+      console.error('[verrouillerCompteVisiteur]', e);
+    });
 }
 function ouvrirPatrimoine(){
   cm('mparams');
