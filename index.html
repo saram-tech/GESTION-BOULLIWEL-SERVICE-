@@ -1952,6 +1952,16 @@ function delAct(id){
     D.activites=D.activites.filter(function(x){ return x.id!==id; });
     markDeleted('activites',id);
     rb('activite',a.desig+' ('+a.type+')',a); save(); notif('Activité → corbeille');
+    // Suppression réelle côté serveur (table "activites") : sans ça, la
+    // ligne reste en base et continue d'apparaître — notamment pour
+    // l'Associé, qui charge ses activités directement depuis Supabase,
+    // indépendamment de ce qui est effacé localement chez l'Admin.
+    var session=getSession();
+    if(session && session.access_token && navigator.onLine){
+      supabaseTable('/rest/v1/activites?id=eq.'+id, { method:'DELETE' }, session.access_token)
+        .then(function(r){ if(!r.ok) console.error('[delAct] suppression serveur refusée', r.status); })
+        .catch(function(e){ console.error('[delAct] suppression serveur',e); });
+    }
   });
 }
 
