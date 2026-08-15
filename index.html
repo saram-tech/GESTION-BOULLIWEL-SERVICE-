@@ -4897,13 +4897,14 @@ document.addEventListener('DOMContentLoaded',function(){
   attacherAppuiLong('btn-refresh-associe','Rafraîchir les données affichées');
   // Statut initial de synchronisation ("app_data" = Administrateur
   // uniquement depuis la Solution A : jamais interrogé pour l'Associé
-  // ni avant connexion, pour éviter un refus RLS sans intérêt).
+  // ni le Visiteur, pour éviter un refus RLS sans intérêt — le Visiteur
+  // a son propre statut de chargement via acceder_patrimoine_visiteur()).
   if (!navigator.onLine) {
     setSyncStatus('offline', '⚪ Hors ligne');
-  } else if (SUPABASE_CONFIG.enabled && isLoggedIn() && !isAssocie()) {
+  } else if (SUPABASE_CONFIG.enabled && isLoggedIn() && !isAssocie() && !isVisiteur()) {
     assurerTokenValide().then(reconcileOnStartup);
   } else {
-    setSyncStatus('offline', isAssocie() ? '⚪ Mode Associé' : '⚪ Cloud désactivé');
+    setSyncStatus('offline', isAssocie() ? '⚪ Mode Associé' : (isVisiteur() ? '⚪ Mode Visiteur' : '⚪ Cloud désactivé'));
   }
  }catch(e){
    // Même si l'initialisation plante, l'écran de connexion (déjà dans le
@@ -5206,9 +5207,13 @@ function setSyncStatus(state, text) {
 }
 
 // Réagit immédiatement aux changements de connexion réseau
+// (app_data = Administrateur uniquement, comme au démarrage ci-dessus —
+// jamais interrogé pour l'Associé ni le Visiteur).
 window.addEventListener('online', function () {
-  setSyncStatus('syncing', '🟠 Reconnexion…');
-  reconcileOnStartup();
+  if (isLoggedIn() && !isAssocie() && !isVisiteur()) {
+    setSyncStatus('syncing', '🟠 Reconnexion…');
+    assurerTokenValide().then(reconcileOnStartup);
+  }
 });
 window.addEventListener('offline', function () {
   setSyncStatus('offline', '⚪ Hors ligne — données sauvegardées localement');
