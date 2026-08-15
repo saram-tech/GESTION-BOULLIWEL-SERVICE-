@@ -373,18 +373,17 @@ tbody tr:last-child td{border-bottom:none;}
      de l'Administrateur (dépenses, stock, autres activités, etc.)
      ================================================================ -->
 <div id="vue-associe" style="display:none">
-  <div class="g4" style="margin-bottom:14px">
+  <div class="g4" style="margin-bottom:14px" id="va-dashboard">
     <div class="kpi"><div class="kl">Votre capital actuel</div><div class="kv g" id="va-capital">0 GNF</div><div class="ks">Produits saisis directement en Stock Ent. ÷ 2</div></div>
     <div class="kpi"><div class="kl">Votre part d'intérêt actuelle</div><div class="kv" id="va-interet">0 GNF</div><div class="ks">Votre part = Bénéfice total ÷ 2 (partage 50/50)</div></div>
-    <div class="kpi"><div class="kl">Reste que vous devez à votre associé</div><div class="kv r" id="va-reste">0 GNF</div><button class="btn bh bxs" style="margin-top:6px" onclick="ouvrirDetailDette()">🔍 En savoir plus</button></div>
-    <div class="kpi"><div class="kl">Reste à payer</div><div class="kv r" id="va-restepayer">0 GNF</div><div class="ks">Même montant que ci-dessus</div></div>
+    <div class="kpi"><div class="kl">Reste que vous devez à votre associé</div><div class="kv r" id="va-reste">0 GNF</div><button class="btn bh bxs no-print" style="margin-top:6px" onclick="ouvrirDetailDette()">🔍 En savoir plus</button></div>
     <div class="kpi"><div class="kl">Total dépenses</div><div class="kv r" id="va-depenses">0 GNF</div><div class="ks">Total uniquement — détail non visible</div></div>
   </div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
       <h3 style="margin:0">📋 Vos activités</h3>
       <div style="display:flex;gap:6px">
-        <button class="btn bh bsm no-print" onclick="imprimerSection('vue-associe','Ma situation')" title="Imprimer">🖨️ Imprimer</button>
+        <button class="btn bh bsm no-print" onclick="imprimerSection('va-dashboard','Ma situation')" title="Imprimer">🖨️ Imprimer</button>
         <button class="btn bs bsm" onclick="om('ma')" title="Enregistrer une nouvelle vente/réparation/service">➕ Nouvelle activité</button>
       </div>
     </div>
@@ -2580,23 +2579,22 @@ function calculerCapitalAssocie(){
 function chargerBilanConfidentiel(){
   var session=getSession();
   if(!session || !session.access_token || !navigator.onLine){
-    ['va-capital','va-interet','va-reste','va-restepayer','va-depenses'].forEach(function(id){ st(id,'— (connexion requise)'); });
+    ['va-capital','va-interet','va-reste','va-depenses'].forEach(function(id){ st(id,'— (connexion requise)'); });
     return;
   }
   supabaseTable('/rest/v1/rpc/bilan_confidentiel', { method:'POST' }, session.access_token)
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(rows){
       var b = rows && rows[0];
-      if(!b){ ['va-capital','va-interet','va-reste','va-restepayer','va-depenses'].forEach(function(id){ st(id,'— (indisponible)'); }); return; }
+      if(!b){ ['va-capital','va-interet','va-reste','va-depenses'].forEach(function(id){ st(id,'— (indisponible)'); }); return; }
       st('va-capital', fmt(Number(b.capital_associe)||0));
       st('va-interet', fmt(Number(b.part_interet)||0));
       st('va-reste', fmt(Number(b.reste_associe_doit)||0));
-      st('va-restepayer', fmt(Number(b.reste_associe_doit)||0)); // même valeur, même source — aucun nouveau calcul
       st('va-depenses', fmt(Number(b.total_depenses)||0));
     })
     .catch(function(e){
       console.error('[chargerBilanConfidentiel]', e);
-      ['va-capital','va-interet','va-reste','va-restepayer','va-depenses'].forEach(function(id){ st(id,'— (erreur)'); });
+      ['va-capital','va-interet','va-reste','va-depenses'].forEach(function(id){ st(id,'— (erreur)'); });
     });
 }
 function rVueAssocie(){
