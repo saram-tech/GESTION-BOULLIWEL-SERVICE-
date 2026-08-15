@@ -408,15 +408,17 @@ tbody tr:last-child td{border-bottom:none;}
      ================================================================ -->
 <div id="vue-visiteur" style="display:none">
   <div class="g4" style="margin-bottom:14px">
-    <div class="kpi"><div class="kl">Capital de l'Administrateur</div><div class="kv g" id="vv-capital">0 GNF</div><div class="ks">Sa part dans l'entreprise</div></div>
-    <div class="kpi"><div class="kl">Ce que l'entreprise lui doit</div><div class="kv" id="vv-doit">0 GNF</div></div>
-    <div class="kpi"><div class="kl">Total des avoirs</div><div class="kv b" id="vv-total">0 GNF</div><div class="ks">Capital + Ce que l'entreprise lui doit</div></div>
+    <div class="kpi"><div class="kl">Capital de BAH Ousmane dans l'entreprise</div><div class="kv g" id="vv-capital">0 GNF</div><div class="ks">Sa part du capital total de l'entreprise (produits saisis directement, hors Stock Perso)</div></div>
+    <div class="kpi"><div class="kl">Part de bénéfice actuelle de BAH Ousmane dans l'entreprise</div><div class="kv" id="vv-doit">0 GNF</div><div class="ks">Sa part du bénéfice net de la période, avant tout paiement/dette</div></div>
+    <div class="kpi"><div class="kl">Ce que l'entreprise me doit en stock personnel</div><div class="kv" id="vv-stockperso">0 GNF</div><div class="ks">Valeur due pour les produits qu'il a apportés personnellement (même montant que côté Administrateur)</div></div>
+    <div class="kpi"><div class="kl">Total des avoirs (argent) de BAH Ousmane dans l'entreprise</div><div class="kv b" id="vv-total">0 GNF</div><div class="ks">Capital + Part de bénéfice + Stock personnel dû (chaque montant compté une seule fois)</div></div>
   </div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
       <h3 style="margin:0">💼 Biens & Matériels</h3>
-      <button class="btn bh bsm no-print" onclick="imprimerSection('vue-visiteur','Patrimoine de l\'Administrateur')" title="Imprimer">🖨️ Imprimer</button>
+      <button class="btn bh bsm no-print" onclick="imprimerSection('vue-visiteur','Patrimoine de BAH Ousmane')" title="Imprimer">🖨️ Imprimer</button>
     </div>
+    <div style="font-size:.74rem;color:var(--tx2);margin-bottom:8px">Biens, matériels et outils de travail propres à BAH Ousmane au sein de l'entreprise.</div>
     <div class="tw"><table>
       <thead><tr><th>Bien</th><th>Qté</th><th>Date</th></tr></thead>
       <tbody id="tbl-vue-visiteur"><tr><td colspan="3" style="text-align:center;color:var(--tx2);padding:20px">Chargement…</td></tr></tbody>
@@ -1658,6 +1660,31 @@ function enrParametres(){
  * mise à jour vers la table réelle, comme le fait déjà save() pour
  * Activités/Stock.
  */
+var _dernierEntDoitStockPersoEnvoye = null;
+var _timerSyncEntDoitStockPerso = null;
+/**
+ * Pousse "Ce que l'entreprise me doit en Stock Perso" (déjà calculé dans
+ * updateKPIs() — bd.resteEnt, aucune nouvelle formule) vers
+ * parametres.ent_doit_stock_perso, pour que le compte Visiteur
+ * (acceder_patrimoine_visiteur) affiche toujours EXACTEMENT la même
+ * valeur que l'Administrateur. Débouncé et n'envoie que si la valeur a
+ * changé, pour ne pas solliciter le réseau à chaque rendu de l'écran.
+ */
+function syncEntDoitStockPersoAuServeur(valeur){
+  if(!SUPABASE_CONFIG.enabled || !navigator.onLine) return;
+  var session=getSession();
+  if(!session || !session.access_token || session.role!=='admin') return;
+  if(_dernierEntDoitStockPersoEnvoye===valeur) return;
+  clearTimeout(_timerSyncEntDoitStockPerso);
+  _timerSyncEntDoitStockPerso=setTimeout(function(){
+    _dernierEntDoitStockPersoEnvoye=valeur;
+    supabaseTable('/rest/v1/parametres', {
+      method:'POST',
+      headers:{ 'Prefer':'resolution=merge-duplicates' },
+      body: JSON.stringify({ id:1, ent_doit_stock_perso: valeur })
+    }, session.access_token).catch(function(e){ console.error('[syncEntDoitStockPerso]', e); });
+  }, 1500);
+}
 function syncParametresVersNouvelleTable(){
   var session=getSession();
   if(!session || !session.access_token || session.role!=='admin' || !navigator.onLine) return;
@@ -3317,6 +3344,7 @@ function updateKPIs(){
   st('k-admin-doit', fmt(entMeDoit));
   st('k-admin-total', fmt(capitalAdmin + entMeDoit));
   var elAdminBenefice=document.getElementById('k-admin-benefice'); if(elAdminBenefice) st('k-admin-benefice', fmt(bd.mp));
+  syncEntDoitStockPersoAuServeur(entMeDoit);
   var l5=D.histo.slice(-5).reverse();
   var lohtml=l5.length?l5.map(function(h){ return '<div style="padding:3px 0;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between"><span style="font-size:.76rem">'+h.desc+'</span><span style="color:var(--tx2);font-size:.7rem">'+fmtDateJour(h.date)+'</span></div>'; }).join(''):'Aucune opération.';
   document.getElementById('last-ops').innerHTML=lohtml;
@@ -4128,10 +4156,10 @@ function saveAuthRole(role, login, pass) {
 }
 
 function isLoggedIn() {
-  return sessionStorage.getItem('bpro_session') === '1';
+  return sessionStorage.getItem('bpro_session') === '1' || localStorage.getItem('bpro_session_lp') === '1';
 }
 function getRole(){
-  var r = sessionStorage.getItem('bpro_role');
+  var r = sessionStorage.getItem('bpro_role') || localStorage.getItem('bpro_role_lp');
   return (r==='associe'||r==='visiteur') ? r : 'admin';
 }
 function isAssocie(){ return getRole()==='associe'; }
@@ -4184,8 +4212,12 @@ function doLogin() {
     // en ligne sur CET appareil (jamais une simple comparaison locale
     // du mot de passe — la sécurité reste toujours appliquée côté
     // serveur, seule la SESSION déjà obtenue est réutilisée).
+    // NB : on compare à offline_ok_until (30 jours depuis la dernière
+    // connexion EN LIGNE réussie), pas à expires_at (durée technique du
+    // jeton Supabase, ~1h) — sinon la reprise hors ligne échouait dès
+    // que plus d'1h s'était écoulée depuis la dernière connexion.
     var cached = getSession();
-    if (cached && cached.email === email && cached.expires_at > Date.now()) {
+    if (cached && cached.email === email && cached.offline_ok_until > Date.now()) {
       appliquerSession(cached);
     } else {
       err.textContent = '⚠️ Connexion Internet requise pour la première connexion sur cet appareil.';
@@ -4206,7 +4238,8 @@ function doLogin() {
       access_token: res.body.access_token,
       refresh_token: res.body.refresh_token,
       email: email, role: role, uid: res.body.user && res.body.user.id,
-      expires_at: Date.now() + ((res.body.expires_in||3600) * 1000)
+      expires_at: Date.now() + ((res.body.expires_in||3600) * 1000),
+      offline_ok_until: Date.now() + (30 * 24 * 3600 * 1000) // 30 jours de confiance hors ligne sur cet appareil
     };
     setSession(session);
     appliquerSession(session);
@@ -4230,6 +4263,8 @@ function doLogin() {
 function appliquerSession(session){
   sessionStorage.setItem('bpro_session', '1');
   sessionStorage.setItem('bpro_role', session.role);
+  localStorage.setItem('bpro_session_lp', '1');
+  localStorage.setItem('bpro_role_lp', session.role);
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('login-err').textContent = '';
   var libelleRole = session.role==='admin'?'Administrateur':'Associé';
@@ -4295,6 +4330,8 @@ function doLogout() {
   sessionStorage.removeItem('bpro_role');
   sessionStorage.removeItem('bpro_visiteur_code');
   sessionStorage.removeItem('bpro_visiteur_data');
+  localStorage.removeItem('bpro_session_lp');
+  localStorage.removeItem('bpro_role_lp');
   clearSession();
   // Purge du cache local : après déconnexion, aucune donnée du compte
   // précédent (Admin ou Associé) ne doit rester accessible sur cet
@@ -4443,7 +4480,7 @@ function doLoginVisiteur(){
     sessionStorage.setItem('bpro_role','visiteur');
     sessionStorage.setItem('bpro_visiteur_code', code); // pour le rafraîchissement pendant la session uniquement
     document.getElementById('login-screen').classList.add('hidden');
-    afficherVueVisiteur(biens, Number(premiere.capital_admin)||0, Number(premiere.montant_du_admin)||0, Number(premiere.total_avoirs_admin)||0);
+    afficherVueVisiteur(biens, Number(premiere.capital_admin)||0, Number(premiere.montant_du_admin)||0, Number(premiere.entreprise_doit_stock_perso)||0, Number(premiere.total_avoirs_admin)||0);
     activerInterfaceSelonRole();
     notif('✅ Accès Visiteur autorisé');
   }).catch(function(){
@@ -4466,14 +4503,15 @@ function rafraichirVisiteur(){
         etat:r.bien_etat, description:r.bien_description, utilisation:r.bien_utilisation };
     });
     var premiere = rows[0]||{};
-    afficherVueVisiteur(biens, Number(premiere.capital_admin)||0, Number(premiere.montant_du_admin)||0, Number(premiere.total_avoirs_admin)||0);
+    afficherVueVisiteur(biens, Number(premiere.capital_admin)||0, Number(premiere.montant_du_admin)||0, Number(premiere.entreprise_doit_stock_perso)||0, Number(premiere.total_avoirs_admin)||0);
     notif('✅ Données actualisées');
   }).catch(function(){ notif('❌ Impossible d\'actualiser (déconnecté ou accès verrouillé)'); });
 }
 /** Affiche le patrimoine reçu du serveur dans #vue-visiteur (jamais mis en cache localStorage). */
-function afficherVueVisiteur(biens, capitalAdmin, montantDu, totalAvoirs){
+function afficherVueVisiteur(biens, capitalAdmin, montantDu, stockPersoDu, totalAvoirs){
   st('vv-capital', fmt(capitalAdmin));
   st('vv-doit', fmt(montantDu));
+  st('vv-stockperso', fmt(stockPersoDu));
   st('vv-total', fmt(totalAvoirs));
   var tb=document.getElementById('tbl-vue-visiteur');
   if(!biens.length){ tb.innerHTML='<tr><td colspan="3" style="text-align:center;color:var(--tx2);padding:20px">Aucun bien enregistré pour le moment.</td></tr>'; return; }
@@ -4863,7 +4901,7 @@ document.addEventListener('DOMContentLoaded',function(){
   if (!navigator.onLine) {
     setSyncStatus('offline', '⚪ Hors ligne');
   } else if (SUPABASE_CONFIG.enabled && isLoggedIn() && !isAssocie()) {
-    reconcileOnStartup();
+    assurerTokenValide().then(reconcileOnStartup);
   } else {
     setSyncStatus('offline', isAssocie() ? '⚪ Mode Associé' : '⚪ Cloud désactivé');
   }
@@ -4957,6 +4995,28 @@ function supabaseRefreshToken(refreshToken){
   }).then(function(res){
     return res.json().then(function(body){ return { ok: res.ok, body: body }; });
   });
+}
+/**
+ * Rafraîchit silencieusement le jeton d'accès si la session mise en
+ * cache est proche de son expiration technique (~1h côté Supabase),
+ * sans jamais redemander le mot de passe. Ne touche pas offline_ok_until
+ * (durée de confiance hors ligne, 30 jours) ni le reste de la session.
+ * Nécessaire pour que la synchro cloud continue de fonctionner au-delà
+ * d'1h d'utilisation en ligne continue (jusqu'ici jamais appelée).
+ */
+function assurerTokenValide(){
+  if(!navigator.onLine || isVisiteur() || !isLoggedIn()) return Promise.resolve();
+  var s=getSession();
+  if(!s || !s.refresh_token) return Promise.resolve();
+  if(s.expires_at && s.expires_at > Date.now()+60000) return Promise.resolve();
+  return supabaseRefreshToken(s.refresh_token).then(function(res){
+    if(res.ok && res.body && res.body.access_token){
+      s.access_token = res.body.access_token;
+      s.refresh_token = res.body.refresh_token || s.refresh_token;
+      s.expires_at = Date.now() + ((res.body.expires_in||3600) * 1000);
+      setSession(s);
+    }
+  }).catch(function(e){ console.error('[assurerTokenValide]', e); });
 }
 
 /** Convertit une ligne de la table "activites" (colonnes snake_case) vers le format utilisé par l'application. */
