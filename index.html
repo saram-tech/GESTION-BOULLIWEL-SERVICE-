@@ -4171,6 +4171,24 @@ function getDonneesVisiteur(){
 }
 function setDonneesVisiteur(d){ try{ sessionStorage.setItem('bpro_visiteur_data', JSON.stringify(d)); }catch(e){} }
 
+/**
+ * Reprend une session déjà validée EN LIGNE sur cet appareil, pour un
+ * usage hors ligne (ou quand navigator.onLine ment et dit "true" alors
+ * qu'il n'y a aucun accès réel à Internet — Wi-Fi sans Internet, données
+ * mobiles sans signal…). Ne compare jamais de mot de passe en local :
+ * seule une session déjà obtenue du serveur est réutilisée.
+ * @returns {boolean} true si une session a été reprise avec succès
+ */
+function tenterReconnexionHorsLigne(email, err){
+  var cached = getSession();
+  if (cached && cached.email === email && cached.offline_ok_until > Date.now()) {
+    appliquerSession(cached);
+    return true;
+  }
+  if (err) err.textContent = '⚠️ Connexion Internet requise pour la première connexion sur cet appareil.';
+  return false;
+}
+
 function doLogin() {
  try{
   var login = document.getElementById('inp-login').value.trim().toLowerCase();
@@ -4180,26 +4198,12 @@ function doLogin() {
   if (zoneOubli) zoneOubli.style.display = 'none';
   if (!login || !pass) { err.textContent = '⚠️ Veuillez remplir tous les champs.'; return; }
 
-  // Le Visiteur n'a PAS de compte Supabase : "pass" est ici son code
-  // d'accès (PIN), vérifié par une fonction serveur dédiée qui ne
-  // renvoie les données du patrimoine que si le code est correct.
+  // Le Visiteur passe désormais par son propre onglet dédié (voir
+  // showVisiteur() / doLoginVisiteur(), qui gère déjà son propre mode
+  // hors ligne avec cache local). Ce raccourci reste en place par
+  // sécurité si jamais quelqu'un tape "visiteur" ici par habitude.
   if (login === 'visiteur') {
-    if (!navigator.onLine) { err.textContent = '⚠️ Connexion Internet requise pour accéder au Compte Visiteur.'; return; }
-    err.textContent = '⏳ Vérification du code…';
-    chargerVisiteurParPin(pass).then(function(ok){
-      if (!ok) {
-        err.textContent = '❌ Code incorrect ou accès verrouillé.';
-        document.getElementById('inp-pass').value = '';
-        document.getElementById('inp-pass').focus();
-        return;
-      }
-      sessionStorage.setItem('bpro_session', '1');
-      sessionStorage.setItem('bpro_role', 'visiteur');
-      document.getElementById('login-screen').classList.add('hidden');
-      err.textContent = '';
-      activerInterfaceSelonRole();
-      notif('✅ Bienvenue !');
-    });
+    showVisiteur();
     return;
   }
 
@@ -4208,20 +4212,8 @@ function doLogin() {
   var role = login; // 'admin' ou 'associe', déterminé par l'identifiant saisi
 
   if (!navigator.onLine) {
-    // Hors ligne : n'accepter que la reprise d'une session déjà validée
-    // en ligne sur CET appareil (jamais une simple comparaison locale
-    // du mot de passe — la sécurité reste toujours appliquée côté
-    // serveur, seule la SESSION déjà obtenue est réutilisée).
-    // NB : on compare à offline_ok_until (30 jours depuis la dernière
-    // connexion EN LIGNE réussie), pas à expires_at (durée technique du
-    // jeton Supabase, ~1h) — sinon la reprise hors ligne échouait dès
-    // que plus d'1h s'était écoulée depuis la dernière connexion.
-    var cached = getSession();
-    if (cached && cached.email === email && cached.offline_ok_until > Date.now()) {
-      appliquerSession(cached);
-    } else {
-      err.textContent = '⚠️ Connexion Internet requise pour la première connexion sur cet appareil.';
-    }
+    // Hors ligne (détecté) : reprise directe de la session locale.
+    tenterReconnexionHorsLigne(email, err);
     return;
   }
 
@@ -4244,8 +4236,16 @@ function doLogin() {
     setSession(session);
     appliquerSession(session);
   }).catch(function(e){
-    err.textContent = '⚠️ Erreur de connexion réseau — réessayez.';
-    console.error('[doLogin]', e);
+    // Le serveur n'a pas répondu à temps (voir fetchAvecDelai, 8s) :
+    // navigator.onLine affirmait "true" mais il n'y a en réalité aucun
+    // accès Internet exploitable. Au lieu de laisser l'utilisateur
+    // bloqué à réessayer indéfiniment, on retombe automatiquement sur
+    // la session déjà validée sur cet appareil, exactement comme si
+    // navigator.onLine avait dit "false" dès le départ.
+    console.error('[doLogin] Échec réseau — tentative de reprise hors ligne…', e);
+    if (!tenterReconnexionHorsLigne(email, err)) {
+      err.textContent = '⚠️ Connexion Internet requise pour la première connexion sur cet appareil.';
+    }
   });
  }catch(e){
    if(window.__showFatalError) window.__showFatalError('doLogin : '+(e&&e.message?e.message:e));
@@ -4257,7 +4257,7 @@ function doLogin() {
 /**
  * Applique une session Supabase valide (Administrateur ou Associé
  * uniquement — le Visiteur n'a pas de session Supabase, voir
- * chargerVisiteurParPin) : bascule l'interface et charge les données
+ * doLoginVisiteur) : bascule l'interface et charge les données
  * autorisées pour ce rôle.
  */
 function appliquerSession(session){
@@ -4473,43 +4473,60 @@ function doLoginVisiteur(){
   var code=document.getElementById('inp-visiteur-code').value.trim();
   var err=document.getElementById('visiteur-err');
   if(!code){ err.textContent='⚠️ Veuillez entrer le code d\'accès.'; return; }
-  if(!navigator.onLine){ err.textContent='⚠️ Une connexion internet est nécessaire pour accéder au Compte Visiteur.'; return; }
-  err.textContent='';
-  fetch(SUPABASE_CONFIG.url+'/rest/v1/rpc/acceder_patrimoine_visiteur', {
+  err.textContent='⏳ Vérification…';
+  fetchAvecDelai(SUPABASE_CONFIG.url+'/rest/v1/rpc/acceder_patrimoine_visiteur', {
     method:'POST',
     headers:{ 'apikey':SUPABASE_CONFIG.anonKey, 'Content-Type':'application/json' },
     body: JSON.stringify({ code: code })
-  }).then(function(r){
+  }, 8000).then(function(r){
     if(!r.ok){ throw new Error('code'); }
     return r.json();
   }).then(function(rows){
     rows = rows || [];
-    var biens = rows.filter(function(r){ return r.bien_id!=null; }).map(function(r){
-      return { id:r.bien_id, nom:r.bien_nom, categorie:r.bien_categorie, quantite:r.bien_quantite,
-        valeur:Number(r.bien_valeur)||0, prixAchat:Number(r.bien_prix_achat)||0, date:r.bien_date,
-        etat:r.bien_etat, description:r.bien_description, utilisation:r.bien_utilisation };
-    });
-    var premiere = rows[0]||{};
-    sessionStorage.setItem('bpro_session','1');
-    sessionStorage.setItem('bpro_role','visiteur');
-    sessionStorage.setItem('bpro_visiteur_code', code); // pour le rafraîchissement pendant la session uniquement
-    document.getElementById('login-screen').classList.add('hidden');
-    afficherVueVisiteur(biens, Number(premiere.capital_admin)||0, Number(premiere.montant_du_admin)||0, Number(premiere.entreprise_doit_stock_perso)||0, Number(premiere.total_avoirs_admin)||0);
-    activerInterfaceSelonRole();
+    entrerVueVisiteur(rows, code);
+    try{ localStorage.setItem('bpro_visiteur_cache', JSON.stringify({code:code, rows:rows, ts:Date.now()})); }catch(e){}
+    err.textContent='';
     notif('✅ Accès Visiteur autorisé');
-  }).catch(function(){
-    err.textContent='❌ Code incorrect, accès verrouillé, ou connexion impossible.';
+  }).catch(function(e){
+    // Serveur injoignable (hors ligne, timeout, navigator.onLine trompeur…) :
+    // on retombe sur le dernier résultat obtenu EN LIGNE pour ce même code,
+    // s'il existe sur cet appareil. Jamais d'accès sans le bon code.
+    if (e && e.message === 'code') { err.textContent='❌ Code incorrect ou accès verrouillé.'; return; }
+    var cache = null;
+    try{ cache = JSON.parse(localStorage.getItem('bpro_visiteur_cache')||'null'); }catch(e2){}
+    if (cache && cache.code === code) {
+      entrerVueVisiteur(cache.rows, code);
+      err.textContent='';
+      notif('📴 Mode hors ligne — dernières données synchronisées le '+new Date(cache.ts).toLocaleString('fr-FR'));
+    } else {
+      err.textContent='❌ Connexion impossible et aucune donnée hors ligne enregistrée pour ce code sur cet appareil.';
+    }
   });
+}
+/** Bascule effectivement vers le tableau de bord Visiteur avec les lignes reçues (en ligne ou depuis le cache local). */
+function entrerVueVisiteur(rows, code){
+  var biens = (rows||[]).filter(function(r){ return r.bien_id!=null; }).map(function(r){
+    return { id:r.bien_id, nom:r.bien_nom, categorie:r.bien_categorie, quantite:r.bien_quantite,
+      valeur:Number(r.bien_valeur)||0, prixAchat:Number(r.bien_prix_achat)||0, date:r.bien_date,
+      etat:r.bien_etat, description:r.bien_description, utilisation:r.bien_utilisation };
+  });
+  var premiere = rows[0]||{};
+  sessionStorage.setItem('bpro_session','1');
+  sessionStorage.setItem('bpro_role','visiteur');
+  sessionStorage.setItem('bpro_visiteur_code', code); // pour le rafraîchissement pendant la session uniquement
+  document.getElementById('login-screen').classList.add('hidden');
+  afficherVueVisiteur(biens, Number(premiere.capital_admin)||0, Number(premiere.montant_du_admin)||0, Number(premiere.entreprise_doit_stock_perso)||0, Number(premiere.total_avoirs_admin)||0);
+  activerInterfaceSelonRole();
 }
 /** Rafraîchit la vue Visiteur (bouton ⟳) en rappelant la même fonction serveur avec le code déjà validé pour cette session. */
 function rafraichirVisiteur(){
   var code=sessionStorage.getItem('bpro_visiteur_code');
   if(!code || !navigator.onLine) return;
-  fetch(SUPABASE_CONFIG.url+'/rest/v1/rpc/acceder_patrimoine_visiteur', {
+  fetchAvecDelai(SUPABASE_CONFIG.url+'/rest/v1/rpc/acceder_patrimoine_visiteur', {
     method:'POST',
     headers:{ 'apikey':SUPABASE_CONFIG.anonKey, 'Content-Type':'application/json' },
     body: JSON.stringify({ code: code })
-  }).then(function(r){ return r.ok?r.json():[]; }).then(function(rows){
+  }, 8000).then(function(r){ return r.ok?r.json():[]; }).then(function(rows){
     rows = rows || [];
     var biens = rows.filter(function(r){ return r.bien_id!=null; }).map(function(r){
       return { id:r.bien_id, nom:r.bien_nom, categorie:r.bien_categorie, quantite:r.bien_quantite,
@@ -4518,6 +4535,7 @@ function rafraichirVisiteur(){
     });
     var premiere = rows[0]||{};
     afficherVueVisiteur(biens, Number(premiere.capital_admin)||0, Number(premiere.montant_du_admin)||0, Number(premiere.entreprise_doit_stock_perso)||0, Number(premiere.total_avoirs_admin)||0);
+    try{ localStorage.setItem('bpro_visiteur_cache', JSON.stringify({code:code, rows:rows, ts:Date.now()})); }catch(e){}
     notif('✅ Données actualisées');
   }).catch(function(){ notif('❌ Impossible d\'actualiser (déconnecté ou accès verrouillé)'); });
 }
@@ -5001,12 +5019,27 @@ function jetonActuel(){
   return (s && s.access_token) ? s.access_token : SUPABASE_CONFIG.anonKey;
 }
 
+/**
+ * Ajoute une limite de temps à un fetch : navigator.onLine peut indiquer
+ * "true" alors qu'il n'y a aucun accès réel à Internet (Wi-Fi connecté
+ * sans internet, données mobiles sans signal, portail captif…). Sans
+ * cette limite, un fetch dans cette situation peut rester "en attente"
+ * indéfiniment côté navigateur — d'où l'écran bloqué sur "Connexion en
+ * cours…". Ici, au bout de 8s sans réponse, on abandonne proprement.
+ */
+function fetchAvecDelai(url, options, delaiMs){
+  var ctrl = (typeof AbortController!=='undefined') ? new AbortController() : null;
+  var opts = Object.assign({}, options||{});
+  if (ctrl) opts.signal = ctrl.signal;
+  var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, delaiMs||8000) : null;
+  return fetch(url, opts).finally(function(){ if (timer) clearTimeout(timer); });
+}
 function supabaseSignIn(email, password){
-  return fetch(SUPABASE_CONFIG.url + '/auth/v1/token?grant_type=password', {
+  return fetchAvecDelai(SUPABASE_CONFIG.url + '/auth/v1/token?grant_type=password', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_CONFIG.anonKey },
     body: JSON.stringify({ email: email, password: password })
-  }).then(function(res){
+  }, 8000).then(function(res){
     return res.json().then(function(body){ return { ok: res.ok, status: res.status, body: body }; });
   });
 }
