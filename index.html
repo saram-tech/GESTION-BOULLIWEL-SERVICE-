@@ -409,9 +409,9 @@ tbody tr:last-child td{border-bottom:none;}
 <div id="vue-visiteur" style="display:none">
   <div class="g4" style="margin-bottom:14px">
     <div class="kpi"><div class="kl">Capital de BAH Ousmane dans l'entreprise</div><div class="kv g" id="vv-capital">0 GNF</div><div class="ks">Sa part du capital total de l'entreprise (produits saisis directement, hors Stock Perso)</div></div>
-    <div class="kpi"><div class="kl">Part de bénéfice actuelle de BAH Ousmane dans l'entreprise</div><div class="kv" id="vv-doit">0 GNF</div><div class="ks">Sa part du bénéfice net de la période, avant tout paiement/dette</div></div>
+    <div class="kpi"><div class="kl">Part de bénéfice actuelle de BAH Ousmane dans l'entreprise</div><div class="kv" id="vv-doit">0 GNF</div><div class="ks">Sa part de bénéfice (50%) dans l'entreprise, sur la période en cours</div></div>
     <div class="kpi"><div class="kl">Ce que l'entreprise me doit en stock personnel</div><div class="kv" id="vv-stockperso">0 GNF</div><div class="ks">Valeur due pour les produits qu'il a apportés personnellement (même montant que côté Administrateur)</div></div>
-    <div class="kpi"><div class="kl">Total des avoirs (argent) de BAH Ousmane dans l'entreprise</div><div class="kv b" id="vv-total">0 GNF</div><div class="ks">Capital + Part de bénéfice + Stock personnel dû (chaque montant compté une seule fois)</div></div>
+    <div class="kpi" style="border-color:rgba(59,130,246,.35)"><div class="kl">Total des avoirs (argent) de BAH Ousmane dans l'entreprise</div><div class="kv b" id="vv-total" style="font-size:1.7rem;font-weight:800">0 GNF</div><div class="ks">Capital + Part de bénéfice + Stock personnel dû (chaque montant compté une seule fois)</div></div>
   </div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
@@ -1661,27 +1661,33 @@ function enrParametres(){
  * Activités/Stock.
  */
 var _dernierEntDoitStockPersoEnvoye = null;
+var _dernierBeneficeAdminEnvoye = null;
 var _timerSyncEntDoitStockPerso = null;
 /**
- * Pousse "Ce que l'entreprise me doit en Stock Perso" (déjà calculé dans
- * updateKPIs() — bd.resteEnt, aucune nouvelle formule) vers
- * parametres.ent_doit_stock_perso, pour que le compte Visiteur
- * (acceder_patrimoine_visiteur) affiche toujours EXACTEMENT la même
- * valeur que l'Administrateur. Débouncé et n'envoie que si la valeur a
- * changé, pour ne pas solliciter le réseau à chaque rendu de l'écran.
+ * Pousse vers parametres deux montants déjà calculés localement dans
+ * updateKPIs() — aucune nouvelle formule :
+ *   - "Ce que l'entreprise me doit en Stock Perso" (bd.resteEnt) → ent_doit_stock_perso
+ *   - "Ma part" / bénéfice actuel de l'Admin (bd.mp) → mon_benefice_admin
+ * pour que le compte Visiteur (acceder_patrimoine_visiteur) affiche
+ * toujours EXACTEMENT les mêmes valeurs que l'Administrateur, sans les
+ * recalculer côté serveur à partir des tables activites/depenses (qui
+ * peuvent être en léger différé par rapport aux données locales de
+ * l'Admin — c'était la cause de l'écart observé). Débouncé et n'envoie
+ * que si une des deux valeurs a changé.
  */
-function syncEntDoitStockPersoAuServeur(valeur){
+function syncEntDoitStockPersoAuServeur(valeurStockPerso, valeurBenefice){
   if(!SUPABASE_CONFIG.enabled || !navigator.onLine) return;
   var session=getSession();
   if(!session || !session.access_token || session.role!=='admin') return;
-  if(_dernierEntDoitStockPersoEnvoye===valeur) return;
+  if(_dernierEntDoitStockPersoEnvoye===valeurStockPerso && _dernierBeneficeAdminEnvoye===valeurBenefice) return;
   clearTimeout(_timerSyncEntDoitStockPerso);
   _timerSyncEntDoitStockPerso=setTimeout(function(){
-    _dernierEntDoitStockPersoEnvoye=valeur;
+    _dernierEntDoitStockPersoEnvoye=valeurStockPerso;
+    _dernierBeneficeAdminEnvoye=valeurBenefice;
     supabaseTable('/rest/v1/parametres', {
       method:'POST',
       headers:{ 'Prefer':'resolution=merge-duplicates' },
-      body: JSON.stringify({ id:1, ent_doit_stock_perso: valeur })
+      body: JSON.stringify({ id:1, ent_doit_stock_perso: valeurStockPerso, mon_benefice_admin: valeurBenefice })
     }, session.access_token).catch(function(e){ console.error('[syncEntDoitStockPerso]', e); });
   }, 1500);
 }
@@ -3344,7 +3350,7 @@ function updateKPIs(){
   st('k-admin-doit', fmt(entMeDoit));
   st('k-admin-total', fmt(capitalAdmin + entMeDoit));
   var elAdminBenefice=document.getElementById('k-admin-benefice'); if(elAdminBenefice) st('k-admin-benefice', fmt(bd.mp));
-  syncEntDoitStockPersoAuServeur(entMeDoit);
+  syncEntDoitStockPersoAuServeur(entMeDoit, bd.mp);
   var l5=D.histo.slice(-5).reverse();
   var lohtml=l5.length?l5.map(function(h){ return '<div style="padding:3px 0;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between"><span style="font-size:.76rem">'+h.desc+'</span><span style="color:var(--tx2);font-size:.7rem">'+fmtDateJour(h.date)+'</span></div>'; }).join(''):'Aucune opération.';
   document.getElementById('last-ops').innerHTML=lohtml;
