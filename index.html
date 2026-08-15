@@ -4326,6 +4326,18 @@ function activerInterfaceSelonRole(){
 }
 
 function doLogout() {
+  // Dernière tentative d'envoi, meilleur effort, avant de quitter la
+  // session : si des activités/stock/dépenses/dettes/paiements créés ou
+  // modifiés localement n'ont pas encore atteint Supabase, on essaie une
+  // dernière fois maintenant (sans bloquer la déconnexion si ça échoue).
+  if (navigator.onLine) {
+    var s = getSession();
+    if (s && s.access_token) {
+      if (typeof syncActivitesEtStockVersNouvellesTables === 'function') syncActivitesEtStockVersNouvellesTables();
+      if (typeof syncDepensesDettesPaiementsVersNouvellesTables === 'function') syncDepensesDettesPaiementsVersNouvellesTables();
+      if (s.role === 'admin' && typeof syncToCloud === 'function') syncToCloud();
+    }
+  }
   sessionStorage.removeItem('bpro_session');
   sessionStorage.removeItem('bpro_role');
   sessionStorage.removeItem('bpro_visiteur_code');
@@ -4333,17 +4345,19 @@ function doLogout() {
   localStorage.removeItem('bpro_session_lp');
   localStorage.removeItem('bpro_role_lp');
   clearSession();
-  // Purge du cache local : après déconnexion, aucune donnée du compte
-  // précédent (Admin ou Associé) ne doit rester accessible sur cet
-  // appareil, conformément à la consigne de confidentialité.
-  D = JSON.parse(JSON.stringify(DEFAULT_SHAPE));
-  persist();
+  // Les données locales (D) ne sont PLUS effacées ici : une activité ou
+  // toute autre donnée créée mais pas encore synchronisée serait
+  // définitivement perdue. Seules les informations de SESSION (jeton,
+  // rôle actif) sont supprimées ci-dessus. Au prochain login, les
+  // données locales sont fusionnées avec le serveur — jamais écrasées
+  // (voir chargerActivitesEtStockDepuisTables) — et resynchronisées
+  // automatiquement.
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('inp-login').value = '';
   document.getElementById('inp-pass').value = '';
   document.getElementById('login-err').textContent = '';
   showLogin();
-  notif('Déconnecté — données locales effacées de cet appareil.');
+  notif('Déconnecté — vos données locales sont conservées et seront synchronisées à la prochaine connexion.');
 }
 
 // ---------------------------------------------------------------
@@ -4901,8 +4915,16 @@ document.addEventListener('DOMContentLoaded',function(){
   // a son propre statut de chargement via acceder_patrimoine_visiteur()).
   if (!navigator.onLine) {
     setSyncStatus('offline', '⚪ Hors ligne');
-  } else if (SUPABASE_CONFIG.enabled && isLoggedIn() && !isAssocie() && !isVisiteur()) {
-    assurerTokenValide().then(reconcileOnStartup);
+  } else if (SUPABASE_CONFIG.enabled && isLoggedIn() && !isVisiteur()) {
+    assurerTokenValide().then(function(){
+      // Toute activité/stock/dépense/dette/paiement resté "en attente"
+      // depuis une session précédente (créé hors ligne, ou synchro
+      // interrompue) est retenté ici, dès que l'app démarre en ligne.
+      if (typeof syncActivitesEtStockVersNouvellesTables === 'function') syncActivitesEtStockVersNouvellesTables();
+      if (typeof syncDepensesDettesPaiementsVersNouvellesTables === 'function') syncDepensesDettesPaiementsVersNouvellesTables();
+      if (!isAssocie()) reconcileOnStartup();
+      else setSyncStatus('offline', '⚪ Mode Associé');
+    });
   } else {
     setSyncStatus('offline', isAssocie() ? '⚪ Mode Associé' : (isVisiteur() ? '⚪ Mode Visiteur' : '⚪ Cloud désactivé'));
   }
@@ -5071,9 +5093,19 @@ function chargerActivitesEtStockDepuisTables(session){
     supabaseTable('/rest/v1/activites?select=*&order=id.asc', {}, session.access_token).then(function(r){ return r.ok?r.json():[]; }),
     supabaseTable('/rest/v1/stock?select=*&order=id.asc', {}, session.access_token).then(function(r){ return r.ok?r.json():[]; })
   ]).then(function(res){
-    if (Array.isArray(res[0])) D.activites = res[0].map(mapRowVersActivite);
-    if (Array.isArray(res[1])) D.stock = res[1].map(mapRowVersStock);
+    var serverAct = Array.isArray(res[0]) ? res[0].map(mapRowVersActivite) : null;
+    var serverStock = Array.isArray(res[1]) ? res[1].map(mapRowVersStock) : null;
+    // Fusion, jamais d'écrasement direct : toute activité/stock créé
+    // localement (ex. hors ligne) mais pas encore présent côté serveur
+    // est conservé — voir mergeArraysById(). Les tombstones (_del)
+    // continuent de faire disparaître ce qui a été supprimé exprès.
+    if (serverAct)   D.activites = mergeArraysById(D.activites, serverAct,   (D._del&&D._del.activites)||[]);
+    if (serverStock) D.stock     = mergeArraysById(D.stock,     serverStock, (D._del&&D._del.stock)||[]);
     persist();
+    console.log('[sync] activites/stock fusionnés au lieu d\'écrasés — '+D.activites.length+' activité(s), '+D.stock.length+' article(s) de stock en local.');
+    // Repousse tout de suite ce qui manquait encore côté serveur
+    // (idempotent grâce à l'upsert par id — jamais de doublon).
+    if (typeof syncActivitesEtStockVersNouvellesTables === 'function') syncActivitesEtStockVersNouvellesTables();
   }).catch(function(e){ console.error('[chargerActivitesEtStockDepuisTables]', e); });
 }
 
@@ -5112,12 +5144,16 @@ function syncActivitesEtStockVersNouvellesTables(){
   var payloadAct = D.activites.map(function(a){ return mapActiviteVersRow(a, session); });
   var payloadStock = session.role === 'admin' ? D.stock.map(mapStockVersRow) : null;
   if (payloadAct.length) {
+    console.log('[sync] activites: '+payloadAct.length+' en attente d\'envoi…');
     supabaseTable('/rest/v1/activites', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:JSON.stringify(payloadAct) }, session.access_token)
-      .catch(function(e){ console.error('[sync activites]', e); });
+      .then(function(r){ console.log(r.ok?'[sync] activites: synced ✅':'[sync] activites: échec, resteront pending — '+r.status); })
+      .catch(function(e){ console.error('[sync activites] pending, retenté à la prochaine occasion —', e); });
   }
   if (payloadStock && payloadStock.length) {
+    console.log('[sync] stock: '+payloadStock.length+' en attente d\'envoi…');
     supabaseTable('/rest/v1/stock', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:JSON.stringify(payloadStock) }, session.access_token)
-      .catch(function(e){ console.error('[sync stock]', e); });
+      .then(function(r){ console.log(r.ok?'[sync] stock: synced ✅':'[sync] stock: échec, restera pending — '+r.status); })
+      .catch(function(e){ console.error('[sync stock] pending, retenté à la prochaine occasion —', e); });
   }
 }
 /**
@@ -5207,13 +5243,16 @@ function setSyncStatus(state, text) {
 }
 
 // Réagit immédiatement aux changements de connexion réseau
-// (app_data = Administrateur uniquement, comme au démarrage ci-dessus —
-// jamais interrogé pour l'Associé ni le Visiteur).
+// (reprend l'envoi de tout ce qui est resté "en attente" localement).
 window.addEventListener('online', function () {
-  if (isLoggedIn() && !isAssocie() && !isVisiteur()) {
-    setSyncStatus('syncing', '🟠 Reconnexion…');
-    assurerTokenValide().then(reconcileOnStartup);
-  }
+  if (!isLoggedIn() || isVisiteur()) return;
+  setSyncStatus('syncing', '🟠 Reconnexion…');
+  assurerTokenValide().then(function(){
+    console.log('[sync] Reconnexion détectée — envoi des données locales en attente…');
+    if (typeof syncActivitesEtStockVersNouvellesTables === 'function') syncActivitesEtStockVersNouvellesTables();
+    if (typeof syncDepensesDettesPaiementsVersNouvellesTables === 'function') syncDepensesDettesPaiementsVersNouvellesTables();
+    if (!isAssocie()) reconcileOnStartup();
+  });
 });
 window.addEventListener('offline', function () {
   setSyncStatus('offline', '⚪ Hors ligne — données sauvegardées localement');
