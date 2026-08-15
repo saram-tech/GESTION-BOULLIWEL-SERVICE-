@@ -996,14 +996,16 @@ tbody tr:last-child td{border-bottom:none;}
     <div style="font-size:.74rem;color:var(--tx2);margin-bottom:8px">Permet à une personne de confiance de consulter votre patrimoine (biens, capital) avec un simple code — jamais vos données confidentielles (dépenses, dettes, activités...).</div>
     <div id="zone-visiteur-statut" style="margin-bottom:9px;font-size:.78rem"></div>
     <div class="fr">
-      <div class="fg"><label>Nouveau code d'accès (min. 4 caractères)</label><input type="text" id="pr-visiteur-pin" placeholder="Ex: 1234" inputmode="numeric"></div>
+      <div class="fg"><label>Code d'accès Visiteur (min. 4 caractères)</label><input type="text" id="pr-visiteur-pin" placeholder="Ex: 1234" inputmode="numeric"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:7px;margin:4px 0 9px">
+      <input type="checkbox" id="pr-visiteur-verrou" style="width:16px;height:16px">
+      <label for="pr-visiteur-verrou" style="font-size:.8rem;margin:0">🔒 Verrouiller l'accès Visiteur</label>
     </div>
     <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:9px">
-      <button class="btn bs bsm" onclick="definirCodeVisiteur()">✓ Définir / changer le code</button>
-      <button class="btn bd bsm" onclick="verrouillerCompteVisiteur(true)">🔒 Verrouiller l'accès</button>
-      <button class="btn bg bsm" onclick="verrouillerCompteVisiteur(false)">🔓 Déverrouiller l'accès</button>
       <button class="btn bh bsm" onclick="ouvrirPatrimoine()">💼 Gérer le Patrimoine (biens & matériels)</button>
     </div>
+    <div style="font-size:.72rem;color:var(--tx2);margin-bottom:9px">Le code et le verrouillage sont enregistrés avec le reste des paramètres ci-dessous (bouton "✓ Enregistrer").</div>
 
     <div style="display:flex;gap:7px;justify-content:flex-end;margin-bottom:14px">
       <button class="btn bh" onclick="cm('mparams')">Annuler</button>
@@ -1629,15 +1631,22 @@ function ouvrirParametres(){
   var p=getParams();
   sv('pr-reinvest',p.reinvest); sv('pr-retenu',p.retenuAssocie); sv('pr-perso',p.stockPerso); sv('pr-fourn',p.fournisseurTel||'');
   sv('pr-recup-tel',p.recupTel||''); sv('pr-recup-email',p.recupEmail||'');
+  sv('pr-visiteur-pin', p.visiteurCode||'');
+  var chk=document.getElementById('pr-visiteur-verrou'); if(chk) chk.checked = p.visiteurVerrouille!==false;
   rZoneCodesAttente();
+  rZoneVisiteurStatut();
   om('mparams');
 }
 function enrParametres(){
   var reinvest=fl('pr-reinvest'), retenu=fl('pr-retenu'), perso=fl('pr-perso'), fourn=v('pr-fourn').trim().replace(/[^0-9]/g,'');
   var recupTel=v('pr-recup-tel').trim().replace(/[^0-9]/g,''), recupEmail=v('pr-recup-email').trim();
+  var visiteurCode=v('pr-visiteur-pin').trim();
+  var visiteurVerrouille=(document.getElementById('pr-visiteur-verrou')||{}).checked;
   if(reinvest<0||reinvest>100||retenu<0||retenu>100||perso<0||perso>100){ notif('⚠️ Les pourcentages doivent être entre 0 et 100'); return; }
-  D.params={reinvest:reinvest,retenuAssocie:retenu,stockPerso:perso,fournisseurTel:fourn,recupTel:recupTel,recupEmail:recupEmail};
-  save(); syncParametresVersNouvelleTable(); cm('mparams'); notif('✅ Paramètres enregistrés');
+  if(visiteurCode && visiteurCode.length<4){ notif('⚠️ Le code Visiteur doit faire au moins 4 caractères'); return; }
+  D.params={reinvest:reinvest,retenuAssocie:retenu,stockPerso:perso,fournisseurTel:fourn,recupTel:recupTel,recupEmail:recupEmail,
+    visiteurCode:visiteurCode||null, visiteurVerrouille:visiteurVerrouille!==false};
+  save(); syncParametresVersNouvelleTable(); rZoneVisiteurStatut(); cm('mparams'); notif('✅ Paramètres enregistrés');
 }
 /**
  * CORRECTIF : depuis l'Étape 1, la table "parametres" (utilisée par
@@ -1658,7 +1667,7 @@ function syncParametresVersNouvelleTable(){
     fournisseur_tel:p.fournisseurTel||null, recup_tel:p.recupTel||null, recup_email:p.recupEmail||null,
     dep_categories: D.depCategories||[], dettes_clot: D.dettesClot||0, dette_verrou: !!D.detteVerrou,
     ent_deja_deduit: D.entDejaDeduit||0,
-    visiteur_code: p.visiteurCode||null, visiteur_verrouille: !!p.visiteurVerrouille
+    visiteur_code: p.visiteurCode||null, visiteur_verrou: p.visiteurVerrouille!==false
   };
   supabaseTable('/rest/v1/parametres', {
     method:'POST',
@@ -4478,64 +4487,14 @@ function afficherVueVisiteur(biens, capitalAdmin, montantDu, totalAvoirs){
 // ================================================================
 // GESTION DU COMPTE VISITEUR (côté Administrateur)
 // ================================================================
-/** Affiche l'état actuel (verrouillé/déverrouillé, code défini ou non) dans Paramètres. */
+/** Affiche l'état actuel (verrouillé/déverrouillé, code défini ou non) dans Paramètres — lecture locale, plus de dépendance réseau. */
 function rZoneVisiteurStatut(){
   var el=document.getElementById('zone-visiteur-statut'); if(!el) return;
-  var session=getSession();
-  if(!session || !session.access_token){ el.innerHTML='<span style="color:var(--tx3)">Statut indisponible hors ligne.</span>'; return; }
-  el.innerHTML='⏳ Chargement du statut…';
-  supabaseTable('/rest/v1/parametres?select=visiteur_verrou,visiteur_pin_hash&id=eq.1', {}, session.access_token)
-    .then(function(r){ return r.ok?r.json():[]; })
-    .then(function(rows){
-      var p=(rows&&rows[0])||{};
-      var aCode = !!p.visiteur_pin_hash;
-      var verrou = p.visiteur_verrou!==false;
-      el.innerHTML = (verrou?'<span class="badge bdr">🔒 Accès verrouillé</span>':'<span class="badge bgr">🔓 Accès déverrouillé</span>')+
-        ' &nbsp; '+(aCode?'<span style="color:var(--tx3)">Code défini</span>':'<span style="color:var(--re)">Aucun code défini</span>');
-    }).catch(function(){ el.innerHTML='<span style="color:var(--re)">Impossible de charger le statut.</span>'; });
-}
-function definirCodeVisiteur(){
-  var session=getSession();
-  if(!session || !session.access_token){ notif('⚠️ Connexion requise'); return; }
-  var code=v('pr-visiteur-pin').trim();
-  if(code.length<4){ notif('⚠️ Le code doit faire au moins 4 caractères'); return; }
-  supabaseTable('/rest/v1/rpc/definir_code_visiteur_serveur', { method:'POST', body:JSON.stringify({nouveau_code:code}) }, session.access_token)
-    .then(function(r){
-      if(r.ok){
-        sv('pr-visiteur-pin','');
-        notif('✅ Code Visiteur défini/modifié avec succès');
-        rZoneVisiteurStatut();
-        return;
-      }
-      return r.json().catch(function(){ return {}; }).then(function(body){
-        var detail = (body && (body.message || body.msg || body.hint || body.error_description)) || ('HTTP '+r.status);
-        notif('❌ Impossible de définir le code : ' + detail, 8000);
-        console.error('[definirCodeVisiteur]', r.status, body);
-      });
-    }).catch(function(e){
-      notif('❌ Erreur réseau — impossible de définir le code.');
-      console.error('[definirCodeVisiteur]', e);
-    });
-}
-function verrouillerCompteVisiteur(verrou){
-  var session=getSession();
-  if(!session || !session.access_token){ notif('⚠️ Connexion requise'); return; }
-  supabaseTable('/rest/v1/rpc/verrouiller_visiteur_serveur', { method:'POST', body:JSON.stringify({verrou:verrou}) }, session.access_token)
-    .then(function(r){
-      if(r.ok){
-        notif(verrou?'🔒 Accès Visiteur verrouillé':'🔓 Accès Visiteur déverrouillé');
-        rZoneVisiteurStatut();
-        return;
-      }
-      return r.json().catch(function(){ return {}; }).then(function(body){
-        var detail = (body && (body.message || body.msg || body.hint || body.error_description)) || ('HTTP '+r.status);
-        notif('❌ Action impossible : ' + detail, 8000);
-        console.error('[verrouillerCompteVisiteur]', r.status, body);
-      });
-    }).catch(function(e){
-      notif('❌ Erreur réseau — action impossible.');
-      console.error('[verrouillerCompteVisiteur]', e);
-    });
+  var p=getParams();
+  var aCode = !!(p.visiteurCode && String(p.visiteurCode).length>=4);
+  var verrou = p.visiteurVerrouille!==false;
+  el.innerHTML = (verrou?'<span class="badge bdr">🔒 Accès verrouillé</span>':'<span class="badge bgr">🔓 Accès déverrouillé</span>')+
+    ' &nbsp; '+(aCode?'<span style="color:var(--tx3)">Code défini</span>':'<span style="color:var(--re)">Aucun code défini</span>');
 }
 function ouvrirPatrimoine(){
   cm('mparams');
