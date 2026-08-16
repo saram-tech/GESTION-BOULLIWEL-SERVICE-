@@ -880,19 +880,19 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="fr">
       <div class="fg"><label>Date *</label><input type="date" id="a-date"></div>
       <div class="fg"><label>Ticket (optionnel — saisir manuellement)</label><input type="text" id="a-ticket" placeholder="Laisser vide si pas de ticket"></div>
-      <div class="fg"><label>Type *</label><select id="a-type"><option>Vente</option><option>Réparation</option><option>Service</option></select></div>
+      <div class="fg"><label>Type *</label><select id="a-type" onchange="basculerChampsSelonType()"><option>Vente</option><option>Réparation</option><option>Service</option></select></div>
     </div>
     <div class="fr">
-      <div class="fg" style="flex:2"><label>Désignation / Produit *</label>
+      <div class="fg" style="flex:2"><label id="lbl-a-desig">Désignation / Produit *</label>
         <input type="text" id="a-desig" placeholder="Ex: iPhone 12..." oninput="autoPA()" onblur="capitaliserChamp('a-desig')" list="dl-prod">
         <datalist id="dl-prod"></datalist>
       </div>
-      <div class="fg"><label>Panne</label><input type="text" id="a-panne" placeholder="Ex: Écran cassé"></div>
+      <div class="fg" id="fg-a-panne"><label id="lbl-a-panne">Panne</label><input type="text" id="a-panne" placeholder="Ex: Écran cassé"></div>
     </div>
     <div class="fr">
-      <div class="fg"><label>Prix achat unitaire (GNF)</label><input type="number" id="a-achat" placeholder="0" oninput="pAct()"></div>
-      <div class="fg"><label>Quantité</label><input type="number" id="a-qte" placeholder="1" min="1" value="1" oninput="pAct()"></div>
-      <div class="fg"><label>À Payer (GNF)</label><input type="number" id="a-apayer" placeholder="0 (facultatif)" min="0" oninput="pAct()"></div>
+      <div class="fg" id="fg-a-achat"><label>Prix achat unitaire (GNF)</label><input type="number" id="a-achat" placeholder="0" oninput="pAct()"></div>
+      <div class="fg" id="fg-a-qte"><label>Quantité</label><input type="number" id="a-qte" placeholder="1" min="1" value="1" oninput="pAct()"></div>
+      <div class="fg"><label id="lbl-a-apayer">À Payer (GNF)</label><input type="number" id="a-apayer" placeholder="0 (facultatif)" min="0" oninput="pAct()"></div>
     </div>
     <div class="fr">
       <div class="fg"><label>Payé (GNF)</label><input type="number" id="a-paye" placeholder="0" oninput="pAct()"></div>
@@ -1962,17 +1962,57 @@ function enrAct(){
       // Annuler l'ancienne déduction de stock AVANT de modifier l'activité,
       // puis appliquer la nouvelle — sinon le stock reste désynchronisé
       // dès qu'on change la quantité ou la désignation d'une vente.
-      ajusterStockVendu(a.desig, -(a.qte||0));
+      // Uniquement pour les Ventes : une Réparation/Service ne doit
+      // jamais toucher au stock, même si sa désignation correspond par
+      // coïncidence au nom d'un article.
+      if(a.type==='Vente') ajusterStockVendu(a.desig, -(a.qte||0));
       a.date=date;a.type=type;a.desig=desig;a.panne=panne;a.achat=achat;a.qte=qte;a.apayer=apayer;a.paye=paye;a.reste=reste;a.benefice=ben;a.ticket=ticket;a.client=client;
-      ajusterStockVendu(desig, qte);
+      if(type==='Vente') ajusterStockVendu(desig, qte);
     }
     ah('activite','Modif: '+desig,paye,date);
   } else {
     D.activites.push({id:Date.now(),date:date,heure:nowHM(),ordre:D._o++,ticket:ticket,type:type,desig:desig,panne:panne,achat:achat,qte:qte,apayer:apayer,paye:paye,reste:reste,benefice:ben,client:client,auteur:(isAssocie()?'Associé':'Administrateur')});
     ah('activite',type+': '+desig,paye,date);
-    ajusterStockVendu(desig, qte);
+    if(type==='Vente') ajusterStockVendu(desig, qte);
   }
   save(); cm('ma'); rAF(); notif('✅ '+type+' enregistrée : '+desig);
+}
+/**
+ * Formulaire "Nouvelle Activité" dynamique : adapte les champs affichés
+ * selon le Type choisi (Vente / Réparation / Service), sans ajouter de
+ * nouveau champ ni de nouvelle colonne — on affiche/masque simplement
+ * les champs déjà existants (a-panne, a-achat, a-qte). Les champs
+ * masqués sont réinitialisés pour ne jamais être réutilisés par erreur
+ * dans le type suivant. Appelée au changement de Type, à l'ouverture
+ * d'une nouvelle activité (rAF) et à l'édition d'une activité (editAct).
+ */
+function basculerChampsSelonType(){
+  var type = v('a-type');
+  var estVente = (type === 'Vente');
+  var estReparation = (type === 'Réparation');
+
+  var fgPanne = document.getElementById('fg-a-panne');
+  var fgAchat = document.getElementById('fg-a-achat');
+  var fgQte   = document.getElementById('fg-a-qte');
+  if (fgPanne) fgPanne.style.display = estVente ? 'none' : '';
+  if (fgAchat) fgAchat.style.display = estVente ? '' : 'none';
+  if (fgQte)   fgQte.style.display   = estVente ? '' : 'none';
+
+  // Réinitialise les valeurs des champs qui viennent d'être masqués,
+  // pour qu'une saisie faite sous un autre Type ne soit jamais
+  // réutilisée par erreur (ex: prix d'achat d'une Vente qui traînerait
+  // dans une Réparation).
+  if (!estVente) { sv('a-achat',''); sv('a-qte',1); }
+  if (estVente)  { sv('a-panne',''); }
+
+  var lblDesig = document.getElementById('lbl-a-desig');
+  if (lblDesig) lblDesig.textContent = estVente ? 'Désignation / Produit *' : (estReparation ? 'Désignation / Appareil *' : 'Désignation / Service *');
+  var lblApayer = document.getElementById('lbl-a-apayer');
+  if (lblApayer) lblApayer.textContent = estVente ? 'À Payer (GNF)' : 'Montant à payer (GNF)';
+  var lblPanne = document.getElementById('lbl-a-panne');
+  if (lblPanne) lblPanne.textContent = estReparation ? 'Panne' : 'Description';
+
+  pAct();
 }
 function rAF(){
   ['a-date','a-ticket','a-desig','a-panne','a-achat','a-apayer','a-paye','a-client','a-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
@@ -1980,13 +2020,14 @@ function rAF(){
   document.getElementById('a-prev').style.display='none';
   st('ma-t','📋 Nouvelle Activité');
   var b=document.getElementById('btn-sa'); b.textContent='✓ Enregistrer'; b.onclick=enrAct;
+  basculerChampsSelonType();
 }
 function editAct(id){
   var a=D.activites.find(function(x){ return x.id===id; }); if(!a) return;
   sv('a-eid',id);sv('a-date',a.date);sv('a-ticket',a.ticket||'');sv('a-type',a.type);
   sv('a-desig',a.desig);sv('a-panne',a.panne||'');sv('a-achat',a.achat);sv('a-qte',a.qte||1);
   sv('a-apayer',a.apayer);sv('a-paye',a.paye);sv('a-client',a.client||'');
-  st('ma-t','✏️ Modifier Activité'); pAct(); om('ma');
+  st('ma-t','✏️ Modifier Activité'); basculerChampsSelonType(); pAct(); om('ma');
 }
 function delAct(id){
   var a=D.activites.find(function(x){ return x.id===id; }); if(!a) return;
@@ -4840,17 +4881,36 @@ function doChangerPass() {
     if (!navigator.onLine) { err.textContent = '⚠️ Connexion Internet requise pour changer le mot de passe.'; return; }
     err.textContent = '⏳ Vérification…';
     supabaseSignIn(session.email, actuel).then(function(res){
-      if (!res.ok) { err.textContent = '❌ Mot de passe actuel incorrect.'; return; }
+      if (!res.ok || !res.body || !res.body.access_token) { err.textContent = '❌ Mot de passe actuel incorrect.'; return; }
+      // Utilise le jeton FRAIS obtenu à l'instant (pas l'ancien
+      // session.access_token, qui peut être expiré si la dernière
+      // connexion en ligne date de plus d'1h — c'était une cause
+      // silencieuse d'échec). On met aussi à jour la session stockée
+      // puisqu'on vient d'obtenir un jeton valide.
+      var jetonFrais = res.body.access_token;
+      session.access_token = jetonFrais;
+      if (res.body.refresh_token) session.refresh_token = res.body.refresh_token;
+      session.expires_at = Date.now() + ((res.body.expires_in||3600) * 1000);
+      setSession(session);
       fetch(SUPABASE_CONFIG.url + '/auth/v1/user', {
         method: 'PUT',
-        headers: { 'Content-Type':'application/json', 'apikey': SUPABASE_CONFIG.anonKey, 'Authorization':'Bearer '+session.access_token },
+        headers: { 'Content-Type':'application/json', 'apikey': SUPABASE_CONFIG.anonKey, 'Authorization':'Bearer '+jetonFrais },
         body: JSON.stringify({ password: nouveau })
       }).then(function(r){
-        if (!r.ok) { err.textContent = '❌ Échec de la mise à jour du mot de passe.'; return; }
+        if (!r.ok) {
+          return r.json().catch(function(){ return {}; }).then(function(body){
+            // Affiche la vraie raison renvoyée par Supabase (ex: mot de
+            // passe trop court) au lieu d'un message générique qui
+            // masquait la cause — jamais le mot de passe lui-même.
+            var detail = (body && (body.msg || body.message || body.error_description)) || ('HTTP '+r.status);
+            err.textContent = '❌ Échec : ' + detail;
+            console.error('[doChangerPass]', r.status, detail);
+          });
+        }
         cm('m-changer-pass');
         notif('✅ Mot de passe modifié avec succès !');
-      }).catch(function(e){ err.textContent = '⚠️ Erreur réseau — réessayez.'; console.error(e); });
-    }).catch(function(e){ err.textContent = '⚠️ Erreur réseau — réessayez.'; console.error(e); });
+      }).catch(function(e){ err.textContent = '⚠️ Erreur réseau — réessayez.'; console.error('[doChangerPass]', e); });
+    }).catch(function(e){ err.textContent = '⚠️ Erreur réseau — réessayez.'; console.error('[doChangerPass]', e); });
     return;
   }
 
