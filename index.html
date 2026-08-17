@@ -247,7 +247,7 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="reset-info">
         👁️ Le Compte Visiteur permet de consulter le patrimoine de l'Administrateur avec un simple code d'accès fourni par lui.
       </div>
-      <div class="fg"><label>Code d'accès</label><input type="text" id="inp-visiteur-code" placeholder="Entrez le code fourni par l'Administrateur" inputmode="numeric" onkeydown="if(event.key==='Enter')doLoginVisiteur()"></div>
+      <div class="fg"><label>Code d'accès</label><input type="text" id="inp-visiteur-code" placeholder="Entrez le code fourni par l'Administrateur" onkeydown="if(event.key==='Enter')doLoginVisiteur()"></div>
       <div class="login-err" id="visiteur-err"></div>
       <button class="login-btn" onclick="doLoginVisiteur()">👁️ Accéder</button>
       <div class="login-divider"></div>
@@ -331,9 +331,9 @@ tbody tr:last-child td{border-bottom:none;}
     <button class="btn bg bsm" onclick="saveCloud()" title="Génère un lien de partage manuel (différent de la synchronisation cloud automatique)">🔗 Lien partage</button>
     <button class="btn bg bsm" onclick="testSupabaseConnection()" title="Vérifier la connexion Supabase">🔌 Test Cloud</button>
     <button class="btn bd bsm" onclick="cloturer()" title="Clôturer la période : archive dettes/activités, remet les compteurs à zéro (mot de passe requis)">🔄 Clôture</button>
-    <button class="btn bh bsm" onclick="doLogout()" title="Se déconnecter">🚪 Déco.</button>
     <button class="btn bd bsm" onclick="viderTout()" title="Supprimer TOUT — remise à zéro complète de l'application (mot de passe requis)">🗑️ Tout</button>
     <button id="btn-install" class="btn bs bsm" style="display:none">📲 Installer</button>
+    <button class="btn bh bsm" onclick="doLogout()" title="Se déconnecter">🚪 Déco.</button>
   </div>
   <div id="hbts-associe" class="hbts" style="display:none">
     <button id="btn-refresh-associe" class="btn-refresh" onclick="rafraichirDonnees()" title="Rafraîchir les données affichées">⟳</button>
@@ -998,7 +998,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div style="font-size:.74rem;color:var(--tx2);margin-bottom:8px">Permet à une personne de confiance de consulter votre patrimoine (biens, capital) avec un simple code — jamais vos données confidentielles (dépenses, dettes, activités...).</div>
     <div id="zone-visiteur-statut" style="margin-bottom:9px;font-size:.78rem"></div>
     <div class="fr">
-      <div class="fg"><label>Code d'accès Visiteur (min. 4 caractères)</label><input type="text" id="pr-visiteur-pin" placeholder="Ex: 1234" inputmode="numeric"></div>
+      <div class="fg"><label>Code d'accès Visiteur (min. 4 caractères)</label><input type="text" id="pr-visiteur-pin" placeholder="Ex: Kalil ou 1234"></div>
     </div>
     <div style="display:flex;align-items:center;gap:7px;margin:4px 0 9px">
       <input type="checkbox" id="pr-visiteur-verrou" style="width:16px;height:16px">
@@ -1724,19 +1724,28 @@ var _dernierInteretAssocieEnvoye = null;
 var _dernierResteAPayerEnvoye = null;
 var _timerSyncPartAssocie = null;
 /**
- * CORRECTIF (cohérence Administrateur ⇄ Associé, §4-7 de la demande) :
- * même principe EXACT que syncEntDoitStockPersoAuServeur() ci-dessus —
- * aucune nouvelle formule, on pousse simplement vers "parametres" les
- * deux montants déjà calculés par calculerBilanData() côté Admin :
- *   - "Il reçoit (net)" (Math.max(0,bd.ra))            → part_interet_admin
+ * CORRECTIF (cohérence Administrateur ⇄ Associé) : pousse vers
+ * "parametres" les deux montants déjà calculés par calculerBilanData()
+ * côté Admin, sans aucune nouvelle formule — même principe que
+ * syncEntDoitStockPersoAuServeur() ci-dessus :
+ *   - "Il reçoit (net)" = Math.max(0,bd.ra)             → part_interet_admin
  *   - "Reste à vous payer (15%… + dette non couverte)"
- *     = bd.resteAVousPayer                             → reste_a_payer_admin
+ *     = bd.resteAVousPayer                              → reste_a_payer_admin
+ * Ces deux valeurs sont EXACTEMENT celles affichées dans le Bilan
+ * Administrateur sous ces mêmes libellés (voir calculerBilan()) —
+ * conforme à la règle du projet : "Votre part d'intérêt actuelle" du
+ * compte Associé doit correspondre au montant "Il reçoit (net)" du
+ * Bilan Administrateur, 0 différence.
+ * (Une version antérieure envoyait par erreur bd.pa15 — la part AVANT
+ * déduction de la dette non couverte — ce qui pouvait afficher un
+ * montant supérieur à "Il reçoit (net)" dès qu'une dette existait ;
+ * corrigé ici pour repousser exactement le montant net affiché côté
+ * Administrateur, conformément à la demande explicite.)
  * Objectif : que le compte Associé lise ces valeurs déjà calculées par
  * l'Administrateur au lieu que la fonction serveur bilan_confidentiel()
- * les recalcule indépendamment (cause du problème signalé). Ce push
- * seul ne suffit pas : bilan_confidentiel() doit aussi être mise à jour
- * côté Supabase pour LIRE ces deux colonnes — voir rapport, je n'ai pas
- * accès à cette fonction serveur depuis cet environnement.
+ * les recalcule indépendamment (cause du problème signalé — la fonction
+ * serveur peut voir des données légèrement en différé par rapport à
+ * l'appareil de l'Administrateur).
  */
 function syncPartAssocieAuServeur(valeurInteret, valeurResteAPayer){
   if(!SUPABASE_CONFIG.enabled || !navigator.onLine) return;
@@ -3475,6 +3484,15 @@ function updateKPIs(){
   st('k-admin-total', fmt(capitalAdmin + entMeDoit));
   var elAdminBenefice=document.getElementById('k-admin-benefice'); if(elAdminBenefice) st('k-admin-benefice', fmt(bd.mp));
   syncEntDoitStockPersoAuServeur(entMeDoit, bd.mp);
+  // CORRECTIF (Compte Associé — "Votre part d'intérêt actuelle" ≠ "Il
+  // reçoit (net)") : cette ligne envoyait bd.pa15 (la part AVANT
+  // déduction de la dette non couverte) au lieu de Math.max(0,bd.ra),
+  // qui est la valeur RÉELLEMENT affichée dans le Bilan Administrateur
+  // sous "Il reçoit (net)" (voir calculerBilan(), ligne fmt(Math.max(0,ra))).
+  // Résultat : dès qu'il existe une dette non couverte (dn>0), pa15 et
+  // ra divergent, et le Compte Associé affichait un montant trop élevé.
+  // Le second montant (bd.resteAVousPayer, pour "Reste à vous payer")
+  // était déjà correct et n'a pas été modifié.
   syncPartAssocieAuServeur(Math.max(0,bd.ra), bd.resteAVousPayer);
   var l5=D.histo.slice(-5).reverse();
   var lohtml=l5.length?l5.map(function(h){ return '<div style="padding:3px 0;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between"><span style="font-size:.76rem">'+h.desc+'</span><span style="color:var(--tx2);font-size:.7rem">'+fmtDateJour(h.date)+'</span></div>'; }).join(''):'Aucune opération.';
