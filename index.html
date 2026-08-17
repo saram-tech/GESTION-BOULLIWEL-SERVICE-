@@ -879,7 +879,7 @@ tbody tr:last-child td{border-bottom:none;}
     <input type="hidden" id="a-eid">
     <div class="fr">
       <div class="fg"><label>Date *</label><input type="date" id="a-date"></div>
-      <div class="fg"><label>Ticket (optionnel — saisir manuellement)</label><input type="text" id="a-ticket" placeholder="Laisser vide si pas de ticket"></div>
+      <div class="fg" id="fg-a-ticket"><label>Ticket (optionnel — saisir manuellement)</label><input type="text" id="a-ticket" placeholder="Laisser vide si pas de ticket"></div>
       <div class="fg"><label>Type *</label><select id="a-type" onchange="basculerChampsSelonType()"><option>Vente</option><option>Réparation</option><option>Service</option></select></div>
     </div>
     <div class="fr">
@@ -1410,8 +1410,29 @@ function om(id){
   if(id==='mp') fillDL();
 }
 function cm(id){ document.getElementById(id).classList.remove('open'); }
+/**
+ * CORRECTIF (Paramètres — la fenêtre se ferme/revient en arrière toute
+ * seule) : cause réelle identifiée — la fermeture au clic sur le fond
+ * (backdrop) ne testait que la cible du "click", sans vérifier où le
+ * geste avait COMMENCÉ. Sur mobile, l'ouverture/fermeture du clavier
+ * virtuel (ex: en tapant dans un champ des Paramètres) redimensionne
+ * la page pendant l'appui : un doigt posé sur un champ pouvait ainsi
+ * se retrouver, au relâchement, au-dessus du fond de la fenêtre — ce
+ * qui déclenchait un "click" dont la cible était le fond, et fermait
+ * la fenêtre par erreur, avec perte des modifications non enregistrées.
+ * Corrigé en n'autorisant la fermeture que si l'appui ET le relâchement
+ * ont TOUS DEUX eu lieu directement sur le fond (comme un vrai clic
+ * volontaire en dehors de la fenêtre), jamais si le geste a commencé
+ * sur le contenu de la fenêtre elle-même.
+ */
 document.querySelectorAll('.ov').forEach(function(o){
-  o.addEventListener('click',function(e){ if(e.target===o) o.classList.remove('open'); });
+  var appuiSurFond = false;
+  o.addEventListener('mousedown', function(e){ appuiSurFond = (e.target===o); });
+  o.addEventListener('touchstart', function(e){ appuiSurFond = (e.target===o); }, {passive:true});
+  o.addEventListener('click', function(e){
+    if(e.target===o && appuiSurFond) o.classList.remove('open');
+    appuiSurFond = false;
+  });
 });
 
 // ================================================================
@@ -1601,6 +1622,14 @@ function pAct(){
 /** Accès sécurisé aux paramètres réglables (avec migration si absents). */
 function getParams(){
   if(!D.params) D.params={reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''};
+  // CORRECTIF (Compte Visiteur — valeurs par défaut) : appliqué UNE SEULE
+  // FOIS, uniquement si l'Administrateur n'a jamais encore enregistré ces
+  // deux champs (propriété absente de D.params). On utilise hasOwnProperty
+  // et non une simple valeur "falsy", pour ne JAMAIS écraser un choix déjà
+  // personnalisé — même si ce choix est un code vide ou "décoché" — car
+  // ces valeurs existent alors déjà et ne sont plus "par défaut".
+  if(!D.params.hasOwnProperty('visiteurCode')) D.params.visiteurCode='Kalil';
+  if(!D.params.hasOwnProperty('visiteurVerrouille')) D.params.visiteurVerrouille=false;
   return D.params;
 }
 function ouvrirAPropos(){
@@ -1689,6 +1718,42 @@ function syncEntDoitStockPersoAuServeur(valeurStockPerso, valeurBenefice){
       headers:{ 'Prefer':'resolution=merge-duplicates' },
       body: JSON.stringify({ id:1, ent_doit_stock_perso: valeurStockPerso, mon_benefice_admin: valeurBenefice })
     }, session.access_token).catch(function(e){ console.error('[syncEntDoitStockPerso]', e); });
+  }, 1500);
+}
+var _dernierInteretAssocieEnvoye = null;
+var _dernierResteAPayerEnvoye = null;
+var _timerSyncPartAssocie = null;
+/**
+ * CORRECTIF (cohérence Administrateur ⇄ Associé — voir rapport, section
+ * "Problèmes non corrigés" pour la partie restante côté Supabase) :
+ * pousse vers "parametres" les DEUX montants déjà calculés localement
+ * par calculerBilanData() — aucune nouvelle formule créée, exactement
+ * le même principe que syncEntDoitStockPersoAuServeur() ci-dessus :
+ *   - "Il reçoit (net)" (bd.ra, jamais négatif)      → part_interet_admin
+ *   - "Reste à vous payer (15%… + dette non couverte)"
+ *     = "Reste associé me doit" (bd.resteAVousPayer) → reste_a_payer_admin
+ * Objectif : que le compte Associé ("Votre part d'intérêt actuelle" /
+ * "Reste que vous devez à votre associé") puisse un jour lire ces DEUX
+ * valeurs déjà calculées au lieu de les recalculer indépendamment côté
+ * serveur (RPC bilan_confidentiel), ce qui est la cause du problème
+ * décrit dans la demande. Ce push seul ne suffit PAS à corriger
+ * l'affichage côté Associé tant que bilan_confidentiel() n'est pas
+ * modifiée pour lire ces colonnes plutôt que recalculer — voir rapport.
+ */
+function syncPartAssocieAuServeur(valeurInteret, valeurResteAPayer){
+  if(!SUPABASE_CONFIG.enabled || !navigator.onLine) return;
+  var session=getSession();
+  if(!session || !session.access_token || session.role!=='admin') return;
+  if(_dernierInteretAssocieEnvoye===valeurInteret && _dernierResteAPayerEnvoye===valeurResteAPayer) return;
+  clearTimeout(_timerSyncPartAssocie);
+  _timerSyncPartAssocie=setTimeout(function(){
+    _dernierInteretAssocieEnvoye=valeurInteret;
+    _dernierResteAPayerEnvoye=valeurResteAPayer;
+    supabaseTable('/rest/v1/parametres', {
+      method:'POST',
+      headers:{ 'Prefer':'resolution=merge-duplicates' },
+      body: JSON.stringify({ id:1, part_interet_admin: valeurInteret, reste_a_payer_admin: valeurResteAPayer })
+    }, session.access_token).catch(function(e){ console.error('[syncPartAssocie]', e); });
   }, 1500);
 }
 function syncParametresVersNouvelleTable(){
@@ -1991,12 +2056,21 @@ function basculerChampsSelonType(){
   var estVente = (type === 'Vente');
   var estReparation = (type === 'Réparation');
 
-  var fgPanne = document.getElementById('fg-a-panne');
-  var fgAchat = document.getElementById('fg-a-achat');
-  var fgQte   = document.getElementById('fg-a-qte');
+  var fgPanne  = document.getElementById('fg-a-panne');
+  var fgAchat  = document.getElementById('fg-a-achat');
+  var fgQte    = document.getElementById('fg-a-qte');
+  var fgTicket = document.getElementById('fg-a-ticket');
   if (fgPanne) fgPanne.style.display = estVente ? 'none' : '';
   if (fgAchat) fgAchat.style.display = estVente ? '' : 'none';
   if (fgQte)   fgQte.style.display   = estVente ? '' : 'none';
+  // CORRECTIF (Nouvelle activité — Vente) : le champ Ticket n'est pas
+  // nécessaire pour une Vente, donc masqué pour ce type. Sa valeur
+  // n'est volontairement PAS effacée ici (contrairement à Panne/Achat/
+  // Qté ci-dessus) : certaines Ventes déjà enregistrées avant cette
+  // mise à jour peuvent avoir un ticket renseigné, et l'effacer au
+  // moment de la modification de cette activité supprimerait une
+  // donnée existante — interdit par la demande de mise à jour.
+  if (fgTicket) fgTicket.style.display = estVente ? 'none' : '';
 
   // Réinitialise les valeurs des champs qui viennent d'être masqués,
   // pour qu'une saisie faite sous un autre Type ne soit jamais
@@ -2670,9 +2744,21 @@ function chargerBilanConfidentiel(){
     .then(function(rows){
       var b = rows && rows[0];
       if(!b){ ['va-capital','va-interet','va-reste','va-depenses'].forEach(function(id){ st(id,'— (indisponible)'); }); return; }
+      // CORRECTIF (cohérence Administrateur ⇄ Associé) : si la fonction
+      // serveur bilan_confidentiel() a été mise à jour (voir rapport)
+      // pour renvoyer aussi part_interet_admin/reste_a_payer_admin —
+      // les valeurs déjà calculées et poussées par l'Administrateur via
+      // syncPartAssocieAuServeur() — on les utilise en priorité pour
+      // garantir un montant strictement identique aux deux comptes.
+      // Tant que la fonction serveur n'a pas été mise à jour, ces deux
+      // champs sont simplement absents de la réponse et l'ancien calcul
+      // (part_interet / reste_associe_doit) continue d'être utilisé sans
+      // aucun changement de comportement.
+      var interetAffiche = (b.part_interet_admin!==undefined && b.part_interet_admin!==null) ? b.part_interet_admin : b.part_interet;
+      var resteAffiche = (b.reste_a_payer_admin!==undefined && b.reste_a_payer_admin!==null) ? b.reste_a_payer_admin : b.reste_associe_doit;
       st('va-capital', fmt(Number(b.capital_associe)||0));
-      st('va-interet', fmt(Number(b.part_interet)||0));
-      st('va-reste', fmt(Number(b.reste_associe_doit)||0));
+      st('va-interet', fmt(Number(interetAffiche)||0));
+      st('va-reste', fmt(Number(resteAffiche)||0));
       st('va-depenses', fmt(Number(b.total_depenses)||0));
     })
     .catch(function(e){
@@ -3392,6 +3478,7 @@ function updateKPIs(){
   st('k-admin-total', fmt(capitalAdmin + entMeDoit));
   var elAdminBenefice=document.getElementById('k-admin-benefice'); if(elAdminBenefice) st('k-admin-benefice', fmt(bd.mp));
   syncEntDoitStockPersoAuServeur(entMeDoit, bd.mp);
+  syncPartAssocieAuServeur(Math.max(0,bd.ra), bd.resteAVousPayer);
   var l5=D.histo.slice(-5).reverse();
   var lohtml=l5.length?l5.map(function(h){ return '<div style="padding:3px 0;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between"><span style="font-size:.76rem">'+h.desc+'</span><span style="color:var(--tx2);font-size:.7rem">'+fmtDateJour(h.date)+'</span></div>'; }).join(''):'Aucune opération.';
   document.getElementById('last-ops').innerHTML=lohtml;
@@ -4864,6 +4951,26 @@ function showChangerPass() {
   om('m-changer-pass');
 }
 
+/**
+ * Traduit les messages d'erreur Supabase les plus courants liés au mot
+ * de passe (l'application est entièrement en français — jamais de
+ * texte anglais brut affiché à l'utilisateur). Repli sur le message
+ * d'origine si non reconnu (mieux vaut un message imparfait que de
+ * masquer l'information).
+ */
+function traduireErreurMotDePasse(msg){
+  if (!msg) return 'Erreur inconnue.';
+  var m = String(msg);
+  if (/current password required/i.test(m)) return 'Le mot de passe actuel est requis.';
+  if (/invalid login credentials/i.test(m)) return 'Mot de passe actuel incorrect.';
+  if (/new password should be different/i.test(m)) return 'Le nouveau mot de passe doit être différent de l\'ancien.';
+  var mLong = m.match(/should be at least (\d+) characters/i);
+  if (mLong) return 'Le mot de passe doit contenir au moins ' + mLong[1] + ' caractères.';
+  if (/should contain|character types|lowercase|uppercase|digit|symbol/i.test(m)) return 'Le mot de passe ne respecte pas les critères de sécurité requis (majuscule, minuscule, chiffre et/ou symbole).';
+  if (/pwned|leaked|been compromised/i.test(m)) return 'Ce mot de passe est trop courant ou a déjà fuité ailleurs — choisissez-en un autre.';
+  if (/rate limit/i.test(m)) return 'Trop de tentatives — réessayez dans quelques minutes.';
+  return m; // message d'origine si aucune traduction connue
+}
 function doChangerPass() {
   var actuel  = document.getElementById('cp-actuel').value;
   var nouveau = document.getElementById('cp-nouveau').value;
@@ -4876,34 +4983,24 @@ function doChangerPass() {
   var session = getSession();
   if (session && session.access_token) {
     // Solution A active : le mot de passe réel est vérifié et changé
-    // par Supabase lui-même (auth.users), plus par une simple
-    // comparaison locale.
+    // par Supabase lui-même (auth.users). Ce projet a l'option "Secure
+    // password change" activée côté Supabase : le mot de passe actuel
+    // doit être envoyé DANS la même requête (champ current_password),
+    // Supabase le vérifie lui-même — une vérification séparée au
+    // préalable n'est ni nécessaire ni suffisante.
     if (!navigator.onLine) { err.textContent = '⚠️ Connexion Internet requise pour changer le mot de passe.'; return; }
-    err.textContent = '⏳ Vérification…';
-    supabaseSignIn(session.email, actuel).then(function(res){
-      if (!res.ok || !res.body || !res.body.access_token) { err.textContent = '❌ Mot de passe actuel incorrect.'; return; }
-      // Utilise le jeton FRAIS obtenu à l'instant (pas l'ancien
-      // session.access_token, qui peut être expiré si la dernière
-      // connexion en ligne date de plus d'1h — c'était une cause
-      // silencieuse d'échec). On met aussi à jour la session stockée
-      // puisqu'on vient d'obtenir un jeton valide.
-      var jetonFrais = res.body.access_token;
-      session.access_token = jetonFrais;
-      if (res.body.refresh_token) session.refresh_token = res.body.refresh_token;
-      session.expires_at = Date.now() + ((res.body.expires_in||3600) * 1000);
-      setSession(session);
+    err.textContent = '⏳ Mise à jour…';
+    assurerTokenValide().then(function(){
+      session = getSession(); // reprend le jeton, rafraîchi si besoin
       fetch(SUPABASE_CONFIG.url + '/auth/v1/user', {
         method: 'PUT',
-        headers: { 'Content-Type':'application/json', 'apikey': SUPABASE_CONFIG.anonKey, 'Authorization':'Bearer '+jetonFrais },
-        body: JSON.stringify({ password: nouveau })
+        headers: { 'Content-Type':'application/json', 'apikey': SUPABASE_CONFIG.anonKey, 'Authorization':'Bearer '+session.access_token },
+        body: JSON.stringify({ password: nouveau, current_password: actuel })
       }).then(function(r){
         if (!r.ok) {
           return r.json().catch(function(){ return {}; }).then(function(body){
-            // Affiche la vraie raison renvoyée par Supabase (ex: mot de
-            // passe trop court) au lieu d'un message générique qui
-            // masquait la cause — jamais le mot de passe lui-même.
             var detail = (body && (body.msg || body.message || body.error_description)) || ('HTTP '+r.status);
-            err.textContent = '❌ Échec : ' + detail;
+            err.textContent = '❌ Échec : ' + traduireErreurMotDePasse(detail);
             console.error('[doChangerPass]', r.status, detail);
           });
         }
@@ -5351,6 +5448,15 @@ window.addEventListener('online', function () {
     if (typeof syncActivitesEtStockVersNouvellesTables === 'function') syncActivitesEtStockVersNouvellesTables();
     if (typeof syncDepensesDettesPaiementsVersNouvellesTables === 'function') syncDepensesDettesPaiementsVersNouvellesTables();
     if (!isAssocie()) reconcileOnStartup();
+    // CORRECTIF (Sauvegarde/synchronisation automatiques) : à la
+    // reconnexion, seuls les canaux "Activités/Stock" et "Dépenses/
+    // Dettes/Paiements" étaient réenvoyés. Le canal "app_data" (utilisé
+    // par save() → syncToCloud() pour Paramètres, Patrimoine, Corbeille,
+    // Historique, etc. côté Administrateur) n'était PAS réessayé ici :
+    // des modifications faites hors ligne par l'Administrateur restaient
+    // "en attente" jusqu'à la prochaine sauvegarde manuelle au lieu
+    // d'être synchronisées automatiquement dès le retour du réseau.
+    if (!isAssocie() && typeof syncToCloud === 'function') syncToCloud();
   });
 });
 window.addEventListener('offline', function () {
