@@ -1724,21 +1724,19 @@ var _dernierInteretAssocieEnvoye = null;
 var _dernierResteAPayerEnvoye = null;
 var _timerSyncPartAssocie = null;
 /**
- * CORRECTIF (cohérence Administrateur ⇄ Associé — voir rapport, section
- * "Problèmes non corrigés" pour la partie restante côté Supabase) :
- * pousse vers "parametres" les DEUX montants déjà calculés localement
- * par calculerBilanData() — aucune nouvelle formule créée, exactement
- * le même principe que syncEntDoitStockPersoAuServeur() ci-dessus :
- *   - "Il reçoit (net)" (bd.ra, jamais négatif)      → part_interet_admin
+ * CORRECTIF (cohérence Administrateur ⇄ Associé, §4-7 de la demande) :
+ * même principe EXACT que syncEntDoitStockPersoAuServeur() ci-dessus —
+ * aucune nouvelle formule, on pousse simplement vers "parametres" les
+ * deux montants déjà calculés par calculerBilanData() côté Admin :
+ *   - "Il reçoit (net)" (Math.max(0,bd.ra))            → part_interet_admin
  *   - "Reste à vous payer (15%… + dette non couverte)"
- *     = "Reste associé me doit" (bd.resteAVousPayer) → reste_a_payer_admin
- * Objectif : que le compte Associé ("Votre part d'intérêt actuelle" /
- * "Reste que vous devez à votre associé") puisse un jour lire ces DEUX
- * valeurs déjà calculées au lieu de les recalculer indépendamment côté
- * serveur (RPC bilan_confidentiel), ce qui est la cause du problème
- * décrit dans la demande. Ce push seul ne suffit PAS à corriger
- * l'affichage côté Associé tant que bilan_confidentiel() n'est pas
- * modifiée pour lire ces colonnes plutôt que recalculer — voir rapport.
+ *     = bd.resteAVousPayer                             → reste_a_payer_admin
+ * Objectif : que le compte Associé lise ces valeurs déjà calculées par
+ * l'Administrateur au lieu que la fonction serveur bilan_confidentiel()
+ * les recalcule indépendamment (cause du problème signalé). Ce push
+ * seul ne suffit pas : bilan_confidentiel() doit aussi être mise à jour
+ * côté Supabase pour LIRE ces deux colonnes — voir rapport, je n'ai pas
+ * accès à cette fonction serveur depuis cet environnement.
  */
 function syncPartAssocieAuServeur(valeurInteret, valeurResteAPayer){
   if(!SUPABASE_CONFIG.enabled || !navigator.onLine) return;
@@ -2064,9 +2062,9 @@ function basculerChampsSelonType(){
   if (fgAchat) fgAchat.style.display = estVente ? '' : 'none';
   if (fgQte)   fgQte.style.display   = estVente ? '' : 'none';
   // CORRECTIF (Nouvelle activité — Vente) : le champ Ticket n'est pas
-  // nécessaire pour une Vente, donc masqué pour ce type. Sa valeur
-  // n'est volontairement PAS effacée ici (contrairement à Panne/Achat/
-  // Qté ci-dessus) : certaines Ventes déjà enregistrées avant cette
+  // nécessaire pour une Vente, donc masqué pour ce type et jamais requis.
+  // Sa valeur n'est volontairement PAS effacée ici (contrairement à
+  // Panne/Achat/Qté) : certaines Ventes déjà enregistrées avant cette
   // mise à jour peuvent avoir un ticket renseigné, et l'effacer au
   // moment de la modification de cette activité supprimerait une
   // donnée existante — interdit par la demande de mise à jour.
@@ -2744,16 +2742,15 @@ function chargerBilanConfidentiel(){
     .then(function(rows){
       var b = rows && rows[0];
       if(!b){ ['va-capital','va-interet','va-reste','va-depenses'].forEach(function(id){ st(id,'— (indisponible)'); }); return; }
-      // CORRECTIF (cohérence Administrateur ⇄ Associé) : si la fonction
-      // serveur bilan_confidentiel() a été mise à jour (voir rapport)
-      // pour renvoyer aussi part_interet_admin/reste_a_payer_admin —
-      // les valeurs déjà calculées et poussées par l'Administrateur via
-      // syncPartAssocieAuServeur() — on les utilise en priorité pour
-      // garantir un montant strictement identique aux deux comptes.
-      // Tant que la fonction serveur n'a pas été mise à jour, ces deux
-      // champs sont simplement absents de la réponse et l'ancien calcul
-      // (part_interet / reste_associe_doit) continue d'être utilisé sans
-      // aucun changement de comportement.
+      // CORRECTIF (cohérence Administrateur ⇄ Associé) : si bilan_confidentiel()
+      // a été mise à jour côté Supabase (voir rapport) pour renvoyer aussi
+      // part_interet_admin/reste_a_payer_admin — les valeurs déjà calculées
+      // et poussées par l'Administrateur via syncPartAssocieAuServeur() —
+      // on les utilise en priorité pour garantir un montant strictement
+      // identique aux deux comptes. Tant que la fonction serveur n'a pas
+      // été mise à jour, ces deux champs sont simplement absents de la
+      // réponse et l'ancien calcul (part_interet/reste_associe_doit)
+      // continue d'être utilisé sans aucun changement de comportement.
       var interetAffiche = (b.part_interet_admin!==undefined && b.part_interet_admin!==null) ? b.part_interet_admin : b.part_interet;
       var resteAffiche = (b.reste_a_payer_admin!==undefined && b.reste_a_payer_admin!==null) ? b.reste_a_payer_admin : b.reste_associe_doit;
       st('va-capital', fmt(Number(b.capital_associe)||0));
@@ -5319,8 +5316,16 @@ function chargerDonneesAssocie(session){
     D.perso=[]; D.depenses=[]; D.dettes=[]; D.paiements=[]; D.commandes=[]; D.histo=[]; D.corbeille=[];
     D.dettesClot=0; D.detteVerrou=false; D.entDejaDeduit=0; D.auth=null; D.resetCodes=[];
     // Un minimum de paramètres non confidentiels pour que l'interface
-    // fonctionne (aucun montant, aucun secret) :
-    D.params = { reinvest:0, retenuAssocie:0, stockPerso:0, fournisseurTel:'', recupTel:'', recupEmail:'' };
+    // fonctionne (aucun montant, aucun secret). CORRECTIF (persistance
+    // des % Administrateur après déconnexion/reconnexion) : ce jeu de
+    // valeurs à 0 est marqué "_placeholderAssocie" pour que mergeAppData()
+    // (voir plus bas) ne le confonde JAMAIS avec de vrais pourcentages
+    // Administrateur lors d'une reconnexion sur un appareil qui a aussi
+    // servi au compte Associé — sans ce marqueur, ces 0 pouvaient être
+    // repris comme "version la plus récente" et écraser localement (et
+    // dans le cloud) les vrais 20/15/15 (ou valeurs personnalisées) de
+    // l'Administrateur.
+    D.params = { reinvest:0, retenuAssocie:0, stockPerso:0, fournisseurTel:'', recupTel:'', recupEmail:'', _placeholderAssocie:true };
     persist();
   });
 }
@@ -5448,15 +5453,6 @@ window.addEventListener('online', function () {
     if (typeof syncActivitesEtStockVersNouvellesTables === 'function') syncActivitesEtStockVersNouvellesTables();
     if (typeof syncDepensesDettesPaiementsVersNouvellesTables === 'function') syncDepensesDettesPaiementsVersNouvellesTables();
     if (!isAssocie()) reconcileOnStartup();
-    // CORRECTIF (Sauvegarde/synchronisation automatiques) : à la
-    // reconnexion, seuls les canaux "Activités/Stock" et "Dépenses/
-    // Dettes/Paiements" étaient réenvoyés. Le canal "app_data" (utilisé
-    // par save() → syncToCloud() pour Paramètres, Patrimoine, Corbeille,
-    // Historique, etc. côté Administrateur) n'était PAS réessayé ici :
-    // des modifications faites hors ligne par l'Administrateur restaient
-    // "en attente" jusqu'à la prochaine sauvegarde manuelle au lieu
-    // d'être synchronisées automatiquement dès le retour du réseau.
-    if (!isAssocie() && typeof syncToCloud === 'function') syncToCloud();
   });
 });
 window.addEventListener('offline', function () {
@@ -5564,7 +5560,23 @@ function mergeAppData(cloudData, localData, cloudIsNewer) {
   // on garde celui de la version prioritaire, mais jamais un null qui
   // écraserait un mot de passe déjà défini par erreur.
   merged.auth = priorite.auth || base.auth || null;
-  merged.params = priorite.params || base.params || {reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''};
+  // CORRECTIF (persistance des % financiers Administrateur — cause
+  // réelle du problème "les pourcentages s'effacent après déconnexion/
+  // reconnexion") : un objet {reinvest:0,...} (voir chargerDonneesAssocie)
+  // est un objet JavaScript "vrai" comme un autre pour `||` — il n'était
+  // donc JAMAIS écarté par `priorite.params || base.params`, même quand
+  // il s'agissait du jeu de paramètres vides du mode Associé. Sur un
+  // appareil ayant servi aux deux comptes, ce jeu à 0 pouvait ainsi être
+  // choisi comme version prioritaire et écraser les vrais pourcentages
+  // de l'Administrateur — localement, puis dans le cloud (la fusion est
+  // repoussée immédiatement après, voir reconcileOnStartup). On écarte
+  // donc explicitement tout objet params marqué "_placeholderAssocie" ou
+  // manifestement incomplet (sans la clé "reinvest"), quelle que soit sa
+  // date, avant de choisir la version prioritaire/de repli.
+  function paramsValides(p){ return (p && p.hasOwnProperty('reinvest') && !p._placeholderAssocie) ? p : null; }
+  var paramsPriorite = paramsValides(priorite.params);
+  var paramsBase = paramsValides(base.params);
+  merged.params = paramsPriorite || paramsBase || {reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''};
   MERGEABLE_ARRAYS.forEach(function (f) {
     merged[f] = mergeArraysById(base[f], priorite[f], mergedDel[f]);
   });
