@@ -4304,7 +4304,7 @@ var APP_VERSION = 'v39';
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-08-20T04:00:00'; // Diagnostic sur mobile : affichage à l'écran (alert) du message d'erreur réel renvoyé par Supabase en cas d'échec de synchronisation des Activités/Stock, pour les appareils sans accès pratique à la console développeur (ex: Chrome Android)
+var APP_DERNIERE_MAJ = '2026-08-20T04:30:00'; // CAUSE RÉELLE trouvée et corrigée : erreur Supabase 400 "All object keys must match" lors de la sync Activités/Stock — d'anciennes activités/articles sans certains champs définis ("undefined") faisaient disparaître ces clés du JSON envoyé, cassant l'envoi groupé pour TOUT le lot. mapActiviteVersRow()/mapStockVersRow() forcent désormais null au lieu de undefined pour chaque champ.
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
@@ -5340,15 +5340,51 @@ function mapRowVersStock(r){
     seuil:Number(r.seuil)||3, date:r.date, heure:r.heure, origPerso:Number(r.orig_perso)||0 };
 }
 /** Convertit une activité de l'app (camelCase) vers une ligne pour la table "activites". */
+/**
+ * CORRECTIF ("Erreur de synchronisation des activités" — cause exacte
+ * trouvée via le message serveur "All object keys must match") :
+ * PostgREST exige que TOUS les objets d'un tableau envoyé en une seule
+ * requête (upsert groupé) aient EXACTEMENT le même ensemble de clés.
+ * Or JSON.stringify() supprime silencieusement toute clé dont la valeur
+ * vaut "undefined" (pas "null" — "undefined"). Certaines activités plus
+ * anciennes n'ont jamais eu certains champs renseignés sur l'objet en
+ * mémoire (ex: "ticket", "ordre" ou "client" ajoutés après coup, ou
+ * simplement jamais définis pour une activité donnée) : ces champs
+ * valaient alors littéralement "undefined", pas "" ni 0 — leur clé
+ * disparaissait donc du JSON envoyé pour CETTE ligne précise, alors que
+ * les autres lignes du même envoi la conservaient. Résultat : le
+ * tableau envoyé à Supabase contenait des objets aux clés différentes,
+ * rejeté en bloc avec l'erreur 400 "All object keys must match" — la
+ * synchronisation entière échouait à cause d'une seule vieille activité
+ * incomplète, quel que soit le rôle connecté (Administrateur ou
+ * Associé). Corrigé en forçant chaque champ à une valeur définie
+ * (null si absent) : chaque ligne envoyée a désormais TOUJOURS
+ * exactement les mêmes clés, quelle que soit l'ancienneté de l'activité.
+ */
 function mapActiviteVersRow(a, session){
-  return { id:a.id, date:a.date, heure:a.heure, ordre:a.ordre, ticket:a.ticket, type:a.type, desig:a.desig,
-    panne:a.panne, achat:a.achat, qte:a.qte, apayer:a.apayer, paye:a.paye, reste:a.reste, benefice:a.benefice,
-    client:a.client, auteur:a.auteur, cree_par: session.role==='associe' ? session.uid : (a.creePar||null) };
+  return { id:a.id, date:(a.date!==undefined?a.date:null), heure:(a.heure!==undefined?a.heure:null),
+    ordre:(a.ordre!==undefined?a.ordre:null), ticket:(a.ticket!==undefined?a.ticket:null),
+    type:(a.type!==undefined?a.type:null), desig:(a.desig!==undefined?a.desig:null),
+    panne:(a.panne!==undefined?a.panne:null), achat:(a.achat!==undefined?a.achat:null),
+    qte:(a.qte!==undefined?a.qte:null), apayer:(a.apayer!==undefined?a.apayer:null),
+    paye:(a.paye!==undefined?a.paye:null), reste:(a.reste!==undefined?a.reste:null),
+    benefice:(a.benefice!==undefined?a.benefice:null), client:(a.client!==undefined?a.client:null),
+    auteur:(a.auteur!==undefined?a.auteur:null),
+    cree_par: session.role==='associe' ? (session.uid||null) : (a.creePar!==undefined?a.creePar:null) };
 }
-/** Convertit un produit de stock de l'app vers une ligne pour la table "stock". */
+/**
+ * Même correctif que mapActiviteVersRow() ci-dessus, pour la même
+ * raison exacte (PostgREST "All object keys must match" sur un envoi
+ * groupé) : d'anciens articles de stock peuvent ne jamais avoir eu
+ * "heure" ou "seuil" renseignés — on force donc null plutôt que de
+ * laisser la clé disparaître silencieusement du JSON envoyé.
+ */
 function mapStockVersRow(s){
-  return { id:s.id, nom:s.nom, qte_initiale:s.qteInitiale, qte_vendue:s.qteVendue, qte_restante:s.qteRestante,
-    achat:s.achat, vente:s.vente, seuil:s.seuil, date:s.date, heure:s.heure, orig_perso:s.origPerso||0 };
+  return { id:s.id, nom:(s.nom!==undefined?s.nom:null),
+    qte_initiale:(s.qteInitiale!==undefined?s.qteInitiale:null), qte_vendue:(s.qteVendue!==undefined?s.qteVendue:null),
+    qte_restante:(s.qteRestante!==undefined?s.qteRestante:null), achat:(s.achat!==undefined?s.achat:null),
+    vente:(s.vente!==undefined?s.vente:null), seuil:(s.seuil!==undefined?s.seuil:null),
+    date:(s.date!==undefined?s.date:null), heure:(s.heure!==undefined?s.heure:null), orig_perso:s.origPerso||0 };
 }
 
 /**
