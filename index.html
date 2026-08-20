@@ -1574,6 +1574,35 @@ function fillDLClients(){
  *     "ecran a15"    → "Ecran A15"
  *     "type-c"       → "Type-C"
  */
+/**
+ * CORRECTIF (identité unique des produits — Stock Entreprise / Stock
+ * Perso / Vente) : fonction UNIQUE et CENTRALE de normalisation d'un
+ * nom de produit pour toute comparaison d'identité dans l'application.
+ * Utilisée PARTOUT où deux noms doivent être reconnus comme le même
+ * produit (ajout, fusion Perso→Entreprise, vente, recherche/sélection,
+ * commandes) — jamais une logique de comparaison différente ailleurs.
+ *
+ * Cause du bug corrigé : chaque comparaison utilisait déjà .toLowerCase()
+ * (insensible à la casse), MAIS uniquement sur le terme recherché — pas
+ * sur le nom déjà enregistré dans D.stock/D.perso. Un produit existant
+ * avec un espace résiduel au début/à la fin de son nom (ex: copié-collé,
+ * ancienne saisie) ne correspondait donc plus jamais, même en tapant le
+ * nom à l'identique par la suite — la vente le déclarait "inexistant"
+ * alors qu'il existait réellement, avec une quantité parfois disponible.
+ * En appliquant CETTE fonction des DEUX côtés de chaque comparaison
+ * (nom déjà stocké ET nom recherché), le problème est éliminé, quelle
+ * que soit l'origine de l'espace résiduel.
+ *
+ * Ne modifie JAMAIS le nom affiché/enregistré tel que saisi par
+ * l'utilisateur — sert uniquement à la comparaison d'identité.
+ */
+// Réutilise EXACTEMENT la même technique que normSearch() (déjà utilisée
+// pour la recherche) : insensible à la casse ET aux accents. Nécessaire
+// ici aussi car l'exemple même de la demande mélange "Écran A12" et
+// "ECRAN A12" (accent perdu en majuscules, cas très courant au clavier
+// mobile) — ces deux graphies DOIVENT être reconnues comme un seul et
+// même produit.
+function normNom(s){ return normSearch(s).trim(); }
 function capitaliserMots(str){
   if(!str) return str;
   return str.replace(/(^|[\s\-\/])(\p{L})/gu, function(m,sep,letter){ return sep+letter.toUpperCase(); });
@@ -1583,22 +1612,22 @@ function capitaliserChamp(id){
   el.value=capitaliserMots(el.value);
 }
 function autoPA(){
-  var nom=v('a-desig').trim().toLowerCase();
-  var pr=D.stock.concat(D.perso).find(function(p){ return p.nom.toLowerCase()===nom; });
+  var nom=normNom(v('a-desig'));
+  var pr=D.stock.concat(D.perso).find(function(p){ return normNom(p.nom)===nom; });
   if(pr){ sv('a-achat',pr.achat||0); pAct(); }
 }
 /** Pré-remplit le prix d'achat en Stock Ent. si le produit existe déjà (Stock Ent. ou Perso). */
 function autoPS(){
   if(v('s-eid')) return; // ne pas écraser une modification en cours
-  var nom=v('s-nom').trim().toLowerCase(); if(!nom) return;
-  var pr=D.stock.concat(D.perso).find(function(p){ return p.nom.toLowerCase()===nom; });
+  var nom=normNom(v('s-nom')); if(!nom) return;
+  var pr=D.stock.concat(D.perso).find(function(p){ return normNom(p.nom)===nom; });
   if(pr && !v('s-achat')) sv('s-achat',pr.achat||0);
 }
 /** Pré-remplit le prix d'achat en Stock Perso si le produit existe déjà (Stock Ent. ou Perso). */
 function autoPP(){
   if(v('p-eid')) return; // ne pas écraser une modification en cours
-  var nom=v('p-nom').trim().toLowerCase(); if(!nom) return;
-  var pr=D.stock.concat(D.perso).find(function(p){ return p.nom.toLowerCase()===nom; });
+  var nom=normNom(v('p-nom')); if(!nom) return;
+  var pr=D.stock.concat(D.perso).find(function(p){ return normNom(p.nom)===nom; });
   if(pr && !v('p-achat')) sv('p-achat',pr.achat||0);
 }
 function pAct(){
@@ -1811,7 +1840,7 @@ function migrerStockPerso(){
   if(D._migrePersoV2) return;
   (D.perso||[]).forEach(function(p){
     if(!p.nom || !p.qteInitiale) return;
-    var s=D.stock.find(function(x){ return x.nom.toLowerCase()===p.nom.toLowerCase(); });
+    var s=D.stock.find(function(x){ return normNom(x.nom)===normNom(p.nom); });
     if(s){
       // Le produit existe déjà côté entreprise : on fusionne les quantités.
       // Pour la quantité déjà vendue, on prend le maximum des deux compteurs
@@ -1900,7 +1929,7 @@ function validerActionSecurisee(){
 }
 function ajusterStockVendu(desig, delta){
   if(!desig || !delta) return;
-  var pr=D.stock.find(function(p){ return p.nom.toLowerCase()===desig.toLowerCase(); });
+  var pr=D.stock.find(function(p){ return normNom(p.nom)===normNom(desig); });
   if(pr){ pr.qteVendue=Math.max(0,(pr.qteVendue||0)+delta); pr.qteRestante=Math.max(0,pr.qteInitiale-(pr.qteVendue||0)); }
 }
 /**
@@ -1911,7 +1940,7 @@ function ajusterStockVendu(desig, delta){
  * apporté quoi (champ origPerso) au sein du stock unique.
  */
 function fusionnerDansStockEnt(nom, qte, achat, vente, date){
-  var s=D.stock.find(function(x){ return x.nom.toLowerCase()===nom.toLowerCase(); });
+  var s=D.stock.find(function(x){ return normNom(x.nom)===normNom(nom); });
   if(s){
     s.qteInitiale=(s.qteInitiale||0)+qte;
     s.origPerso=(s.origPerso||0)+qte;
@@ -1926,7 +1955,7 @@ function fusionnerDansStockEnt(nom, qte, achat, vente, date){
 }
 /** Retire une quantité personnelle précédemment fusionnée (annulation/suppression). */
 function retirerDeStockEnt(nom, qte){
-  var s=D.stock.find(function(x){ return x.nom.toLowerCase()===nom.toLowerCase(); });
+  var s=D.stock.find(function(x){ return normNom(x.nom)===normNom(nom); });
   if(!s || !qte) return;
   s.qteInitiale=Math.max(0,(s.qteInitiale||0)-qte);
   s.origPerso=Math.max(0,(s.origPerso||0)-qte);
@@ -1976,7 +2005,7 @@ function enrAjoutQte(){
  * est partie — on répartit donc au prorata de l'apport personnel).
  */
 function calcPersoVenduRestant(p){
-  var s=D.stock.find(function(x){ return x.nom.toLowerCase()===p.nom.toLowerCase(); });
+  var s=D.stock.find(function(x){ return normNom(x.nom)===normNom(p.nom); });
   if(!s || !s.qteInitiale) return {vendu:0,restant:p.qteInitiale};
   var part=p.qteInitiale/s.qteInitiale;
   var vendu=Math.min(p.qteInitiale,Math.round((s.qteVendue||0)*part));
@@ -2007,7 +2036,7 @@ function enrAct(){
    * correspond à aucun article de stock (ex: "Changement batterie").
    */
   if(type==='Vente'){
-    var prodStock=D.stock.find(function(s){ return s.nom.toLowerCase()===desig.toLowerCase(); });
+    var prodStock=D.stock.find(function(s){ return normNom(s.nom)===normNom(desig); });
     if(!prodStock){
       notif('❌ Vente refusée : "'+desig+'" n\'existe dans aucun stock (Entreprise ou Perso). Ajoutez-le d\'abord dans le Stock avant de le vendre.',7000);
       elDesig.classList.add('input-error'); elDesig.focus();
@@ -2019,7 +2048,7 @@ function enrAct(){
     // disponibilité pour ne pas bloquer une simple correction de quantité.
     if(eid){
       var ancienne=D.activites.find(function(x){ return x.id==eid; });
-      if(ancienne && ancienne.desig.toLowerCase()===desig.toLowerCase()) restantDispo+=(ancienne.qte||0);
+      if(ancienne && normNom(ancienne.desig)===normNom(desig)) restantDispo+=(ancienne.qte||0);
     }
     if(qte>restantDispo){
       notif('❌ Vente refusée : stock insuffisant pour "'+desig+'" (disponible : '+restantDispo+', demandé : '+qte+').',7000);
@@ -2172,7 +2201,7 @@ function enrStock(){
     if(s){ s.nom=nom;s.qteInitiale=qte;s.achat=achat;s.vente=vente;s.seuil=seuil;s.categorie=categorie;s.qteRestante=Math.max(0,qte-(s.qteVendue||0)); }
     ah('stock','Modif stock: '+nom,achat*qte,date);
   } else {
-    var ex=D.stock.find(function(x){ return x.nom.toLowerCase()===nom.toLowerCase(); });
+    var ex=D.stock.find(function(x){ return normNom(x.nom)===normNom(nom); });
     if(ex){ ex.qteInitiale+=qte;ex.achat=achat;ex.vente=vente;ex.seuil=seuil;if(categorie)ex.categorie=categorie;ex.qteRestante=Math.max(0,ex.qteInitiale-(ex.qteVendue||0)); }
     else D.stock.push({id:Date.now(),nom:nom,qteInitiale:qte,qteVendue:0,qteRestante:qte,achat:achat,vente:vente,seuil:seuil,categorie:categorie,date:date,heure:nowHM()});
     ah('stock','Entrée: '+nom+' x'+qte,achat*qte,date);
@@ -2228,7 +2257,7 @@ function enrPerso(){
       var deltaQte=qte-(p.qteInitiale||0);
       if(deltaQte>0) fusionnerDansStockEnt(nom,deltaQte,achat,vente,date);
       else if(deltaQte<0) retirerDeStockEnt(p.nom,-deltaQte);
-      if(nom.toLowerCase()!==p.nom.toLowerCase()){
+      if(normNom(nom)!==normNom(p.nom)){
         // Renommage : on déplace toute la quantité de l'ancien nom vers le nouveau
         retirerDeStockEnt(p.nom,qte-Math.max(0,deltaQte));
         fusionnerDansStockEnt(nom,qte-Math.max(0,deltaQte),achat,vente,date);
@@ -2237,7 +2266,7 @@ function enrPerso(){
     }
     ah('perso','Modif perso: '+nom,totalDu,date);
   } else {
-    var ex=D.perso.find(function(x){ return x.nom.toLowerCase()===nom.toLowerCase(); });
+    var ex=D.perso.find(function(x){ return normNom(x.nom)===normNom(nom); });
     if(ex){ ex.qteInitiale+=qte;ex.prixRevient+=prixRevient;ex.commission+=commission;ex.totalDu+=totalDu; }
     else D.perso.push({id:Date.now(),nom:nom,qteInitiale:qte,achat:achat,vente:vente,prixRevient:prixRevient,commission:commission,totalDu:totalDu,rembourse:0,date:date,heure:nowHM()});
     // Fusion immédiate et automatique dans le Stock Entreprise (stock physique unique)
@@ -2623,7 +2652,7 @@ function genererCmdFournisseurAuto(){
   var lignes = existante ? existante.produits.slice() : [];
   var ajoutes=0;
   faibles.forEach(function(s){
-    var dejaPresent=lignes.some(function(l){ return (l.produit||'').toLowerCase()===s.nom.toLowerCase(); });
+    var dejaPresent=lignes.some(function(l){ return normNom(l.produit)===normNom(s.nom); });
     if(dejaPresent) return;
     var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
     var qteCmd=Math.max((s.seuil||3)*3,10);
@@ -2661,7 +2690,7 @@ function texteCmdFournisseurGroupe(produits, titre){
   var groupes={}, sansCategorie=[];
   produits.forEach(function(l){
     if(!l.produit || !l.qte) return;
-    var s=D.stock.find(function(x){ return x.nom.toLowerCase()===l.produit.toLowerCase(); });
+    var s=D.stock.find(function(x){ return normNom(x.nom)===normNom(l.produit); });
     var cat=(s && s.categorie ? s.categorie.trim() : '').toUpperCase();
     if(cat){ (groupes[cat]=groupes[cat]||[]).push(l); }
     else sansCategorie.push(l);
@@ -2973,7 +3002,7 @@ function commandeEstDisponible(c){
   if(!c.produits || !c.produits.length) return false;
   return c.produits.every(function(l){
     if(!l.produit) return true;
-    var s=D.stock.find(function(x){ return x.nom.toLowerCase()===l.produit.toLowerCase(); });
+    var s=D.stock.find(function(x){ return normNom(x.nom)===normNom(l.produit); });
     if(!s) return false;
     var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
     return restant>=(l.qte||0);
@@ -3246,7 +3275,7 @@ function rPerso(){
   items.forEach(function(p){
     var r=p.totalDu-p.rembourse; tot+=r;
     var vr=calcPersoVenduRestant(p);
-    var lie=D.stock.some(function(s){ return s.nom.toLowerCase()===p.nom.toLowerCase(); });
+    var lie=D.stock.some(function(s){ return normNom(s.nom)===normNom(p.nom); });
     totInit+=p.qteInitiale||0; totVendu+=vr.vendu; totRestant+=vr.restant; totAchatU+=p.achat||0;
     totRevient+=(p.prixRevient||p.achat*p.qteInitiale); totCommission+=p.commission||0; totDu+=p.totalDu||0;
     html+='<tr>';
@@ -4267,7 +4296,15 @@ function viderDep() {
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
 var APP_VERSION = 'v39';
-var APP_DERNIERE_MAJ = '2026-08-14T22:51:00'; // Sync depenses/dettes/paiements vers Supabase (jusque-là jamais écrites), badge Associé rafraîchi après connexion, propagation des suppressions dettes/paiements/dépenses
+// CORRECTIF ("l'application ne tient pas compte de l'actualisation de la
+// date de sa dernière mise à jour") : cette date n'est PAS calculée
+// automatiquement (ce fichier est un fichier unique sans étape de build,
+// il n'y a pas de source fiable — ni horodatage serveur, ni hash de
+// build — pour la déduire toute seule). C'est une constante à mettre à
+// jour à la main à CHAQUE modification livrée, exactement comme les
+// entrées précédentes ci-dessous le montrent déjà. Elle n'avait
+// simplement pas été mise à jour lors des dernières corrections.
+var APP_DERNIERE_MAJ = '2026-08-19T02:00:00'; // Identité unique des produits (Stock Entreprise/Perso/Vente) : normalisation centrale normNom() (casse + espaces + accents) appliquée à toutes les comparaisons de noms de produits — corrige les ventes refusées "produit inexistant" alors que le produit existait avec une casse/espace différent
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
@@ -4643,7 +4680,13 @@ function doLoginVisiteur(){
     if (e && e.message === 'code') { err.textContent='❌ Code incorrect ou accès verrouillé.'; return; }
     var cache = null;
     try{ cache = JSON.parse(localStorage.getItem('bpro_visiteur_cache')||'null'); }catch(e2){}
-    if (cache && cache.code === code) {
+    // CORRECTIF (cohérence sécurité) : même fenêtre de confiance hors
+    // ligne que pour Admin/Associé (voir tenterReconnexionHorsLigne,
+    // offline_ok_until = 30 jours) — sans cette limite, un code
+    // Visiteur changé ou révoqué par l'Administrateur continuait de
+    // donner accès aux dernières données mises en cache, indéfiniment,
+    // tant que l'appareil restait hors ligne.
+    if (cache && cache.code === code && (Date.now()-(cache.ts||0)) < (30*24*3600*1000)) {
       entrerVueVisiteur(cache.rows, code);
       err.textContent='';
       notif('📴 Mode hors ligne — dernières données synchronisées le '+new Date(cache.ts).toLocaleString('fr-FR'));
@@ -5100,6 +5143,36 @@ document.addEventListener('DOMContentLoaded',function(){
   } else if(isLoggedIn()){
     document.getElementById('login-screen').classList.add('hidden');
     activerInterfaceSelonRole();
+    /**
+     * CORRECTIF (Compte Visiteur — écran figé après actualisation) :
+     * les valeurs du patrimoine (vv-capital, vv-doit, vv-total…) ne
+     * sont écrites que dans le DOM (jamais mises en cache localStorage
+     * par afficherVueVisiteur elle-même, par sécurité), alors que
+     * sessionStorage (bpro_session) survit à une actualisation de page
+     * dans le même onglet. Résultat : un Visiteur qui actualise la
+     * page (très courant sur mobile — rechargement de la PWA, retour
+     * en avant-plan après un moment…) restait connecté selon l'app,
+     * mais avec un écran vide affichant "Chargement…" indéfiniment,
+     * car rien ne relançait jamais acceder_patrimoine_visiteur(). On
+     * relance donc ici le même chargement qu'au bouton ⟳ (en ligne),
+     * avec repli sur le cache local déjà existant (hors ligne) — même
+     * logique que doLoginVisiteur(), aucune nouvelle formule créée.
+     */
+    if (isVisiteur()) {
+      var codeVisiteurRepris = sessionStorage.getItem('bpro_visiteur_code');
+      if (codeVisiteurRepris) {
+        if (navigator.onLine) {
+          rafraichirVisiteur();
+        } else {
+          var cacheVisiteurRepris = null;
+          try{ cacheVisiteurRepris = JSON.parse(localStorage.getItem('bpro_visiteur_cache')||'null'); }catch(eCacheV){}
+          if (cacheVisiteurRepris && cacheVisiteurRepris.code === codeVisiteurRepris && (Date.now()-(cacheVisiteurRepris.ts||0)) < (30*24*3600*1000)) {
+            entrerVueVisiteur(cacheVisiteurRepris.rows, codeVisiteurRepris);
+            notif('📴 Mode hors ligne — dernières données du '+new Date(cacheVisiteurRepris.ts).toLocaleString('fr-FR'));
+          }
+        }
+      }
+    }
   } else {
     document.getElementById('inp-login').focus();
   }
@@ -5362,17 +5435,36 @@ function syncActivitesEtStockVersNouvellesTables(){
   if (!navigator.onLine) return;
   var payloadAct = D.activites.map(function(a){ return mapActiviteVersRow(a, session); });
   var payloadStock = session.role === 'admin' ? D.stock.map(mapStockVersRow) : null;
+  // CORRECTIF ("le compte Associé ne synchronise pas ses Activités") :
+  // cette fonction envoyait déjà réellement les données vers Supabase,
+  // mais ne mettait JAMAIS à jour le badge de statut (#sync-status) —
+  // celui-ci restait figé sur "⚪ Mode Associé" (fixé une seule fois à
+  // la connexion, voir appliquerSession()) pendant toute la session,
+  // qu'une synchronisation réussisse, échoue, ou n'ait même jamais lieu.
+  // Résultat pour l'utilisateur : aucune preuve visuelle qu'une Activité
+  // a bien été envoyée — indiscernable d'une vraie panne de sync. Ajout
+  // d'un retour visuel réel, pour les DEUX rôles (Admin et Associé),
+  // sans toucher au calcul ni à l'envoi des données eux-mêmes.
+  var enAttente = payloadAct.length + (payloadStock ? payloadStock.length : 0);
+  if (enAttente) setSyncStatus('syncing', '🟠 Synchronisation des activités…');
+  var echecAct = false, echecStock = false;
+  var termine = function(){
+    if (!enAttente) return; // rien n'était à envoyer, ne pas écraser un autre statut affiché ailleurs
+    var d=new Date(), h=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+    if (echecAct || echecStock) setSyncStatus('error', '🔴 Erreur de synchronisation des activités');
+    else setSyncStatus(isAssocie() ? 'online' : 'online', (isAssocie() ? '🟢 Activités synchronisées ' : '🟢 Synchronisé ') + h);
+  };
   if (payloadAct.length) {
     console.log('[sync] activites: '+payloadAct.length+' en attente d\'envoi…');
     supabaseTable('/rest/v1/activites', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:JSON.stringify(payloadAct) }, session.access_token)
-      .then(function(r){ console.log(r.ok?'[sync] activites: synced ✅':'[sync] activites: échec, resteront pending — '+r.status); })
-      .catch(function(e){ console.error('[sync activites] pending, retenté à la prochaine occasion —', e); });
+      .then(function(r){ console.log(r.ok?'[sync] activites: synced ✅':'[sync] activites: échec, resteront pending — '+r.status); echecAct = !r.ok; termine(); })
+      .catch(function(e){ console.error('[sync activites] pending, retenté à la prochaine occasion —', e); echecAct = true; termine(); });
   }
   if (payloadStock && payloadStock.length) {
     console.log('[sync] stock: '+payloadStock.length+' en attente d\'envoi…');
     supabaseTable('/rest/v1/stock', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:JSON.stringify(payloadStock) }, session.access_token)
-      .then(function(r){ console.log(r.ok?'[sync] stock: synced ✅':'[sync] stock: échec, restera pending — '+r.status); })
-      .catch(function(e){ console.error('[sync stock] pending, retenté à la prochaine occasion —', e); });
+      .then(function(r){ console.log(r.ok?'[sync] stock: synced ✅':'[sync] stock: échec, restera pending — '+r.status); echecStock = !r.ok; termine(); })
+      .catch(function(e){ console.error('[sync stock] pending, retenté à la prochaine occasion —', e); echecStock = true; termine(); });
   }
 }
 /**
