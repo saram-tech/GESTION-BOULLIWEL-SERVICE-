@@ -639,6 +639,34 @@ async function attendre(ms){ return new Promise(r=>setTimeout(r, ms)); }
     ok('TEST 26 : le stock existant (Écran A12) reste totalement intact', window.D.stock[0].qteRestante===5);
   }
 
+  // ===================================================================
+  // TEST 27 — RÉGRESSION : erreur Supabase 400 "All object keys must
+  // match" lors de la synchronisation des Activités (Associé), causée
+  // par des activités anciennes n'ayant jamais eu certains champs
+  // définis (valeur "undefined", supprimée silencieusement par
+  // JSON.stringify). Vérifie que TOUTES les lignes envoyées ont
+  // exactement le même ensemble de clés, même quand une activité en
+  // mémoire a un champ manquant.
+  // ===================================================================
+  {
+    const { window } = nouvelleFenetre(async()=>({ok:true,status:200,json:async()=>[]}), true);
+    await attendre(50);
+    var session = { access_token:'faux-token', role:'admin', uid:'aaaa-bbbb' };
+    // Une activité "complète" et une activité "ancienne" à qui il manque
+    // littéralement la propriété "ticket" (pas vide : absente).
+    var complete = { id:1, date:'2026-08-19', heure:'10:00', ordre:1, ticket:'T123', type:'Vente', desig:'Écran A12', panne:'', achat:100000, qte:1, apayer:130000, paye:130000, reste:0, benefice:30000, client:'', auteur:'Administrateur' };
+    var ancienne = { id:2, date:'2026-01-05', heure:'09:00', type:'Vente', desig:'Vieux produit', achat:5000, qte:1, apayer:7000, paye:7000, reste:0, benefice:2000, auteur:'Administrateur' };
+    // (pas de "ticket", "ordre", "panne", "client" sur "ancienne" — exactement le cas réel signalé)
+    var ligne1 = window.mapActiviteVersRow(complete, session);
+    var ligne2 = window.mapActiviteVersRow(ancienne, session);
+    var clesJSON1 = Object.keys(JSON.parse(JSON.stringify(ligne1))).sort();
+    var clesJSON2 = Object.keys(JSON.parse(JSON.stringify(ligne2))).sort();
+    ok('TEST 27 : les deux lignes JSON ont EXACTEMENT le même ensemble de clés (corrige "All object keys must match")',
+      JSON.stringify(clesJSON1)===JSON.stringify(clesJSON2),
+      'complète='+JSON.stringify(clesJSON1)+' | ancienne='+JSON.stringify(clesJSON2));
+    ok('TEST 27 : le champ manquant ("ticket") devient bien null, pas absent', ligne2.ticket===null, 'ticket='+ligne2.ticket);
+  }
+
   console.log('\n==================== RÉSULTATS ====================');
   var nbOk=0, nbKo=0;
   results.forEach(function(r){
