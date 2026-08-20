@@ -12,9 +12,20 @@
      1. Modifier CACHE_VERSION ci-dessous (ex: 'v4').
      2. Le nouveau Service Worker installera un nouveau cache, activera,
         puis supprimera automatiquement les caches obsolètes.
+
+   ⚠️ RAPPEL IMPORTANT (cause d'un bug réel vécu le 20-08-2026) :
+   Ce fichier utilise une stratégie "Cache First" — le téléphone sert
+   TOUJOURS la version déjà enregistrée localement, sans jamais vérifier
+   s'il en existe une plus récente, TANT QUE ce fichier sw.js lui-même
+   n'a pas changé au moins d'un caractère (ex: CACHE_VERSION). Uploader
+   un nouveau index.html sur GitHub SANS incrémenter CACHE_VERSION ici
+   ne suffit PAS : le téléphone continuera de servir l'ancien index.html
+   indéfiniment, même si le nouveau est bien en ligne. CHAQUE mise à
+   jour d'index.html (ou de tout autre fichier de l'app shell) DOIT
+   s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v44';
+const CACHE_VERSION = 'v45';
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
