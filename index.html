@@ -383,8 +383,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
       <h3 style="margin:0">📋 Vos activités</h3>
       <div style="display:flex;gap:6px">
-        <button class="btn bh bsm no-print" onclick="imprimerSection('va-dashboard','Ma situation')" title="Imprimer">🖨️ Imprimer</button>
-        <button class="btn bs bsm" onclick="om('ma')" title="Enregistrer une nouvelle vente/réparation/service">➕ Nouvelle activité</button>
+        <button class="btn bs bsm" onclick="rAF();om('ma')" title="Enregistrer une nouvelle vente/réparation/service">➕ Nouvelle activité</button>
       </div>
     </div>
     <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
@@ -1284,7 +1283,6 @@ tbody tr:last-child td{border-bottom:none;}
 <button id="btn-retour" onclick="goBack()" title="Retour">←</button>
 <div id="notif"></div>
 <input type="file" id="fi" accept=".json" style="display:none" onchange="hImport(event)">
-<div id="print-area"></div>
 <input type="file" id="fi-xlsx" accept=".xlsx,.xls" style="display:none" onchange="hImportExcel(event)">
 
 
@@ -4304,7 +4302,7 @@ var APP_VERSION = 'v39';
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-08-21T00:00:00'; // CAUSE RÉELLE trouvée et corrigée : erreur RLS 403 "(USING expression)" bloquant TOUTE la sync des Activités Associé — une activité Admin restée en mémoire locale (appareil partagé) était renvoyée dans le même lot, refusée par Supabase (n'appartient pas à l'Associé), ce qui annulait tout l'envoi groupé y compris les nouvelles ventes valides. syncActivitesEtStockVersNouvellesTables() exclut désormais toute activité n'appartenant pas à l'Associé avant l'envoi.
+var APP_DERNIERE_MAJ = '2026-08-21T22:00:00'; // Formulaire "Nouvelle activité" Associé : ajout de rAF() avant ouverture (manquait), exactement comme les 2 boutons équivalents côté Administrateur — le formulaire s'ouvrait sans réinitialisation, avec d'éventuelles données d'une saisie précédente.
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
@@ -5912,5 +5910,15 @@ function testSupabaseConnection() {
        using (id = 'boulliwel-secret-2026')
        with check (id = 'boulliwel-secret-2026');
   ===================================================================== -->
+<!--
+  CORRECTIF (impression Administrateur/Visiteur — pages blanches) :
+  #print-area doit être un enfant DIRECT de <body> pour que la règle CSS
+  "body.printing-mode > *:not(#print-area){display:none}" fonctionne —
+  cette règle ne cache que les enfants directs de body ; imbriqué plus
+  profondément (comme précédemment), #print-area restait invisible car
+  son parent, lui, était masqué. Simple déplacement de balise, aucune
+  logique ni donnée changée.
+-->
+<div id="print-area"></div>
 </body>
 </html>
