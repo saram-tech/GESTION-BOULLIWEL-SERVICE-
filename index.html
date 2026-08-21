@@ -4304,7 +4304,7 @@ var APP_VERSION = 'v39';
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-08-20T04:30:00'; // CAUSE RÉELLE trouvée et corrigée : erreur Supabase 400 "All object keys must match" lors de la sync Activités/Stock — d'anciennes activités/articles sans certains champs définis ("undefined") faisaient disparaître ces clés du JSON envoyé, cassant l'envoi groupé pour TOUT le lot. mapActiviteVersRow()/mapStockVersRow() forcent désormais null au lieu de undefined pour chaque champ.
+var APP_DERNIERE_MAJ = '2026-08-21T00:00:00'; // CAUSE RÉELLE trouvée et corrigée : erreur RLS 403 "(USING expression)" bloquant TOUTE la sync des Activités Associé — une activité Admin restée en mémoire locale (appareil partagé) était renvoyée dans le même lot, refusée par Supabase (n'appartient pas à l'Associé), ce qui annulait tout l'envoi groupé y compris les nouvelles ventes valides. syncActivitesEtStockVersNouvellesTables() exclut désormais toute activité n'appartenant pas à l'Associé avant l'envoi.
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
@@ -5469,7 +5469,31 @@ function syncActivitesEtStockVersNouvellesTables(){
   var session = getSession();
   if (!session || !session.access_token) return;   // Solution A pas encore activée sur cet appareil
   if (!navigator.onLine) return;
-  var payloadAct = D.activites.map(function(a){ return mapActiviteVersRow(a, session); });
+  /**
+   * CORRECTIF (erreur 403 RLS "(USING expression)" — cause exacte
+   * trouvée) : cette fonction renvoyait TOUT D.activites, sans filtrer.
+   * Sur un appareil ayant servi aux deux comptes (Admin ET Associé —
+   * cas déjà rencontré pour d'autres données, voir mergeAppData), une
+   * activité de l'Administrateur peut être restée en mémoire locale
+   * après le passage en Associé (fusion par id, qui préserve les
+   * entrées existantes plutôt que de les supprimer — comportement
+   * volontaire pour ne jamais perdre de données). Cette activité
+   * "étrangère" était alors renvoyée dans le même lot que les nouvelles
+   * ventes de l'Associé. Comme l'envoi se fait avec upsert (merge sur
+   * id), Supabase tentait une MISE À JOUR de cette ligne existante —
+   * et la politique RLS "USING" (cree_par = auth.uid()) refusait, car
+   * cette ligne ne lui appartient pas. Une seule ligne refusée annule
+   * TOUT le lot envoyé en une seule requête, y compris les activités
+   * réellement nouvelles et valides de l'Associé — d'où le blocage
+   * total et persistant de la synchronisation.
+   * Corrigé en ne renvoyant, pour l'Associé, QUE ses propres activités
+   * (déjà identifiées comme siennes, ou pas encore attribuées car
+   * créées localement et pas encore synchronisées) — jamais une
+   * activité appartenant à quelqu'un d'autre.
+   */
+  var payloadAct = D.activites
+    .filter(function(a){ return session.role!=='associe' || a.creePar===undefined || a.creePar===session.uid; })
+    .map(function(a){ return mapActiviteVersRow(a, session); });
   var payloadStock = session.role === 'admin' ? D.stock.map(mapStockVersRow) : null;
   // CORRECTIF ("le compte Associé ne synchronise pas ses Activités") :
   // cette fonction envoyait déjà réellement les données vers Supabase,
