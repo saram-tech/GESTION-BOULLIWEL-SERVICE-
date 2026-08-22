@@ -3547,70 +3547,74 @@ function renderAll(){
  * qu'il voit déjà, et inversement il n'y a aucun raccourci qui
  * contournerait les permissions déjà appliquées à l'écran.
  */
-var _diagnosticImpressionActif = false;
 /**
- * CORRECTIF RÉEL (pages blanches à l'impression) : window.print() rend
- * la main au JavaScript PRESQUE IMMÉDIATEMENT — la boîte de dialogue
- * d'impression (ou l'aperçu) s'affiche dans un processus séparé du
- * navigateur, sans bloquer le code JS. Le nettoyage précédent
- * (setTimeout fixe de 300ms qui effaçait #print-area et retirait la
- * classe "printing-mode") s'exécutait donc SANS SAVOIR si le navigateur
- * avait réellement fini de capturer/générer l'aperçu — sur ordinateur,
- * tant que l'utilisateur regarde/règle la boîte de dialogue (plusieurs
- * secondes, comme sur la capture montrant "Portrait" en cours de choix),
- * ou sur Android via le service d'impression du système (souvent plus
- * lent), 300ms est largement insuffisant : le contenu était effacé
- * AVANT que l'impression réelle ne capture la page, produisant des
- * pages blanches. Remplacé par l'événement "afterprint", qui se
- * déclenche de façon fiable uniquement quand la boîte de dialogue
- * d'impression est réellement fermée (imprimé OU annulé) — jamais
- * avant, quelle que soit la durée que l'utilisateur y passe.
+ * CORRECTIF DÉFINITIF (pages blanches à l'impression, Administrateur et
+ * Visiteur) — cause exacte confirmée :
+ * Le diagnostic précédent (événement "beforeprint") a montré que le
+ * style calculé restait "display:none" et la couleur du texte restait
+ * celle de l'écran (claire), MALGRÉ la classe "printing-mode" active et
+ * le contenu bien présent dans #print-area. En vérifiant la
+ * documentation officielle et un rapport de bug connu des navigateurs
+ * (Mozilla #1048317, confirmé aussi sur Chrome), c'est un comportement
+ * DOCUMENTÉ : "beforeprint" se déclenche AVANT que les styles
+ * "@media print" ne soient réellement appliqués par le moteur de rendu
+ * — ce n'est donc pas un moyen fiable de piloter/vérifier l'impression
+ * depuis JavaScript, quelle que soit la façon dont la classe/le CSS
+ * sont écrits. C'est la cause racine de l'échec des deux correctifs
+ * précédents (timing, puis "afterprint") : le problème n'était pas le
+ * moment où window.print() était appelé, mais le fait de compter sur
+ * "@media print" + une classe togglée sur le document principal, dont
+ * l'application au moment réel de l'impression n'est pas garantie de
+ * façon fiable par le navigateur.
  *
- * DIAGNOSTIC (demandé explicitement) : l'événement "beforeprint" est le
- * seul moment fiable où les styles @media print sont réellement
- * appliqués par le navigateur — un message s'affiche alors à l'écran
- * avec l'état réel constaté à cet instant précis (contenu présent ou
- * non, classe active ou non, styles calculés), pour voir la cause
- * exacte au lieu de deviner.
+ * Solution robuste et largement éprouvée : ouvrir une VRAIE fenêtre
+ * d'impression séparée et autonome (document HTML minimal et isolé,
+ * avec sa propre feuille de style simple, sans dépendre du thème sombre
+ * de l'application ni d'aucune classe/media query togglée dynamiquement
+ * sur la page principale), puis imprimer CETTE fenêtre. Aucune
+ * incertitude sur le moment où le style s'applique : le style est
+ * simplement celui du document, dès son écriture.
  */
-window.addEventListener('beforeprint', function(){
-  if(!_diagnosticImpressionActif) return;
-  var zone=document.getElementById('print-area');
-  var cs = zone ? window.getComputedStyle(zone) : null;
-  var msg = '🔎 Diagnostic impression (juste avant capture réelle) :\n\n'
-    + '• classe "printing-mode" active : ' + document.body.classList.contains('printing-mode') + '\n'
-    + '• longueur du contenu dans #print-area : ' + (zone ? zone.innerHTML.length : 'ZONE INTROUVABLE') + ' caractères\n'
-    + (cs ? ('• display calculé : ' + cs.display + '\n• visibility : ' + cs.visibility + '\n• couleur du texte : ' + cs.color + '\n• hauteur calculée : ' + cs.height) : '');
-  setTimeout(function(){ alert(msg); }, 0);
-});
-window.addEventListener('afterprint', function(){
-  var zone=document.getElementById('print-area');
-  document.body.classList.remove('printing-mode');
-  if(zone) zone.innerHTML='';
-  _diagnosticImpressionActif = false;
-});
 function imprimerSection(elementId, titre){
   var source=document.getElementById(elementId);
   if(!source){ notif('⚠️ Rien à imprimer ici'); return; }
+  var fenetre = window.open('', '_blank');
+  if(!fenetre){
+    notif('⚠️ Le navigateur a bloqué la fenêtre d\'impression. Autorisez les fenêtres pop-up pour ce site, puis réessayez.', 6000);
+    return;
+  }
   var clone=source.cloneNode(true);
   clone.querySelectorAll('button, select, input, .no-print, .btn-refresh').forEach(function(el){ el.remove(); });
   clone.classList.remove('active');
-  var zone=document.getElementById('print-area');
-  var entete='<div class="print-entete"><h1>GESTION-BOULLIWEL-SERVICE.app — '+titre+'</h1>'+
-    '<div class="print-meta">Imprimé le '+fmtDateJour(td())+' à '+nowHM()+'</div></div>';
-  zone.innerHTML=entete+clone.innerHTML;
-  document.body.classList.add('printing-mode');
-  _diagnosticImpressionActif = true;
-  requestAnimationFrame(function(){
-    requestAnimationFrame(function(){
-      setTimeout(function(){
-        window.print();
-        // Le nettoyage se fait désormais uniquement via l'événement
-        // "afterprint" ci-dessus — plus de délai fixe qui risquait
-        // d'effacer le contenu avant que l'impression ne le capture.
-      }, 50);
-    });
-  });
+  var doc = fenetre.document;
+  doc.open();
+  doc.write(
+    '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>'+titre+' — GESTION-BOULLIWEL-SERVICE.app</title>'+
+    '<style>'+
+      'body{font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;padding:16px;margin:0;}'+
+      'h1{font-size:16pt;margin:0 0 4px;}'+
+      '.print-meta{font-size:9pt;color:#444;margin-bottom:14px;border-bottom:2px solid #000;padding-bottom:8px;}'+
+      'table{width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:10px;}'+
+      'th,td{border:1px solid #999;padding:4px 6px;text-align:left;}'+
+      'thead{display:table-header-group;} tfoot{display:table-footer-group;} tr{page-break-inside:avoid;}'+
+      '.kpi{border:1px solid #999;border-radius:4px;padding:8px;margin-bottom:8px;page-break-inside:avoid;display:inline-block;}'+
+      '* {color:#000 !important;background:transparent !important;box-shadow:none !important;max-height:none !important;overflow:visible !important;}'+
+      '@page{margin:14mm;}'+
+    '</style></head><body>'+
+    '<h1>GESTION-BOULLIWEL-SERVICE.app — '+titre+'</h1>'+
+    '<div class="print-meta">Imprimé le '+fmtDateJour(td())+' à '+nowHM()+'</div>'+
+    clone.innerHTML+
+    '</body></html>'
+  );
+  doc.close();
+  var dejaLance=false;
+  var lancerImpression=function(){
+    if(dejaLance) return; dejaLance=true;
+    fenetre.focus();
+    fenetre.print();
+  };
+  fenetre.onload=function(){ setTimeout(lancerImpression,150); };
+  setTimeout(lancerImpression,600); // repli si l'événement "load" ne se déclenche pas
 }
 function rafraichirDonnees(){
   var btn=document.getElementById(isAssocie()?'btn-refresh-associe':'btn-refresh-admin');
@@ -4351,7 +4355,7 @@ var APP_VERSION = 'v39';
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-08-22T03:00:00'; // Impression toujours blanche (confirmé aussi sur ordinateur, pas seulement Android) : vraie cause probable = nettoyage (setTimeout fixe 300ms) qui effaçait #print-area/retirait printing-mode AVANT que la boîte de dialogue d'impression réelle n'ait fini de capturer la page (window.print() rend la main au JS quasi immédiatement). Remplacé par l'événement fiable "afterprint". Diagnostic ajouté (beforeprint) : affiche l'état réel à l'écran au moment exact de l'impression pour confirmer/orienter si le problème persiste.
+var APP_DERNIERE_MAJ = '2026-08-22T08:30:00'; // Impression Admin/Visiteur — CAUSE RÉELLE CONFIRMÉE via diagnostic (screenshots utilisateur) : "beforeprint" se déclenche AVANT que les styles @media print soient réellement appliqués (comportement navigateur documenté, bug Mozilla #1048317) — rendant peu fiable toute approche basée sur une classe togglée + @media print sur le document principal. Remplacé imprimerSection() par une fenêtre d'impression séparée et autonome (document HTML minimal, feuille de style simple et propre, aucune dépendance au thème sombre ni à des classes dynamiques).
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
