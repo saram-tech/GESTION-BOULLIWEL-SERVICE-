@@ -3558,10 +3558,29 @@ function imprimerSection(elementId, titre){
     '<div class="print-meta">Imprimé le '+fmtDateJour(td())+' à '+nowHM()+'</div></div>';
   zone.innerHTML=entete+clone.innerHTML;
   document.body.classList.add('printing-mode');
-  setTimeout(function(){
-    window.print();
-    setTimeout(function(){ document.body.classList.remove('printing-mode'); zone.innerHTML=''; }, 300);
-  }, 60);
+  /**
+   * CORRECTIF (pages blanches à l'impression — persistant malgré le
+   * correctif précédent sur la position de #print-area) : un délai fixe
+   * (setTimeout 60ms) avant window.print() ne garantit pas que le
+   * navigateur ait réellement terminé de calculer/peindre la nouvelle
+   * mise en page (contenu injecté + classe "printing-mode") au moment
+   * où l'impression capture la page — surtout sur un téléphone, où le
+   * rendu peut prendre plus de temps que sur un ordinateur. Remplacé
+   * par un DOUBLE requestAnimationFrame : technique standard et fiable
+   * pour attendre que le navigateur ait effectué un cycle de peinture
+   * complet avant de continuer, plutôt que de parier sur une durée fixe
+   * qui peut être insuffisante. Un court setTimeout de sécurité est
+   * conservé en complément pour les navigateurs où rAF seul ne suffit
+   * pas toujours à couvrir un reflow CSS @media print.
+   */
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      setTimeout(function(){
+        window.print();
+        setTimeout(function(){ document.body.classList.remove('printing-mode'); zone.innerHTML=''; }, 300);
+      }, 50);
+    });
+  });
 }
 function rafraichirDonnees(){
   var btn=document.getElementById(isAssocie()?'btn-refresh-associe':'btn-refresh-admin');
@@ -4302,7 +4321,7 @@ var APP_VERSION = 'v39';
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-08-21T22:00:00'; // Formulaire "Nouvelle activité" Associé : ajout de rAF() avant ouverture (manquait), exactement comme les 2 boutons équivalents côté Administrateur — le formulaire s'ouvrait sans réinitialisation, avec d'éventuelles données d'une saisie précédente.
+var APP_DERNIERE_MAJ = '2026-08-22T02:30:00'; // Impression Admin/Visiteur toujours blanche malgré le correctif précédent : cause probable = délai fixe (60ms) insuffisant sur mobile avant window.print(), le navigateur n'ayant pas fini de peindre le contenu injecté/la classe printing-mode. Remplacé par un double requestAnimationFrame (technique standard, fiable) + court délai de sécurité.
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
