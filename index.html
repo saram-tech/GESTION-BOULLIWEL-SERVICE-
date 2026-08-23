@@ -929,23 +929,6 @@ tbody tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
-<!-- REMBOURSEMENT STOCK PERSO -->
-<div class="ov" id="mrp">
-  <div class="modal">
-    <div class="mhd">💰 Rembourser (Stock Perso)<button class="mcl" onclick="cm('mrp')">✕</button></div>
-    <input type="hidden" id="rp-id">
-    <div id="rp-inf" style="background:var(--bg4);border-radius:7px;padding:8px;margin-bottom:9px;font-size:.79rem"></div>
-    <div class="fr">
-      <div class="fg"><label>Montant remboursé *</label><input type="number" id="rp-m" placeholder="0"></div>
-      <div class="fg"><label>Date</label><input type="date" id="rp-d"></div>
-    </div>
-    <div style="display:flex;gap:7px;justify-content:flex-end">
-      <button class="btn bh" onclick="cm('mrp')">Annuler</button>
-      <button class="btn bs" onclick="enrRembPerso()">✓ Enregistrer</button>
-    </div>
-  </div>
-</div>
-
 <!-- AJOUTER QUANTITÉ (Stock Ent. / Stock Perso) -->
 <div class="ov" id="maq">
   <div class="modal" style="max-width:420px">
@@ -1475,6 +1458,25 @@ function fmtDateHeure(dateStr,heure){
   return heure?(dj+' <span style="color:var(--tx3);font-size:.68rem">🕒 '+heure+'</span>'):dj;
 }
 /**
+ * CORRECTIF (fonction manquante — bug réel trouvé en vérifiant le code
+ * existant du Stock Entreprise) : "dernierAjoutDate" est enregistrée
+ * comme un horodatage ISO complet (new Date().toISOString()), pas une
+ * simple date "YYYY-MM-DD" + heure séparée comme fmtDateHeure()
+ * l'attend. fmtDateHeureISO() était déjà appelée dans le tableau du
+ * Stock Entreprise mais n'avait jamais été définie nulle part dans le
+ * fichier — ce qui aurait provoqué une erreur JavaScript (et donc un
+ * tableau qui ne s'affiche plus du tout) dès qu'un produit aurait un
+ * "dernier ajout" suivi. Ajoutée ici, réutilise fmtDateJour() existant.
+ */
+function fmtDateHeureISO(isoStr){
+  if(!isoStr) return '';
+  var dt=new Date(isoStr);
+  if(isNaN(dt.getTime())) return '';
+  var dateStr=dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2)+'-'+('0'+dt.getDate()).slice(-2);
+  var heure=('0'+dt.getHours()).slice(-2)+':'+('0'+dt.getMinutes()).slice(-2);
+  return fmtDateJour(dateStr)+' à '+heure;
+}
+/**
  * Vérifie si une date 'YYYY-MM-DD' appartient à la période demandée
  * ('jour' = aujourd'hui, 'semaine' = semaine en cours du lundi au dimanche,
  * 'mois' = mois calendaire en cours). Chaîne vide ou valeur inconnue =
@@ -1976,12 +1978,15 @@ function ouvrirAjoutQte(id,type){
 function enrAjoutQte(){
   var id=v('aq-id'), type=v('aq-type'), delta=parseInt(v('aq-qte'))||0;
   if(delta<=0){ notif('⚠️ Entrez une quantité valide (> 0)'); return; }
+  var maintenant=new Date().toISOString();
   if(type==='stock'){
     var s=D.stock.find(function(x){ return x.id==id; }); if(!s) return;
     s.qteInitiale=(s.qteInitiale||0)+delta;
     s.qteRestante=Math.max(0,s.qteInitiale-(s.qteVendue||0));
+    // Suivi de la dernière opération d'ajout (affichage + possibilité d'annuler)
+    s.dernierAjoutQte=delta; s.dernierAjoutDate=maintenant;
     ah('stock','Ajout quantité: '+s.nom+' +'+delta,0,td());
-    save(); cm('maq'); notif('✅ '+s.nom+' : +'+delta+' unité(s) ajoutée(s)');
+    save(); cm('maq'); rStock(); notif('✅ '+s.nom+' : +'+delta+' unité(s) ajoutée(s)');
   } else {
     var p=D.perso.find(function(x){ return x.id==id; }); if(!p) return;
     p.qteInitiale=(p.qteInitiale||0)+delta;
@@ -1990,8 +1995,46 @@ function enrAjoutQte(){
     p.commission=(p.commission||0)+addCommission;
     p.totalDu=(p.totalDu||0)+addRevient+addCommission;
     fusionnerDansStockEnt(p.nom,delta,p.achat,p.vente,td());
+    // Suivi de la dernière opération d'ajout — montants exacts conservés
+    // (pas recalculés) pour une annulation fidèle même si le prix d'achat
+    // change entre-temps.
+    p.dernierAjoutQte=delta; p.dernierAjoutDate=maintenant;
+    p.dernierAjoutRevient=addRevient; p.dernierAjoutCommission=addCommission;
     ah('perso','Ajout quantité perso: '+p.nom+' +'+delta,0,td());
-    save(); cm('maq'); notif('✅ '+p.nom+' : +'+delta+' unité(s) ajoutée(s) (fusionné au stock entreprise)');
+    save(); cm('maq'); rPerso(); notif('✅ '+p.nom+' : +'+delta+' unité(s) ajoutée(s) (fusionné au stock entreprise)');
+  }
+}
+/**
+ * Annule UNIQUEMENT la dernière opération d'ajout de quantité (via le
+ * bouton ➕) sur une fiche du Stock Entreprise ou du Stock Perso — pas
+ * l'ajout initial de la fiche elle-même (qui reste modifiable/
+ * supprimable via ✏️/🗑️ comme avant). Une fois annulée, l'opération ne
+ * peut plus être annulée une seconde fois (dernierAjoutQte repassé à 0).
+ */
+function annulerDernierAjout(id, type){
+  if(type==='stock'){
+    var s=D.stock.find(function(x){ return x.id===id; }); if(!s) return;
+    var qte=s.dernierAjoutQte||0;
+    if(qte<=0){ notif('⚠️ Rien à annuler pour ce produit'); return; }
+    if(!confirm('Annuler le dernier ajout de '+qte+' unité(s) sur "'+s.nom+'" ?')) return;
+    s.qteInitiale=Math.max(0,(s.qteInitiale||0)-qte);
+    s.qteRestante=Math.max(0,s.qteInitiale-(s.qteVendue||0));
+    s.dernierAjoutQte=0; s.dernierAjoutDate=null;
+    ah('stock','Annulation ajout: '+s.nom+' -'+qte,0,td());
+    save(); rStock(); notif('↩️ Dernier ajout annulé sur '+s.nom+' (-'+qte+')');
+  } else {
+    var p=D.perso.find(function(x){ return x.id===id; }); if(!p) return;
+    var qte=p.dernierAjoutQte||0;
+    if(qte<=0){ notif('⚠️ Rien à annuler pour ce produit'); return; }
+    if(!confirm('Annuler le dernier ajout de '+qte+' unité(s) sur "'+p.nom+'" ?')) return;
+    p.qteInitiale=Math.max(0,(p.qteInitiale||0)-qte);
+    p.prixRevient=Math.max(0,(p.prixRevient||0)-(p.dernierAjoutRevient||0));
+    p.commission=Math.max(0,(p.commission||0)-(p.dernierAjoutCommission||0));
+    p.totalDu=Math.max(0,(p.totalDu||0)-((p.dernierAjoutRevient||0)+(p.dernierAjoutCommission||0)));
+    retirerDeStockEnt(p.nom,qte);
+    p.dernierAjoutQte=0; p.dernierAjoutDate=null; p.dernierAjoutRevient=0; p.dernierAjoutCommission=0;
+    ah('perso','Annulation ajout: '+p.nom+' -'+qte,0,td());
+    save(); rPerso(); notif('↩️ Dernier ajout annulé sur '+p.nom+' (-'+qte+')');
   }
 }
 /**
@@ -2284,25 +2327,6 @@ function editPerso(id){
   sv('p-eid',id);sv('p-nom',p.nom);sv('p-qte',p.qteInitiale);sv('p-achat',p.achat);sv('p-vente',p.vente||'');sv('p-date',p.date||'');
   st('mp-t','✏️ Modifier Perso');
   var b=document.getElementById('btn-sp'); b.textContent='✓ Modifier'; b.onclick=enrPerso; om('mp');
-}
-/** Ouvre le formulaire de remboursement pour un produit du stock perso. */
-function ouvrirRembPerso(id){
-  var p=D.perso.find(function(x){ return x.id===id; }); if(!p) return;
-  var r=Math.max(0,p.totalDu-(p.rembourse||0));
-  if(r<=0){ notif('✅ Déjà entièrement remboursé'); return; }
-  sv('rp-id',id); sv('rp-m',r); sv('rp-d',td());
-  document.getElementById('rp-inf').innerHTML='<strong>'+p.nom+'</strong><br>Total dû : '+fmt(p.totalDu)+' — Déjà remboursé : '+fmt(p.rembourse||0)+' — Reste : '+fmt(r);
-  om('mrp');
-}
-function enrRembPerso(){
-  var id=v('rp-id'), m=fl('rp-m'), d=v('rp-d')||td();
-  var p=D.perso.find(function(x){ return x.id==id; }); if(!p) return;
-  var r=Math.max(0,p.totalDu-(p.rembourse||0));
-  if(m<=0){ notif('⚠️ Montant invalide'); return; }
-  if(m>r){ notif('⚠️ Montant supérieur au reste dû ('+fmt(r)+')'); return; }
-  p.rembourse=(p.rembourse||0)+m;
-  ah('perso','Remboursement: '+p.nom,m,d);
-  save(); cm('mrp'); rPerso(); notif('✅ Remboursement enregistré : '+fmt(m));
 }
 function delPerso(id){
   var p=D.perso.find(function(x){ return x.id===id; }); if(!p) return;
@@ -3251,8 +3275,8 @@ function rStock(){
     html+='<td>'+fmt(s.achat)+'</td>';
     html+='<td>'+fmt(s.vente||0)+'</td>';
     html+='<td>'+fmt(restant*s.achat)+'</td>';
-    html+='<td>'+fmtDateHeure(s.date,s.heure)+'</td>';
-    html+='<td class="ac"><button class="btn bs bxs" onclick="ouvrirAjoutQte('+s.id+',\'stock\')" title="Ajouter une quantité (s\'additionne au stock existant)">➕</button><button class="btn bh bxs" onclick="editStock('+s.id+')">✏️</button><button class="btn bd bxs" onclick="delStock('+s.id+')">🗑️</button></td>';
+    html+='<td>'+fmtDateHeure(s.date,s.heure)+(s.dernierAjoutQte>0?'<br><span class="badge bor" style="font-size:.62rem" title="Dernière modification">🕒 +'+s.dernierAjoutQte+' le '+fmtDateHeureISO(s.dernierAjoutDate)+'</span>':'')+'</td>';
+    html+='<td class="ac"><button class="btn bs bxs" onclick="ouvrirAjoutQte('+s.id+',\'stock\')" title="Ajouter une quantité (s\'additionne au stock existant)">➕</button>'+(s.dernierAjoutQte>0?'<button class="btn bh bxs" onclick="annulerDernierAjout('+s.id+',\'stock\')" title="Annuler le dernier ajout (+'+s.dernierAjoutQte+')">↩️</button>':'')+'<button class="btn bh bxs" onclick="editStock('+s.id+')">✏️</button><button class="btn bd bxs" onclick="delStock('+s.id+')">🗑️</button></td>';
     html+='</tr>';
   });
   html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
@@ -3277,7 +3301,7 @@ function rPerso(){
     totInit+=p.qteInitiale||0; totVendu+=vr.vendu; totRestant+=vr.restant; totAchatU+=p.achat||0;
     totRevient+=(p.prixRevient||p.achat*p.qteInitiale); totCommission+=p.commission||0; totDu+=p.totalDu||0;
     html+='<tr>';
-    html+='<td><strong>'+p.nom+'</strong>'+(lie?' <span style="font-size:.65rem;color:var(--tx3)" title="Fusionné dans le Stock Entreprise">🔗</span>':' <span style="font-size:.65rem;color:var(--re)" title="Non retrouvé dans le Stock Entreprise">⚠️</span>')+'</td>';
+    html+='<td><strong>'+p.nom+'</strong>'+(lie?' <span style="font-size:.65rem;color:var(--tx3)" title="Fusionné dans le Stock Entreprise">🔗</span>':' <span style="font-size:.65rem;color:var(--re)" title="Non retrouvé dans le Stock Entreprise">⚠️</span>')+(p.dernierAjoutQte>0?'<br><span class="badge bor" style="font-size:.62rem" title="Dernière modification">🕒 +'+p.dernierAjoutQte+' le '+fmtDateHeureISO(p.dernierAjoutDate)+'</span>':'')+'</td>';
     html+='<td>'+p.qteInitiale+'</td>';
     html+='<td style="color:var(--or)">'+vr.vendu+'</td>';
     html+='<td><strong style="color:'+(vr.restant<3?'var(--re)':'var(--gr)')+'">'+vr.restant+'</strong></td>';
@@ -3286,7 +3310,7 @@ function rPerso(){
     html+='<td style="color:var(--gr)">+'+fmt(p.commission)+'</td>';
     html+='<td style="color:var(--go)">'+fmt(p.totalDu)+'</td>';
     html+='<td><span class="badge '+(r>0?'bor':'bgr')+'">'+(r>0?'En attente':'Remboursé')+'</span></td>';
-    html+='<td class="ac"><button class="btn bs bxs" onclick="ouvrirAjoutQte('+p.id+',\'perso\')" title="Ajouter une quantité (s\'additionne au stock existant)">➕</button><button class="btn bh bxs" onclick="editPerso('+p.id+')">✏️</button>'+(r>0?'<button class="btn bg bxs" onclick="ouvrirRembPerso('+p.id+')" title="Enregistrer un remboursement">💰</button>':'')+'<button class="btn bd bxs" onclick="delPerso('+p.id+')">🗑️</button></td>';
+    html+='<td class="ac"><button class="btn bs bxs" onclick="ouvrirAjoutQte('+p.id+',\'perso\')" title="Ajouter une quantité (s\'additionne au stock existant)">➕</button>'+(p.dernierAjoutQte>0?'<button class="btn bh bxs" onclick="annulerDernierAjout('+p.id+',\'perso\')" title="Annuler le dernier ajout (+'+p.dernierAjoutQte+')">↩️</button>':'')+'<button class="btn bh bxs" onclick="editPerso('+p.id+')">✏️</button><button class="btn bd bxs" onclick="delPerso('+p.id+')">🗑️</button></td>';
     html+='</tr>';
   });
   html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
@@ -3960,7 +3984,17 @@ function hImportExcel(e){
             var commission=row['Commission']!==''?num(row['Commission']):0;
             var totalDu=row['Total dû']!==''?num(row['Total dû']):(prixRevient+commission);
             return {id:Date.now()+2000+i,nom:String(row['Nom']||''),qteInitiale:qInit,achat:achat,vente:num(row['Prix vente']),
-              prixRevient:prixRevient,commission:commission,totalDu:totalDu,rembourse:num(row['Remboursé']),
+              // CORRECTIF (suppression de l'option "Remboursement" du
+              // Stock Perso) : le remboursement manuel via import
+              // Excel/CSV (colonne "Remboursé") était le seul point
+              // d'entrée réel qui pouvait faire varier ce champ (aucun
+              // bouton dédié n'existait dans l'interface). Il est
+              // désormais toujours initialisé à 0 à l'import, quelle
+              // que soit la valeur présente dans le fichier — seule
+              // méthode conservée pour "Reste dû" : la réduction
+              // automatique via les ventes (prix d'achat + 20%), déjà
+              // en place et non modifiée.
+              prixRevient:prixRevient,commission:commission,totalDu:totalDu,rembourse:0,
               date:parseDateExcel(row['Date']),heure:nowHM()};
           }),
           dettes:(shDettes||[]).map(function(row,i){
@@ -4355,7 +4389,7 @@ var APP_VERSION = 'v39';
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-08-22T08:30:00'; // Impression Admin/Visiteur — CAUSE RÉELLE CONFIRMÉE via diagnostic (screenshots utilisateur) : "beforeprint" se déclenche AVANT que les styles @media print soient réellement appliqués (comportement navigateur documenté, bug Mozilla #1048317) — rendant peu fiable toute approche basée sur une classe togglée + @media print sur le document principal. Remplacé imprimerSection() par une fenêtre d'impression séparée et autonome (document HTML minimal, feuille de style simple et propre, aucune dépendance au thème sombre ni à des classes dynamiques).
+var APP_DERNIERE_MAJ = '2026-08-22T20:00:00'; // Stock Perso : option "Remboursement" (import Excel colonne "Remboursé") supprimée. Stock Entreprise+Perso : suivi dernier ajout (date/heure/quantité) + annulation sécurisée déjà codés côté Stock Entreprise, maintenant aussi branchés côté Stock Perso. Correction d'un bug réel trouvé au passage : fmtDateHeureISO() était utilisée mais jamais définie (aurait cassé l'affichage dès qu'un ajout était suivi).
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
