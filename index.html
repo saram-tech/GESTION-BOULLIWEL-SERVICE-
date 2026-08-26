@@ -144,6 +144,13 @@ thead th{background:var(--bg4);color:var(--tx2);padding:8px 10px;text-align:left
 tbody td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle;}
 tbody tr:hover td{background:rgba(79,142,247,.04);}
 tbody tr:last-child td{border-bottom:none;}
+/* --- Commandes : lignes compactes pour afficher plus de commandes à l'écran (sans perte d'info, sans casser les actions) --- */
+#tab-commandes thead th{padding:5px 8px;}
+#tab-commandes tbody td{padding:3px 8px;line-height:1.25;}
+#tab-commandes tbody tr .badge{padding:1px 6px;line-height:1.5;}
+#tab-commandes tbody tr select{padding:1px 5px !important;}
+#tab-commandes tbody tr .ac{gap:2px;}
+#tab-commandes tbody tr .btn.bxs{padding:2px 6px;min-height:22px;}
 .badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:.67rem;font-weight:600;}
 .bgr{background:rgba(34,197,94,.15);color:var(--gr);}.bdr{background:rgba(239,68,68,.15);color:var(--re);}
 .bbr{background:rgba(79,142,247,.15);color:var(--ac);}.bor{background:rgba(240,180,41,.15);color:var(--go);}
@@ -374,12 +381,12 @@ tbody tr:last-child td{border-bottom:none;}
      ================================================================ -->
 <div id="vue-associe" style="display:none">
   <div class="g4" style="margin-bottom:14px" id="va-dashboard">
-    <div class="kpi"><div class="kl">Votre capital actuel</div><div class="kv g" id="va-capital">0 GNF</div><div class="ks">Produits saisis directement en Stock Ent. ÷ 2</div></div>
-    <div class="kpi"><div class="kl">Votre part d'intérêt actuelle</div><div class="kv" id="va-interet">0 GNF</div><div class="ks">Votre part = Bénéfice total ÷ 2 (partage 50/50)</div></div>
-    <div class="kpi"><div class="kl">Reste que vous devez à votre associé</div><div class="kv r" id="va-reste">0 GNF</div><button class="btn bh bxs no-print" style="margin-top:6px" onclick="ouvrirDetailDette()">🔍 En savoir plus</button></div>
-    <div class="kpi"><div class="kl">Total dépenses</div><div class="kv r" id="va-depenses">0 GNF</div><div class="ks">Total uniquement — détail non visible</div></div>
+    <div class="kpi" data-vk="as-capital"><div class="kl">Votre capital actuel</div><div class="kv g" id="va-capital">0 GNF</div><div class="ks">Produits saisis directement en Stock Ent. ÷ 2</div></div>
+    <div class="kpi" data-vk="as-interet"><div class="kl">Votre part d'intérêt actuelle</div><div class="kv" id="va-interet">0 GNF</div><div class="ks">Votre part = Bénéfice total ÷ 2 (partage 50/50)</div></div>
+    <div class="kpi" data-vk="as-reste"><div class="kl">Reste que vous devez à votre associé</div><div class="kv r" id="va-reste">0 GNF</div><button class="btn bh bxs no-print" style="margin-top:6px" onclick="ouvrirDetailDette()">🔍 En savoir plus</button></div>
+    <div class="kpi" data-vk="as-depenses"><div class="kl">Total dépenses</div><div class="kv r" id="va-depenses">0 GNF</div><div class="ks">Total uniquement — détail non visible</div></div>
   </div>
-  <div class="card">
+  <div class="card" data-vk="as-activites">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
       <h3 style="margin:0">📋 Vos activités</h3>
       <div style="display:flex;gap:6px">
@@ -407,12 +414,12 @@ tbody tr:last-child td{border-bottom:none;}
      ================================================================ -->
 <div id="vue-visiteur" style="display:none">
   <div class="g4" style="margin-bottom:14px">
-    <div class="kpi"><div class="kl">Capital de BAH Ousmane dans l'entreprise</div><div class="kv g" id="vv-capital">0 GNF</div><div class="ks">Sa part du capital total de l'entreprise (produits saisis directement, hors Stock Perso)</div></div>
-    <div class="kpi"><div class="kl">Part de bénéfice actuelle de BAH Ousmane dans l'entreprise</div><div class="kv" id="vv-doit">0 GNF</div><div class="ks">Sa part de bénéfice (50%) dans l'entreprise, sur la période en cours</div></div>
-    <div class="kpi"><div class="kl">Ce que l'entreprise me doit en stock personnel</div><div class="kv" id="vv-stockperso">0 GNF</div><div class="ks">Valeur due pour les produits qu'il a apportés personnellement (même montant que côté Administrateur)</div></div>
-    <div class="kpi" style="border-color:rgba(59,130,246,.35)"><div class="kl">Total des avoirs (argent) de BAH Ousmane dans l'entreprise</div><div class="kv b" id="vv-total" style="font-size:1.7rem;font-weight:800">0 GNF</div><div class="ks">Capital + Part de bénéfice + Stock personnel dû (chaque montant compté une seule fois)</div></div>
+    <div class="kpi" data-vk="vi-capital"><div class="kl">Capital de BAH Ousmane dans l'entreprise</div><div class="kv g" id="vv-capital">0 GNF</div><div class="ks">Sa part du capital total de l'entreprise (produits saisis directement, hors Stock Perso)</div></div>
+    <div class="kpi" data-vk="vi-part"><div class="kl">Part de bénéfice actuelle de BAH Ousmane dans l'entreprise</div><div class="kv" id="vv-doit">0 GNF</div><div class="ks">Sa part de bénéfice (50%) dans l'entreprise, sur la période en cours</div></div>
+    <div class="kpi" data-vk="vi-stockperso"><div class="kl">Ce que l'entreprise me doit en stock personnel</div><div class="kv" id="vv-stockperso">0 GNF</div><div class="ks">Valeur due pour les produits qu'il a apportés personnellement (même montant que côté Administrateur)</div></div>
+    <div class="kpi" data-vk="vi-total" style="border-color:rgba(59,130,246,.35)"><div class="kl">Total des avoirs (argent) de BAH Ousmane dans l'entreprise</div><div class="kv b" id="vv-total" style="font-size:1.7rem;font-weight:800">0 GNF</div><div class="ks">Capital + Part de bénéfice + Stock personnel dû (chaque montant compté une seule fois)</div></div>
   </div>
-  <div class="card">
+  <div class="card" data-vk="vi-biens">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
       <h3 style="margin:0">💼 Biens & Matériels</h3>
       <button class="btn bh bsm no-print" onclick="imprimerSection('vue-visiteur','Patrimoine de BAH Ousmane')" title="Imprimer">🖨️ Imprimer</button>
@@ -432,33 +439,30 @@ tbody tr:last-child td{border-bottom:none;}
 <div id="tab-dashboard" class="tab-panel active">
   <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn bh bsm no-print" onclick="imprimerSection('tab-dashboard','Tableau de bord')" title="Imprimer le tableau de bord">🖨️ Imprimer</button></div>
   <div class="g5" style="margin-bottom:12px">
-    <div class="kpi"><div class="kl">Encaissé</div><div class="kv g" id="k-enc">0 GNF</div><div class="ks">Payés uniquement</div></div>
-    <div class="kpi"><div class="kl">Bénéfice Net</div><div class="kv g" id="k-ben">0 GNF</div><div class="ks">Après 20%+dépenses</div></div>
-    <div class="kpi"><div class="kl">Ma Part</div><div class="kv b" id="k-map">0 GNF</div><div class="ks">50% bénéfice net</div></div>
-    <div class="kpi"><div class="kl">Dépenses</div><div class="kv r" id="k-dep">0 GNF</div><div class="ks">Période</div></div>
-    <div class="kpi"><div class="kl">Reste Clients</div><div class="kv gold" id="k-rst">0 GNF</div><div class="ks">Non soldés</div></div>
-    <div class="kpi"><div class="kl">Dette Associé</div><div class="kv r" id="k-det">0 GNF</div></div>
-    <div class="kpi"><div class="kl">Reste Associé Me Doit</div><div class="kv r" id="k-assodoit">0 GNF</div></div>
-    <div class="kpi"><div class="kl">Activités</div><div class="kv" id="k-act">0</div></div>
-    <div class="kpi"><div class="kl">Ventes</div><div class="kv b" id="k-ven">0</div></div>
-    <div class="kpi"><div class="kl">Rép./Services</div><div class="kv pur" id="k-rep">0</div></div>
+    <div class="kpi" data-vk="db-enc"><div class="kl">Encaissé</div><div class="kv g" id="k-enc">0 GNF</div><div class="ks">Payés uniquement</div></div>
+    <div class="kpi" data-vk="db-ben"><div class="kl">Bénéfice Net</div><div class="kv g" id="k-ben">0 GNF</div><div class="ks">Après 20%+dépenses</div></div>
+    <div class="kpi" data-vk="db-map"><div class="kl">Ma Part</div><div class="kv b" id="k-map">0 GNF</div><div class="ks">50% bénéfice net</div></div>
+    <div class="kpi" data-vk="db-dep"><div class="kl">Dépenses</div><div class="kv r" id="k-dep">0 GNF</div><div class="ks">Période</div></div>
+    <div class="kpi" data-vk="db-rst"><div class="kl">Reste Clients</div><div class="kv gold" id="k-rst">0 GNF</div><div class="ks">Non soldés</div></div>
+    <div class="kpi" data-vk="db-det"><div class="kl">Dette Associé</div><div class="kv r" id="k-det">0 GNF</div></div>
+    <div class="kpi" data-vk="db-assodoit"><div class="kl">Reste Associé Me Doit</div><div class="kv r" id="k-assodoit">0 GNF</div></div>
+    <div class="kpi kpi-dash-act" data-vk="db-act"><div class="kl">Activités</div><div class="kv" id="k-act">0</div></div>
+    <div class="kpi kpi-dash-act" data-vk="db-ven"><div class="kl">Ventes</div><div class="kv b" id="k-ven">0</div></div>
+    <div class="kpi kpi-dash-act" data-vk="db-rep"><div class="kl">Rép./Services</div><div class="kv pur" id="k-rep">0</div></div>
   </div>
   <div class="ch" style="margin:4px 0 8px"><span class="dot" style="background:var(--go)"></span>💼 Total des avoirs de l'Administrateur</div>
   <div class="g4" style="margin-bottom:12px">
-    <div class="kpi"><div class="kl">Mon capital dans l'entreprise</div><div class="kv" id="k-admin-capital">0 GNF</div><div class="ks">Produits saisis directement, hors Stock Perso</div></div>
-    <div class="kpi"><div class="kl">Entreprise me doit en Stock perso</div><div class="kv" id="k-admin-doit">0 GNF</div><div class="ks">Valeur due au titre du Stock Perso</div></div>
-    <div class="kpi"><div class="kl">Total des avoirs</div><div class="kv b" id="k-admin-total">0 GNF</div><div class="ks">Capital + Ce que l'entreprise me doit</div></div>
-    <div class="kpi"><div class="kl">Mon bénéfice actuel dans l'entreprise</div><div class="kv g" id="k-admin-benefice">0 GNF</div><div class="ks">Affiché séparément, non inclus ci-dessus</div></div>
+    <div class="kpi" data-vk="db-admin-capital"><div class="kl">Mon capital dans l'entreprise</div><div class="kv" id="k-admin-capital">0 GNF</div><div class="ks">Produits saisis directement, hors Stock Perso</div></div>
+    <div class="kpi" data-vk="db-admin-doit"><div class="kl">Entreprise me doit en Stock perso</div><div class="kv" id="k-admin-doit">0 GNF</div><div class="ks">Valeur due au titre du Stock Perso</div></div>
+    <div class="kpi" data-vk="db-admin-total"><div class="kl">Total des avoirs</div><div class="kv b" id="k-admin-total">0 GNF</div><div class="ks">Capital + Ce que l'entreprise me doit</div></div>
+    <div class="kpi" data-vk="db-admin-benefice"><div class="kl">Mon bénéfice actuel dans l'entreprise</div><div class="kv g" id="k-admin-benefice">0 GNF</div><div class="ks">Affiché séparément, non inclus ci-dessus</div></div>
   </div>
   <div class="ch" style="margin:4px 0 8px"><span class="dot" style="background:var(--go)"></span>📦 Vue d'ensemble du Stock</div>
   <div class="g5" style="margin-bottom:12px">
-    <div class="kpi"><div class="kl">Prix Achat Total</div><div class="kv" id="k-stock-achat">0 GNF</div><div class="ks">Stock Entreprise</div></div>
-    <div class="kpi"><div class="kl">Capital total de l'entreprise</div><div class="kv b" id="k-capital-total">0 GNF</div><div class="ks">Produits saisis directement, hors Stock Perso</div></div>
-    <div class="kpi"><div class="kl">Valeur du Stock</div><div class="kv g" id="k-stock-valeur">0 GNF</div><div class="ks">Restant × Prix achat</div></div>
-    <div class="kpi"><div class="kl">Produits</div><div class="kv b" id="k-stock-nb">0</div><div class="ks">Référencés</div></div>
-    <div class="kpi"><div class="kl">Qté Totale en Stock</div><div class="kv b" id="k-stock-qte">0</div></div>
-    <div class="kpi"><div class="kl">Produits en Rupture</div><div class="kv r" id="k-stock-rupture">0</div></div>
-    <div class="kpi"><div class="kl">Stock Faible</div><div class="kv gold" id="k-stock-faible">0</div></div>
+    <div class="kpi" data-vk="db-capital-total"><div class="kl">Capital total de l'entreprise</div><div class="kv b" id="k-capital-total">0 GNF</div><div class="ks">Produits saisis directement, hors Stock Perso</div></div>
+    <div class="kpi" data-vk="db-stock-valeur"><div class="kl">Valeur du Stock</div><div class="kv g" id="k-stock-valeur">0 GNF</div><div class="ks">Restant × Prix achat</div></div>
+    <div class="kpi" data-vk="db-stock-rupture"><div class="kl">Produits en Rupture</div><div class="kv r" id="k-stock-rupture">0</div></div>
+    <div class="kpi" data-vk="db-stock-faible"><div class="kl">Stock Faible</div><div class="kv gold" id="k-stock-faible">0</div></div>
   </div>
   <div class="g2">
     <div class="card"><div class="ch"><span class="dot"></span>Actions rapides</div>
@@ -579,8 +583,8 @@ tbody tr:last-child td{border-bottom:none;}
       </span>
     </div>
     <div class="tw"><table>
-    <thead><tr><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>Prix Unitaire</th><th>Prix Revient</th><th>+15%</th><th>Total Dû</th><th>Statut</th><th>Actions</th></tr></thead>
-    <tbody id="tbl-perso"><tr><td colspan="10" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr></tbody>
+    <thead><tr><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>Prix Unitaire</th><th>Prix Revient</th><th>+15%</th><th>Total Dû</th><th>Statut</th><th>Dernière modif</th><th>Actions</th></tr></thead>
+    <tbody id="tbl-perso"><tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr></tbody>
   </table></div>
   <div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--bd);display:flex;justify-content:space-between">
     <span style="color:var(--tx2)">Total que l'entreprise vous doit :</span>
@@ -592,8 +596,13 @@ tbody tr:last-child td{border-bottom:none;}
 <div id="tab-bilan" class="tab-panel">
   <div class="sh"><div><div class="st">Bilan & Répartition</div></div><button class="btn bg bsm" onclick="calculerBilan()">🔄 Calculer</button></div>
   <div class="al als" style="font-size:.77rem">✅ Bénéfice calculé uniquement sur montants <strong>ENCAISSÉS (PAYÉS)</strong>. Aucune saisie manuelle.</div>
-  <!-- Tableau des formules -->
-  <div class="card" style="border-color:rgba(79,142,247,.25);margin-bottom:12px">
+  <!-- Tableau des formules : masqué par défaut à l'écran (réglage
+       Paramètres > Bilan > "Afficher le tableau des formules"), mais
+       jamais supprimé du HTML — les calculs (calculerBilanData(),
+       calculerBilan()...) ne dépendent en rien de cet affichage et
+       continuent normalement, que ce bloc soit visible ou non. Voir
+       appliquerVisibiliteFormulesBilan(). -->
+  <div class="card" id="card-formules-bilan" style="border-color:rgba(79,142,247,.25);margin-bottom:12px">
     <div class="ch"><span class="dot" style="background:var(--ac2)"></span>📐 Formules de calcul</div>
     <div class="g3">
       <div style="background:var(--bg4);border-radius:8px;padding:11px">
@@ -806,6 +815,7 @@ tbody tr:last-child td{border-bottom:none;}
       <button class="btn bh bsm no-print" onclick="imprimerSection('tab-rapport','Rapport des activités')" title="Imprimer ce rapport">🖨️ Imprimer</button>
     </div>
   </div>
+  <div id="rapport-synthese"></div>
   <div class="card"><div class="tw"><table>
     <thead><tr><th>Date</th><th>Heure</th><th>Auteur</th><th>Type</th><th>Produit</th><th>Qté</th><th>Client</th><th>Montant Payé</th><th>Statut</th></tr></thead>
     <tbody id="tbl-rapport"><tr><td colspan="9" style="text-align:center;color:var(--tx2);padding:20px">Aucune activité</td></tr></tbody>
@@ -958,6 +968,27 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="fg"><label>% Stock Perso (créance = prix revient + X%)</label><input type="number" id="pr-perso" min="0" max="100" step="0.1"></div>
     </div>
     <div class="al alw" style="font-size:.74rem">⚠️ Modifier ces valeurs change immédiatement tous les calculs de l'app (Bilan, tableau de bord, nouveaux produits Stock Perso). Les articles déjà enregistrés gardent leur ancien pourcentage tant qu'ils ne sont pas modifiés.</div>
+
+    <hr class="sep">
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">🖥️ Gestion de l'affichage</div>
+    <div style="font-size:.72rem;color:var(--tx2);margin-bottom:10px">Décochez un élément pour le masquer à l'écran uniquement — ses données et calculs restent toujours intacts, et il peut être réaffiché à tout moment ici. Rien n'est jamais supprimé.</div>
+
+    <div style="font-size:.75rem;color:var(--tx);font-weight:700;margin:10px 0 6px">🤝 A. Compte Associé — éléments visibles pour l'Associé</div>
+    <div id="vis-associe-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+
+    <div style="font-size:.75rem;color:var(--tx);font-weight:700;margin:10px 0 6px">👁️ A. Compte Visiteur — éléments visibles pour le Visiteur</div>
+    <div id="vis-visiteur-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:4px"></div>
+    <div style="font-size:.68rem;color:var(--tx3);margin-bottom:8px">ℹ️ Ce réglage s'applique dès que l'appareil du Visiteur reçoit ces paramètres (ex : même appareil que l'Administrateur, ou synchronisation ultérieure). Sur un appareil Visiteur totalement séparé et hors ligne, tous les éléments restent visibles par défaut.</div>
+
+    <div style="font-size:.75rem;color:var(--tx);font-weight:700;margin:10px 0 6px">📊 B. Tableau de bord — éléments visibles à tous les niveaux</div>
+    <div id="vis-dashboard-list" style="display:grid;grid-template-columns:1fr 1fr;gap:5px 10px;margin-bottom:8px"></div>
+
+    <div style="font-size:.75rem;color:var(--tx);font-weight:700;margin:10px 0 6px">📐 C. Bilan</div>
+    <div style="display:flex;align-items:center;gap:7px;margin:4px 0 4px">
+      <input type="checkbox" id="pr-bilan-formules-visible" style="width:16px;height:16px">
+      <label for="pr-bilan-formules-visible" style="font-size:.8rem;margin:0">👁️ Afficher le tableau des formules de calcul dans l'onglet Bilan</label>
+    </div>
+    <div style="font-size:.72rem;color:var(--tx2);margin-bottom:9px">Décoché par défaut : ce tableau est masqué à l'écran, mais les calculs et résultats du Bilan restent intacts — réactivable à tout moment ici.</div>
 
     <hr class="sep">
     <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">📲 Fournisseur WhatsApp</div>
@@ -1648,6 +1679,50 @@ function pAct(){
  * pour que le stock reste toujours synchronisé avec les activités réelles,
  * peu importe qu'une activité soit créée, modifiée, supprimée ou restaurée.
  */
+/**
+ * RÉGISTRE — Gestion de l'affichage (Paramètres).
+ * Décrit chaque élément que l'Administrateur peut afficher/masquer,
+ * regroupé par zone :
+ *   - associe   : cartes + tableau visibles dans le Compte Associé
+ *   - visiteur  : cartes + tableau visibles dans le Compte Visiteur
+ *   - dashboard : cartes visibles à tous les niveaux du Tableau de bord
+ * Chaque clé (k) correspond à l'attribut data-vk="..." posé sur
+ * l'élément HTML concerné. Ajouter une entrée ici + l'attribut
+ * data-vk correspondant dans le HTML suffit pour rendre un nouvel
+ * élément contrôlable, sans toucher au reste du système.
+ */
+var VIS_AFFICHAGE_DEFS = {
+  associe: [
+    {k:'as-capital',  label:'Votre capital actuel'},
+    {k:'as-interet',  label:"Votre part d'intérêt actuelle"},
+    {k:'as-reste',    label:'Reste que vous devez à votre associé'},
+    {k:'as-depenses', label:'Total dépenses'},
+    {k:'as-activites',label:'Tableau "Vos activités"'}
+  ],
+  visiteur: [
+    {k:'vi-capital',   label:'Capital dans l\'entreprise'},
+    {k:'vi-part',      label:'Part de bénéfice actuelle'},
+    {k:'vi-stockperso',label:'Ce que l\'entreprise doit en Stock perso'},
+    {k:'vi-total',     label:'Total des avoirs'},
+    {k:'vi-biens',     label:'Tableau "Biens & Matériels"'}
+  ],
+  dashboard: [
+    {k:'db-enc',label:'Encaissé'}, {k:'db-ben',label:'Bénéfice Net'},
+    {k:'db-map',label:'Ma Part'}, {k:'db-dep',label:'Dépenses (période)'},
+    {k:'db-rst',label:'Reste Clients'}, {k:'db-det',label:'Dette Associé'},
+    {k:'db-assodoit',label:'Reste Associé Me Doit'},
+    {k:'db-act',label:'Activités (nombre)'}, {k:'db-ven',label:'Ventes (nombre)'},
+    {k:'db-rep',label:'Rép./Services (nombre)'},
+    {k:'db-admin-capital',label:'Mon capital dans l\'entreprise'},
+    {k:'db-admin-doit',label:'Entreprise me doit en Stock perso'},
+    {k:'db-admin-total',label:'Total de mes avoirs'},
+    {k:'db-admin-benefice',label:'Mon bénéfice actuel'},
+    {k:'db-capital-total',label:'Capital total de l\'entreprise'},
+    {k:'db-stock-valeur',label:'Valeur du Stock'},
+    {k:'db-stock-rupture',label:'Produits en Rupture'},
+    {k:'db-stock-faible',label:'Stock Faible'}
+  ]
+};
 /** Accès sécurisé aux paramètres réglables (avec migration si absents). */
 function getParams(){
   if(!D.params) D.params={reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''};
@@ -1659,6 +1734,31 @@ function getParams(){
   // ces valeurs existent alors déjà et ne sont plus "par défaut".
   if(!D.params.hasOwnProperty('visiteurCode')) D.params.visiteurCode='Kalil';
   if(!D.params.hasOwnProperty('visiteurVerrouille')) D.params.visiteurVerrouille=false;
+  // Masquage du tableau des formules de calcul dans l'onglet Bilan :
+  // masqué par défaut (false), réactivable depuis Paramètres > Bilan —
+  // les calculs sous-jacents (calculerBilanData(), calculerBilan()...)
+  // restent, eux, toujours intacts, quel que soit ce réglage.
+  if(!D.params.hasOwnProperty('bilanFormulesVisible')) D.params.bilanFormulesVisible=false;
+  // GESTION DE L'AFFICHAGE (Associé / Visiteur / Tableau de bord) :
+  // D.params.visAffichage = { associe:{clé:bool}, visiteur:{clé:bool}, dashboard:{clé:bool} }.
+  // Masquage pur (display:none) — jamais de suppression de données ni
+  // de fonctionnalités. Tout élément absent de cet objet est considéré
+  // visible par défaut, SAUF les 3 cartes "Activités/Ventes/Rép." du
+  // tableau de bord qui reprennent l'ancien réglage 'dashboardKpiActivites'
+  // (masqué par défaut) lors de la toute première migration.
+  if(!D.params.visAffichage) D.params.visAffichage={};
+  var va=D.params.visAffichage;
+  if(!va.associe) va.associe={};
+  if(!va.visiteur) va.visiteur={};
+  if(!va.dashboard) va.dashboard={};
+  var ancienDashAct = D.params.hasOwnProperty('dashboardKpiActivites') ? (D.params.dashboardKpiActivites===true) : false;
+  VIS_AFFICHAGE_DEFS.associe.forEach(function(d){ if(!va.associe.hasOwnProperty(d.k)) va.associe[d.k]=true; });
+  VIS_AFFICHAGE_DEFS.visiteur.forEach(function(d){ if(!va.visiteur.hasOwnProperty(d.k)) va.visiteur[d.k]=true; });
+  VIS_AFFICHAGE_DEFS.dashboard.forEach(function(d){
+    if(!va.dashboard.hasOwnProperty(d.k)){
+      va.dashboard[d.k] = (d.k==='db-act'||d.k==='db-ven'||d.k==='db-rep') ? ancienDashAct : true;
+    }
+  });
   return D.params;
 }
 function ouvrirAPropos(){
@@ -1693,21 +1793,78 @@ function ouvrirParametres(){
   sv('pr-recup-tel',p.recupTel||''); sv('pr-recup-email',p.recupEmail||'');
   sv('pr-visiteur-pin', p.visiteurCode||'');
   var chk=document.getElementById('pr-visiteur-verrou'); if(chk) chk.checked = p.visiteurVerrouille!==false;
+  var chkBilanFormules=document.getElementById('pr-bilan-formules-visible'); if(chkBilanFormules) chkBilanFormules.checked = p.bilanFormulesVisible===true;
+  renderListeVisibilite('vis-associe-list', VIS_AFFICHAGE_DEFS.associe, 'associe');
+  renderListeVisibilite('vis-visiteur-list', VIS_AFFICHAGE_DEFS.visiteur, 'visiteur');
+  renderListeVisibilite('vis-dashboard-list', VIS_AFFICHAGE_DEFS.dashboard, 'dashboard');
   rZoneCodesAttente();
   rZoneVisiteurStatut();
   om('mparams');
+}
+/**
+ * Génère dans #<containerId> une liste de cases à cocher (une par
+ * élément défini dans "defs"), reflétant l'état actuel de
+ * D.params.visAffichage[groupKey]. Ne fait qu'afficher les cases —
+ * lues ensuite par enrParametres() via la classe "vis-chk".
+ */
+function renderListeVisibilite(containerId, defs, groupKey){
+  var cont=document.getElementById(containerId); if(!cont) return;
+  var etat=getParams().visAffichage[groupKey]||{};
+  var html='';
+  defs.forEach(function(d){
+    var coche = etat[d.k]!==false;
+    html+='<label style="display:flex;align-items:center;gap:6px;font-size:.77rem;margin:0;font-weight:400;text-transform:none;letter-spacing:normal;cursor:pointer">'+
+      '<input type="checkbox" class="vis-chk" data-group="'+groupKey+'" data-key="'+d.k+'" '+(coche?'checked':'')+' style="width:15px;height:15px;flex:none">'+
+      d.label+'</label>';
+  });
+  cont.innerHTML=html;
 }
 function enrParametres(){
   var reinvest=fl('pr-reinvest'), retenu=fl('pr-retenu'), perso=fl('pr-perso'), fourn=v('pr-fourn').trim().replace(/[^0-9]/g,'');
   var recupTel=v('pr-recup-tel').trim().replace(/[^0-9]/g,''), recupEmail=v('pr-recup-email').trim();
   var visiteurCode=v('pr-visiteur-pin').trim();
   var visiteurVerrouille=(document.getElementById('pr-visiteur-verrou')||{}).checked;
+  var bilanFormulesVisible=(document.getElementById('pr-bilan-formules-visible')||{}).checked===true;
   if(reinvest<0||reinvest>100||retenu<0||retenu>100||perso<0||perso>100){ notif('⚠️ Les pourcentages doivent être entre 0 et 100'); return; }
   if(visiteurCode && visiteurCode.length<4){ notif('⚠️ Le code Visiteur doit faire au moins 4 caractères'); return; }
+  // Relit toutes les cases "Gestion de l'affichage" (Associé / Visiteur / Tableau de bord)
+  var visAffichage={associe:{},visiteur:{},dashboard:{}};
+  var chks=document.querySelectorAll('#mparams .vis-chk');
+  for(var i=0;i<chks.length;i++){
+    var g=chks[i].getAttribute('data-group'), k=chks[i].getAttribute('data-key');
+    visAffichage[g][k]=chks[i].checked;
+  }
   D.params={reinvest:reinvest,retenuAssocie:retenu,stockPerso:perso,fournisseurTel:fourn,recupTel:recupTel,recupEmail:recupEmail,
-    visiteurCode:visiteurCode||null, visiteurVerrouille:visiteurVerrouille!==false};
-  save(); syncParametresVersNouvelleTable(); rZoneVisiteurStatut(); cm('mparams'); notif('✅ Paramètres enregistrés');
+    visiteurCode:visiteurCode||null, visiteurVerrouille:visiteurVerrouille!==false,
+    bilanFormulesVisible:bilanFormulesVisible, visAffichage:visAffichage};
+  save(); syncParametresVersNouvelleTable(); rZoneVisiteurStatut(); appliquerVisibiliteAffichage(); cm('mparams'); notif('✅ Paramètres enregistrés');
 }
+/**
+ * Applique — SEULEMENT à l'affichage (display:none), jamais aux
+ * données ni aux calculs — l'ensemble des réglages "Gestion de
+ * l'affichage" : cartes/tableau du Compte Associé, cartes/tableau du
+ * Compte Visiteur, cartes du Tableau de bord (tous niveaux), et le
+ * tableau des formules de l'onglet Bilan. Chaque élément HTML porte un
+ * attribut data-vk="clé" correspondant à VIS_AFFICHAGE_DEFS ; réactiver
+ * un réglage plus tard le réaffiche aussitôt, sans recalcul ni
+ * rechargement, puisque les données/calculs sous-jacents continuent de
+ * tourner normalement qu'un élément soit visible ou non.
+ */
+function appliquerVisibiliteAffichage(){
+  var p=getParams(), va=p.visAffichage;
+  ['associe','visiteur','dashboard'].forEach(function(groupKey){
+    var etat=va[groupKey]||{};
+    Object.keys(etat).forEach(function(k){
+      var els=document.querySelectorAll('[data-vk="'+k+'"]');
+      for(var i=0;i<els.length;i++) els[i].style.display = (etat[k]!==false) ? '' : 'none';
+    });
+  });
+  var elBilan=document.getElementById('card-formules-bilan');
+  if(elBilan) elBilan.style.display = (p.bilanFormulesVisible===true) ? '' : 'none';
+}
+// Alias conservés pour compatibilité avec d'anciens appels éventuels.
+function appliquerVisibiliteDashboardActivites(){ appliquerVisibiliteAffichage(); }
+function appliquerVisibiliteFormulesBilan(){ appliquerVisibiliteAffichage(); }
 /**
  * CORRECTIF : depuis l'Étape 1, la table "parametres" (utilisée par
  * bilan_confidentiel() côté serveur pour les calculs confidentiels de
@@ -2000,6 +2157,7 @@ function enrAjoutQte(){
     // change entre-temps.
     p.dernierAjoutQte=delta; p.dernierAjoutDate=maintenant;
     p.dernierAjoutRevient=addRevient; p.dernierAjoutCommission=addCommission;
+    p.derniereModifDate=maintenant;
     ah('perso','Ajout quantité perso: '+p.nom+' +'+delta,0,td());
     save(); cm('maq'); rPerso(); notif('✅ '+p.nom+' : +'+delta+' unité(s) ajoutée(s) (fusionné au stock entreprise)');
   }
@@ -2033,6 +2191,7 @@ function annulerDernierAjout(id, type){
     p.totalDu=Math.max(0,(p.totalDu||0)-((p.dernierAjoutRevient||0)+(p.dernierAjoutCommission||0)));
     retirerDeStockEnt(p.nom,qte);
     p.dernierAjoutQte=0; p.dernierAjoutDate=null; p.dernierAjoutRevient=0; p.dernierAjoutCommission=0;
+    p.derniereModifDate=new Date().toISOString();
     ah('perso','Annulation ajout: '+p.nom+' -'+qte,0,td());
     save(); rPerso(); notif('↩️ Dernier ajout annulé sur '+p.nom+' (-'+qte+')');
   }
@@ -2290,6 +2449,11 @@ function enrPerso(){
   // Prix revient = achat × qte ; créance = prix revient × (X% réglable)
   var prixRevient=achat*qte, commission=prixRevient*(getParams().stockPerso/100), totalDu=prixRevient+commission;
   var eid=v('p-eid');
+  // Horodatage de la modification réelle de cette fiche — utilisé par la
+  // colonne "Dernière modif" du Stock Perso, au même format ISO que
+  // "dernierAjoutDate" (déjà en place) pour rester cohérent dans tout le
+  // fichier, et affiché avec fmtDateHeureISO() comme partout ailleurs.
+  var maintenant=new Date().toISOString();
   if(eid){
     var p=D.perso.find(function(x){ return x.id==eid; });
     if(p){
@@ -2304,12 +2468,13 @@ function enrPerso(){
         fusionnerDansStockEnt(nom,qte-Math.max(0,deltaQte),achat,vente,date);
       }
       p.nom=nom;p.qteInitiale=qte;p.achat=achat;p.vente=vente;p.prixRevient=prixRevient;p.commission=commission;p.totalDu=totalDu;
+      p.derniereModifDate=maintenant;
     }
     ah('perso','Modif perso: '+nom,totalDu,date);
   } else {
     var ex=D.perso.find(function(x){ return normNom(x.nom)===normNom(nom); });
-    if(ex){ ex.qteInitiale+=qte;ex.prixRevient+=prixRevient;ex.commission+=commission;ex.totalDu+=totalDu; }
-    else D.perso.push({id:Date.now(),nom:nom,qteInitiale:qte,achat:achat,vente:vente,prixRevient:prixRevient,commission:commission,totalDu:totalDu,rembourse:0,date:date,heure:nowHM()});
+    if(ex){ ex.qteInitiale+=qte;ex.prixRevient+=prixRevient;ex.commission+=commission;ex.totalDu+=totalDu; ex.derniereModifDate=maintenant; }
+    else D.perso.push({id:Date.now(),nom:nom,qteInitiale:qte,achat:achat,vente:vente,prixRevient:prixRevient,commission:commission,totalDu:totalDu,rembourse:0,date:date,heure:nowHM(),derniereModifDate:maintenant});
     // Fusion immédiate et automatique dans le Stock Entreprise (stock physique unique)
     fusionnerDansStockEnt(nom,qte,achat,vente,date);
     ah('perso','Perso: '+nom+' x'+qte+' (fusionné au stock)',totalDu,date);
@@ -2825,6 +2990,7 @@ function chargerBilanConfidentiel(){
 }
 function rVueAssocie(){
   chargerBilanConfidentiel();
+  appliquerVisibiliteAffichage();
 
   var tb=document.getElementById('tbl-vue-associe');
   var q=normSearch(v('va-search')), periode=v('va-periode');
@@ -3291,7 +3457,7 @@ function rPerso(){
   var fs=normSearch(v('f-search-perso'));
   var items=D.perso.filter(function(p){ return matchPeriodeFull(p.date,'f-periode-perso'); });
   if(fs) items=items.filter(function(p){ return normSearch(p.nom).indexOf(fs)>-1; });
-  if(!items.length){ tb.innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr>'; st('t-perso','0 GNF'); return; }
+  if(!items.length){ tb.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr>'; st('t-perso','0 GNF'); return; }
   var tot=0, html='';
   var totInit=0,totVendu=0,totRestant=0,totAchatU=0,totRevient=0,totCommission=0,totDu=0;
   items.forEach(function(p){
@@ -3310,12 +3476,13 @@ function rPerso(){
     html+='<td style="color:var(--gr)">+'+fmt(p.commission)+'</td>';
     html+='<td style="color:var(--go)">'+fmt(p.totalDu)+'</td>';
     html+='<td><span class="badge '+(r>0?'bor':'bgr')+'">'+(r>0?'En attente':'Remboursé')+'</span></td>';
+    html+='<td style="font-size:.72rem;color:var(--tx2)">'+(p.derniereModifDate?fmtDateHeureISO(p.derniereModifDate):'—')+'</td>';
     html+='<td class="ac"><button class="btn bs bxs" onclick="ouvrirAjoutQte('+p.id+',\'perso\')" title="Ajouter une quantité (s\'additionne au stock existant)">➕</button>'+(p.dernierAjoutQte>0?'<button class="btn bh bxs" onclick="annulerDernierAjout('+p.id+',\'perso\')" title="Annuler le dernier ajout (+'+p.dernierAjoutQte+')">↩️</button>':'')+'<button class="btn bh bxs" onclick="editPerso('+p.id+')">✏️</button><button class="btn bd bxs" onclick="delPerso('+p.id+')">🗑️</button></td>';
     html+='</tr>';
   });
   html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
   html+='<td>TOTAL</td><td>'+totInit+'</td><td style="color:var(--or)">'+totVendu+'</td><td>'+totRestant+'</td>';
-  html+='<td>—</td><td style="color:var(--tx2)">'+fmt(totRevient)+'</td><td style="color:var(--gr)">+'+fmt(totCommission)+'</td><td style="color:var(--go)">'+fmt(totDu)+'</td><td>—</td><td>—</td>';
+  html+='<td>—</td><td style="color:var(--tx2)">'+fmt(totRevient)+'</td><td style="color:var(--gr)">+'+fmt(totCommission)+'</td><td style="color:var(--go)">'+fmt(totDu)+'</td><td>—</td><td>—</td><td>—</td>';
   html+='</tr>';
   tb.innerHTML=html; st('t-perso',fmt(tot));
 }
@@ -3461,6 +3628,11 @@ function rRapport(){
       return champs.some(function(c){ return normSearch(String(c||'')).indexOf(q)>-1; });
     });
   }
+  // La synthèse reflète exactement ce que montre le tableau ci-dessous
+  // (mêmes filtres appliqués : auteur, période, recherche) — jamais de
+  // donnée recalculée séparément, pour rester cohérente avec le reste
+  // de l'onglet.
+  rSyntheseRapport(items);
   if(!items.length){ tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--tx2);padding:20px">Aucune activité ne correspond</td></tr>'; return; }
   var html='';
   items.forEach(function(a){
@@ -3471,6 +3643,97 @@ function rRapport(){
       '<td>'+fmt(a.paye)+'</td><td><span class="badge '+(a.reste>0?'bor':'bgr')+'">'+(a.reste>0?'Partiel':'Payé')+'</span></td></tr>';
   });
   tb.innerHTML=html;
+}
+/**
+ * Construit le véritable "rapport de gestion" au-dessus du tableau :
+ * période réellement couverte par les activités affichées, effectifs,
+ * quantités, montants, ventilation par type/auteur, et un aperçu du
+ * stock actuel. Uniquement des données déjà présentes ailleurs dans
+ * l'application (mêmes champs, mêmes calculs que les onglets Activités
+ * et Stock) — rien n'est inventé ni recalculé différemment. Chaque
+ * bloc n'apparaît que si la donnée correspondante existe réellement.
+ */
+function rSyntheseRapport(items){
+  var el=document.getElementById('rapport-synthese'); if(!el) return;
+  var html='';
+
+  // --- Bloc Activités (période filtrée) ---------------------------
+  if(items.length){
+    var totQte=items.reduce(function(s,a){ return s+(a.qte||1); },0);
+    var totApayer=items.reduce(function(s,a){ return s+a.apayer; },0);
+    var totPaye=items.reduce(function(s,a){ return s+a.paye; },0);
+    var totReste=items.reduce(function(s,a){ return s+a.reste; },0);
+    var totBenefice=items.reduce(function(s,a){ return s+a.benefice; },0);
+    // Période réellement couverte par les activités affichées (données
+    // réelles, pas seulement le libellé du filtre choisi) : la plus
+    // ancienne et la plus récente date parmi les lignes retenues.
+    var dates=items.map(function(a){ return a.date; }).filter(Boolean).sort();
+    var periodeTxt = dates.length ? (dates[0]===dates[dates.length-1] ? fmtDateJour(dates[0]) : (fmtDateJour(dates[0])+' → '+fmtDateJour(dates[dates.length-1]))) : '—';
+    var selPeriode=document.getElementById('f-periode-rapport');
+    var libelleFiltre = (selPeriode && selPeriode.value) ? selPeriode.options[selPeriode.selectedIndex].text : 'Toute période';
+
+    var parType={};
+    items.forEach(function(a){ var t=a.type||'Autre'; if(!parType[t]) parType[t]={n:0,paye:0}; parType[t].n++; parType[t].paye+=a.paye; });
+    var parAuteur={};
+    items.forEach(function(a){ var au=a.auteur||'Administrateur'; if(!parAuteur[au]) parAuteur[au]={n:0,paye:0}; parAuteur[au].n++; parAuteur[au].paye+=a.paye; });
+
+    html+='<div class="card" style="border-color:rgba(34,197,94,.2);background:var(--bg3);margin-bottom:12px">';
+    html+='<div class="ch"><span class="dot" style="background:var(--gr)"></span>📈 Rapport de gestion — '+libelleFiltre+'</div>';
+    html+='<div style="font-size:.74rem;color:var(--tx2);margin-bottom:11px">🗓️ Période réellement couverte par les activités affichées : <strong style="color:var(--tx)">'+periodeTxt+'</strong></div>';
+    html+='<div class="g5" style="margin-bottom:12px">';
+    html+='<div class="kpi"><div class="kl">Activités</div><div class="kv">'+items.length+'</div></div>';
+    html+='<div class="kpi"><div class="kl">Quantités</div><div class="kv">'+totQte+'</div></div>';
+    html+='<div class="kpi"><div class="kl">Montant concerné</div><div class="kv">'+fmt(totApayer)+'</div></div>';
+    html+='<div class="kpi"><div class="kl">Total payé</div><div class="kv g">'+fmt(totPaye)+'</div></div>';
+    html+='<div class="kpi"><div class="kl">Total restant</div><div class="kv gold">'+fmt(totReste)+'</div></div>';
+    html+='</div>';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg4);border-radius:9px;margin-bottom:12px">';
+    html+='<span style="color:var(--tx2);font-size:.8rem">💰 Bénéfice (sur cette sélection, encaissé uniquement)</span>';
+    html+='<span style="font-family:Syne,sans-serif;font-size:1.05rem;color:'+(totBenefice>=0?'var(--gr)':'var(--re)')+'">'+fmt(totBenefice)+'</span>';
+    html+='</div>';
+
+    html+='<div class="dv">Ventilation par type</div>';
+    html+='<div class="g4" style="margin-bottom:12px">';
+    Object.keys(parType).forEach(function(t){
+      html+='<div class="kpi"><div class="kl">'+t+'</div><div class="kv">'+parType[t].n+'</div><div style="font-size:.68rem;color:var(--tx2);margin-top:2px">'+fmt(parType[t].paye)+' payé</div></div>';
+    });
+    html+='</div>';
+
+    html+='<div class="dv">Ventilation par auteur</div>';
+    html+='<div class="g2">';
+    Object.keys(parAuteur).forEach(function(au){
+      var estAssocie=au==='Associé';
+      html+='<div class="kpi"><div class="kl">'+(estAssocie?'👤 Associé':'👔 Administrateur')+'</div><div class="kv">'+parAuteur[au].n+' activité'+(parAuteur[au].n>1?'s':'')+'</div><div style="font-size:.68rem;color:var(--tx2);margin-top:2px">'+fmt(parAuteur[au].paye)+' payé</div></div>';
+    });
+    html+='</div></div>';
+  } else {
+    html+='<div class="card" style="text-align:center;padding:24px;color:var(--tx2);margin-bottom:12px">Aucune activité sur cette sélection — ajustez les filtres ci-dessus pour voir un rapport.</div>';
+  }
+
+  // --- Bloc Stock (état actuel, indépendant de la période) --------
+  // Le Stock n'a pas de date d'activité propre : on affiche son état
+  // réel actuel (mêmes champs que l'onglet Stock : qteRestante, seuil,
+  // achat), pas une valeur recalculée pour la période.
+  if(D.stock && D.stock.length){
+    var totRestantStock=D.stock.reduce(function(s,p){ return s+(p.qteRestante!==undefined?p.qteRestante:p.qteInitiale); },0);
+    var totVenduStock=D.stock.reduce(function(s,p){ return s+(p.qteVendue||0); },0);
+    var valeurAchatStock=D.stock.reduce(function(s,p){ var r=(p.qteRestante!==undefined?p.qteRestante:p.qteInitiale); return s+r*(p.achat||0); },0);
+    var faibles=D.stock.filter(function(p){ var r=(p.qteRestante!==undefined?p.qteRestante:p.qteInitiale); return r<=(p.seuil||3); });
+    html+='<div class="card" style="margin-bottom:12px">';
+    html+='<div class="ch"><span class="dot" style="background:var(--ac)"></span>📦 Stock actuel</div>';
+    html+='<div class="g4">';
+    html+='<div class="kpi"><div class="kl">Produits référencés</div><div class="kv">'+D.stock.length+'</div></div>';
+    html+='<div class="kpi"><div class="kl">Qté restante (total)</div><div class="kv">'+totRestantStock+'</div></div>';
+    html+='<div class="kpi"><div class="kl">Qté vendue (total)</div><div class="kv" style="color:var(--or)">'+totVenduStock+'</div></div>';
+    html+='<div class="kpi"><div class="kl">Valeur du stock (achat)</div><div class="kv">'+fmt(valeurAchatStock)+'</div></div>';
+    html+='</div>';
+    if(faibles.length){
+      html+='<div class="al ald" style="font-size:.77rem;margin-top:10px">🔴 <strong>'+faibles.length+'</strong> produit'+(faibles.length>1?'s':'')+' en dessous du seuil d\'alerte : '+faibles.map(function(p){ return p.nom; }).join(', ')+'.</div>';
+    }
+    html+='</div>';
+  }
+
+  el.innerHTML=html;
 }
 function vHisto(){
   if(!exigerAdmin()) return;
@@ -3506,18 +3769,20 @@ function updateKPIs(){
   st('k-act',D.activites.length);
   st('k-ven',D.activites.filter(function(a){ return a.type==='Vente'; }).length);
   st('k-rep',D.activites.filter(function(a){ return a.type!=='Vente'; }).length);
+  appliquerVisibiliteDashboardActivites();
+  appliquerVisibiliteFormulesBilan();
   // --- Vue d'ensemble du Stock (Stock Entreprise = stock physique unique)
-  var achatTotal=0,valeurStock=0,qteTotale=0,nbRupture=0,nbFaible=0;
+  // "Prix Achat Total", "Produits" et "Qté Totale en Stock" retirés du
+  // tableau de bord à la demande — le reste (Valeur du Stock, Rupture,
+  // Stock Faible) reste calculé exactement comme avant.
+  var valeurStock=0,nbRupture=0,nbFaible=0;
   D.stock.forEach(function(s){
     var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
-    achatTotal+=(s.qteInitiale||0)*(s.achat||0);
     valeurStock+=restant*(s.achat||0);
-    qteTotale+=restant;
     var niv=niveauStock(restant,s.seuil||3);
     if(niv.lvl===0) nbRupture++; else if(niv.lvl===1) nbFaible++;
   });
-  st('k-stock-achat',fmt(achatTotal)); st('k-stock-valeur',fmt(valeurStock));
-  st('k-stock-nb',D.stock.length); st('k-stock-qte',qteTotale);
+  st('k-stock-valeur',fmt(valeurStock));
   st('k-stock-rupture',nbRupture); st('k-stock-faible',nbFaible);
   st('k-capital-total',fmt(calculerCapitalTotalEntreprise()));
   // Total des avoirs de l'Administrateur = Capital (même formule que
@@ -3995,7 +4260,7 @@ function hImportExcel(e){
               // automatique via les ventes (prix d'achat + 20%), déjà
               // en place et non modifiée.
               prixRevient:prixRevient,commission:commission,totalDu:totalDu,rembourse:0,
-              date:parseDateExcel(row['Date']),heure:nowHM()};
+              date:parseDateExcel(row['Date']),heure:nowHM(),derniereModifDate:new Date().toISOString()};
           }),
           dettes:(shDettes||[]).map(function(row,i){
             return {id:Date.now()+3000+i,date:parseDateExcel(row['Date']),heure:nowHM(),
@@ -4380,7 +4645,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v39';
+var APP_VERSION = 'v40';
 // CORRECTIF ("l'application ne tient pas compte de l'actualisation de la
 // date de sa dernière mise à jour") : cette date n'est PAS calculée
 // automatiquement (ce fichier est un fichier unique sans étape de build,
@@ -4389,7 +4654,7 @@ var APP_VERSION = 'v39';
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-08-22T20:00:00'; // Stock Perso : option "Remboursement" (import Excel colonne "Remboursé") supprimée. Stock Entreprise+Perso : suivi dernier ajout (date/heure/quantité) + annulation sécurisée déjà codés côté Stock Entreprise, maintenant aussi branchés côté Stock Perso. Correction d'un bug réel trouvé au passage : fmtDateHeureISO() était utilisée mais jamais définie (aurait cassé l'affichage dès qu'un ajout était suivi).
+var APP_DERNIERE_MAJ = '2026-08-26T12:00:00'; // Bilan : le "Tableau des formules de calcul" (① à ⑥) est désormais masqué par défaut à l'écran. Nouveau réglage Paramètres > Bilan > "Afficher le tableau des formules de calcul" (décoché par défaut) pour le réafficher à tout moment — réservé à l'Administrateur comme le reste des Paramètres. Aucun calcul modifié : calculerBilanData(), calculerBilan(), chargerBilanConfidentiel() et l'export Excel continuent de fonctionner exactement comme avant ; seul l'affichage du détail des formules est concerné.
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
@@ -4543,6 +4808,7 @@ function appliquerSession(session){
     renderAll();
     activerInterfaceSelonRole();
     notif('✅ Bienvenue ' + libelleRole + ' !');
+    demarrerAutoSyncActivites(); // synchro automatique en arrière-plan tant que la session reste active
   };
   if (!navigator.onLine) { apres(); return; }
   if (session.role === 'admin') {
@@ -4597,6 +4863,7 @@ function activerInterfaceSelonRole(){
 }
 
 function doLogout() {
+  arreterAutoSyncActivites(); // stoppe la synchro automatique : plus de session valide à interroger
   // Dernière tentative d'envoi, meilleur effort, avant de quitter la
   // session : si des activités/stock/dépenses/dettes/paiements créés ou
   // modifiés localement n'ont pas encore atteint Supabase, on essaie une
@@ -4818,6 +5085,7 @@ function rafraichirVisiteur(){
 }
 /** Affiche le patrimoine reçu du serveur dans #vue-visiteur (jamais mis en cache localStorage). */
 function afficherVueVisiteur(biens, capitalAdmin, montantDu, stockPersoDu, totalAvoirs){
+  appliquerVisibiliteAffichage();
   st('vv-capital', fmt(capitalAdmin));
   st('vv-doit', fmt(montantDu));
   st('vv-stockperso', fmt(stockPersoDu));
@@ -5228,6 +5496,7 @@ document.addEventListener('DOMContentLoaded',function(){
   } else if(isLoggedIn()){
     document.getElementById('login-screen').classList.add('hidden');
     activerInterfaceSelonRole();
+    demarrerAutoSyncActivites(); // session déjà active (page rechargée) : la synchro automatique doit reprendre ici aussi
     /**
      * CORRECTIF (Compte Visiteur — écran figé après actualisation) :
      * les valeurs du patrimoine (vv-capital, vv-doit, vv-total…) ne
@@ -5644,6 +5913,71 @@ function syncActivitesEtStockVersNouvellesTables(){
       .catch(function(e){ console.error('[sync stock] pending, retenté à la prochaine occasion —', e); echecStock = true; termine(); });
   }
 }
+// ================================================================
+// SYNCHRONISATION AUTOMATIQUE EN QUASI TEMPS RÉEL (Activités/Stock)
+// ================================================================
+// PROBLÈME CORRIGÉ ("l'Administrateur ne voit une activité de l'Associé
+// qu'après déconnexion/reconnexion") : chargerActivitesEtStockDepuisTables()
+// — la fonction qui va chercher les nouvelles activités côté serveur —
+// n'était jusqu'ici appelée qu'à la connexion (appliquerSession) ou via
+// le bouton de rafraîchissement manuel (rafraichirDonnees). Même un
+// simple rechargement de page ne suffisait pas : reconcileOnStartup()
+// (appelée au démarrage) ne fusionne que l'ancien "app_data" (le gros
+// blob JSON global), jamais les nouvelles tables "activites"/"stock".
+// Solution : un rafraîchissement automatique et silencieux (aucun
+// popup, aucun rechargement de page, aucune perte de saisie en cours),
+// déclenché :
+//   1) toutes les AUTO_SYNC_INTERVAL_MS millisecondes tant qu'une
+//      session (Admin ou Associé) est active et l'app au premier plan ;
+//   2) immédiatement dès que l'app revient au premier plan
+//      (visibilitychange) — utile sur mobile après un verrouillage
+//      d'écran, très fréquent en usage réel ;
+//   3) immédiatement à la reconnexion réseau (événement "online").
+// Toujours basé sur chargerActivitesEtStockDepuisTables() /
+// chargerDonneesAssocie(), qui FUSIONNENT par id (mergeArraysById) au
+// lieu d'écraser : donc jamais de doublon créé, et jamais de perte
+// d'une activité saisie localement et pas encore envoyée. Les
+// restrictions RLS Supabase ne sont pas modifiées d'un octet : côté
+// serveur, l'Associé continue de ne recevoir QUE ses propres activités
+// (policy déjà en place), l'Administrateur continue de tout recevoir —
+// exactement comme avant, seule la fréquence de récupération change.
+var AUTO_SYNC_INTERVAL_MS = 15000; // 15s : compromis réactivité / charge réseau, ajustable si besoin
+var _autoSyncActivitesTimer = null;
+var _autoSyncEnCours = false; // évite deux appels réseau simultanés (ex: minuteur + retour au premier plan en même temps)
+
+/** Rafraîchissement silencieux (pas de notif, pas de spinner) — appelé par le minuteur, le retour au premier plan et la reconnexion réseau. */
+function rafraichirActivitesSilencieux(){
+  if (_autoSyncEnCours) return;
+  if (!navigator.onLine || !SUPABASE_CONFIG.enabled) return;
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return; // app en arrière-plan : pas la peine de consommer du réseau
+  if (!isLoggedIn() || isVisiteur()) return;
+  var session = getSession();
+  if (!session || !session.access_token) return;
+  _autoSyncEnCours = true;
+  var termine = function(){ _autoSyncEnCours = false; };
+  if (session.role === 'admin') {
+    chargerActivitesEtStockDepuisTables(session).then(function(){ renderAll(); termine(); }).catch(termine);
+  } else {
+    chargerDonneesAssocie(session).then(function(){ if (isAssocie()) rVueAssocie(); termine(); }).catch(termine);
+  }
+}
+/** Démarre le rafraîchissement automatique périodique (appelée après connexion réussie, et au chargement si une session était déjà active). */
+function demarrerAutoSyncActivites(){
+  arreterAutoSyncActivites(); // jamais deux minuteurs en parallèle (ex: connexions répétées)
+  if (!SUPABASE_CONFIG.enabled || isVisiteur()) return;
+  _autoSyncActivitesTimer = setInterval(rafraichirActivitesSilencieux, AUTO_SYNC_INTERVAL_MS);
+}
+/** Arrête le rafraîchissement automatique (appelée à la déconnexion, pour ne pas continuer d'interroger Supabase sans session valide). */
+function arreterAutoSyncActivites(){
+  if (_autoSyncActivitesTimer) { clearInterval(_autoSyncActivitesTimer); _autoSyncActivitesTimer = null; }
+}
+// Retour au premier plan (écran rallumé, changement d'onglet, app relancée
+// depuis l'arrière-plan…) : rafraîchit tout de suite, sans attendre le
+// prochain top du minuteur — c'est le cas le plus fréquent en usage réel.
+document.addEventListener('visibilitychange', function(){
+  if (document.visibilityState === 'visible') rafraichirActivitesSilencieux();
+});
+
 /**
  * Pousse Dépenses/Dettes/Paiements (Admin uniquement) vers les tables
  * Supabase dédiées "depenses"/"dettes"/"paiements" — jusqu'ici jamais
@@ -5677,6 +6011,37 @@ function syncDepensesDettesPaiementsVersNouvellesTables(){
     supabaseTable('/rest/v1/paiements', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:JSON.stringify(payloadPaiements) }, session.access_token)
       .catch(function(e){ console.error('[sync paiements]', e); });
   }
+  // CORRECTIF (Compte Associé — "Détail de votre situation" et "Total
+  // dépenses" restaient affichés après une Clôture ou un "Tout
+  // supprimer" côté Administrateur) : cette fonction ne renvoyait
+  // jusqu'ici que les dépenses/dettes/paiements RESTANTS (POST), jamais
+  // les SUPPRESSIONS (D._del) — les anciennes lignes restaient donc
+  // indéfiniment dans les tables serveur "depenses"/"dettes"/"paiements",
+  // même une fois D.depenses/D.dettes/D.paiements vidés localement et
+  // remis à 0 côté Administrateur. Conséquence concrète : la fonction
+  // serveur dette_associe_detail() (→ "Détail de votre situation" de
+  // l'Associé) continuait de lister ces anciennes dettes/paiements, et
+  // bilan_confidentiel() (→ "Total dépenses" de l'Associé) continuait
+  // d'additionner ces anciennes dépenses. On propage donc ici, en plus
+  // des POST ci-dessus, une suppression serveur pour chaque id marqué
+  // supprimé — SEULEMENT pour depenses/dettes/paiements (aucun autre
+  // champ, aucune autre logique touchée). Chaque id n'est retiré du
+  // tombstone local qu'une fois la suppression serveur confirmée, pour
+  // ne jamais perdre une suppression en cas d'échec réseau.
+  var del = D._del || {};
+  ['depenses','dettes','paiements'].forEach(function(champ){
+    var ids = del[champ];
+    if (!ids || !ids.length) return;
+    var enCours = ids.slice();
+    Promise.all(enCours.map(function(id){
+      return supabaseTable('/rest/v1/'+champ+'?id=eq.'+id, { method:'DELETE' }, session.access_token)
+        .catch(function(e){ console.error('[sync suppression '+champ+']', e); return null; });
+    })).then(function(){
+      if (D._del && D._del[champ]) {
+        D._del[champ] = D._del[champ].filter(function(id){ return enCours.indexOf(id)===-1; });
+      }
+    });
+  });
 }
 
 // Doit correspondre EXACTEMENT à l'id utilisé dans la policy RLS
@@ -5740,6 +6105,12 @@ window.addEventListener('online', function () {
     if (typeof syncActivitesEtStockVersNouvellesTables === 'function') syncActivitesEtStockVersNouvellesTables();
     if (typeof syncDepensesDettesPaiementsVersNouvellesTables === 'function') syncDepensesDettesPaiementsVersNouvellesTables();
     if (!isAssocie()) reconcileOnStartup();
+    // CORRECTIF : jusqu'ici, une reconnexion réseau ne faisait qu'ENVOYER
+    // les données locales en attente (fonctions ci-dessus), sans jamais
+    // RÉCUPÉRER les activités enregistrées entre-temps par l'autre rôle
+    // (ex: Associé) pendant la coupure. On complète donc par une
+    // récupération, toujours fusionnée par id, jamais en écrasement.
+    rafraichirActivitesSilencieux();
   });
 });
 window.addEventListener('offline', function () {
