@@ -3229,19 +3229,44 @@ function associeSupprimerActivite(id){
       notif('⚠️ Connexion internet requise pour supprimer définitivement une activité.', 6000);
       return;
     }
+    // CORRECTIF ("en cas d'échec, afficher la vraie cause technique") :
+    // cette fonction ne conservait jusqu'ici que le code HTTP brut
+    // (Promise.reject(r.status)) — le corps de la réponse Supabase, qui
+    // contient le message réel (ex. refus RLS, session expirée, erreur
+    // réseau), n'était jamais lu ni affiché. Corrigé pour réutiliser
+    // exactement le même mécanisme (extraireDetailErreur) déjà en place
+    // pour la synchro Activités/Stock, avec le même niveau de détail.
     supabaseTable('/rest/v1/activites?id=eq.'+id, { method:'DELETE', headers:{'Prefer':'return=representation'} }, session.access_token)
-      .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function(r){
+        if(!r.ok){
+          return r.text().then(function(corps){ return Promise.reject({http:true, statusHTTP:r.status, corps:corps}); });
+        }
+        return r.json();
+      })
       .then(function(supprimees){
         if(Array.isArray(supprimees) && supprimees.length===0){
-          notif('❌ Suppression refusée par le serveur.', 8000); return;
+          var detailRefus = 'Aucune ligne supprimée côté serveur — la sécurité RLS a refusé cette suppression (cette activité n\'appartient probablement plus à ce compte).';
+          enregistrerDiagnostic('Suppression activité (Associé)', false, detailRefus);
+          notif('❌ Suppression refusée par le serveur : '+detailRefus, 10000);
+          return;
         }
         D.activites=D.activites.filter(function(x){ return x.id!==id; });
         persist(); rVueAssocie();
+        enregistrerDiagnostic('Suppression activité (Associé)', true, 'Suppression confirmée par le serveur.');
         notif('✅ Activité supprimée définitivement');
       })
       .catch(function(err){
-        console.error('[associeSupprimerActivite]', err);
-        notif('❌ Échec de la suppression (code '+err+'). Vérifie ta connexion et réessaie.', 8000);
+        var detail;
+        if (err && err.http) {
+          detail = extraireDetailErreur(err.corps, err.statusHTTP);
+        } else if (!navigator.onLine) {
+          detail = 'Aucune connexion réseau détectée sur cet appareil.';
+        } else {
+          detail = (err && err.message) ? err.message : 'Connexion au serveur impossible (réseau ou session expirée).';
+        }
+        console.error('[associeSupprimerActivite]', detail);
+        enregistrerDiagnostic('Suppression activité (Associé)', false, detail);
+        notif('❌ Échec de la suppression — '+detail, 10000);
       });
   });
 }
@@ -6377,8 +6402,41 @@ function syncActivitesEtStockVersNouvellesTables(){
    * créées localement et pas encore synchronisées) — jamais une
    * activité appartenant à quelqu'un d'autre.
    */
+  /**
+   * CORRECTIF ("les activités de l'Associé ne se synchronisent plus,
+   * en particulier quand les 3 comptes sont utilisés sur le même
+   * appareil") : cause exacte trouvée — D (cache local) est un objet
+   * UNIQUE partagé par l'appareil, quel que soit le compte connecté.
+   * Une activité tout juste créée par l'Associé n'a "creePar" renseigné
+   * QUE lors d'un aller-retour réussi avec le serveur (voir
+   * mapRowVersActivite). Si, sur ce MÊME appareil, on bascule vers
+   * l'Administrateur avant que cet aller-retour associé ait eu lieu
+   * (ex. activité créée hors ligne, ou juste avant une déconnexion),
+   * cette fonction renvoyait alors TOUTES les activités locales, y
+   * compris celle-ci — et comme mapActiviteVersRow() force
+   * cree_par=null pour tout ce qui n'est pas explicitement attribué
+   * côté Administrateur (a.creePar===undefined), l'upsert écrasait
+   * définitivement le vrai propriétaire par null. Conséquence : la
+   * ligne restait visible pour l'Administrateur (sa policy voit tout),
+   * mais l'Associé — dont la lecture ET les droits de modification/
+   * suppression sont filtrés par "cree_par = auth.uid()" — ne la
+   * revoyait plus JAMAIS, et ne pouvait plus ni la modifier ni la
+   * supprimer (RLS refusée silencieusement, 0 ligne affectée).
+   * Corrigé en excluant, uniquement du PUSH Administrateur, les
+   * activités marquées comme venant de l'Associé (auteur==='Associé')
+   * mais dont le propriétaire réel n'est pas encore confirmé
+   * (creePar===undefined) : elles ne sont jamais poussées avec un
+   * cree_par erroné — elles se synchroniseront normalement, avec le
+   * bon propriétaire, dès que le compte Associé lui-même repassera en
+   * ligne (aucune perte, un simple léger différé pour ce cas précis).
+   * Ne change rien pour les activités de l'Administrateur lui-même, ni
+   * pour le comportement déjà en place côté Associé.
+   */
   var payloadAct = D.activites
-    .filter(function(a){ return session.role!=='associe' || a.creePar===undefined || a.creePar===session.uid; })
+    .filter(function(a){
+      if (session.role === 'associe') return a.creePar===undefined || a.creePar===session.uid;
+      return !(a.auteur==='Associé' && a.creePar===undefined);
+    })
     .map(function(a){ return mapActiviteVersRow(a, session); });
   var payloadStock = session.role === 'admin' ? D.stock.map(mapStockVersRow) : null;
   // CORRECTIF ("le compte Associé ne synchronise pas ses Activités") :
