@@ -4678,7 +4678,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v40';
+var APP_VERSION = 'v41';
 // CORRECTIF ("l'application ne tient pas compte de l'actualisation de la
 // date de sa dernière mise à jour") : cette date n'est PAS calculée
 // automatiquement (ce fichier est un fichier unique sans étape de build,
@@ -4687,7 +4687,7 @@ var APP_VERSION = 'v40';
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-08-27T15:00:00'; // CORRECTIF Stock Perso : "Total que l'entreprise vous doit" affiche désormais le montant réellement restant dû (même valeur que "Reste que l'entreprise vous doit", calculée via calculerBilanData().resteEnt) au lieu du total brut par article — se met donc à jour immédiatement après une clôture, sans jamais conserver une ancienne valeur. Aucun autre calcul modifié.
+var APP_DERNIERE_MAJ = '2026-08-27T19:00:00'; // CORRECTIF Associé : les activités déjà clôturées pouvaient ressurgir dans le Compte Associé (la suppression serveur fonctionnait, mais le cache local de son téléphone les faisait revivre à chaque actualisation) — la clôture efface désormais pour de bon les activités de l'Associé, sans risque pour une vente tout juste créée pas encore synchronisée. Aucun autre calcul modifié.
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
@@ -5821,16 +5821,67 @@ function supabaseTable(path, options, accessToken){
  */
 function chargerActivitesEtStockDepuisTables(session){
   return Promise.all([
-    supabaseTable('/rest/v1/activites?select=*&order=id.asc', {}, session.access_token).then(function(r){ return r.ok?r.json():[]; }),
+    supabaseTable('/rest/v1/activites?select=*&order=id.asc', {}, session.access_token).then(function(r){ return r.ok?r.json():null; }),
     supabaseTable('/rest/v1/stock?select=*&order=id.asc', {}, session.access_token).then(function(r){ return r.ok?r.json():[]; })
   ]).then(function(res){
     var serverAct = Array.isArray(res[0]) ? res[0].map(mapRowVersActivite) : null;
     var serverStock = Array.isArray(res[1]) ? res[1].map(mapRowVersStock) : null;
+    var delIdsActivites = (D._del&&D._del.activites)||[];
+    /**
+     * CORRECTIF ("la clôture doit effacer les activités de l'Associé") :
+     * cause exacte trouvée — mergeArraysById() est une fusion par UNION,
+     * jamais destructrice à elle seule : un id présent localement
+     * (arrBase, ici l'ancien D.activites déjà en cache sur le téléphone)
+     * mais absent de cette réponse serveur fraîche (arrPrioritaire) est
+     * conservé tel quel, sauf tombstone LOCAL explicite (D._del). Or les
+     * tombstones posés par executerCloture() (markDeleted) ne vivent QUE
+     * sur l'appareil de l'Administrateur qui a cliqué "Clôturer" — jamais
+     * sur celui de l'Associé (design volontaire, voir chargerDonneesAssocie
+     * : aucune donnée de l'ancien blob "app_data" — où vivent ces
+     * tombstones — ne lui est jamais envoyée). La suppression serveur
+     * réelle (voir supprimerActivitesClotureesSurServeur, déjà en place)
+     * fonctionnait bel et bien, mais le cache local déjà présent sur le
+     * téléphone de l'Associé (persist() → localStorage) n'avait aucune
+     * raison de l'oublier : les activités clôturées ressurgissaient donc
+     * à chaque fusion suivante, quelle que soit la clôture faite entre-
+     * temps côté Administrateur.
+     * Corrigé en retenant, uniquement pour l'Associé, le plus grand id
+     * jamais confirmé présent sur le serveur (D._maxIdConfirmeActivite,
+     * propre à cet appareil, jamais synchronisé ni envoyé au cloud). Un
+     * id local absent de cette réponse fraîche est alors traité comme
+     * réellement supprimé (tombstone implicite) — SAUF s'il est plus
+     * récent que ce maximum (ex : vente créée à l'instant, pas encore
+     * poussée au serveur — celle-ci reste protégée, exactement comme
+     * avant, aucune perte possible). Au tout premier passage sur un
+     * appareil donné (aucun maximum encore enregistré), la réponse
+     * serveur fait entièrement autorité, pour nettoyer d'un coup les
+     * activités déjà ressuscitées par cet ancien bug — sans risque : si
+     * une vente très récente pas encore synchronisée disparaissait ainsi
+     * un instant de l'affichage, elle revient d'elle-même dès la
+     * prochaine synchronisation réussie (ce mécanisme ne supprime jamais
+     * rien côté serveur, seul l'affichage local peut se corriger tout
+     * seul). Ne change rien pour l'Administrateur (déjà protégé par ses
+     * propres tombstones) ni pour le Stock (jamais supprimé par une
+     * clôture).
+     */
+    if (serverAct && session.role==='associe') {
+      var idsServeur={};
+      serverAct.forEach(function(a){ idsServeur[a.id]=true; });
+      var premierPassage = (D._maxIdConfirmeActivite===undefined);
+      var maxConfirme = D._maxIdConfirmeActivite||0, maxVu=maxConfirme;
+      (D.activites||[]).forEach(function(a){
+        var considereeSupprimee = !idsServeur[a.id] && (premierPassage || a.id<=maxConfirme);
+        if(considereeSupprimee && delIdsActivites.indexOf(a.id)===-1) delIdsActivites.push(a.id);
+      });
+      serverAct.forEach(function(a){ if(a.id>maxVu) maxVu=a.id; });
+      D._maxIdConfirmeActivite = maxVu;
+    }
     // Fusion, jamais d'écrasement direct : toute activité/stock créé
     // localement (ex. hors ligne) mais pas encore présent côté serveur
-    // est conservé — voir mergeArraysById(). Les tombstones (_del)
-    // continuent de faire disparaître ce qui a été supprimé exprès.
-    if (serverAct)   D.activites = mergeArraysById(D.activites, serverAct,   (D._del&&D._del.activites)||[]);
+    // est conservé — voir mergeArraysById(). Les tombstones (_del, plus
+    // ci-dessus le tombstone implicite ajouté pour l'Associé) continuent
+    // de faire disparaître ce qui a été supprimé exprès.
+    if (serverAct)   D.activites = mergeArraysById(D.activites, serverAct,   delIdsActivites);
     if (serverStock) D.stock     = mergeArraysById(D.stock,     serverStock, (D._del&&D._del.stock)||[]);
     persist();
     console.log('[sync] activites/stock fusionnés au lieu d\'écrasés — '+D.activites.length+' activité(s), '+D.stock.length+' article(s) de stock en local.');
