@@ -489,6 +489,7 @@ tbody tr:last-child td{border-bottom:none;}
       <button class="btn bp bsm" onclick="rAF();om('ma')">+ Nouvelle</button>
       <button class="btn bh bsm" onclick="om('mpp')">💳 Paiement partiel</button>
       <button class="btn bd bsm" onclick="viderActivites()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
+      <button class="btn bd bsm" onclick="viderActivitesAssocie()" title="🔒 Mot de passe requis — supprime uniquement les activités créées par l'Associé">🗑️ Vider Associé</button>
       <button class="btn bh bsm no-print" onclick="imprimerSection('tab-activites','Activités')" title="Imprimer">🖨️</button>
     </div>
   </div>
@@ -500,6 +501,9 @@ tbody tr:last-child td{border-bottom:none;}
     <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
       <select id="f-type" onchange="rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
         <option value="">Tous</option><option value="Vente">Ventes</option><option value="Réparation">Réparations</option><option value="Service">Services</option>
+      </select>
+      <select id="f-auteur" onchange="rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem" title="Filtrer / masquer par auteur">
+        <option value="">Tous les auteurs</option><option value="Administrateur">👤 Administrateur seul</option><option value="Associé">🤝 Associé seul</option><option value="masquer_associe">🚫 Masquer l'Associé</option>
       </select>
       <select id="f-periode-act" onchange="togglePeriodeCustom('f-periode-act');rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
         <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
@@ -1956,13 +1960,50 @@ function syncParametresVersNouvelleTable(){
     fournisseur_tel:p.fournisseurTel||null, recup_tel:p.recupTel||null, recup_email:p.recupEmail||null,
     dep_categories: D.depCategories||[], dettes_clot: D.dettesClot||0, dette_verrou: !!D.detteVerrou,
     ent_deja_deduit: D.entDejaDeduit||0,
-    visiteur_code: p.visiteurCode||null, visiteur_verrou: p.visiteurVerrouille!==false
+    visiteur_code: p.visiteurCode||null, visiteur_verrou: p.visiteurVerrouille!==false,
+    // CORRECTIF ("masquer les activités de l'Associé, déjà dans les
+    // Paramètres, ne fonctionne pas sur le compte Associé") : cause
+    // trouvée — le réglage "Gestion de l'affichage > Compte Associé"
+    // (D.params.visAffichage.associe) n'a jamais existé que dans
+    // D.params, qui est un objet PLACEHOLDER vide pour l'Associé (voir
+    // chargerDonneesAssocie — aucune donnée confidentielle de
+    // l'Administrateur ne lui est envoyée). Résultat : sur l'appareil de
+    // l'Associé, getParams() ne trouvait jamais le choix réel de
+    // l'Admin et retombait systématiquement sur "tout visible" par
+    // défaut — le réglage semblait n'avoir aucun effet. On transmet donc
+    // ce choix (uniquement les cases à cocher — aucun montant ni secret)
+    // via la table non confidentielle "parametres", lue en retour par
+    // l'Associé (voir chargerVisibiliteAssocie ci-dessous).
+    vis_associe: p.visAffichage && p.visAffichage.associe ? p.visAffichage.associe : null
   };
   supabaseTable('/rest/v1/parametres', {
     method:'POST',
     headers:{ 'Prefer':'resolution=merge-duplicates' },
     body: JSON.stringify(payload)
   }, session.access_token).catch(function(e){ console.error('[syncParametres]', e); });
+}
+/**
+ * Lit UNIQUEMENT la colonne "vis_associe" de la table "parametres" — le
+ * choix de l'Admin sur quelles cartes/tableau afficher pour l'Associé —
+ * et l'applique localement sur l'appareil de l'Associé. Si la table
+ * "parametres" ne permet pas encore la lecture au rôle Associé côté
+ * RLS, cet appel échoue silencieusement (catch) et le masquage reste
+ * simplement inactif comme avant, sans casser le reste de l'app.
+ */
+function chargerVisibiliteAssocie(session){
+  if(!session || !session.access_token || !navigator.onLine) return Promise.resolve();
+  return supabaseTable('/rest/v1/parametres?select=vis_associe&id=eq.1', {}, session.access_token)
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(rows){
+      var vis = rows && rows[0] && rows[0].vis_associe;
+      if(vis && typeof vis==='object'){
+        if(!D.params) D.params={};
+        if(!D.params.visAffichage) D.params.visAffichage={};
+        D.params.visAffichage.associe = vis;
+        appliquerVisibiliteAffichage();
+      }
+    })
+    .catch(function(e){ console.error('[chargerVisibiliteAssocie]', e); });
 }
 /**
  * Affiche, dans les Paramètres de l'Administrateur, tout code de
@@ -2350,9 +2391,25 @@ function delAct(id){
     // indépendamment de ce qui est effacé localement chez l'Admin.
     var session=getSession();
     if(session && session.access_token && navigator.onLine){
-      supabaseTable('/rest/v1/activites?id=eq.'+id, { method:'DELETE' }, session.access_token)
-        .then(function(r){ if(!r.ok) console.error('[delAct] suppression serveur refusée', r.status); })
-        .catch(function(e){ console.error('[delAct] suppression serveur',e); });
+      supabaseTable('/rest/v1/activites?id=eq.'+id, { method:'DELETE', headers:{'Prefer':'return=representation'} }, session.access_token)
+        .then(function(r){
+          if(!r.ok){
+            r.text().then(function(corps){
+              console.error('[delAct] suppression serveur refusée', r.status, corps);
+              notif('❌ Le serveur a refusé la suppression de cette activité (HTTP '+r.status+'). Elle restera visible côté Associé. Détail : '+corps.slice(0,160), 10000);
+            });
+            return;
+          }
+          r.json().then(function(supprimees){
+            if(Array.isArray(supprimees) && supprimees.length===0){
+              notif('⚠️ Cette activité n\'a pas pu être supprimée côté serveur (droits d\'accès Supabase) — elle restera visible côté Associé.', 10000);
+            }
+          }).catch(function(){});
+        })
+        .catch(function(e){
+          console.error('[delAct] suppression serveur',e);
+          notif('❌ Impossible de joindre le serveur pour supprimer cette activité ('+e.message+').', 8000);
+        });
     }
   });
 }
@@ -3002,10 +3059,47 @@ function rVueAssocie(){
     html+='<tr><td>'+fmtDateJour(a.date)+'</td><td>'+(a.heure||'—')+'</td><td>'+a.desig+'</td><td>'+(a.qte||1)+'</td>'+
       '<td>'+fmt(a.achat)+'</td><td>'+fmt(a.paye)+'</td><td>'+(a.client||'—')+'</td>'+
       '<td><span class="badge '+(a.reste>0?'bor':'bgr')+'">'+(a.reste>0?'Partiel':'Payé')+'</span></td>'+
-      '<td class="ac"><button class="btn bh bxs" onclick="editAct('+a.id+')" title="Modifier cette activité">✏️</button></td></tr>';
+      '<td class="ac"><button class="btn bh bxs" onclick="editAct('+a.id+')" title="Modifier cette activité">✏️</button>'+
+      '<button class="btn bd bxs" onclick="associeSupprimerActivite('+a.id+')" title="Supprimer définitivement cette activité">🗑️</button></td></tr>';
   });
   html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)"><td colspan="5">Montant total de mes activités</td><td>'+fmt(total)+'</td><td colspan="3">—</td></tr>';
   tb.innerHTML=html;
+}
+/**
+ * Suppression DÉFINITIVE, par l'Associé lui-même, d'une de SES propres
+ * activités (jamais celles de l'Administrateur — impossible d'y accéder
+ * depuis cette vue de toute façon). Répond à la demande : donner à
+ * l'Associé un moyen fiable de nettoyer son propre historique, sans
+ * dépendre de l'Admin ni des droits d'accès Supabase entre comptes —
+ * ici, l'Associé supprime SA PROPRE ligne (cree_par = son propre uid),
+ * ce que la sécurité au niveau des lignes (RLS) autorise normalement
+ * sans exception particulière à configurer.
+ */
+function associeSupprimerActivite(id){
+  if(!isAssocie()) return;
+  var a=D.activites.find(function(x){ return x.id===id && x.auteur==='Associé'; });
+  if(!a) return;
+  demanderConfirmationSecurisee('🗑️ Supprimer définitivement cette activité', '• '+a.type+' : <strong>'+a.desig+'</strong><br>• Montant payé : '+fmt(a.paye||0)+'<br>• Action irréversible — ne passe pas par la Corbeille.', false, function(){
+    var session=getSession();
+    if(!(session && session.access_token && navigator.onLine)){
+      notif('⚠️ Connexion internet requise pour supprimer définitivement une activité.', 6000);
+      return;
+    }
+    supabaseTable('/rest/v1/activites?id=eq.'+id, { method:'DELETE', headers:{'Prefer':'return=representation'} }, session.access_token)
+      .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function(supprimees){
+        if(Array.isArray(supprimees) && supprimees.length===0){
+          notif('❌ Suppression refusée par le serveur.', 8000); return;
+        }
+        D.activites=D.activites.filter(function(x){ return x.id!==id; });
+        persist(); rVueAssocie();
+        notif('✅ Activité supprimée définitivement');
+      })
+      .catch(function(err){
+        console.error('[associeSupprimerActivite]', err);
+        notif('❌ Échec de la suppression (code '+err+'). Vérifie ta connexion et réessaie.', 8000);
+      });
+  });
 }
 /**
  * "Reste que vous devez" → En savoir plus. Récupère le détail (ligne
@@ -3372,54 +3466,78 @@ function executerCloture(){
   supprimerActivitesClotureesSurServeur(idsActivitesCloturees);
 }
 /**
- * Suppression serveur réelle des activités d'une période clôturée (voir
- * CORRECTIF ci-dessus dans executerCloture). Envoyée par lots pour rester
- * sous les limites d'URL même sur une grosse période. Meilleur effort,
- * comme delAct() : si hors ligne ou en échec, les tombstones locaux
- * (D._del) continuent de masquer ces lignes pour l'Administrateur en
- * attendant ; la clôture suivante ou une reconnexion peut être nécessaire
- * pour que l'Associé cesse de les voir si cette suppression échoue.
+ * Suppression serveur réelle d'activités, par lots (limite d'URL même sur
+ * une grosse période). Utilisée par la clôture, "Vider les activités" et
+ * "Vider les activités de l'Associé" — c'est le SEUL point qui fait
+ * disparaître une activité de la table Supabase "activites" pour de bon.
+ * Sans cet appel, une activité reste en base et continue d'apparaître —
+ * notamment pour l'Associé, qui charge ses activités DIRECTEMENT depuis
+ * Supabase (voir chargerDonneesAssocie), indépendamment de ce qui a été
+ * effacé localement chez l'Administrateur.
+ *
+ * CORRECTIF ("l'Administrateur n'arrive pas à vider les anciennes
+ * activités de l'Associé — contrôle total requis") : la cause la plus
+ * probable est un refus RLS (403) sur la table "activites" — la policy
+ * Supabase n'autorise peut-être la suppression que sur les lignes dont
+ * cree_par = l'utilisateur connecté, sans exception pour l'Admin qui
+ * doit pourtant pouvoir supprimer les lignes créées par l'Associé.
+ * Jusqu'ici cet échec était invisible (console.error seul, inutile sur
+ * mobile) : la suppression semblait "réussir" côté Admin (disparue
+ * localement, passée en Corbeille) alors qu'elle échouait en réalité côté
+ * serveur, d'où la réapparition systématique chez l'Associé. On affiche
+ * maintenant l'erreur réelle à l'écran (code HTTP + détail Supabase) —
+ * si tu vois un HTTP 403 ici, il faut corriger la policy RLS de la table
+ * "activites" dans Supabase pour donner à l'Admin le droit de supprimer
+ * TOUTES les lignes, pas seulement les siennes (contacte-moi avec le
+ * message exact affiché pour le SQL à coller).
  */
-function supprimerActivitesClotureesSurServeur(ids){
+function supprimerActivitesSurServeurAvecAlerte(ids, libelle){
   if(!ids || !ids.length) return;
+  libelle = libelle || 'activités';
   var session=getSession();
   if(!(session && session.access_token && navigator.onLine)){
-    notif('⚠️ Clôture : suppression serveur des activités reportée (hors ligne). L\'Associé continuera de les voir tant que la connexion ne sera pas rétablie et qu\'une nouvelle synchro n\'aura pas eu lieu.', 8000);
+    notif('⚠️ Suppression serveur des '+libelle+' reportée (hors ligne). Elles resteront visibles côté Associé tant que la connexion ne sera pas rétablie et qu\'une nouvelle synchro n\'aura pas eu lieu.', 8000);
     return;
   }
   var TAILLE_LOT=200;
   for(var i=0;i<ids.length;i+=TAILLE_LOT){
     (function(lot){
-      supabaseTable('/rest/v1/activites?id=in.('+lot.join(',')+')', { method:'DELETE' }, session.access_token)
+      supabaseTable('/rest/v1/activites?id=in.('+lot.join(',')+')', { method:'DELETE', headers:{'Prefer':'return=representation'} }, session.access_token)
         .then(function(r){
           if(!r.ok){
             r.text().then(function(corps){
-              console.error('[cloture] suppression serveur activités refusée', r.status, corps);
-              /**
-               * CORRECTIF ("les activités restent toujours présentes pour
-               * l'Associé après clôture") : cause probable la plus fréquente
-               * — un refus RLS (403) sur la suppression des lignes qui
-               * appartiennent à l'Associé (cree_par = uid de l'Associé),
-               * car la policy Supabase de la table "activites" n'autorise
-               * peut-être la suppression que sur les lignes qui appartiennent
-               * à l'auteur de la requête (comme pour l'Associé), sans
-               * exception explicite pour l'Administrateur. Jusqu'ici cet
-               * échec était invisible : seul un console.error apparaissait,
-               * inutile sur mobile (pas de console accessible). On l'affiche
-               * maintenant directement à l'écran avec le code HTTP et le
-               * corps de la réponse Supabase, pour diagnostiquer sans avoir
-               * besoin d'un ordinateur.
-               */
-              notif('❌ Clôture : le serveur a refusé la suppression de '+lot.length+' activité(s) (HTTP '+r.status+'). Elles resteront visibles côté Associé. Détail : '+corps.slice(0,160), 10000);
+              console.error('[suppression '+libelle+'] refusée', r.status, corps);
+              notif('❌ Le serveur a refusé la suppression de '+lot.length+' '+libelle+' (HTTP '+r.status+'). Elles resteront visibles côté Associé. Détail : '+corps.slice(0,160), 10000);
             });
+            return;
           }
+          // CORRECTIF ("la clôture/le vidage n'efface pas les anciennes
+          // données côté Associé") : avec Row Level Security, une
+          // suppression qui ne correspond à AUCUNE ligne autorisée pour
+          // l'utilisateur connecté ne renvoie PAS une erreur — Supabase
+          // répond quand même 200/204 "avec succès", mais 0 ligne n'a
+          // réellement été supprimée. Sans "Prefer: return=representation"
+          // (ajouté ci-dessus) pour voir combien de lignes sont vraiment
+          // revenues dans la réponse, cet échec restait totalement
+          // invisible : l'app croyait la suppression réussie. On compare
+          // maintenant le nombre réellement supprimé au nombre demandé.
+          r.json().then(function(supprimees){
+            var nSupprimees = Array.isArray(supprimees) ? supprimees.length : null;
+            if(nSupprimees!==null && nSupprimees<lot.length){
+              notif('⚠️ Seules '+nSupprimees+' sur '+lot.length+' '+libelle+' ont pu être supprimées côté serveur (droits d\'accès Supabase). Les autres resteront visibles côté Associé — la policy RLS de la table "activites" doit autoriser l\'Admin à supprimer les lignes créées par l\'Associé.', 12000);
+            }
+          }).catch(function(){});
         })
         .catch(function(e){
-          console.error('[cloture] suppression serveur activités', e);
-          notif('❌ Clôture : impossible de joindre le serveur pour supprimer les activités ('+e.message+'). Elles resteront visibles côté Associé jusqu\'à la prochaine tentative.', 8000);
+          console.error('[suppression '+libelle+']', e);
+          notif('❌ Impossible de joindre le serveur pour supprimer les '+libelle+' ('+e.message+'). Elles resteront visibles côté Associé jusqu\'à la prochaine tentative.', 8000);
         });
     })(ids.slice(i, i+TAILLE_LOT));
   }
+}
+/** Conservé pour compatibilité (appelée depuis executerCloture). */
+function supprimerActivitesClotureesSurServeur(ids){
+  supprimerActivitesSurServeurAvecAlerte(ids, 'activités de la période clôturée');
 }
 /** Filet de sécurité pour les installations restées bloquées par
  * l'ancien bug (detteVerrou resté à true après une clôture). */
@@ -3432,9 +3550,12 @@ function deverrouillerDettes(){
 // ================================================================
 function rAct(){
   var tb=document.getElementById('tbl-act');
-  var ft=v('f-type'),fs=normSearch(v('f-search')),fp='f-periode-act';
+  var ft=v('f-type'),fa=v('f-auteur'),fs=normSearch(v('f-search')),fp='f-periode-act';
   var items=D.activites.slice().reverse();
   if(ft) items=items.filter(function(a){ return a.type===ft; });
+  if(fa==='Administrateur') items=items.filter(function(a){ return a.auteur!=='Associé'; });
+  else if(fa==='Associé') items=items.filter(function(a){ return a.auteur==='Associé'; });
+  else if(fa==='masquer_associe') items=items.filter(function(a){ return a.auteur!=='Associé'; });
   items=items.filter(function(a){ return matchPeriodeFull(a.date,fp); });
   if(fs) items=items.filter(function(a){ return normSearch(a.desig).indexOf(fs)>-1||normSearch(a.client).indexOf(fs)>-1||normSearch(a.panne).indexOf(fs)>-1||normSearch(a.ticket).indexOf(fs)>-1; });
   if(!items.length){
@@ -4634,8 +4755,40 @@ function viderActivites() {
   var n=D.activites.length;
   var details='• <strong>'+n+'</strong> activité(s) seront supprimées et envoyées à la Corbeille (récupérables)<br>• Le stock lié sera automatiquement réajusté';
   demanderConfirmationSecurisee('🗑️ Supprimer toutes les activités', details, false, function(){
+    var ids=D.activites.map(function(a){ return a.id; });
     D.activites.forEach(function(a){ markDeleted('activites',a.id); ajusterStockVendu(a.desig, -(a.qte||0)); rb('activite', a.desig, a); });
     D.activites = []; save(); notif('✅ Activités vidées → corbeille');
+    // CORRECTIF (contrôle total Admin sur le compte Associé) : cette
+    // fonction ne supprimait jamais réellement les lignes côté serveur —
+    // seul un tombstone local était posé, invisible pour l'Associé qui
+    // charge ses activités directement depuis Supabase. Sans cet appel,
+    // "Tout supprimer" semblait fonctionner mais les activités de
+    // l'Associé réapparaissaient à sa prochaine synchronisation.
+    supprimerActivitesSurServeurAvecAlerte(ids, 'activités');
+  });
+}
+
+/**
+ * Vide UNIQUEMENT les activités créées par le compte Associé (auteur ===
+ * 'Associé'), en laissant intactes celles de l'Administrateur. Répond au
+ * besoin : "l'Administrateur doit avoir le contrôle total du compte
+ * Associé" — pouvoir purger ses anciennes activités sans toucher aux
+ * siennes, et sans attendre une clôture complète de toute la période.
+ */
+function viderActivitesAssocie() {
+  if(!exigerAdmin()) return;
+  var ciblees=D.activites.filter(function(a){ return a.auteur==='Associé'; });
+  var n=ciblees.length;
+  if(!n){ notif('Aucune activité de l\'Associé à supprimer'); return; }
+  var details='• <strong>'+n+'</strong> activité(s) créée(s) par l\'Associé seront supprimées et envoyées à la Corbeille (récupérables)<br>'+
+    '• Les activités de l\'Administrateur ne sont pas concernées<br>'+
+    '• Le stock lié sera automatiquement réajusté';
+  demanderConfirmationSecurisee('🗑️ Vider les activités de l\'Associé', details, false, function(){
+    var ids=ciblees.map(function(a){ return a.id; });
+    ciblees.forEach(function(a){ markDeleted('activites',a.id); ajusterStockVendu(a.desig, -(a.qte||0)); rb('activite', a.desig+' (Associé)', a); });
+    D.activites=D.activites.filter(function(a){ return a.auteur!=='Associé'; });
+    save(); notif('✅ Activités de l\'Associé vidées → corbeille');
+    supprimerActivitesSurServeurAvecAlerte(ids, 'activités de l\'Associé');
   });
 }
 
@@ -5944,6 +6097,7 @@ function chargerDonneesAssocie(session){
     // l'Administrateur.
     D.params = { reinvest:0, stockPerso:0, fournisseurTel:'', recupTel:'', recupEmail:'', _placeholderAssocie:true };
     persist();
+    return chargerVisibiliteAssocie(session);
   });
 }
 
