@@ -6084,7 +6084,26 @@ function chargerActivitesEtStockDepuisTables(session){
      * propres tombstones) ni pour le Stock (jamais supprimé par une
      * clôture).
      */
-    if (serverAct && session.role==='associe') {
+    /**
+     * CORRECTIF ("suppression d'une activité par l'Associé non
+     * synchronisée sur les autres appareils") : ce mécanisme (ci-dessus)
+     * ne s'appliquait jusqu'ici qu'aux appareils connectés en Associé.
+     * Sur un appareil Administrateur, mergeArraysById() est une UNION
+     * pure : une activité déjà en cache local (ex. celle que l'Associé
+     * vient de supprimer sur son propre téléphone) mais absente de la
+     * réponse serveur fraîche n'était retirée QUE si l'Admin avait lui-
+     * même posé un tombstone (D._del) pour cet id — jamais le cas ici,
+     * puisque c'est l'Associé qui a supprimé, pas l'Admin. Résultat :
+     * l'activité supprimée par l'Associé pouvait réapparaître sur les
+     * appareils Administrateur (ou tout autre appareil Associé qui
+     * l'avait déjà en cache) à la prochaine synchronisation. On étend
+     * donc EXACTEMENT le même mécanisme (déjà en place et déjà validé
+     * ci-dessus) à tous les rôles, pas seulement 'associe' — rien
+     * d'autre n'est modifié : ni son fonctionnement, ni le Stock, ni les
+     * tombstones existants côté Admin, qui continuent de s'appliquer en
+     * plus (union des deux).
+     */
+    if (serverAct) {
       var idsServeur={};
       serverAct.forEach(function(a){ idsServeur[a.id]=true; });
       var premierPassage = (D._maxIdConfirmeActivite===undefined);
@@ -6737,4 +6756,3 @@ function testSupabaseConnection() {
 <div id="print-area"></div>
 </body>
 </html>
-            
