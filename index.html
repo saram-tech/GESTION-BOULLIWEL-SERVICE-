@@ -327,7 +327,7 @@ tbody tr:last-child td{border-bottom:none;}
 
 <header>
   <div class="logo">GESTION-BOULLIWEL-SERVICE.app <small>Gestion Intégrée v3 · <span id="hdr-maj" onclick="ouvrirAPropos()" style="cursor:pointer;text-decoration:underline dotted" title="Voir les détails de la dernière mise à jour">MAJ —</span></small></div>
-  <div id="sync-status" class="sync-badge sync-offline" title="Statut de synchronisation">⚪ Vérification…</div>
+  <div id="sync-status" class="sync-badge sync-offline" title="Statut de synchronisation — Toucher pour voir le diagnostic détaillé" onclick="diagnosticConnexion()" style="cursor:pointer">⚪ Vérification…</div>
   <div id="hbts-admin" class="hbts">
     <button id="btn-refresh-admin" class="btn-refresh" onclick="rafraichirDonnees()" title="Rafraîchir les données affichées">⟳</button>
     <button class="btn bs bsm" onclick="ouvrirParametres()" title="Paramètres — contrôle total de l'application">⚙️ Paramètres</button>
@@ -562,6 +562,11 @@ tbody tr:last-child td{border-bottom:none;}
         <span style="color:var(--tx3);font-size:.7rem">→</span>
         <input type="date" id="f-periode-stock-end" onchange="rStock()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
       </span>
+      <select id="f-tri-stock" onchange="rStock()" title="Trier par quantité de stock — affichage uniquement, aucune donnée modifiée" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
+        <option value="">Tri par défaut</option>
+        <option value="qte_desc">Quantité ↓ (plus grand d'abord)</option>
+        <option value="qte_asc">Quantité ↑ (plus petit d'abord)</option>
+      </select>
     </div>
     <div class="tw"><table>
     <thead><tr><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>Niveau</th><th>Seuil</th><th>Prix Unitaire</th><th>P.Vente</th><th>Valeur</th><th>Date</th><th>Actions</th></tr></thead>
@@ -2008,7 +2013,10 @@ function syncParametresVersNouvelleTable(){
 function chargerVisibiliteAssocie(session){
   if(!session || !session.access_token || !navigator.onLine) return Promise.resolve();
   return supabaseTable('/rest/v1/parametres?select=vis_associe&id=eq.1', {}, session.access_token)
-    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(r){
+      if(r.ok) return r.json();
+      return r.text().then(function(corps){ enregistrerDiagnostic('Visibilité Associé', false, extraireDetailErreur(corps, r.status)); return null; });
+    })
     .then(function(rows){
       var vis = rows && rows[0] && rows[0].vis_associe;
       if(vis && typeof vis==='object'){
@@ -2016,9 +2024,13 @@ function chargerVisibiliteAssocie(session){
         if(!D.params.visAffichage) D.params.visAffichage={};
         D.params.visAffichage.associe = vis;
         appliquerVisibiliteAffichage();
+        enregistrerDiagnostic('Visibilité Associé', true, 'Réglages chargés depuis le serveur.');
       }
     })
-    .catch(function(e){ console.error('[chargerVisibiliteAssocie]', e); });
+    .catch(function(e){
+      console.error('[chargerVisibiliteAssocie]', e);
+      enregistrerDiagnostic('Visibilité Associé', false, (e && e.message) ? e.message : 'connexion au serveur impossible');
+    });
 }
 /**
  * Affiche, dans les Paramètres de l'Administrateur, tout code de
@@ -2088,6 +2100,74 @@ function migrerStockPerso(){
  * s'affiche.
  */
 var _secureCallback=null;
+/**
+ * DIAGNOSTIC DES INCIDENTS (ajout pur — aucune fonctionnalité existante
+ * modifiée). Conserve, en mémoire, le dernier incident connu pour chaque
+ * sous-système réseau (synchro activités/stock, visibilité Associé,
+ * bilan confidentiel, session/jeton), avec la cause EXACTE renvoyée par
+ * le serveur (ou "hors ligne" / "délai dépassé" si le serveur n'a même
+ * pas répondu). Rien n'est envoyé nulle part : uniquement affiché à la
+ * demande via diagnosticConnexion() (déclenché en tapant sur le badge de
+ * statut #sync-status, désormais cliquable).
+ */
+var DIAG = {};
+function enregistrerDiagnostic(cle, ok, detail){
+  DIAG[cle] = { ok: !!ok, detail: detail || (ok ? 'OK' : 'Cause inconnue'), ts: Date.now() };
+}
+/** Extrait un message d'erreur lisible depuis une réponse Supabase/PostgREST. */
+function extraireDetailErreur(corps, statusHTTP){
+  var detail='';
+  try{
+    var j = JSON.parse(corps);
+    detail = j.message || j.error_description || j.error || j.hint || j.details || corps;
+  }catch(e){ detail = corps || ''; }
+  return 'HTTP '+statusHTTP+(detail?(' — '+detail):'');
+}
+/**
+ * Diagnostic déclenché en tapant sur le badge de statut (#sync-status),
+ * accessible à TOUS les rôles (Admin, Associé, Visiteur). Répond
+ * directement à : "si l'application reste en Mode Associé malgré
+ * Internet, afficher clairement pourquoi la synchronisation ou la
+ * connexion serveur ne fonctionne pas". Fait un test réel en direct
+ * (comme testSupabaseConnection, déjà existant pour l'Admin) PLUS
+ * rappelle le dernier incident réellement rencontré par chaque
+ * sous-système, avec la cause exacte renvoyée par le serveur.
+ */
+function diagnosticConnexion(){
+  var lignes=[];
+  lignes.push('🔎 DIAGNOSTIC DE CONNEXION');
+  lignes.push('');
+  lignes.push('Rôle : '+(isVisiteur()?'Visiteur':(isAssocie()?'Associé':'Administrateur')));
+  lignes.push('Réseau (navigator.onLine) : '+(navigator.onLine?'✅ en ligne':'❌ hors ligne'));
+  var session=getSession();
+  if(isVisiteur()){
+    lignes.push('Mode Visiteur : aucune connexion serveur requise (données locales uniquement).');
+  } else if(!session || !session.access_token){
+    lignes.push('Session : ❌ aucun jeton de connexion valide en mémoire.');
+  } else {
+    var resteSec = session.expires_at ? Math.round((session.expires_at-Date.now())/1000) : null;
+    lignes.push('Session : ✅ jeton présent'+(resteSec!==null?(resteSec>0?' (expire dans '+resteSec+'s)':' (⚠️ EXPIRÉ depuis '+(-resteSec)+'s)'):''));
+  }
+  Object.keys(DIAG).forEach(function(cle){
+    var d=DIAG[cle];
+    var age=Math.round((Date.now()-d.ts)/1000);
+    lignes.push((d.ok?'✅ ':'❌ ')+cle+' (il y a '+age+'s) : '+d.detail);
+  });
+  if(!Object.keys(DIAG).length) lignes.push('(Aucun incident enregistré depuis le chargement de l\'application.)');
+  lignes.push('');
+  lignes.push('⏳ Test en direct en cours…');
+  alert(lignes.join('\n'));
+  if(!navigator.onLine || isVisiteur() || !session || !session.access_token){ return; }
+  var endpoint = isAssocie() ? '/rest/v1/activites?select=id&limit=1' : '/rest/v1/app_data?select=id&limit=1';
+  fetch(SUPABASE_CONFIG.url + endpoint, {
+    headers: { 'apikey': SUPABASE_CONFIG.anonKey, 'Authorization': 'Bearer ' + session.access_token }
+  }).then(function(res){
+    if(res.ok){ alert('✅ Test en direct : connexion au serveur Supabase réussie (HTTP '+res.status+').'); return; }
+    res.text().then(function(corps){ alert('❌ Test en direct : '+extraireDetailErreur(corps, res.status)); });
+  }).catch(function(err){
+    alert('❌ Test en direct : impossible de joindre le serveur (réseau/CORS). Détail : '+err.message);
+  });
+}
 function demanderConfirmationSecurisee(titre, detailsHtml, irreversible, callback){
   st('sec-titre',titre);
   document.getElementById('sec-details').innerHTML=detailsHtml;
@@ -3057,7 +3137,10 @@ function chargerBilanConfidentiel(){
     return;
   }
   supabaseTable('/rest/v1/rpc/bilan_confidentiel', { method:'POST' }, session.access_token)
-    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(r){
+      if(r.ok) return r.json();
+      return r.text().then(function(corps){ enregistrerDiagnostic('Bilan confidentiel', false, extraireDetailErreur(corps, r.status)); return null; });
+    })
     .then(function(rows){
       var b = rows && rows[0];
       if(!b){ ['va-capital','va-interet','va-reste','va-depenses'].forEach(function(id){ st(id,'— (indisponible)'); }); return; }
@@ -3076,10 +3159,12 @@ function chargerBilanConfidentiel(){
       st('va-interet', fmt(Number(interetAffiche)||0));
       st('va-reste', fmt(Number(resteAffiche)||0));
       st('va-depenses', fmt(Number(b.total_depenses)||0));
+      enregistrerDiagnostic('Bilan confidentiel', true, 'Chargé avec succès.');
     })
     .catch(function(e){
       console.error('[chargerBilanConfidentiel]', e);
       ['va-capital','va-interet','va-reste','va-depenses'].forEach(function(id){ st(id,'— (erreur)'); });
+      enregistrerDiagnostic('Bilan confidentiel', false, (e && e.message) ? e.message : 'connexion au serveur impossible');
     });
 }
 function rVueAssocie(){
@@ -3646,6 +3731,12 @@ function rStock(){
   var fs=normSearch(v('f-search-stock'));
   var items=D.stock.filter(function(s){ return matchPeriodeFull(s.date,'f-periode-stock'); });
   if(fs) items=items.filter(function(s){ return normSearch(s.nom).indexOf(fs)>-1; });
+  // CORRECTIF (tri par quantité de stock) : purement un ordre d'affichage
+  // — aucune donnée, aucun total, aucun calcul n'est modifié, seul
+  // l'ordre des lignes dans le tableau change.
+  var triStock=v('f-tri-stock');
+  if(triStock==='qte_desc') items=items.slice().sort(function(a,b){ return (b.qteRestante!==undefined?b.qteRestante:b.qteInitiale)-(a.qteRestante!==undefined?a.qteRestante:a.qteInitiale); });
+  else if(triStock==='qte_asc') items=items.slice().sort(function(a,b){ return (a.qteRestante!==undefined?a.qteRestante:a.qteInitiale)-(b.qteRestante!==undefined?b.qteRestante:b.qteInitiale); });
   if(!items.length){ tb.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit</td></tr>'; return; }
   var html='';
   var totInit=0,totVendu=0,totRestant=0,totValeur=0,totAchatU=0,totVenteU=0;
@@ -5953,8 +6044,14 @@ function assurerTokenValide(){
       s.refresh_token = res.body.refresh_token || s.refresh_token;
       s.expires_at = Date.now() + ((res.body.expires_in||3600) * 1000);
       setSession(s);
+      enregistrerDiagnostic('Session / jeton', true, 'Jeton renouvelé avec succès.');
+    } else {
+      enregistrerDiagnostic('Session / jeton', false, 'Renouvellement refusé — '+(res.body && (res.body.error_description||res.body.msg||res.body.error) || ('HTTP '+res.status)));
     }
-  }).catch(function(e){ console.error('[assurerTokenValide]', e); });
+  }).catch(function(e){
+    console.error('[assurerTokenValide]', e);
+    enregistrerDiagnostic('Session / jeton', false, (e && e.message) ? e.message : 'connexion au serveur impossible');
+  });
 }
 
 /** Convertit une ligne de la table "activites" (colonnes snake_case) vers le format utilisé par l'application. */
@@ -6041,8 +6138,14 @@ function supabaseTable(path, options, accessToken){
  */
 function chargerActivitesEtStockDepuisTables(session){
   return Promise.all([
-    supabaseTable('/rest/v1/activites?select=*&order=id.asc', {}, session.access_token).then(function(r){ return r.ok?r.json():null; }),
-    supabaseTable('/rest/v1/stock?select=*&order=id.asc', {}, session.access_token).then(function(r){ return r.ok?r.json():[]; })
+    supabaseTable('/rest/v1/activites?select=*&order=id.asc', {}, session.access_token).then(function(r){
+      if(r.ok) return r.json();
+      return r.text().then(function(corps){ enregistrerDiagnostic('Lecture activités (serveur)', false, extraireDetailErreur(corps, r.status)); return null; });
+    }),
+    supabaseTable('/rest/v1/stock?select=*&order=id.asc', {}, session.access_token).then(function(r){
+      if(r.ok) return r.json();
+      return r.text().then(function(corps){ enregistrerDiagnostic('Lecture stock (serveur)', false, extraireDetailErreur(corps, r.status)); return []; });
+    })
   ]).then(function(res){
     var serverAct = Array.isArray(res[0]) ? res[0].map(mapRowVersActivite) : null;
     var serverStock = Array.isArray(res[1]) ? res[1].map(mapRowVersStock) : null;
@@ -6123,11 +6226,15 @@ function chargerActivitesEtStockDepuisTables(session){
     if (serverAct)   D.activites = mergeArraysById(D.activites, serverAct,   delIdsActivites);
     if (serverStock) D.stock     = mergeArraysById(D.stock,     serverStock, (D._del&&D._del.stock)||[]);
     persist();
+    enregistrerDiagnostic('Synchro activités/stock', true, 'Chargement réussi — '+D.activites.length+' activité(s), '+D.stock.length+' article(s).');
     console.log('[sync] activites/stock fusionnés au lieu d\'écrasés — '+D.activites.length+' activité(s), '+D.stock.length+' article(s) de stock en local.');
     // Repousse tout de suite ce qui manquait encore côté serveur
     // (idempotent grâce à l'upsert par id — jamais de doublon).
     if (typeof syncActivitesEtStockVersNouvellesTables === 'function') syncActivitesEtStockVersNouvellesTables();
-  }).catch(function(e){ console.error('[chargerActivitesEtStockDepuisTables]', e); });
+  }).catch(function(e){
+    console.error('[chargerActivitesEtStockDepuisTables]', e);
+    enregistrerDiagnostic('Synchro activités/stock', false, 'Échec du chargement — '+(e && e.message ? e.message : 'connexion au serveur impossible'));
+  });
 }
 
 /**
