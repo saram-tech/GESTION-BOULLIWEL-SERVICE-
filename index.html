@@ -3450,7 +3450,7 @@ function rPerso(){
   var fs=normSearch(v('f-search-perso'));
   var items=D.perso.filter(function(p){ return matchPeriodeFull(p.date,'f-periode-perso'); });
   if(fs) items=items.filter(function(p){ return normSearch(p.nom).indexOf(fs)>-1; });
-  if(!items.length){ tb.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr>'; st('t-perso','0 GNF'); st('t-perso-reste',fmt(Math.max(0,calculerBilanData().resteEnt))); return; }
+  if(!items.length){ tb.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr>'; var resteEntVide=Math.max(0,calculerBilanData().resteEnt); st('t-perso',fmt(resteEntVide)); st('t-perso-reste',fmt(resteEntVide)); return; }
   var tot=0, html='';
   var totInit=0,totVendu=0,totRestant=0,totAchatU=0,totRevient=0,totCommission=0,totDu=0;
   items.forEach(function(p){
@@ -3477,8 +3477,7 @@ function rPerso(){
   html+='<td>TOTAL</td><td>'+totInit+'</td><td style="color:var(--or)">'+totVendu+'</td><td>'+totRestant+'</td>';
   html+='<td>—</td><td style="color:var(--tx2)">'+fmt(totRevient)+'</td><td style="color:var(--gr)">+'+fmt(totCommission)+'</td><td style="color:var(--go)">'+fmt(totDu)+'</td><td>—</td><td>—</td><td>—</td>';
   html+='</tr>';
-  tb.innerHTML=html; st('t-perso',fmt(tot));
-  var resteEnt=calculerBilanData().resteEnt;
+  tb.innerHTML=html; var resteEnt=calculerBilanData().resteEnt; st('t-perso',fmt(Math.max(0,resteEnt)));
   st('t-perso-reste',fmt(Math.max(0,resteEnt)));
 }
 
@@ -4645,7 +4644,7 @@ var APP_VERSION = 'v40';
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-08-27T14:00:00'; // CORRECTIF Stock Perso/Clôture : le cumul "entDejaDeduit" (déjà déduit, base du calcul "Entreprise me doit") est désormais fusionné par Math.max() entre cloud et local dans mergeAppData(), comme _o/_co — il ne peut plus redescendre vers une ancienne valeur lors d'une synchronisation, ce qui faisait remonter à tort "Entreprise me doit" après une clôture alors qu'un remboursement (via ventes) avait déjà eu lieu. Aucun autre calcul modifié.
+var APP_DERNIERE_MAJ = '2026-08-27T15:00:00'; // CORRECTIF Stock Perso : "Total que l'entreprise vous doit" affiche désormais le montant réellement restant dû (même valeur que "Reste que l'entreprise vous doit", calculée via calculerBilanData().resteEnt) au lieu du total brut par article — se met donc à jour immédiatement après une clôture, sans jamais conserver une ancienne valeur. Aucun autre calcul modifié.
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
@@ -5016,6 +5015,15 @@ function doLoginVisiteur(){
     try{ localStorage.setItem('bpro_visiteur_cache', JSON.stringify({code:code, rows:rows, ts:Date.now()})); }catch(e){}
     err.textContent='';
     notif('✅ Accès Visiteur autorisé');
+    // CORRECTIF (badge figé sur "Mode Visiteur" — affichage uniquement) :
+    // ce badge était initialisé une seule fois, avant toute connexion
+    // (voir écran de démarrage), avec le style visuel "offline" (rond
+    // gris), et n'était plus jamais mis à jour après un accès Visiteur
+    // réussi — même en ligne, avec les données bien reçues du serveur,
+    // le badge restait figé sur son état gris initial, donnant
+    // l'impression que l'application restait bloquée en mode hors ligne
+    // au lieu de confirmer l'accès réel.
+    if (typeof setSyncStatus === 'function') setSyncStatus('online', '🟢 Visiteur connecté');
   }).catch(function(e){
     // Serveur injoignable (hors ligne, timeout, navigator.onLine trompeur…) :
     // on retombe sur le dernier résultat obtenu EN LIGNE pour ce même code,
@@ -5033,6 +5041,7 @@ function doLoginVisiteur(){
       entrerVueVisiteur(cache.rows, code);
       err.textContent='';
       notif('📴 Mode hors ligne — dernières données synchronisées le '+new Date(cache.ts).toLocaleString('fr-FR'));
+      if (typeof setSyncStatus === 'function') setSyncStatus('offline', '⚪ Mode Visiteur (hors ligne)');
     } else {
       err.textContent='❌ Connexion impossible et aucune donnée hors ligne enregistrée pour ce code sur cet appareil.';
     }
@@ -5072,7 +5081,8 @@ function rafraichirVisiteur(){
     afficherVueVisiteur(biens, Number(premiere.capital_admin)||0, Number(premiere.montant_du_admin)||0, Number(premiere.entreprise_doit_stock_perso)||0, Number(premiere.total_avoirs_admin)||0);
     try{ localStorage.setItem('bpro_visiteur_cache', JSON.stringify({code:code, rows:rows, ts:Date.now()})); }catch(e){}
     notif('✅ Données actualisées');
-  }).catch(function(){ notif('❌ Impossible d\'actualiser (déconnecté ou accès verrouillé)'); });
+    if (typeof setSyncStatus === 'function') setSyncStatus('online', '🟢 Visiteur connecté');
+  }).catch(function(){ notif('❌ Impossible d\'actualiser (déconnecté ou accès verrouillé)'); if (typeof setSyncStatus === 'function') setSyncStatus('offline', '⚪ Mode Visiteur (hors ligne)'); });
 }
 /** Affiche le patrimoine reçu du serveur dans #vue-visiteur (jamais mis en cache localStorage). */
 function afficherVueVisiteur(biens, capitalAdmin, montantDu, stockPersoDu, totalAvoirs){
@@ -5514,8 +5524,13 @@ document.addEventListener('DOMContentLoaded',function(){
           if (cacheVisiteurRepris && cacheVisiteurRepris.code === codeVisiteurRepris && (Date.now()-(cacheVisiteurRepris.ts||0)) < (30*24*3600*1000)) {
             entrerVueVisiteur(cacheVisiteurRepris.rows, codeVisiteurRepris);
             notif('📴 Mode hors ligne — dernières données du '+new Date(cacheVisiteurRepris.ts).toLocaleString('fr-FR'));
+            if (typeof setSyncStatus === 'function') setSyncStatus('offline', '⚪ Mode Visiteur (hors ligne)');
+          } else if (typeof setSyncStatus === 'function') {
+            setSyncStatus('offline', '⚪ Mode Visiteur (hors ligne)');
           }
         }
+      } else if (typeof setSyncStatus === 'function') {
+        setSyncStatus('offline', '⚪ Mode Visiteur');
       }
     }
   } else {
@@ -5539,8 +5554,16 @@ document.addEventListener('DOMContentLoaded',function(){
       if (!isAssocie()) reconcileOnStartup();
       else setSyncStatus('offline', '⚪ Mode Associé');
     });
-  } else {
-    setSyncStatus('offline', isAssocie() ? '⚪ Mode Associé' : (isVisiteur() ? '⚪ Mode Visiteur' : '⚪ Cloud désactivé'));
+  } else if (!isVisiteur()) {
+    // CORRECTIF (badge figé sur "Mode Visiteur" — affichage uniquement) :
+    // ce badge générique s'appliquait aussi au Visiteur, en écrasant
+    // systématiquement (avec le style visuel "hors ligne") le statut
+    // réel déjà déterminé juste au-dessus par la reprise de session
+    // Visiteur (rafraichirVisiteur() / cache local) — voir ce bloc, qui
+    // gère désormais lui-même son propre badge, correctement, qu'il soit
+    // en ligne ou hors ligne. On ne touche donc plus au badge ici pour
+    // le Visiteur.
+    setSyncStatus('offline', isAssocie() ? '⚪ Mode Associé' : '⚪ Cloud désactivé');
   }
  }catch(e){
    // Même si l'initialisation plante, l'écran de connexion (déjà dans le
@@ -5956,6 +5979,21 @@ function rafraichirActivitesSilencieux(){
 function demarrerAutoSyncActivites(){
   arreterAutoSyncActivites(); // jamais deux minuteurs en parallèle (ex: connexions répétées)
   if (!SUPABASE_CONFIG.enabled || isVisiteur()) return;
+  // CORRECTIF (Activités de l'Associé invisibles pour l'Administrateur
+  // "même avec Internet") : cause exacte trouvée — au rechargement de
+  // l'app avec une session DÉJÀ active (voir plus bas, écran de
+  // démarrage), seul un PUSH des données locales était relancé
+  // (syncActivitesEtStockVersNouvellesTables), jamais un PULL des
+  // nouvelles lignes côté serveur (chargerActivitesEtStockDepuisTables /
+  // chargerDonneesAssocie) : ce PULL n'était déclenché qu'à une
+  // connexion neuve (appliquerSession) ou après un délai pouvant
+  // atteindre AUTO_SYNC_INTERVAL_MS (15s). Un Administrateur qui rouvrait
+  // simplement l'app pouvait donc rester plusieurs secondes, voire
+  // indéfiniment si l'app était refermée avant, sans voir les activités
+  // pourtant déjà envoyées par l'Associé. On déclenche donc ici un PULL
+  // immédiat (même fonction que le minuteur, sans rien dupliquer), en
+  // plus du minuteur périodique déjà en place.
+  rafraichirActivitesSilencieux();
   _autoSyncActivitesTimer = setInterval(rafraichirActivitesSilencieux, AUTO_SYNC_INTERVAL_MS);
 }
 /** Arrête le rafraîchissement automatique (appelée à la déconnexion, pour ne pas continuer d'interroger Supabase sans session valide). */
