@@ -387,14 +387,17 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- ================================================================
      VUE ASSOCIÉ — interface restreinte, affichée uniquement pour le
      rôle "associe". Ne contient JAMAIS d'informations confidentielles
-     de l'Administrateur (dépenses, stock, autres activités, etc.)
+     de l'Administrateur (stock, autres activités, etc.), à l'exception
+     du détail des dépenses ("Total dépenses" → En savoir plus, ajouté
+     le 27/08/2026 à la demande explicite de l'utilisateur, même
+     principe que "Reste que vous devez" → En savoir plus).
      ================================================================ -->
 <div id="vue-associe" style="display:none">
   <div class="g4" style="margin-bottom:14px" id="va-dashboard">
     <div class="kpi" data-vk="as-capital"><div class="kl">Votre capital actuel</div><div class="kv g" id="va-capital">0 GNF</div><div class="ks">Produits saisis directement en Stock Ent. ÷ 2</div></div>
     <div class="kpi" data-vk="as-interet"><div class="kl">Votre part d'intérêt actuelle</div><div class="kv" id="va-interet">0 GNF</div><div class="ks">Votre part = Bénéfice total ÷ 2 (partage 50/50)</div></div>
     <div class="kpi" data-vk="as-reste"><div class="kl">Reste que vous devez à votre associé</div><div class="kv r" id="va-reste">0 GNF</div><button class="btn bh bxs no-print" style="margin-top:6px" onclick="ouvrirDetailDette()">🔍 En savoir plus</button></div>
-    <div class="kpi" data-vk="as-depenses"><div class="kl">Total dépenses</div><div class="kv r" id="va-depenses">0 GNF</div><div class="ks">Total uniquement — détail non visible</div></div>
+    <div class="kpi" data-vk="as-depenses"><div class="kl">Total dépenses</div><div class="kv r" id="va-depenses">0 GNF</div><button class="btn bh bxs no-print" style="margin-top:6px" onclick="ouvrirDetailDepenses()">🔍 En savoir plus</button></div>
   </div>
   <div class="card" data-vk="as-activites">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
@@ -1307,6 +1310,18 @@ tbody tr:last-child td{border-bottom:none;}
     <div id="dd-corps" style="max-height:50vh;overflow-y:auto"></div>
     <div style="display:flex;justify-content:flex-end;margin-top:12px">
       <button class="btn bh" onclick="cm('m-detail-dette')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- DÉTAIL "TOTAL DÉPENSES" — Compte Associé -->
+<div class="ov" id="m-detail-depenses">
+  <div class="modal" style="max-width:600px">
+    <div class="mhd">🔍 Détail des dépenses<button class="mcl" onclick="cm('m-detail-depenses')">✕</button></div>
+    <div id="ddp-resume" style="background:var(--bg4);border-radius:9px;padding:11px;margin-bottom:12px;font-size:.85rem"></div>
+    <div id="ddp-corps" style="max-height:50vh;overflow-y:auto"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:12px">
+      <button class="btn bh" onclick="cm('m-detail-depenses')">Fermer</button>
     </div>
   </div>
 </div>
@@ -3298,6 +3313,53 @@ function ouvrirDetailDette(){
     }).catch(function(e){
       console.error('[ouvrirDetailDette]', e);
       document.getElementById('dd-resume').innerHTML='❌ Erreur de chargement.';
+  });
+}
+/**
+ * "Total dépenses" → En savoir plus (Compte Associé). Détail ligne par
+ * ligne des dépenses, via la fonction serveur depenses_associe_detail()
+ * (SECURITY DEFINER à créer côté Supabase) — même pattern que
+ * ouvrirDetailDette() ci-dessus. La table "depenses" est déjà alimentée
+ * et déjà vidée à la clôture (voir syncDepensesDettesPaiementsVersNouvellesTables()),
+ * donc ce détail se vide automatiquement après chaque clôture, sans
+ * logique supplémentaire à ajouter ici.
+ */
+function ouvrirDetailDepenses(){
+  var session=getSession();
+  if(!session || !session.access_token || !navigator.onLine){
+    document.getElementById('ddp-resume').innerHTML='⚠️ Connexion requise pour charger ce détail.';
+    document.getElementById('ddp-corps').innerHTML='';
+    om('m-detail-depenses');
+    return;
+  }
+  document.getElementById('ddp-resume').innerHTML='⏳ Chargement…';
+  document.getElementById('ddp-corps').innerHTML='';
+  om('m-detail-depenses');
+  supabaseTable('/rest/v1/rpc/depenses_associe_detail', { method:'POST' }, session.access_token)
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(lignes){
+      lignes = lignes || [];
+      var deps = lignes.map(function(r){ return { date:r.date, heure:r.heure, cat:r.categorie, desc:r.description, montant:Number(r.montant)||0 }; });
+      var total = deps.reduce(function(s,d){ return s+d.montant; },0);
+
+      document.getElementById('ddp-resume').innerHTML =
+        '<div style="display:flex;justify-content:space-between"><span>Total dépenses :</span><strong style="color:var(--re)">'+fmt(total)+'</strong></div>';
+
+      var html='';
+      if(deps.length){
+        deps.forEach(function(d){
+          html+='<div style="background:var(--bg3);border-radius:7px;padding:8px 10px;margin-bottom:6px;font-size:.8rem">'+
+            '<div style="display:flex;justify-content:space-between"><strong>'+(d.desc||d.cat||'Dépense')+'</strong><span style="color:var(--re)">'+fmt(d.montant)+'</span></div>'+
+            '<div style="color:var(--tx3);font-size:.7rem;margin-top:2px">'+fmtDateJour(d.date)+(d.heure?(' · 🕒 '+d.heure):'')+(d.cat?(' · '+d.cat):'')+'</div>'+
+          '</div>';
+        });
+      } else {
+        html='<div style="text-align:center;color:var(--tx2);padding:20px">Aucune dépense enregistrée pour le moment.</div>';
+      }
+      document.getElementById('ddp-corps').innerHTML=html;
+    }).catch(function(e){
+      console.error('[ouvrirDetailDepenses]', e);
+      document.getElementById('ddp-resume').innerHTML='❌ Erreur de chargement.';
   });
 }
 function calculerBilanData(){
