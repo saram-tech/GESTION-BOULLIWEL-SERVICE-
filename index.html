@@ -1093,7 +1093,12 @@ tbody tr:last-child td{border-bottom:none;}
     <div id="sec-details" style="background:var(--bg4);border-radius:9px;padding:12px;font-size:.82rem;line-height:1.7;margin-bottom:10px"></div>
     <div id="sec-irrev" class="al ald" style="font-size:.78rem;margin-bottom:10px">⚠️ Cette action est <strong>IRRÉVERSIBLE</strong>. Aucune récupération possible après confirmation.</div>
     <div class="fr">
-      <div class="fg"><label>Mot de passe de l'application *</label><input type="password" id="sec-pass" placeholder="Entrez le mot de passe" onkeydown="if(event.key==='Enter')validerActionSecurisee()"></div>
+      <div class="fg"><label>Mot de passe de l'application *</label>
+        <div style="position:relative">
+          <input type="password" id="sec-pass" placeholder="Entrez le mot de passe" style="padding-right:38px;width:100%" onkeydown="if(event.key==='Enter')validerActionSecurisee()">
+          <button type="button" onclick="toggleAfficherMotDePasse('sec-pass', this)" title="Afficher/masquer le mot de passe" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;padding:2px 4px">👁️</button>
+        </div>
+      </div>
     </div>
     <div id="sec-err" style="color:var(--re);font-size:.78rem;min-height:1.2em;margin-bottom:6px"></div>
     <div style="display:flex;gap:7px;justify-content:flex-end">
@@ -2082,6 +2087,16 @@ function demanderConfirmationSecurisee(titre, detailsHtml, irreversible, callbac
   _secureCallback=callback;
   om('msecure');
 }
+/**
+ * Bascule l'affichage en clair d'un champ mot de passe (icône 👁️/🙈).
+ * Purement visuel côté navigateur — ne touche à rien d'autre.
+ */
+function toggleAfficherMotDePasse(inputId, btn){
+  var el=document.getElementById(inputId);
+  if(!el) return;
+  if(el.type==='password'){ el.type='text'; if(btn) btn.textContent='🙈'; }
+  else { el.type='password'; if(btn) btn.textContent='👁️'; }
+}
 function validerActionSecurisee(){
   var pass=v('sec-pass');
   var err=document.getElementById('sec-err');
@@ -2092,16 +2107,30 @@ function validerActionSecurisee(){
     // Auth, plus dans une copie locale (D.auth) qui n'est plus mise à jour.
     // On revérifie donc directement auprès du serveur, sans toucher à la
     // session déjà ouverte (le jeton retourné ici n'est jamais utilisé).
+    //
+    // CORRECTIF ("avec le mot de passe Associé, ça ne marche pas") :
+    // cette vérification utilisait un fetch() écrit à la main, en double
+    // de supabaseSignIn() (celle utilisée pour la vraie connexion), sans
+    // délai maximum ni distinction entre "mot de passe incorrect" et
+    // "trop de tentatives" (HTTP 429, renvoyé par Supabase après
+    // plusieurs essais rapprochés) — les deux affichaient le même
+    // message trompeur "Mot de passe incorrect", même quand le mot de
+    // passe saisi était le bon. On réutilise maintenant EXACTEMENT la
+    // même fonction que la connexion normale (garantie de cohérence) et
+    // on distingue les cas d'erreur.
+    if(!navigator.onLine){
+      err.textContent='⚠️ Connexion internet requise pour vérifier le mot de passe.';
+      return;
+    }
     var email = getRole()==='admin' ? AUTH_EMAIL_ADMIN : AUTH_EMAIL_ASSOCIE;
     err.textContent = '⏳ Vérification…';
-    fetch(SUPABASE_CONFIG.url + '/auth/v1/token?grant_type=password', {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json', 'apikey': SUPABASE_CONFIG.anonKey },
-      body: JSON.stringify({ email: email, password: pass })
-    }).then(function(r){ return r.json().catch(function(){return{};}).then(function(b){ return {ok:r.ok, body:b}; }); })
-      .then(function(res){
-        if(!res.ok){
-          err.textContent='❌ Mot de passe incorrect. Aucune modification n\'a été effectuée.';
+    supabaseSignIn(email, pass).then(function(res){
+        if(!res.ok || !res.body || !res.body.access_token){
+          if(res.status===429){
+            err.textContent='⏳ Trop de tentatives récentes — patientez une minute avant de réessayer.';
+          } else {
+            err.textContent='❌ Mot de passe incorrect. Aucune modification n\'a été effectuée.';
+          }
           return;
         }
         err.textContent='';
