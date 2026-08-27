@@ -340,17 +340,27 @@ tbody tr:last-child td{border-bottom:none;}
     <button class="btn bd bsm" onclick="cloturer()" title="Clôturer la période : archive dettes/activités, remet les compteurs à zéro (mot de passe requis)">🔄 Clôture</button>
     <button class="btn bd bsm" onclick="viderTout()" title="Supprimer TOUT — remise à zéro complète de l'application (mot de passe requis)">🗑️ Tout</button>
     <button id="btn-install" class="btn bs bsm" style="display:none">📲 Installer</button>
-    <button class="btn bh bsm" onclick="doLogout()" title="Se déconnecter">🚪 Déco.</button>
   </div>
   <div id="hbts-associe" class="hbts" style="display:none">
     <button id="btn-refresh-associe" class="btn-refresh" onclick="rafraichirDonnees()" title="Rafraîchir les données affichées">⟳</button>
     <button class="btn bh bsm" onclick="showChangerPass()" title="Changer mon mot de passe">🔑 Mon mot de passe</button>
-    <button class="btn bh bsm" onclick="doLogout()" title="Se déconnecter">🚪 Déconnexion</button>
   </div>
   <div id="hbts-visiteur" class="hbts" style="display:none">
     <button id="btn-refresh-visiteur" class="btn-refresh" onclick="rafraichirVisiteur()" title="Rafraîchir les données affichées">⟳</button>
-    <button class="btn bh bsm" onclick="doLogout()" title="Se déconnecter">🚪 Déconnexion</button>
   </div>
+  <!--
+    CORRECTIF ("le bouton de déconnexion est masqué en mode portrait") :
+    le bouton Déconnexion vivait tout au bout de la barre .hbts, qui
+    défile horizontalement (overflow-x:auto) et n'affiche AUCUNE
+    scrollbar visible (scrollbar-width:none) — en mode portrait, avec
+    peu de largeur d'écran, ce bouton se retrouvait hors champ, sans
+    aucun indice visuel qu'il fallait faire glisser la barre pour
+    l'atteindre. On le sort donc de la zone défilante : un SEUL bouton
+    de déconnexion, fixe, toujours visible à l'extrémité droite de
+    l'en-tête (flex-shrink:0), quel que soit le rôle connecté ou la
+    largeur d'écran.
+  -->
+  <button class="btn bd bsm" onclick="doLogout()" title="Se déconnecter" style="flex-shrink:0;margin-left:4px">🚪</button>
 </header>
 <nav id="main-nav"><div class="ni">
   <button class="nb active" onclick="gt('dashboard',this)" title="Tableau de bord : vue d'ensemble des chiffres clés et du stock">📊 Bord</button>
@@ -6727,3 +6737,4 @@ function testSupabaseConnection() {
 <div id="print-area"></div>
 </body>
 </html>
+            
