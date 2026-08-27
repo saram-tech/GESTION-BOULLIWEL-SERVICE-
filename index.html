@@ -567,6 +567,11 @@ tbody tr:last-child td{border-bottom:none;}
         <option value="qte_desc">Quantité ↓ (plus grand d'abord)</option>
         <option value="qte_asc">Quantité ↑ (plus petit d'abord)</option>
       </select>
+      <select id="f-source-stock" onchange="rStock()" title="Afficher Stock Entreprise, Stock Perso, ou les deux — affichage uniquement, aucune donnée modifiée" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
+        <option value="">Stock Entreprise + Stock Perso</option>
+        <option value="entreprise">Stock Entreprise</option>
+        <option value="perso">Stock Perso</option>
+      </select>
     </div>
     <div class="tw"><table>
     <thead><tr><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>Niveau</th><th>Seuil</th><th>Prix Unitaire</th><th>P.Vente</th><th>Valeur</th><th>Date</th><th>Actions</th></tr></thead>
@@ -3731,6 +3736,16 @@ function rStock(){
   var fs=normSearch(v('f-search-stock'));
   var items=D.stock.filter(function(s){ return matchPeriodeFull(s.date,'f-periode-stock'); });
   if(fs) items=items.filter(function(s){ return normSearch(s.nom).indexOf(fs)>-1; });
+  // CORRECTIF (filtre Stock Entreprise / Stock Perso / les deux) :
+  // affichage uniquement — aucune donnée ni calcul modifié. Par défaut
+  // ('' — aucune option choisie), tout reste visible, comme avant cet
+  // ajout. "Stock Perso" = fiches comportant au moins une unité apportée
+  // personnellement (origPerso > 0, déjà utilisé par le badge "👤 dont").
+  // "Stock Entreprise" = fiches sans aucune unité apportée
+  // personnellement (origPerso vide ou 0).
+  var sourceStock=v('f-source-stock');
+  if(sourceStock==='entreprise') items=items.filter(function(s){ return !(s.origPerso>0); });
+  else if(sourceStock==='perso') items=items.filter(function(s){ return s.origPerso>0; });
   // CORRECTIF (tri par quantité de stock) : purement un ordre d'affichage
   // — aucune donnée, aucun total, aucun calcul n'est modifié, seul
   // l'ordre des lignes dans le tableau change.
