@@ -589,6 +589,10 @@ tbody tr:last-child td{border-bottom:none;}
   <div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--bd);display:flex;justify-content:space-between">
     <span style="color:var(--tx2)">Total que l'entreprise vous doit :</span>
     <span style="font-family:'Syne',sans-serif;font-size:1rem;color:var(--go)" id="t-perso">0 GNF</span>
+  </div>
+  <div style="margin-top:6px;padding-top:9px;border-top:1px solid var(--bd);display:flex;justify-content:space-between">
+    <span style="color:var(--tx2)">Reste que l'entreprise vous doit :</span>
+    <span style="font-family:'Syne',sans-serif;font-size:1rem;color:var(--go)" id="t-perso-reste">0 GNF</span>
   </div></div>
 </div>
 
@@ -619,7 +623,7 @@ tbody tr:last-child td{border-bottom:none;}
       </div>
       <div style="background:var(--bg4);border-radius:8px;padding:11px">
         <div style="font-size:.7rem;color:var(--re);font-weight:700;margin-bottom:6px;text-transform:uppercase">④ Part Associé</div>
-        <div style="font-size:.78rem;color:var(--tx2);line-height:1.7">= Part base − 15% − Dette restante<br>Le 15% (retiré de SA part) sert D'ABORD à rembourser sa dette ; le surplus non utilisé reste retenu.<br>Dettes nettes = dettes − paiements reçus.</div>
+        <div style="font-size:.78rem;color:var(--tx2);line-height:1.7">= Part base − Dette restante<br>Dettes nettes = dettes − paiements reçus.</div>
       </div>
       <div style="background:var(--bg4);border-radius:8px;padding:11px">
         <div style="font-size:.7rem;color:var(--te);font-weight:700;margin-bottom:6px;text-transform:uppercase">⑤ Entreprise Me Doit</div>
@@ -962,7 +966,6 @@ tbody tr:last-child td{border-bottom:none;}
     <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">💰 Pourcentages financiers</div>
     <div class="fr">
       <div class="fg"><label>% Réinvestissement (sur bénéfice brut)</label><input type="number" id="pr-reinvest" min="0" max="100" step="0.1"></div>
-      <div class="fg"><label>% Retenu sur part associé</label><input type="number" id="pr-retenu" min="0" max="100" step="0.1"></div>
     </div>
     <div class="fr">
       <div class="fg"><label>% Stock Perso (créance = prix revient + X%)</label><input type="number" id="pr-perso" min="0" max="100" step="0.1"></div>
@@ -1361,13 +1364,13 @@ let D = {
   activites:[],stock:[],perso:[],depenses:[],
   dettes:[],dettesClot:0,detteVerrou:false,
   paiements:[],commandes:[],histo:[],corbeille:[],
-  _o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''}
+  _o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,stockPerso:15,fournisseurTel:''}
 };
 
 function load(){
   try{
     const s=localStorage.getItem(KEY);
-    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''}},d); if(!D._del) D._del={}; }
+    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,stockPerso:15,fournisseurTel:''}},d); if(!D._del) D._del={}; }
   }catch(e){}
 }
 
@@ -1725,7 +1728,7 @@ var VIS_AFFICHAGE_DEFS = {
 };
 /** Accès sécurisé aux paramètres réglables (avec migration si absents). */
 function getParams(){
-  if(!D.params) D.params={reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''};
+  if(!D.params) D.params={reinvest:20,stockPerso:15,fournisseurTel:''};
   // CORRECTIF (Compte Visiteur — valeurs par défaut) : appliqué UNE SEULE
   // FOIS, uniquement si l'Administrateur n'a jamais encore enregistré ces
   // deux champs (propriété absente de D.params). On utilise hasOwnProperty
@@ -1789,7 +1792,7 @@ function exigerAdmin(){
 function ouvrirParametres(){
   if(!exigerAdmin()) return;
   var p=getParams();
-  sv('pr-reinvest',p.reinvest); sv('pr-retenu',p.retenuAssocie); sv('pr-perso',p.stockPerso); sv('pr-fourn',p.fournisseurTel||'');
+  sv('pr-reinvest',p.reinvest); sv('pr-perso',p.stockPerso); sv('pr-fourn',p.fournisseurTel||'');
   sv('pr-recup-tel',p.recupTel||''); sv('pr-recup-email',p.recupEmail||'');
   sv('pr-visiteur-pin', p.visiteurCode||'');
   var chk=document.getElementById('pr-visiteur-verrou'); if(chk) chk.checked = p.visiteurVerrouille!==false;
@@ -1820,12 +1823,12 @@ function renderListeVisibilite(containerId, defs, groupKey){
   cont.innerHTML=html;
 }
 function enrParametres(){
-  var reinvest=fl('pr-reinvest'), retenu=fl('pr-retenu'), perso=fl('pr-perso'), fourn=v('pr-fourn').trim().replace(/[^0-9]/g,'');
+  var reinvest=fl('pr-reinvest'), perso=fl('pr-perso'), fourn=v('pr-fourn').trim().replace(/[^0-9]/g,'');
   var recupTel=v('pr-recup-tel').trim().replace(/[^0-9]/g,''), recupEmail=v('pr-recup-email').trim();
   var visiteurCode=v('pr-visiteur-pin').trim();
   var visiteurVerrouille=(document.getElementById('pr-visiteur-verrou')||{}).checked;
   var bilanFormulesVisible=(document.getElementById('pr-bilan-formules-visible')||{}).checked===true;
-  if(reinvest<0||reinvest>100||retenu<0||retenu>100||perso<0||perso>100){ notif('⚠️ Les pourcentages doivent être entre 0 et 100'); return; }
+  if(reinvest<0||reinvest>100||perso<0||perso>100){ notif('⚠️ Les pourcentages doivent être entre 0 et 100'); return; }
   if(visiteurCode && visiteurCode.length<4){ notif('⚠️ Le code Visiteur doit faire au moins 4 caractères'); return; }
   // Relit toutes les cases "Gestion de l'affichage" (Associé / Visiteur / Tableau de bord)
   var visAffichage={associe:{},visiteur:{},dashboard:{}};
@@ -1834,7 +1837,7 @@ function enrParametres(){
     var g=chks[i].getAttribute('data-group'), k=chks[i].getAttribute('data-key');
     visAffichage[g][k]=chks[i].checked;
   }
-  D.params={reinvest:reinvest,retenuAssocie:retenu,stockPerso:perso,fournisseurTel:fourn,recupTel:recupTel,recupEmail:recupEmail,
+  D.params={reinvest:reinvest,stockPerso:perso,fournisseurTel:fourn,recupTel:recupTel,recupEmail:recupEmail,
     visiteurCode:visiteurCode||null, visiteurVerrouille:visiteurVerrouille!==false,
     bilanFormulesVisible:bilanFormulesVisible, visAffichage:visAffichage};
   save(); syncParametresVersNouvelleTable(); rZoneVisiteurStatut(); appliquerVisibiliteAffichage(); cm('mparams'); notif('✅ Paramètres enregistrés');
@@ -1915,18 +1918,13 @@ var _timerSyncPartAssocie = null;
  * côté Admin, sans aucune nouvelle formule — même principe que
  * syncEntDoitStockPersoAuServeur() ci-dessus :
  *   - "Il reçoit (net)" = Math.max(0,bd.ra)             → part_interet_admin
- *   - "Reste à vous payer (15%… + dette non couverte)"
+ *   - "Reste à vous payer (dette non couverte)"
  *     = bd.resteAVousPayer                              → reste_a_payer_admin
  * Ces deux valeurs sont EXACTEMENT celles affichées dans le Bilan
  * Administrateur sous ces mêmes libellés (voir calculerBilan()) —
  * conforme à la règle du projet : "Votre part d'intérêt actuelle" du
  * compte Associé doit correspondre au montant "Il reçoit (net)" du
  * Bilan Administrateur, 0 différence.
- * (Une version antérieure envoyait par erreur bd.pa15 — la part AVANT
- * déduction de la dette non couverte — ce qui pouvait afficher un
- * montant supérieur à "Il reçoit (net)" dès qu'une dette existait ;
- * corrigé ici pour repousser exactement le montant net affiché côté
- * Administrateur, conformément à la demande explicite.)
  * Objectif : que le compte Associé lise ces valeurs déjà calculées par
  * l'Administrateur au lieu que la fonction serveur bilan_confidentiel()
  * les recalcule indépendamment (cause du problème signalé — la fonction
@@ -1954,7 +1952,7 @@ function syncParametresVersNouvelleTable(){
   if(!session || !session.access_token || session.role!=='admin' || !navigator.onLine) return;
   var p=D.params||{};
   var payload={
-    id:1, reinvest:p.reinvest, retenu_associe:p.retenuAssocie, stock_perso:p.stockPerso,
+    id:1, reinvest:p.reinvest, stock_perso:p.stockPerso,
     fournisseur_tel:p.fournisseurTel||null, recup_tel:p.recupTel||null, recup_email:p.recupEmail||null,
     dep_categories: D.depCategories||[], dettes_clot: D.dettesClot||0, dette_verrou: !!D.detteVerrou,
     ent_deja_deduit: D.entDejaDeduit||0,
@@ -3089,28 +3087,25 @@ function calculerBilanData(){
   var tperso=D.perso.reduce(function(s,p){ return s+(p.totalDu-p.rembourse); },0);
   var d20=bb*(getParams().reinvest/100), a20=bb-d20, aD=a20-tdep;
   var mp=aD/2, pab=aD/2;
-  var r15=pab*(getParams().retenuAssocie/100), pa15=pab-r15;
   var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0)+D.dettesClot;
   var totP=D.paiements.reduce(function(s,p){ return s+p.montant; },0);
   var dnBrut=Math.max(0,totD-totP);
-  var r15VersDette=Math.min(r15,dnBrut);
-  var r15Restant=Math.max(0,r15-dnBrut);
-  var dn=Math.max(0,dnBrut-r15);
-  var ra=pa15-dn;
+  var dn=dnBrut;
+  var ra=pab-dn;
   var entDoit=tperso;
   var aDeduire=ta+d20+(D.entDejaDeduit||0);
   var resteEnt=entDoit-aDeduire;
-  var resteAVousPayer=r15Restant+Math.max(0,-ra);
+  var resteAVousPayer=Math.max(0,-ra);
   var resteAssocieDoit=Math.max(0,-ra);
   return {tp:tp,ta:ta,tapy:tapy,tr:tr,bb:bb,tdep:tdep,tperso:tperso,d20:d20,a20:a20,aD:aD,
-    mp:mp,pab:pab,r15:r15,pa15:pa15,totD:totD,totP:totP,dnBrut:dnBrut,r15VersDette:r15VersDette,
-    r15Restant:r15Restant,dn:dn,ra:ra,entDoit:entDoit,aDeduire:aDeduire,resteEnt:resteEnt,
+    mp:mp,pab:pab,totD:totD,totP:totP,dnBrut:dnBrut,
+    dn:dn,ra:ra,entDoit:entDoit,aDeduire:aDeduire,resteEnt:resteEnt,
     resteAVousPayer:resteAVousPayer,resteAssocieDoit:resteAssocieDoit};
 }
 function calculerBilan(){
   var bd=calculerBilanData();
   var tp=bd.tp,ta=bd.ta,tapy=bd.tapy,tr=bd.tr,bb=bd.bb,tdep=bd.tdep,tperso=bd.tperso,d20=bd.d20,a20=bd.a20,aD=bd.aD;
-  var mp=bd.mp,pab=bd.pab,r15=bd.r15,dnBrut=bd.dnBrut,r15VersDette=bd.r15VersDette,r15Restant=bd.r15Restant,dn=bd.dn,ra=bd.ra;
+  var mp=bd.mp,pab=bd.pab,dnBrut=bd.dnBrut,dn=bd.dn,ra=bd.ra;
   var entDoit=bd.entDoit,resteEnt=bd.resteEnt;
   var res=document.getElementById('bilan-result');
   if(tp<=0&&ta<=0){
@@ -3145,18 +3140,16 @@ function calculerBilan(){
   html+='<div class="dv">Calcul part associé</div>';
   html+='<div style="background:var(--bg4);border-radius:9px;padding:12px;margin-bottom:11px">';
   html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">Part de base (50%)</span><span>'+fmt(pab)+'</span></div>';
-  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">− 15% de sa part (retenu)</span><span style="color:var(--re)">− '+fmt(r15)+'</span></div>';
   html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">Dette brute (dettes − paiements reçus)</span><span>'+fmt(dnBrut)+'</span></div>';
-  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">→ 15% appliqué en 1er paiement de dette</span><span style="color:var(--gr)">− '+fmt(r15VersDette)+'</span></div>';
-  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">− Dette restante (après 15%)</span><span style="color:var(--re)">− '+fmt(dn)+'</span></div>';
+  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">− Dette restante</span><span style="color:var(--re)">− '+fmt(dn)+'</span></div>';
   html+='<hr class="sep">';
   var raColor=ra>=0?'var(--gr)':'var(--re)';
   html+='<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600">Il reçoit (net)</span><span style="font-family:Syne,sans-serif;font-size:1.05rem;color:'+raColor+'">'+fmt(Math.max(0,ra))+'</span></div>';
   if(ra<0) html+='<div style="margin-top:6px;padding:6px;background:rgba(239,68,68,.1);border-radius:7px;font-size:.77rem;color:var(--re)">⚠️ Il vous doit encore : <strong>'+fmt(Math.abs(ra))+'</strong></div>';
   html+='</div>';
   html+='<div style="padding:10px;background:var(--bg5);border-radius:8px;margin-bottom:11px;display:flex;justify-content:space-between">';
-  html+='<span style="color:var(--tx2)">💳 Reste à vous payer (15% non absorbé par la dette + dette non couverte)</span>';
-  html+='<span style="font-family:Syne,sans-serif;color:var(--re)">'+fmt(r15Restant+Math.max(0,-ra))+'</span>';
+  html+='<span style="color:var(--tx2)">💳 Reste à vous payer (dette non couverte)</span>';
+  html+='<span style="font-family:Syne,sans-serif;color:var(--re)">'+fmt(Math.max(0,-ra))+'</span>';
   html+='</div>';
   html+='<div class="dv">Ce que l\'entreprise vous doit</div>';
   html+='<div style="background:var(--bg4);border-radius:9px;padding:12px">';
@@ -3457,7 +3450,7 @@ function rPerso(){
   var fs=normSearch(v('f-search-perso'));
   var items=D.perso.filter(function(p){ return matchPeriodeFull(p.date,'f-periode-perso'); });
   if(fs) items=items.filter(function(p){ return normSearch(p.nom).indexOf(fs)>-1; });
-  if(!items.length){ tb.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr>'; st('t-perso','0 GNF'); return; }
+  if(!items.length){ tb.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr>'; st('t-perso','0 GNF'); st('t-perso-reste',fmt(Math.max(0,calculerBilanData().resteEnt))); return; }
   var tot=0, html='';
   var totInit=0,totVendu=0,totRestant=0,totAchatU=0,totRevient=0,totCommission=0,totDu=0;
   items.forEach(function(p){
@@ -3485,6 +3478,8 @@ function rPerso(){
   html+='<td>—</td><td style="color:var(--tx2)">'+fmt(totRevient)+'</td><td style="color:var(--gr)">+'+fmt(totCommission)+'</td><td style="color:var(--go)">'+fmt(totDu)+'</td><td>—</td><td>—</td><td>—</td>';
   html+='</tr>';
   tb.innerHTML=html; st('t-perso',fmt(tot));
+  var resteEnt=calculerBilanData().resteEnt;
+  st('t-perso-reste',fmt(Math.max(0,resteEnt)));
 }
 
 function rDettes(){
@@ -4113,14 +4108,11 @@ function exportExcel(){
       var tdep=D.depenses.reduce(function(s,d){ return s+d.montant; },0);
       var d20=bb*(getParams().reinvest/100), a20=bb-d20, aD=a20-tdep;
       var mp=aD/2, pab=aD/2;
-      var r15=pab*(getParams().retenuAssocie/100), pa15=pab-r15;
       var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0)+D.dettesClot;
       var totP=D.paiements.reduce(function(s,p){ return s+p.montant; },0);
       var dnBrut=Math.max(0,totD-totP);
-      var r15VersDette=Math.min(r15,dnBrut);
-      var r15Restant=Math.max(0,r15-dnBrut);
-      var dn=Math.max(0,dnBrut-r15);
-      var ra=pa15-dn;
+      var dn=dnBrut;
+      var ra=pab-dn;
       var tperso=D.perso.reduce(function(s,p){ return s+(p.totalDu-(p.rembourse||0)); },0);
       var entDoit=tperso;
       var aDeduire=ta+d20+(D.entDejaDeduit||0);
@@ -4129,10 +4121,9 @@ function exportExcel(){
         ['Total encaissé (payé)',tp],['Prix achat total (activités)',ta],['Total à payer (activités)',tapy],['Reste clients (impayé)',trReste],
         ['Bénéfice brut',bb],['20% réinvestissement',d20],['Dépenses (période)',tdep],['Bénéfice net',aD],
         ['Ma part (50%)',mp],
-        ['Part de base associé (50%)',pab],['15% retenu (de sa part)',r15],
+        ['Part de base associé (50%)',pab],
         ['Dette brute associé (actives + cumul clôtures)',totD],['Paiements reçus de l\'associé',totP],
-        ['Dette nette brute (avant 15%)',dnBrut],['15% appliqué en 1er paiement de dette',r15VersDette],
-        ['15% restant (non absorbé par la dette)',r15Restant],['Dette restante après 15%',dn],
+        ['Dette nette (dettes − paiements reçus)',dnBrut],
         ['Part associé nette (reçoit si positif, doit si négatif)',ra],
         ['Stock perso — total dû',tperso],['− Prix achat total (période)',ta],['− 20% (période)',d20],
         ['− Déjà déduit (cumul clôtures précédentes)',D.entDejaDeduit||0],
@@ -4352,7 +4343,7 @@ function saveCloud(){
 function loadFromHash(){
   var h=window.location.hash;
   if(h&&h.startsWith('#data=')){
-    try{ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''}},JSON.parse(decodeURIComponent(atob(h.slice(6))))); persist(); notif('✅ Données restaurées !'); return true; }catch(e){}
+    try{ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,stockPerso:15,fournisseurTel:''}},JSON.parse(decodeURIComponent(atob(h.slice(6))))); persist(); notif('✅ Données restaurées !'); return true; }catch(e){}
   } return false;
 }
 
@@ -4654,7 +4645,7 @@ var APP_VERSION = 'v40';
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-08-26T12:00:00'; // Bilan : le "Tableau des formules de calcul" (① à ⑥) est désormais masqué par défaut à l'écran. Nouveau réglage Paramètres > Bilan > "Afficher le tableau des formules de calcul" (décoché par défaut) pour le réafficher à tout moment — réservé à l'Administrateur comme le reste des Paramètres. Aucun calcul modifié : calculerBilanData(), calculerBilan(), chargerBilanConfidentiel() et l'export Excel continuent de fonctionner exactement comme avant ; seul l'affichage du détail des formules est concerné.
+var APP_DERNIERE_MAJ = '2026-08-27T14:00:00'; // CORRECTIF Stock Perso/Clôture : le cumul "entDejaDeduit" (déjà déduit, base du calcul "Entreprise me doit") est désormais fusionné par Math.max() entre cloud et local dans mergeAppData(), comme _o/_co — il ne peut plus redescendre vers une ancienne valeur lors d'une synchronisation, ce qui faisait remonter à tort "Entreprise me doit" après une clôture alors qu'un remboursement (via ventes) avait déjà eu lieu. Aucun autre calcul modifié.
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
@@ -5806,7 +5797,7 @@ function chargerDonneesAssocie(session){
     // repris comme "version la plus récente" et écraser localement (et
     // dans le cloud) les vrais 20/15/15 (ou valeurs personnalisées) de
     // l'Administrateur.
-    D.params = { reinvest:0, retenuAssocie:0, stockPerso:0, fournisseurTel:'', recupTel:'', recupEmail:'', _placeholderAssocie:true };
+    D.params = { reinvest:0, stockPerso:0, fournisseurTel:'', recupTel:'', recupEmail:'', _placeholderAssocie:true };
     persist();
   });
 }
@@ -6133,7 +6124,7 @@ function syncFromCloud() {
     .then(function (res) { return res.json(); })
     .then(function (rows) {
       if (rows && rows.length && rows[0].data) {
-        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''}}, rows[0].data);
+        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,stockPerso:15,fournisseurTel:''}}, rows[0].data);
         persist(); renderAll();
         notif('✅ Données restaurées depuis le cloud');
         return true;
@@ -6161,7 +6152,7 @@ function syncFromCloud() {
 // donc on peut combiner les entrées de deux appareils au lieu d'en
 // écraser une avec l'autre.
 var MERGEABLE_ARRAYS = ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille'];
-var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],resetCodes:[],patrimoine:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''}};
+var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],resetCodes:[],patrimoine:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,stockPerso:15,fournisseurTel:''}};
 
 /**
  * Fusionne deux tableaux d'éléments par leur "id" (union), sans perte,
@@ -6234,12 +6225,25 @@ function mergeAppData(cloudData, localData, cloudIsNewer) {
   function paramsValides(p){ return (p && p.hasOwnProperty('reinvest') && !p._placeholderAssocie) ? p : null; }
   var paramsPriorite = paramsValides(priorite.params);
   var paramsBase = paramsValides(base.params);
-  merged.params = paramsPriorite || paramsBase || {reinvest:20,retenuAssocie:15,stockPerso:15,fournisseurTel:''};
+  merged.params = paramsPriorite || paramsBase || {reinvest:20,stockPerso:15,fournisseurTel:''};
   MERGEABLE_ARRAYS.forEach(function (f) {
     merged[f] = mergeArraysById(base[f], priorite[f], mergedDel[f]);
   });
   merged._o = Math.max(cloudData._o || 1, localData._o || 1);
   merged._co = Math.max(cloudData._co || 1, localData._co || 1);
+  // CORRECTIF (Stock Perso — "Entreprise me doit" incorrect après
+  // clôture) : entDejaDeduit est un cumul qui ne fait qu'augmenter à
+  // chaque clôture (voir executerCloture()), exactement comme _o/_co
+  // ci-dessus. Or Object.assign() plus haut le traite comme un champ
+  // simple : la version "priorite" (cloud OU local, selon la date)
+  // écrasait entièrement l'autre. Si cette version prioritaire datait
+  // d'avant la dernière clôture (ex. reconnexion depuis un autre
+  // appareil, ou cloud pas encore à jour), le cumul redescendait à son
+  // ancienne valeur plus basse — et "Entreprise me doit" remontait à
+  // tort, alors que le remboursement déjà effectué (via les ventes)
+  // avant la clôture avait bien eu lieu. On prend donc systématiquement
+  // le plus grand des deux cumuls, jamais un remplacement brutal.
+  merged.entDejaDeduit = Math.max(Number(cloudData.entDejaDeduit) || 0, Number(localData.entDejaDeduit) || 0);
   return merged;
 }
 
