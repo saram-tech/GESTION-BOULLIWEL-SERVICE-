@@ -4332,7 +4332,14 @@ function rafraichirDonnees(){
     if (session.role==='admin') {
       chargerActivitesEtStockDepuisTables(session).then(function(){ reconcileOnStartup(); });
     } else {
-      chargerDonneesAssocie(session).then(function(){ renderAll(); notif('✅ Données actualisées'); });
+      chargerDonneesAssocie(session).then(function(resultat){
+        renderAll();
+        // Même correctif : le bouton ⟳ affichait toujours "Données
+        // actualisées", même quand le chargement avait réellement
+        // échoué — la notification reflète maintenant la vraie cause.
+        if (resultat && resultat.ok===false) notif('❌ Échec de l\'actualisation — '+resultat.detail, 8000);
+        else notif('✅ Données actualisées');
+      });
     }
   } else {
     reconcileOnStartup(); // ancien système (avant activation de la Solution A sur cet appareil)
@@ -5268,13 +5275,18 @@ function appliquerSession(session){
       apres();
     });
   } else {
-    chargerDonneesAssocie(session).then(function(){
-      // Le badge de statut était calculé une seule fois, avant la
-      // connexion (voir DOMContentLoaded) : jamais remis à jour après
-      // une connexion Associé réussie, il restait figé sur "Cloud
-      // désactivé". On réutilise ici exactement la même fonction/le
-      // même libellé, simplement déclenchés au bon moment.
-      if (typeof setSyncStatus === 'function') setSyncStatus('offline', '⚪ Mode Associé');
+    chargerDonneesAssocie(session).then(function(resultat){
+      // CORRECTIF ("Mode Associé affiché sans jamais indiquer la vraie
+      // cause en cas d'échec") : ce badge était fixé sur "⚪ Mode
+      // Associé" INCONDITIONNELLEMENT, que le chargement des activités
+      // ait réussi ou échoué (réseau, session, RLS...). On affiche
+      // désormais un badge d'erreur explicite avec la cause réelle
+      // (déjà capturée par chargerActivitesEtStockDepuisTables /
+      // enregistrerDiagnostic) quand ce chargement a réellement échoué.
+      if (typeof setSyncStatus === 'function') {
+        if (resultat && resultat.ok===false) setSyncStatus('error', '🔴 '+resultat.detail);
+        else setSyncStatus('offline', '⚪ Mode Associé');
+      }
       apres();
     });
   }
@@ -6333,9 +6345,23 @@ function chargerActivitesEtStockDepuisTables(session){
     // Repousse tout de suite ce qui manquait encore côté serveur
     // (idempotent grâce à l'upsert par id — jamais de doublon).
     if (typeof syncActivitesEtStockVersNouvellesTables === 'function') syncActivitesEtStockVersNouvellesTables();
+    // CORRECTIF ("Mode Associé affiché sans jamais indiquer la vraie
+    // cause en cas d'échec") : cette fonction ne renvoyait jusqu'ici
+    // rien (undefined) en cas de succès NI en cas d'échec (voir le
+    // .catch juste en dessous, qui avalait l'erreur sans jamais la
+    // faire remonter à l'appelant). Résultat : chargerDonneesAssocie()
+    // et le badge de statut de l'Associé affichaient TOUJOURS "⚪ Mode
+    // Associé", même quand le chargement avait réellement échoué
+    // (réseau, session expirée, RLS...) — aucune preuve visuelle d'un
+    // problème, contrairement à l'Administrateur qui voit un badge
+    // rouge. On renvoie désormais un résultat explicite {ok, detail},
+    // sans rien changer à la fusion/au calcul ci-dessus.
+    return { ok: serverAct!==null, detail: serverAct!==null ? (D.activites.length+' activité(s) chargée(s).') : 'Échec de la lecture des activités — voir le diagnostic.' };
   }).catch(function(e){
+    var detail = 'Échec du chargement — '+(e && e.message ? e.message : 'connexion au serveur impossible');
     console.error('[chargerActivitesEtStockDepuisTables]', e);
-    enregistrerDiagnostic('Synchro activités/stock', false, 'Échec du chargement — '+(e && e.message ? e.message : 'connexion au serveur impossible'));
+    enregistrerDiagnostic('Synchro activités/stock', false, detail);
+    return { ok:false, detail:detail };
   });
 }
 
@@ -6349,7 +6375,7 @@ function chargerActivitesEtStockDepuisTables(session){
  * jamais stockées sur cet appareil.
  */
 function chargerDonneesAssocie(session){
-  return chargerActivitesEtStockDepuisTables(session).then(function(){
+  return chargerActivitesEtStockDepuisTables(session).then(function(resultat){
     D.perso=[]; D.depenses=[]; D.dettes=[]; D.paiements=[]; D.commandes=[]; D.histo=[]; D.corbeille=[];
     D.dettesClot=0; D.detteVerrou=false; D.entDejaDeduit=0; D.auth=null; D.resetCodes=[];
     // Un minimum de paramètres non confidentiels pour que l'interface
@@ -6364,7 +6390,11 @@ function chargerDonneesAssocie(session){
     // l'Administrateur.
     D.params = { reinvest:0, stockPerso:0, fournisseurTel:'', recupTel:'', recupEmail:'', _placeholderAssocie:true };
     persist();
-    return chargerVisibiliteAssocie(session);
+    // Propage le vrai résultat du chargement des activités (voir
+    // chargerActivitesEtStockDepuisTables) jusqu'à l'appelant, pour que
+    // le badge de statut Associé puisse enfin refléter un échec réel au
+    // lieu d'afficher systématiquement "Mode Associé".
+    return chargerVisibiliteAssocie(session).then(function(){ return resultat; });
   });
 }
 
@@ -6548,7 +6578,19 @@ function rafraichirActivitesSilencieux(){
   if (session.role === 'admin') {
     chargerActivitesEtStockDepuisTables(session).then(function(){ renderAll(); termine(); }).catch(termine);
   } else {
-    chargerDonneesAssocie(session).then(function(){ if (isAssocie()) rVueAssocie(); termine(); }).catch(termine);
+    chargerDonneesAssocie(session).then(function(resultat){
+      // Même correctif que dans appliquerSession() : reflète le vrai
+      // résultat du chargement sur le badge, y compris lors des
+      // rafraîchissements automatiques silencieux (toutes les 15s /
+      // retour au premier plan) — jusqu'ici toujours muets en cas
+      // d'échec pour ce rôle.
+      if (typeof setSyncStatus === 'function') {
+        if (resultat && resultat.ok===false) setSyncStatus('error', '🔴 '+resultat.detail);
+        else if (isAssocie()) setSyncStatus('offline', '⚪ Mode Associé');
+      }
+      if (isAssocie()) rVueAssocie();
+      termine();
+    }).catch(termine);
   }
 }
 /** Démarre le rafraîchissement automatique périodique (appelée après connexion réussie, et au chargement si une session était déjà active). */
