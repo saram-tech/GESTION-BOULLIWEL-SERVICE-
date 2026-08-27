@@ -3329,6 +3329,26 @@ function executerCloture(){
   var bbPeriode=tpPeriode-taPeriode;
   var d20Periode=bbPeriode*(getParams().reinvest/100);
   D.entDejaDeduit=(D.entDejaDeduit||0)+taPeriode+d20Periode;
+  /**
+   * CORRECTIF (activités de l'Associé qui réapparaissent après clôture) :
+   * cause exacte trouvée — les tombstones ci-dessous (markDeleted) ne
+   * masquent la réapparition QUE sur les appareils qui reçoivent D._del,
+   * c'est-à-dire uniquement les appareils Administrateur (via l'ancien
+   * blob "app_data", jamais chargé pour l'Associé — voir
+   * chargerDonneesAssocie). Or aucune suppression RÉELLE n'était jamais
+   * envoyée à Supabase pour les lignes de la table "activites" : elles
+   * restaient donc indéfiniment en base. Résultat : l'Associé, qui
+   * recharge ses activités DIRECTEMENT depuis Supabase (sans jamais voir
+   * D._del), les voyait ressurgir à chaque actualisation/reconnexion,
+   * même après clôture. Corrigé en envoyant, en plus des tombstones
+   * locaux existants (inchangés), une vraie suppression serveur des
+   * activités de la période clôturée — exactement la même suppression
+   * unitaire que delAct() utilise déjà pour une activité seule, ici
+   * appliquée au lot de la période. Rien d'autre n'est modifié : ni le
+   * calcul ci-dessus, ni les dettes/paiements/dépenses/historique, ni le
+   * comportement déjà correct côté Administrateur.
+   */
+  var idsActivitesCloturees = D.activites.map(function(a){ return a.id; });
   // Marquer les tombstones AVANT de vider, pour que la suppression
   // se propage correctement lors de la prochaine synchronisation
   // (sinon un autre appareil, ou ce même appareil après un rechargement,
@@ -3349,6 +3369,29 @@ function executerCloture(){
   // clôture vers le cloud — sinon la suppression reste locale et le
   // prochain appareil qui se synchronise récupère l'ancien état complet.
   save(); notif('✅ Clôture. Cumul verrouillé: '+fmt(D.dettesClot)+' — nouvelle période de dettes ouverte');
+  supprimerActivitesClotureesSurServeur(idsActivitesCloturees);
+}
+/**
+ * Suppression serveur réelle des activités d'une période clôturée (voir
+ * CORRECTIF ci-dessus dans executerCloture). Envoyée par lots pour rester
+ * sous les limites d'URL même sur une grosse période. Meilleur effort,
+ * comme delAct() : si hors ligne ou en échec, les tombstones locaux
+ * (D._del) continuent de masquer ces lignes pour l'Administrateur en
+ * attendant ; la clôture suivante ou une reconnexion peut être nécessaire
+ * pour que l'Associé cesse de les voir si cette suppression échoue.
+ */
+function supprimerActivitesClotureesSurServeur(ids){
+  if(!ids || !ids.length) return;
+  var session=getSession();
+  if(!(session && session.access_token && navigator.onLine)) return;
+  var TAILLE_LOT=200;
+  for(var i=0;i<ids.length;i+=TAILLE_LOT){
+    (function(lot){
+      supabaseTable('/rest/v1/activites?id=in.('+lot.join(',')+')', { method:'DELETE' }, session.access_token)
+        .then(function(r){ if(!r.ok) console.error('[cloture] suppression serveur activités refusée', r.status); })
+        .catch(function(e){ console.error('[cloture] suppression serveur activités', e); });
+    })(ids.slice(i, i+TAILLE_LOT));
+  }
 }
 /** Filet de sécurité pour les installations restées bloquées par
  * l'ancien bug (detteVerrou resté à true après une clôture). */
