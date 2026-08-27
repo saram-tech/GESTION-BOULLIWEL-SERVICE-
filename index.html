@@ -3383,13 +3383,41 @@ function executerCloture(){
 function supprimerActivitesClotureesSurServeur(ids){
   if(!ids || !ids.length) return;
   var session=getSession();
-  if(!(session && session.access_token && navigator.onLine)) return;
+  if(!(session && session.access_token && navigator.onLine)){
+    notif('⚠️ Clôture : suppression serveur des activités reportée (hors ligne). L\'Associé continuera de les voir tant que la connexion ne sera pas rétablie et qu\'une nouvelle synchro n\'aura pas eu lieu.', 8000);
+    return;
+  }
   var TAILLE_LOT=200;
   for(var i=0;i<ids.length;i+=TAILLE_LOT){
     (function(lot){
       supabaseTable('/rest/v1/activites?id=in.('+lot.join(',')+')', { method:'DELETE' }, session.access_token)
-        .then(function(r){ if(!r.ok) console.error('[cloture] suppression serveur activités refusée', r.status); })
-        .catch(function(e){ console.error('[cloture] suppression serveur activités', e); });
+        .then(function(r){
+          if(!r.ok){
+            r.text().then(function(corps){
+              console.error('[cloture] suppression serveur activités refusée', r.status, corps);
+              /**
+               * CORRECTIF ("les activités restent toujours présentes pour
+               * l'Associé après clôture") : cause probable la plus fréquente
+               * — un refus RLS (403) sur la suppression des lignes qui
+               * appartiennent à l'Associé (cree_par = uid de l'Associé),
+               * car la policy Supabase de la table "activites" n'autorise
+               * peut-être la suppression que sur les lignes qui appartiennent
+               * à l'auteur de la requête (comme pour l'Associé), sans
+               * exception explicite pour l'Administrateur. Jusqu'ici cet
+               * échec était invisible : seul un console.error apparaissait,
+               * inutile sur mobile (pas de console accessible). On l'affiche
+               * maintenant directement à l'écran avec le code HTTP et le
+               * corps de la réponse Supabase, pour diagnostiquer sans avoir
+               * besoin d'un ordinateur.
+               */
+              notif('❌ Clôture : le serveur a refusé la suppression de '+lot.length+' activité(s) (HTTP '+r.status+'). Elles resteront visibles côté Associé. Détail : '+corps.slice(0,160), 10000);
+            });
+          }
+        })
+        .catch(function(e){
+          console.error('[cloture] suppression serveur activités', e);
+          notif('❌ Clôture : impossible de joindre le serveur pour supprimer les activités ('+e.message+'). Elles resteront visibles côté Associé jusqu\'à la prochaine tentative.', 8000);
+        });
     })(ids.slice(i, i+TAILLE_LOT));
   }
 }
