@@ -1499,6 +1499,22 @@ document.querySelectorAll('.ov').forEach(function(o){
 // ================================================================
 function fmt(n){ if(isNaN(n)||n==null) return '0 GNF'; return Math.round(n).toLocaleString('fr-FR')+' GNF'; }
 /**
+ * CORRECTIF SÉCURITÉ ("l'Administrateur doit garder le contrôle total du
+ * compte Associé") : plusieurs tableaux insèrent du texte saisi par
+ * l'utilisateur (désignation, client, panne, ticket) DIRECTEMENT dans le
+ * HTML affiché — un Associé malveillant pouvait donc taper du code HTML
+ * (ex: une fausse ligne, un lien invisible, un script) dans le champ
+ * "Désignation" d'une activité, qui s'exécuterait ensuite dans le
+ * navigateur de l'Administrateur au moment où il consulte cette
+ * activité. echap() neutralise ce risque en transformant les caractères
+ * spéciaux HTML en texte affiché tel quel (aucun effet sur les calculs,
+ * les montants, ni les dates — uniquement le texte libre affiché).
+ */
+function echap(s){
+  if (s===undefined || s===null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+/**
  * Formate une date 'YYYY-MM-DD' en "NomDuJour JJ-MM-AAAA" (ex: "Dimanche 26-07-2026").
  * Retourne la chaîne d'origine si le format n'est pas reconnu.
  */
@@ -2404,6 +2420,10 @@ function enrAct(){
     return;
   }
   var eid=v('a-eid');
+  // CORRECTIF SÉCURITÉ (même raison qu'editAct() ci-dessus) : blocage
+  // également ici, au moment même de l'enregistrement — pour que rien
+  // ne dépende uniquement de l'ouverture du formulaire d'édition.
+  if (eid && isAssocie()) { notif('⛔ Modification non autorisée pour ce compte.', 6000); return; }
   /**
    * CONTRÔLE STRICT DU STOCK AVANT VENTE — l'application ne doit jamais
    * permettre de vendre un produit absent du stock (entreprise ou perso).
@@ -2511,6 +2531,14 @@ function rAF(){
   basculerChampsSelonType();
 }
 function editAct(id){
+  // CORRECTIF SÉCURITÉ ("l'Associé ne doit plus pouvoir modifier ses
+  // montants, seulement créer/supprimer") : le bouton ✏️ a été retiré
+  // de la vue Associé, mais cette fonction restait appelable directement
+  // (ex: console du navigateur) sans aucune vérification de rôle,
+  // permettant de contourner le retrait du bouton. Blocage explicite ici
+  // + dans enrAct() ci-dessous (défense en profondeur, aucun des deux
+  // seuls ne suffit).
+  if (isAssocie()) { notif('⛔ Modification non autorisée pour ce compte. Vous pouvez créer une nouvelle activité ou supprimer celle-ci.', 6000); return; }
   var a=D.activites.find(function(x){ return x.id===id; }); if(!a) return;
   sv('a-eid',id);sv('a-date',a.date);sv('a-ticket',a.ticket||'');sv('a-type',a.type);
   sv('a-desig',a.desig);sv('a-panne',a.panne||'');sv('a-achat',a.achat);sv('a-qte',a.qte||1);
@@ -2519,7 +2547,7 @@ function editAct(id){
 }
 function delAct(id){
   var a=D.activites.find(function(x){ return x.id===id; }); if(!a) return;
-  demanderConfirmationSecurisee('🗑️ Supprimer cette activité', '• '+a.type+' : <strong>'+a.desig+'</strong><br>• Montant payé : '+fmt(a.paye||0)+'<br>• Le stock lié sera automatiquement réajusté.', false, function(){
+  demanderConfirmationSecurisee('🗑️ Supprimer cette activité', '• '+a.type+' : <strong>'+echap(a.desig)+'</strong><br>• Montant payé : '+fmt(a.paye||0)+'<br>• Le stock lié sera automatiquement réajusté.', false, function(){
     ajusterStockVendu(a.desig, -(a.qte||0));
     D.activites=D.activites.filter(function(x){ return x.id!==id; });
     markDeleted('activites',id);
@@ -3200,11 +3228,10 @@ function rVueAssocie(){
   var total=0, html='';
   items.forEach(function(a){
     total+=a.paye||0;
-    html+='<tr><td>'+fmtDateJour(a.date)+'</td><td>'+(a.heure||'—')+'</td><td>'+a.desig+'</td><td>'+(a.qte||1)+'</td>'+
-      '<td>'+fmt(a.achat)+'</td><td>'+fmt(a.paye)+'</td><td>'+(a.client||'—')+'</td>'+
+    html+='<tr><td>'+fmtDateJour(a.date)+'</td><td>'+(a.heure||'—')+'</td><td>'+echap(a.desig)+'</td><td>'+(a.qte||1)+'</td>'+
+      '<td>'+fmt(a.achat)+'</td><td>'+fmt(a.paye)+'</td><td>'+echap(a.client||'—')+'</td>'+
       '<td><span class="badge '+(a.reste>0?'bor':'bgr')+'">'+(a.reste>0?'Partiel':'Payé')+'</span></td>'+
-      '<td class="ac"><button class="btn bh bxs" onclick="editAct('+a.id+')" title="Modifier cette activité">✏️</button>'+
-      '<button class="btn bd bxs" onclick="associeSupprimerActivite('+a.id+')" title="Supprimer définitivement cette activité">🗑️</button></td></tr>';
+      '<td class="ac"><button class="btn bd bxs" onclick="associeSupprimerActivite('+a.id+')" title="Supprimer définitivement cette activité">🗑️</button></td></tr>';
   });
   html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)"><td colspan="5">Montant total de mes activités</td><td>'+fmt(total)+'</td><td colspan="3">—</td></tr>';
   tb.innerHTML=html;
@@ -3223,7 +3250,7 @@ function associeSupprimerActivite(id){
   if(!isAssocie()) return;
   var a=D.activites.find(function(x){ return x.id===id && x.auteur==='Associé'; });
   if(!a) return;
-  demanderConfirmationSecurisee('🗑️ Supprimer définitivement cette activité', '• '+a.type+' : <strong>'+a.desig+'</strong><br>• Montant payé : '+fmt(a.paye||0)+'<br>• Action irréversible — ne passe pas par la Corbeille.', false, function(){
+  demanderConfirmationSecurisee('🗑️ Supprimer définitivement cette activité', '• '+a.type+' : <strong>'+echap(a.desig)+'</strong><br>• Montant payé : '+fmt(a.paye||0)+'<br>• Action irréversible — ne passe pas par la Corbeille.', false, function(){
     var session=getSession();
     if(!(session && session.access_token && navigator.onLine)){
       notif('⚠️ Connexion internet requise pour supprimer définitivement une activité.', 6000);
@@ -3550,7 +3577,7 @@ function rAlertesStock(){
     var qteCmd=Math.max(seuil*3,10);
     html+='<div class="fi-box">';
     html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">';
-    html+='<div><strong style="font-size:.88rem">'+s.nom+'</strong> <span class="badge bdr" style="margin-left:6px">'+niv.label+' ('+restant+')</span></div>';
+    html+='<div><strong style="font-size:.88rem">'+echap(s.nom)+'</strong> <span class="badge bdr" style="margin-left:6px">'+niv.label+' ('+restant+')</span></div>';
     html+='<button class="btn bo bxs" onclick="genererCmdFournisseurAuto()">📦 Ajouter à la commande fournisseur</button>';
     html+='</div>';
     html+='<div class="g4" style="font-size:.78rem">';
@@ -3561,7 +3588,7 @@ function rAlertesStock(){
     html+='</div>';
     html+='<div style="margin-top:9px;padding:8px;background:var(--bg3);border-radius:7px;font-size:.77rem">';
     html+='<strong style="color:var(--te)">📋 Fiche commande fournisseur :</strong> ';
-    html+='Produit: <strong>'+s.nom+'</strong> | Qté suggérée: <strong style="color:var(--go)">'+qteCmd+'</strong> | Dernier P.Achat: <strong>'+fmt(s.achat)+'</strong>';
+    html+='Produit: <strong>'+echap(s.nom)+'</strong> | Qté suggérée: <strong style="color:var(--go)">'+qteCmd+'</strong> | Dernier P.Achat: <strong>'+fmt(s.achat)+'</strong>';
     html+='</div></div>';
   });
   html+='</div>';
@@ -3712,7 +3739,15 @@ function supprimerActivitesSurServeurAvecAlerte(ids, libelle){
   libelle = libelle || 'activités';
   var session=getSession();
   if(!(session && session.access_token && navigator.onLine)){
+    // CORRECTIF ("la clôture ne doit rien laisser passer sans le
+    // signaler clairement") : un notif() (toast) disparaît tout seul
+    // après quelques secondes et peut passer inaperçu, notamment en
+    // utilisant plusieurs appareils en même temps. On ajoute donc, en
+    // plus, une alerte bloquante (déjà le pattern utilisé ailleurs dans
+    // le fichier pour les échecs de synchro) qui reste à l'écran tant
+    // qu'elle n'est pas fermée manuellement — impossible à manquer.
     notif('⚠️ Suppression serveur des '+libelle+' reportée (hors ligne). Elles resteront visibles côté Associé tant que la connexion ne sera pas rétablie et qu\'une nouvelle synchro n\'aura pas eu lieu.', 8000);
+    setTimeout(function(){ alert('⚠️ CLÔTURE — suppression reportée (hors ligne)\n\n'+lotIdsPourMessage(ids)+' '+libelle+' n\'ont PAS pu être supprimées du serveur car cet appareil est hors ligne.\n\nElles resteront visibles ailleurs (ex. côté Associé) tant que la connexion ne sera pas rétablie. Reconnectez cet appareil dès que possible pour terminer la suppression.'); }, 100);
     return;
   }
   var TAILLE_LOT=200;
@@ -3722,8 +3757,10 @@ function supprimerActivitesSurServeurAvecAlerte(ids, libelle){
         .then(function(r){
           if(!r.ok){
             r.text().then(function(corps){
+              var detail = extraireDetailErreur(corps, r.status);
               console.error('[suppression '+libelle+'] refusée', r.status, corps);
               notif('❌ Le serveur a refusé la suppression de '+lot.length+' '+libelle+' (HTTP '+r.status+'). Elles resteront visibles côté Associé. Détail : '+corps.slice(0,160), 10000);
+              setTimeout(function(){ alert('❌ CLÔTURE — suppression REFUSÉE par le serveur\n\n'+lot.length+' '+libelle+' n\'ont PAS été supprimées.\n\nCause exacte : '+detail+'\n\nElles resteront visibles (notamment côté Associé) tant que ce problème n\'est pas corrigé. Faites une capture d\'écran de ce message.'); }, 100);
             });
             return;
           }
@@ -3741,16 +3778,19 @@ function supprimerActivitesSurServeurAvecAlerte(ids, libelle){
             var nSupprimees = Array.isArray(supprimees) ? supprimees.length : null;
             if(nSupprimees!==null && nSupprimees<lot.length){
               notif('⚠️ Seules '+nSupprimees+' sur '+lot.length+' '+libelle+' ont pu être supprimées côté serveur (droits d\'accès Supabase). Les autres resteront visibles côté Associé — la policy RLS de la table "activites" doit autoriser l\'Admin à supprimer les lignes créées par l\'Associé.', 12000);
+              setTimeout(function(){ alert('⚠️ CLÔTURE — suppression PARTIELLE\n\nSeules '+nSupprimees+' sur '+lot.length+' '+libelle+' ont réellement été supprimées du serveur (droits d\'accès Supabase refusés pour les autres).\n\nLes lignes restantes continueront d\'apparaître (notamment côté Associé) tant que ce n\'est pas corrigé. Faites une capture d\'écran de ce message.'); }, 100);
             }
           }).catch(function(){});
         })
         .catch(function(e){
           console.error('[suppression '+libelle+']', e);
           notif('❌ Impossible de joindre le serveur pour supprimer les '+libelle+' ('+e.message+'). Elles resteront visibles côté Associé jusqu\'à la prochaine tentative.', 8000);
+          setTimeout(function(){ alert('❌ CLÔTURE — suppression IMPOSSIBLE (réseau)\n\n'+lot.length+' '+libelle+' n\'ont pas pu être supprimées : '+(e&&e.message?e.message:'connexion au serveur impossible')+'.\n\nElles resteront visibles ailleurs tant que la connexion n\'est pas rétablie et qu\'une nouvelle tentative n\'a pas réussi.'); }, 100);
         });
     })(ids.slice(i, i+TAILLE_LOT));
   }
 }
+function lotIdsPourMessage(ids){ return ids.length; }
 /** Conservé pour compatibilité (appelée depuis executerCloture). */
 function supprimerActivitesClotureesSurServeur(ids){
   supprimerActivitesSurServeurAvecAlerte(ids, 'activités de la période clôturée');
@@ -3789,15 +3829,15 @@ function rAct(){
     html+='<tr>';
     html+='<td>'+(isNewDay?('<strong>'+fmtDateJour(a.date)+'</strong>'):'')+(a.heure?' <span style="color:var(--tx3);font-size:.66rem">🕒'+a.heure+'</span>':'')+'</td>';
     html+='<td style="color:var(--tx2);font-weight:600">'+numAffiche+'</td>';
-    html+='<td>'+(a.ticket?'<span class="badge bpr" style="font-size:.66rem">'+a.ticket+'</span>':'<span style="color:var(--tx3)">—</span>')+'</td>';
+    html+='<td>'+(a.ticket?'<span class="badge bpr" style="font-size:.66rem">'+echap(a.ticket)+'</span>':'<span style="color:var(--tx3)">—</span>')+'</td>';
     html+='<td><span class="badge '+tcc+'">'+a.type+'</span></td>';
-    html+='<td><strong>'+a.desig+'</strong>'+(a.qte>1?' <span style="color:var(--tx2);font-size:.73rem">×'+a.qte+'</span>':'')+(a.auteur==='Associé'?' <span class="badge bpr" style="font-size:.6rem" title="Activité créée par l\'Associé">👤 Associé</span>':'')+'</td>';
-    html+='<td style="color:var(--tx2);font-size:.75rem">'+(a.panne||'—')+'</td>';
+    html+='<td><strong>'+echap(a.desig)+'</strong>'+(a.qte>1?' <span style="color:var(--tx2);font-size:.73rem">×'+a.qte+'</span>':'')+(a.auteur==='Associé'?' <span class="badge bpr" style="font-size:.6rem" title="Activité créée par l\'Associé">👤 Associé</span>':'')+'</td>';
+    html+='<td style="color:var(--tx2);font-size:.75rem">'+echap(a.panne||'—')+'</td>';
     html+='<td>'+fmt(a.achat*(a.qte||1))+'</td>';
     html+='<td>'+fmt(a.apayer)+'</td>';
     html+='<td style="color:var(--gr)">'+fmt(a.paye)+'</td>';
     html+='<td style="color:'+(a.reste>0?'var(--or)':'var(--gr)')+'">'+fmt(a.reste)+(a.reste>0?' <span class="badge bnr" style="font-size:.62rem">Reste</span>':'')+'</td>';
-    html+='<td style="font-size:.75rem;color:var(--tx2)">'+(a.client||'—')+'</td>';
+    html+='<td style="font-size:.75rem;color:var(--tx2)">'+echap(a.client||'—')+'</td>';
     html+='<td style="color:'+(a.benefice>=0?'var(--gr)':'var(--re)')+'"><strong>'+fmt(a.benefice)+'</strong></td>';
     html+='<td class="ac"><button class="btn bh bxs" onclick="editAct('+a.id+')">✏️</button><button class="btn bd bxs" onclick="delAct('+a.id+')">🗑️</button></td>';
     html+='</tr>';
@@ -3849,7 +3889,7 @@ function rStock(){
     totInit+=s.qteInitiale||0; totVendu+=s.qteVendue||0; totRestant+=restant; totValeur+=restant*s.achat;
     totAchatU+=s.achat||0; totVenteU+=s.vente||0;
     html+='<tr>';
-    html+='<td><strong>'+s.nom+'</strong>'+(s.origPerso>0?' <span class="badge bor" style="font-size:.65rem" title="Dont '+s.origPerso+' unité(s) apportée(s) personnellement">👤 dont '+s.origPerso+'</span>':'')+'</td>';
+    html+='<td><strong>'+echap(s.nom)+'</strong>'+(s.origPerso>0?' <span class="badge bor" style="font-size:.65rem" title="Dont '+s.origPerso+' unité(s) apportée(s) personnellement">👤 dont '+s.origPerso+'</span>':'')+'</td>';
     html+='<td>'+s.qteInitiale+'</td>';
     html+='<td style="color:var(--or)">'+(s.qteVendue||0)+'</td>';
     html+='<td><strong style="color:'+niv.color+'">'+restant+'</strong></td>';
@@ -3884,7 +3924,7 @@ function rPerso(){
     totInit+=p.qteInitiale||0; totVendu+=vr.vendu; totRestant+=vr.restant; totAchatU+=p.achat||0;
     totRevient+=(p.prixRevient||p.achat*p.qteInitiale); totCommission+=p.commission||0; totDu+=p.totalDu||0;
     html+='<tr>';
-    html+='<td><strong>'+p.nom+'</strong>'+(lie?' <span style="font-size:.65rem;color:var(--tx3)" title="Fusionné dans le Stock Entreprise">🔗</span>':' <span style="font-size:.65rem;color:var(--re)" title="Non retrouvé dans le Stock Entreprise">⚠️</span>')+(p.dernierAjoutQte>0?'<br><span class="badge bor" style="font-size:.62rem" title="Dernière modification">🕒 +'+p.dernierAjoutQte+' le '+fmtDateHeureISO(p.dernierAjoutDate)+'</span>':'')+'</td>';
+    html+='<td><strong>'+echap(p.nom)+'</strong>'+(lie?' <span style="font-size:.65rem;color:var(--tx3)" title="Fusionné dans le Stock Entreprise">🔗</span>':' <span style="font-size:.65rem;color:var(--re)" title="Non retrouvé dans le Stock Entreprise">⚠️</span>')+(p.dernierAjoutQte>0?'<br><span class="badge bor" style="font-size:.62rem" title="Dernière modification">🕒 +'+p.dernierAjoutQte+' le '+fmtDateHeureISO(p.dernierAjoutDate)+'</span>':'')+'</td>';
     html+='<td>'+p.qteInitiale+'</td>';
     html+='<td style="color:var(--or)">'+vr.vendu+'</td>';
     html+='<td><strong style="color:'+(vr.restant<3?'var(--re)':'var(--gr)')+'">'+vr.restant+'</strong></td>';
@@ -3918,7 +3958,7 @@ function rDettes(){
   else{
     var html='';
     itemsD.forEach(function(d){
-      html+='<tr><td>'+fmtDateHeure(d.date,d.heure)+'</td><td>'+d.desc+'</td>';
+      html+='<tr><td>'+fmtDateHeure(d.date,d.heure)+'</td><td>'+echap(d.desc)+'</td>';
       html+='<td><span class="badge bnr">'+d.type+'</span></td>';
       html+='<td style="color:var(--re)">'+fmt(d.montant)+'</td>';
       html+='<td class="ac">'+(locked?'<span class="badge bgg">🔒</span>':'<button class="btn bh bxs" onclick="editDette('+d.id+')">✏️</button><button class="btn bd bxs" onclick="delDette('+d.id+')">🗑️</button>')+'</td></tr>';
@@ -4020,7 +4060,7 @@ function rHisto(){
   var tc={activite:'bbr',stock:'bgr',depense:'bdr',paiement:'bor',dette:'bnr',perso:'bpr',commande:'btr'};
   var html='';
   items.forEach(function(i){
-    html+='<tr><td>'+fmtDateHeure(i.date,i.heure)+'</td><td><span class="badge '+(tc[i.type]||'bbr')+'">'+i.type+'</span></td><td>'+i.desc+'</td><td>'+(i.montant?fmt(i.montant):'—')+'</td></tr>';
+    html+='<tr><td>'+fmtDateHeure(i.date,i.heure)+'</td><td><span class="badge '+(tc[i.type]||'bbr')+'">'+i.type+'</span></td><td>'+echap(i.desc)+'</td><td>'+(i.montant?fmt(i.montant):'—')+'</td></tr>';
   });
   tb.innerHTML=html;
 }
@@ -4057,7 +4097,7 @@ function rRapport(){
     var estAssocie=a.auteur==='Associé';
     html+='<tr><td>'+fmtDateJour(a.date)+'</td><td>'+(a.heure||'—')+'</td>'+
       '<td><span class="badge '+(estAssocie?'bpr':'bbr')+'">'+(estAssocie?'👤 Associé':'👔 Admin')+'</span></td>'+
-      '<td>'+a.type+'</td><td>'+a.desig+'</td><td>'+(a.qte||1)+'</td><td>'+(a.client||'—')+'</td>'+
+      '<td>'+a.type+'</td><td>'+echap(a.desig)+'</td><td>'+(a.qte||1)+'</td><td>'+echap(a.client||'—')+'</td>'+
       '<td>'+fmt(a.paye)+'</td><td><span class="badge '+(a.reste>0?'bor':'bgr')+'">'+(a.reste>0?'Partiel':'Payé')+'</span></td></tr>';
   });
   tb.innerHTML=html;
@@ -4334,11 +4374,20 @@ function rafraichirDonnees(){
     } else {
       chargerDonneesAssocie(session).then(function(resultat){
         renderAll();
-        // Même correctif : le bouton ⟳ affichait toujours "Données
-        // actualisées", même quand le chargement avait réellement
-        // échoué — la notification reflète maintenant la vraie cause.
-        if (resultat && resultat.ok===false) notif('❌ Échec de l\'actualisation — '+resultat.detail, 8000);
-        else notif('✅ Données actualisées');
+        // CORRECTIF (trouvé par test automatisé) : ce chemin (bouton ⟳
+        // manuel) mettait à jour la notification mais jamais le badge
+        // de statut — resté bloqué sur son texte précédent même après
+        // un échec réel. Même correctif que appliquerSession() et
+        // rafraichirActivitesSilencieux() : le badge doit refléter la
+        // vraie cause à chaque point d'entrée réseau, pas seulement
+        // certains.
+        if (resultat && resultat.ok===false) {
+          notif('❌ Échec de l\'actualisation — '+resultat.detail, 8000);
+          if (typeof setSyncStatus === 'function') setSyncStatus('error', '🔴 '+resultat.detail);
+        } else {
+          notif('✅ Données actualisées');
+          if (typeof setSyncStatus === 'function') setSyncStatus('offline', '⚪ Mode Associé');
+        }
       });
     }
   } else {
@@ -5563,7 +5612,7 @@ function afficherVueVisiteur(biens, capitalAdmin, montantDu, stockPersoDu, total
   if(!biens.length){ tb.innerHTML='<tr><td colspan="3" style="text-align:center;color:var(--tx2);padding:20px">Aucun bien enregistré pour le moment.</td></tr>'; return; }
   var html='';
   biens.forEach(function(b){
-    html+='<tr><td>'+b.nom+'</td><td>'+(b.quantite||1)+'</td><td>'+(b.date?fmtDateJour(b.date):'—')+'</td></tr>';
+    html+='<tr><td>'+echap(b.nom)+'</td><td>'+(b.quantite||1)+'</td><td>'+(b.date?fmtDateJour(b.date):'—')+'</td></tr>';
   });
   tb.innerHTML=html;
 }
@@ -5655,7 +5704,7 @@ function editPatrimoine(id){
 }
 function delPatrimoine(id){
   var p=(D.patrimoine||[]).find(function(x){ return x.id===id; }); if(!p) return;
-  demanderConfirmationSecurisee('🗑️ Supprimer ce bien du patrimoine', '• <strong>'+p.nom+'</strong><br>• Ce bien ne sera plus visible par le compte Visiteur.', false, function(){
+  demanderConfirmationSecurisee('🗑️ Supprimer ce bien du patrimoine', '• <strong>'+echap(p.nom)+'</strong><br>• Ce bien ne sera plus visible par le compte Visiteur.', false, function(){
     D.patrimoine=D.patrimoine.filter(function(x){ return x.id!==id; });
     save();
     var session=getSession();
@@ -5673,7 +5722,7 @@ function rPatrimoine(){
   if(!items.length){ tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--tx2);padding:20px">Aucun bien enregistré</td></tr>'; return; }
   var html='';
   items.forEach(function(p){
-    html+='<tr><td><strong>'+p.nom+'</strong></td><td>'+(p.quantite||1)+'</td><td>'+(p.date?fmtDateJour(p.date):'—')+'</td>'+
+    html+='<tr><td><strong>'+echap(p.nom)+'</strong></td><td>'+(p.quantite||1)+'</td><td>'+(p.date?fmtDateJour(p.date):'—')+'</td>'+
       '<td class="ac"><button class="btn bh bxs" onclick="editPatrimoine('+p.id+')">✏️</button><button class="btn bd bxs" onclick="delPatrimoine('+p.id+')">🗑️</button></td></tr>';
   });
   tb.innerHTML=html;
@@ -6900,6 +6949,22 @@ function mergeAppData(cloudData, localData, cloudIsNewer) {
   // avant la clôture avait bien eu lieu. On prend donc systématiquement
   // le plus grand des deux cumuls, jamais un remplacement brutal.
   merged.entDejaDeduit = Math.max(Number(cloudData.entDejaDeduit) || 0, Number(localData.entDejaDeduit) || 0);
+  // CORRECTIF ("Reste que vous devez à votre associé / Total dépenses
+  // qui baissent tout seuls") : dettesClot est EXACTEMENT le même genre
+  // de cumul figé qu'entDejaDeduit ci-dessus ("cumul verrouillé", voir
+  // executerCloture — aucune interface ne permet de le faire diminuer),
+  // mais n'était protégé par aucun Math.max : Object.assign() plus haut
+  // le traitait comme un champ simple, écrasé en bloc par la version
+  // "priorite" (cloud OU local, selon la date de dernière modification).
+  // En usage multi-appareils simultané (plusieurs téléphones/PC
+  // connectés en Administrateur en même temps), un appareil dont le
+  // cache local datait d'avant la dernière clôture pouvait ainsi, en se
+  // synchronisant après coup, faire redescendre ce cumul à son ancienne
+  // valeur plus basse — d'où l'impression que des dettes déjà réglées
+  // "disparaissaient". On prend donc systématiquement le plus grand des
+  // deux cumuls, jamais un remplacement brutal — même correctif, même
+  // raison, que pour entDejaDeduit.
+  merged.dettesClot = Math.max(Number(cloudData.dettesClot) || 0, Number(localData.dettesClot) || 0);
   return merged;
 }
 
