@@ -2776,8 +2776,25 @@ function delDette(id){
   rb('dette',d.desc,d); save(); notif('Dette → corbeille');
   var session=getSession();
   if(session && session.access_token && session.role==='admin' && navigator.onLine){
-    supabaseTable('/rest/v1/dettes?id=eq.'+id, { method:'DELETE' }, session.access_token)
-      .catch(function(e){ console.error('[delDette] suppression serveur',e); });
+    supabaseTable('/rest/v1/dettes?id=eq.'+id, { method:'DELETE', headers:{'Prefer':'return=representation'} }, session.access_token)
+      .then(function(r){
+        if(!r.ok){
+          r.text().then(function(corps){
+            console.error('[delDette] suppression serveur refusée', r.status, corps);
+            notif('❌ Le serveur a refusé la suppression de cette dette (HTTP '+r.status+'). Détail : '+corps.slice(0,160), 10000);
+          });
+          return;
+        }
+        r.json().then(function(supprimees){
+          if(Array.isArray(supprimees) && supprimees.length===0){
+            notif('⚠️ Cette dette n\'a pas pu être supprimée côté serveur (droits d\'accès Supabase).', 10000);
+          }
+        }).catch(function(){});
+      })
+      .catch(function(e){
+        console.error('[delDette] suppression serveur',e);
+        notif('❌ Impossible de joindre le serveur pour supprimer cette dette ('+e.message+').', 8000);
+      });
   }
 }
 
@@ -2817,8 +2834,25 @@ function delPaym(id){
   rb('paiement','Paiement '+fmt(p.montant),p); save(); notif('Paiement → corbeille');
   var session=getSession();
   if(session && session.access_token && session.role==='admin' && navigator.onLine){
-    supabaseTable('/rest/v1/paiements?id=eq.'+id, { method:'DELETE' }, session.access_token)
-      .catch(function(e){ console.error('[delPaym] suppression serveur',e); });
+    supabaseTable('/rest/v1/paiements?id=eq.'+id, { method:'DELETE', headers:{'Prefer':'return=representation'} }, session.access_token)
+      .then(function(r){
+        if(!r.ok){
+          r.text().then(function(corps){
+            console.error('[delPaym] suppression serveur refusée', r.status, corps);
+            notif('❌ Le serveur a refusé la suppression de ce paiement (HTTP '+r.status+'). Détail : '+corps.slice(0,160), 10000);
+          });
+          return;
+        }
+        r.json().then(function(supprimees){
+          if(Array.isArray(supprimees) && supprimees.length===0){
+            notif('⚠️ Ce paiement n\'a pas pu être supprimé côté serveur (droits d\'accès Supabase).', 10000);
+          }
+        }).catch(function(){});
+      })
+      .catch(function(e){
+        console.error('[delPaym] suppression serveur',e);
+        notif('❌ Impossible de joindre le serveur pour supprimer ce paiement ('+e.message+').', 8000);
+      });
   }
 }
 
@@ -2909,8 +2943,25 @@ function delDep(id){
   rb('depense',d.desc,d); save(); notif('Dépense → corbeille');
   var session=getSession();
   if(session && session.access_token && session.role==='admin' && navigator.onLine){
-    supabaseTable('/rest/v1/depenses?id=eq.'+id, { method:'DELETE' }, session.access_token)
-      .catch(function(e){ console.error('[delDep] suppression serveur',e); });
+    supabaseTable('/rest/v1/depenses?id=eq.'+id, { method:'DELETE', headers:{'Prefer':'return=representation'} }, session.access_token)
+      .then(function(r){
+        if(!r.ok){
+          r.text().then(function(corps){
+            console.error('[delDep] suppression serveur refusée', r.status, corps);
+            notif('❌ Le serveur a refusé la suppression de cette dépense (HTTP '+r.status+'). Détail : '+corps.slice(0,160), 10000);
+          });
+          return;
+        }
+        r.json().then(function(supprimees){
+          if(Array.isArray(supprimees) && supprimees.length===0){
+            notif('⚠️ Cette dépense n\'a pas pu être supprimée côté serveur (droits d\'accès Supabase).', 10000);
+          }
+        }).catch(function(){});
+      })
+      .catch(function(e){
+        console.error('[delDep] suppression serveur',e);
+        notif('❌ Impossible de joindre le serveur pour supprimer cette dépense ('+e.message+').', 8000);
+      });
   }
 }
 
@@ -3646,8 +3697,232 @@ function cloturer(){
     '• '+nDet+' dette(s) + '+nPay+' paiement(s) (net : '+fmt(Math.max(0,totD0-totP0))+') seront fusionnés dans le cumul verrouillé<br>'+
     '• Stock (Entreprise + Perso) et Commandes seront <strong>conservés intégralement</strong><br>'+
     '• "Ce que l\'entreprise vous doit" (stock perso) reste exact, rien n\'est perdu<br>'+
-    '• De nouvelles dettes pourront être saisies dès la période suivante';
-  demanderConfirmationSecurisee('Clôturer la période', details, true, executerCloture);
+    '• De nouvelles dettes pourront être saisies dès la période suivante<br>'+
+    '• 🔒 <strong>Clôture sécurisée</strong> : une sauvegarde cloud, un export JSON et un export Excel seront exécutés et vérifiés un par un AVANT toute suppression. Si l\'un des trois échoue, la clôture est automatiquement annulée et rien n\'est supprimé.';
+  demanderConfirmationSecurisee('Clôturer la période', details, true, lancerClotureSecurisee);
+}
+
+/* ================================================================
+   CLÔTURE SÉCURISÉE (mise à jour demandée) — 27/28-08-2026
+   -----------------------------------------------------------------
+   Le bouton « Clôturer » ne doit plus jamais appeler directement
+   executerCloture(). Il doit d'abord exécuter, dans cet ordre, TROIS
+   opérations RÉELLES (aucune n'est simulée) et vérifier le résultat
+   RÉEL de chacune avant de passer à la suivante :
+     1) sauvegardeCloudVerifiee()  — pousse D vers Supabase (app_data),
+        avec confirmation HTTP réelle avant de continuer.
+     2) exportJSONVerifie()        — génère et télécharge le fichier
+        JSON complet, avec vérification que le contenu a bien été
+        produit avant de continuer.
+     3) exportExcelVerifie()       — génère et télécharge le classeur
+        Excel complet (mêmes feuilles que le bouton "Export Excel"
+        existant, dupliquées ici à dessein pour ne RIEN modifier au
+        comportement du bouton d'export manuel existant).
+   Si UNE SEULE de ces étapes échoue, executerCloture() n'est JAMAIS
+   appelée : aucune donnée n'est réinitialisée ni supprimée, et un
+   message clair explique laquelle des 3 étapes a échoué et pourquoi.
+   Chaque étape affiche aussi un message de progression visible.
+   Aucun autre calcul, aucune autre donnée, aucune autre fonctionnalité
+   de l'application n'est modifiée par cet ajout.
+   ================================================================ */
+function lancerClotureSecurisee(){
+  notif('🔒 Clôture sécurisée — Étape 1/3 : sauvegarde cloud en cours…', 5000);
+  sauvegardeCloudVerifiee().then(function(r1){
+    if(!r1.ok){
+      notif('❌ CLÔTURE ANNULÉE — Étape 1/3 (sauvegarde cloud) a échoué : '+r1.detail+'. Aucune donnée n\'a été modifiée ou supprimée.', 12000);
+      return;
+    }
+    notif('✅ Étape 1/3 réussie (sauvegarde cloud confirmée) — Étape 2/3 : export JSON…', 5000);
+    exportJSONVerifie().then(function(r2){
+      if(!r2.ok){
+        notif('❌ CLÔTURE ANNULÉE — Étape 2/3 (export JSON) a échoué : '+r2.detail+'. Aucune donnée n\'a été modifiée ou supprimée.', 12000);
+        return;
+      }
+      notif('✅ Étape 2/3 réussie (fichier JSON exporté) — Étape 3/3 : export Excel…', 5000);
+      exportExcelVerifie().then(function(r3){
+        if(!r3.ok){
+          notif('❌ CLÔTURE ANNULÉE — Étape 3/3 (export Excel) a échoué : '+r3.detail+'. Aucune donnée n\'a été modifiée ou supprimée.', 12000);
+          return;
+        }
+        notif('✅ Étape 3/3 réussie (fichier Excel exporté) — les 3 vérifications ont réussi. Clôture en cours…', 5000);
+        executerCloture();
+        notif('🔒✅ Clôture sécurisée terminée : sauvegarde cloud + JSON + Excel confirmés AVANT suppression. Vos 2 fichiers de secours sont dans vos téléchargements.', 10000);
+      });
+    });
+  });
+}
+
+/**
+ * Étape 1/3 — pousse une copie intégrale de D vers Supabase (table
+ * app_data, même mécanisme que syncToCloud()), mais ici sous forme de
+ * Promise réellement attendue, pour bloquer la clôture tant que le
+ * serveur n'a pas confirmé (code HTTP 2xx). syncToCloud() elle-même
+ * n'est pas modifiée (elle reste "fire-and-forget" pour tous ses autres
+ * usages) — cette fonction est un appel réseau RÉEL indépendant, pas une
+ * simulation.
+ */
+function sauvegardeCloudVerifiee(){
+  return new Promise(function(resolve){
+    try{ persist(); }catch(e){ resolve({ok:false, detail:'échec de la sauvegarde locale — '+(e&&e.message?e.message:'erreur inconnue')}); return; }
+    var session=getSession();
+    if(!(session && session.access_token)){ resolve({ok:false, detail:'session expirée ou non connecté — reconnectez-vous puis réessayez'}); return; }
+    if(!navigator.onLine){ resolve({ok:false, detail:'aucune connexion internet détectée sur cet appareil'}); return; }
+    if(typeof SUPABASE_CONFIG==='undefined' || !SUPABASE_CONFIG.enabled){ resolve({ok:false, detail:'connexion au serveur cloud désactivée sur cette installation'}); return; }
+    if(typeof setSyncStatus==='function') setSyncStatus('syncing','🟠 Synchronisation (clôture)…');
+    fetch(SUPABASE_CONFIG.url + '/rest/v1/app_data', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':SUPABASE_CONFIG.anonKey,
+        'Authorization':'Bearer '+jetonActuel(),
+        'Prefer':'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({ id: ROW_ID, data: D, updated_at: new Date().toISOString() })
+    }).then(function(res){
+      if(!res.ok){
+        return res.text().then(function(msg){
+          if(typeof setSyncStatus==='function') setSyncStatus('error','🔴 Erreur de synchronisation');
+          resolve({ok:false, detail:'refus du serveur — HTTP '+res.status+' — '+msg});
+        });
+      }
+      var h=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      if(typeof setSyncStatus==='function') setSyncStatus('online','🟢 Synchronisé '+h);
+      resolve({ok:true});
+    }).catch(function(err){
+      if(typeof setSyncStatus==='function') setSyncStatus('error','🔴 Erreur de synchronisation');
+      resolve({ok:false, detail: err && err.message ? err.message : 'erreur réseau'});
+    });
+  });
+}
+
+/**
+ * Étape 2/3 — même contenu exact que exportData() (JSON complet, toutes
+ * tables, _meta inclus), mais renvoyé sous forme de Promise vérifiée :
+ * on confirme que le JSON a réellement été généré (non vide) et que le
+ * téléchargement a réellement été déclenché, avant de considérer
+ * l'étape réussie. exportData() elle-même n'est pas modifiée.
+ */
+function exportJSONVerifie(){
+  return new Promise(function(resolve){
+    try{
+      var counts=compterDonnees(D);
+      var total=Object.keys(counts).reduce(function(s,k){ return s+counts[k]; },0);
+      var payload=Object.assign({},D,{_meta:{app:'GESTION-BOULLIWEL-SERVICE.app',version:APP_VERSION,exportedAt:new Date().toISOString(),counts:counts,contexte:'clôture'}});
+      var json=JSON.stringify(payload,null,2);
+      if(!json || json.length<10){ resolve({ok:false, detail:'le fichier JSON généré est vide ou invalide'}); return; }
+      var b=new Blob([json],{type:'application/json'});
+      var url=URL.createObjectURL(b);
+      var a=document.createElement('a'); a.href=url;
+      a.download='GESTION-BOULLIWEL-SERVICE_CLOTURE_'+td()+'.json'; a.click();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+      resolve({ok:true, total:total});
+    }catch(err){
+      resolve({ok:false, detail: err && err.message ? err.message : 'erreur inconnue lors de la génération du JSON'});
+    }
+  });
+}
+
+/**
+ * Étape 3/3 — même contenu exact (mêmes feuilles, mêmes colonnes, même
+ * feuille Bilan) que exportExcel(), dupliqué ici à dessein pour ne
+ * JAMAIS modifier le comportement du bouton "Export Excel" existant,
+ * mais renvoyé sous forme de Promise vérifiée : succès seulement si la
+ * bibliothèque SheetJS a bien pu être chargée ET si le classeur a bien
+ * été construit et écrit, sans exception.
+ */
+function exportExcelVerifie(){
+  return new Promise(function(resolve){
+    loadSheetJS(function(){
+      try{
+        var wb=XLSX.utils.book_new();
+        function feuille(nom, arr, cols){
+          var data=(arr||[]).map(function(item){
+            var row={};
+            cols.forEach(function(c){ row[c[0]]=typeof c[1]==='function'?c[1](item):item[c[1]]; });
+            return row;
+          });
+          var ws=XLSX.utils.json_to_sheet(data.length?data:[{}]);
+          XLSX.utils.book_append_sheet(wb,ws,nom);
+        }
+        feuille('Activités', D.activites, [
+          ['Date','date'],['N°','ordre'],['Ticket','ticket'],['Type','type'],['Désignation','desig'],
+          ['Panne','panne'],['Qté','qte'],['Prix achat',function(a){return a.achat*(a.qte||1);}],
+          ['À payer','apayer'],['Payé','paye'],['Reste','reste'],['Bénéfice','benefice'],['Client','client']
+        ]);
+        feuille('Stock Entreprise', D.stock, [
+          ['Nom','nom'],['Qté initiale','qteInitiale'],['Qté vendue','qteVendue'],
+          ['Qté restante',function(s){return s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;}],
+          ['Dont apporté perso','origPerso'],
+          ['Seuil alerte','seuil'],['Prix achat','achat'],['Prix vente','vente'],['Date','date']
+        ]);
+        feuille('Stock Perso (comptable)', D.perso, [
+          ['Nom','nom'],['Qté apportée','qteInitiale'],
+          ['Qté vendue (estimée)',function(p){return calcPersoVenduRestant(p).vendu;}],
+          ['Qté restante (estimée)',function(p){return calcPersoVenduRestant(p).restant;}],
+          ['Prix achat','achat'],['Prix vente','vente'],['Prix revient','prixRevient'],
+          ['Commission','commission'],['Total dû','totalDu'],['Remboursé','rembourse'],['Date','date']
+        ]);
+        feuille('Dettes', D.dettes, [
+          ['Date','date'],['Type','type'],['Description','desc'],['Montant','montant']
+        ]);
+        feuille('Paiements Associé', D.paiements, [
+          ['Date','date'],['Type','type'],['Note','note'],['Montant','montant']
+        ]);
+        feuille('Commandes', D.commandes, [
+          ['Date','date'],['N° commande','num'],['Client','client'],['Téléphone','tel'],['Adresse','adresse'],
+          ['Produits',function(c){ return (c.produits||[]).map(function(l){ return l.produit+' x'+l.qte+' ('+fmt(l.prix)+')'; }).join(' | '); }],
+          ['Total','total'],['Statut','statut'],['Note','note']
+        ]);
+        feuille('Dépenses', D.depenses, [
+          ['Date','date'],['Catégorie','cat'],['Description','desc'],['Qté','qte'],['Prix unitaire','prix'],['Montant','montant']
+        ]);
+        feuille('Historique', D.histo, [
+          ['Date','date'],['Type','type'],['Description','desc'],['Montant','montant']
+        ]);
+        feuille('Corbeille', D.corbeille, [
+          ['Date suppression','date'],['Type','type'],['Élément','label']
+        ]);
+        var tp=D.activites.reduce(function(s,a){ return s+a.paye; },0);
+        var ta=D.activites.reduce(function(s,a){ return s+(a.achat*(a.qte||1)); },0);
+        var tapy=D.activites.reduce(function(s,a){ return s+a.apayer; },0);
+        var trReste=D.activites.reduce(function(s,a){ return s+a.reste; },0);
+        var bb=tp-ta;
+        var tdep=D.depenses.reduce(function(s,d){ return s+d.montant; },0);
+        var d20=bb*(getParams().reinvest/100), a20=bb-d20, aD=a20-tdep;
+        var mp=aD/2, pab=aD/2;
+        var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0)+D.dettesClot;
+        var totP=D.paiements.reduce(function(s,p){ return s+p.montant; },0);
+        var dnBrut=Math.max(0,totD-totP);
+        var dn=dnBrut;
+        var ra=pab-dn;
+        var tperso=D.perso.reduce(function(s,p){ return s+(p.totalDu-(p.rembourse||0)); },0);
+        var entDoit=tperso;
+        var aDeduire=ta+d20+(D.entDejaDeduit||0);
+        var resteEnt=entDoit-aDeduire;
+        var bilanData=[
+          ['Total encaissé (payé)',tp],['Prix achat total (activités)',ta],['Total à payer (activités)',tapy],['Reste clients (impayé)',trReste],
+          ['Bénéfice brut',bb],['20% réinvestissement',d20],['Dépenses (période)',tdep],['Bénéfice net',aD],
+          ['Ma part (50%)',mp],
+          ['Part de base associé (50%)',pab],
+          ['Dette brute associé (actives + cumul clôtures)',totD],['Paiements reçus de l\'associé',totP],
+          ['Dette nette (dettes − paiements reçus)',dnBrut],
+          ['Part associé nette (reçoit si positif, doit si négatif)',ra],
+          ['Stock perso — total dû',tperso],['− Prix achat total (période)',ta],['− 20% (période)',d20],
+          ['− Déjà déduit (cumul clôtures précédentes)',D.entDejaDeduit||0],
+          ['Reste que l\'entreprise vous doit (stock perso)',resteEnt],
+          ['Cumul dettes clôturées (dettesClot)',D.dettesClot]
+        ];
+        var wsB=XLSX.utils.json_to_sheet(bilanData.map(function(r){ return {'Libellé':r[0],'Valeur (GNF)':Math.round(r[1])}; }));
+        XLSX.utils.book_append_sheet(wb,wsB,'Bilan');
+        XLSX.writeFile(wb,'GESTION-BOULLIWEL-SERVICE_CLOTURE_'+td()+'.xlsx');
+        resolve({ok:true});
+      }catch(err){
+        resolve({ok:false, detail: err && err.message ? err.message : 'erreur inconnue lors de la génération du fichier Excel'});
+      }
+    }, function(){
+      resolve({ok:false, detail:'impossible de charger la bibliothèque Excel (connexion internet requise pour cette étape)'});
+    });
+  });
 }
 function executerCloture(){
   var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0);
@@ -5218,8 +5493,13 @@ function setDonneesVisiteur(d){ try{ sessionStorage.setItem('bpro_visiteur_data'
  * @returns {boolean} true si une session a été reprise avec succès
  */
 function tenterReconnexionHorsLigne(email, err){
-  var cached = getSession();
+  // Voir setSession()/getSessionPourEmail() : on relit ici la session
+  // PROPRE au compte demandé (email), jamais celle du dernier compte
+  // actif sur l'appareil — c'est ce qui isole totalement les comptes
+  // entre eux lors d'une utilisation successive sur le même appareil.
+  var cached = getSessionPourEmail(email);
   if (cached && cached.email === email && cached.offline_ok_until > Date.now()) {
+    setSession(cached); // réactive cette session comme session active partagée, pour le reste de l'app
     appliquerSession(cached);
     return true;
   }
@@ -6147,7 +6427,37 @@ var URL_REDIRECTION_RESET = 'https://gestion-boulliwel-service.vercel.app/';
 function getSession(){
   try{ return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); }catch(e){ return null; }
 }
-function setSession(s){ try{ localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }catch(e){} }
+/**
+ * CORRECTIF ("synchronisation des activités Associé bloquée quand
+ * Administrateur/Associé sont utilisés successivement sur le même
+ * appareil") : cause exacte trouvée — SESSION_KEY était un emplacement
+ * UNIQUE, écrasé à chaque connexion quel que soit le compte. Une
+ * reconnexion hors-ligne (tenterReconnexionHorsLigne, déclenchée aussi
+ * quand le serveur met trop de temps à répondre, pas seulement hors
+ * ligne) comparait alors l'email demandé à la session la PLUS
+ * RÉCEMMENT active sur l'appareil, pas à celle du compte qu'on essaie
+ * réellement de rouvrir. Si l'autre compte s'était connecté après,
+ * cette comparaison échouait systématiquement, même si CE compte avait
+ * déjà une session valide et récente sur ce même appareil — bloquant sa
+ * reconnexion, et donc toute synchronisation de ses activités, jusqu'à
+ * une connexion Internet meilleure. Corrigé en conservant, EN PLUS de
+ * la session active partagée ci-dessus (comportement inchangé pour tout
+ * le reste du code, qui continue d'utiliser getSession() normalement),
+ * une copie dédiée par rôle — de sorte que chaque compte retrouve sa
+ * propre session hors-ligne, totalement isolée de celle de l'autre.
+ */
+function setSession(s){
+  try{
+    localStorage.setItem(SESSION_KEY, JSON.stringify(s));
+    if (s && s.role) localStorage.setItem(SESSION_KEY + '_' + s.role, JSON.stringify(s));
+  }catch(e){}
+}
+/** Relit la session propre à un compte (par email), indépendamment de la session la plus récemment active sur l'appareil — voir setSession(). */
+function getSessionPourEmail(email){
+  var role = (email===AUTH_EMAIL_ADMIN) ? 'admin' : (email===AUTH_EMAIL_ASSOCIE ? 'associe' : null);
+  if (!role) return null;
+  try{ return JSON.parse(localStorage.getItem(SESSION_KEY + '_' + role) || 'null'); }catch(e){ return null; }
+}
 function clearSession(){ try{ localStorage.removeItem(SESSION_KEY); }catch(e){} }
 /** Jeton à utiliser pour les appels authentifiés (session active), sinon la clé publique. */
 function jetonActuel(){

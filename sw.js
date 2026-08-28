@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v84';
+const CACHE_VERSION = 'v87';
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
