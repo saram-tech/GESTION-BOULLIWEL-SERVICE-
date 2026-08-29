@@ -2041,10 +2041,15 @@ function syncParametresVersNouvelleTable(){
 /**
  * Lit UNIQUEMENT la colonne "vis_associe" de la table "parametres" — le
  * choix de l'Admin sur quelles cartes/tableau afficher pour l'Associé —
- * et l'applique localement sur l'appareil de l'Associé. Si la table
- * "parametres" ne permet pas encore la lecture au rôle Associé côté
- * RLS, cet appel échoue silencieusement (catch) et le masquage reste
- * simplement inactif comme avant, sans casser le reste de l'app.
+ * et l'applique localement sur l'appareil de l'Associé.
+ * CORRECTIF ("l'application ne doit rester silencieuse face à aucun
+ * comportement anormal") : jusqu'ici, si la table "parametres" ne
+ * permettait pas encore la lecture au rôle Associé côté RLS, la requête
+ * réussissait techniquement (HTTP 200) mais ne retournait AUCUNE ligne
+ * — ce cas n'était pas distingué d'un simple "rien à appliquer pour le
+ * moment" : aucun diagnostic n'était enregistré, ni succès ni échec.
+ * On distingue désormais explicitement ce cas et on le signale comme un
+ * échec réel (visible dans le diagnostic), au lieu de rester muet.
  */
 function chargerVisibiliteAssocie(session){
   if(!session || !session.access_token || !navigator.onLine) return Promise.resolve();
@@ -2054,6 +2059,7 @@ function chargerVisibiliteAssocie(session){
       return r.text().then(function(corps){ enregistrerDiagnostic('Visibilité Associé', false, extraireDetailErreur(corps, r.status)); return null; });
     })
     .then(function(rows){
+      if(rows===null) return; // échec HTTP déjà signalé ci-dessus
       var vis = rows && rows[0] && rows[0].vis_associe;
       if(vis && typeof vis==='object'){
         if(!D.params) D.params={};
@@ -2061,6 +2067,10 @@ function chargerVisibiliteAssocie(session){
         D.params.visAffichage.associe = vis;
         appliquerVisibiliteAffichage();
         enregistrerDiagnostic('Visibilité Associé', true, 'Réglages chargés depuis le serveur.');
+      } else if(!rows || rows.length===0){
+        enregistrerDiagnostic('Visibilité Associé', false, 'Lecture vide — la table "parametres" ne retourne aucune ligne pour ce compte (accès RLS probablement manquant).');
+      } else {
+        enregistrerDiagnostic('Visibilité Associé', true, 'Aucun réglage d\'affichage personnalisé enregistré (tout reste visible par défaut).');
       }
     })
     .catch(function(e){
@@ -4661,7 +4671,13 @@ function rafraichirDonnees(){
           if (typeof setSyncStatus === 'function') setSyncStatus('error', '🔴 '+resultat.detail);
         } else {
           notif('✅ Données actualisées');
-          if (typeof setSyncStatus === 'function') setSyncStatus('offline', '⚪ Mode Associé');
+          // DEMANDE ("indicateur en ligne pour le Compte Associé") : ce
+          // point n'est atteint que si navigator.onLine était vrai plus
+          // haut dans cette même fonction — donc "en ligne" ici est du
+          // réel, pas une supposition. Bascule le badge en VERT (comme
+          // pour l'Admin), au lieu du gris "Mode Associé" fixe utilisé
+          // jusqu'ici quel que soit l'état réel de la connexion.
+          if (typeof setSyncStatus === 'function') setSyncStatus('online', '🟢 En ligne (Associé)');
         }
       });
     }
@@ -5614,7 +5630,12 @@ function appliquerSession(session){
       // enregistrerDiagnostic) quand ce chargement a réellement échoué.
       if (typeof setSyncStatus === 'function') {
         if (resultat && resultat.ok===false) setSyncStatus('error', '🔴 '+resultat.detail);
-        else setSyncStatus('offline', '⚪ Mode Associé');
+        // DEMANDE ("indicateur en ligne pour le Compte Associé") : ce
+        // point n'est atteint que si navigator.onLine était vrai plus
+        // haut dans appliquerSession() — donc "en ligne" ici est du réel.
+        // Badge VERT au lieu du gris "Mode Associé" fixe utilisé jusqu'ici
+        // quel que soit l'état réel de la connexion.
+        else setSyncStatus('online', '🟢 En ligne (Associé)');
       }
       apres();
     });
@@ -6945,7 +6966,12 @@ function rafraichirActivitesSilencieux(){
       // d'échec pour ce rôle.
       if (typeof setSyncStatus === 'function') {
         if (resultat && resultat.ok===false) setSyncStatus('error', '🔴 '+resultat.detail);
-        else if (isAssocie()) setSyncStatus('offline', '⚪ Mode Associé');
+        // DEMANDE ("indicateur en ligne pour le Compte Associé") : cette
+        // fonction (rafraichirActivitesSilencieux) ne s'exécute que si
+        // navigator.onLine était vrai (voir tout en haut de la fonction)
+        // — donc "en ligne" ici est du réel, à chaque rafraîchissement
+        // automatique (~15s). Badge VERT au lieu du gris fixe.
+        else if (isAssocie()) setSyncStatus('online', '🟢 En ligne (Associé)');
       }
       if (isAssocie()) rVueAssocie();
       termine();
