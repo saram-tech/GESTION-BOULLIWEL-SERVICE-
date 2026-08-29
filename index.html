@@ -3708,7 +3708,7 @@ function cloturer(){
     '• Stock (Entreprise + Perso) et Commandes seront <strong>conservés intégralement</strong><br>'+
     '• "Ce que l\'entreprise vous doit" (stock perso) reste exact, rien n\'est perdu<br>'+
     '• De nouvelles dettes pourront être saisies dès la période suivante<br>'+
-    '• 🔒 <strong>Clôture sécurisée</strong> : une sauvegarde cloud, un export JSON et un export Excel seront exécutés et vérifiés un par un AVANT toute suppression. Si l\'un des trois échoue, la clôture est automatiquement annulée et rien n\'est supprimé.';
+    '• 🔒 <strong>Clôture sécurisée</strong> : une synchronisation avec le serveur, une sauvegarde cloud, un export JSON et un export Excel seront exécutés et vérifiés un par un AVANT toute suppression. Si l\'une de ces étapes échoue, la clôture est automatiquement annulée et rien n\'est supprimé.';
   demanderConfirmationSecurisee('Clôturer la période', details, true, lancerClotureSecurisee);
 }
 
@@ -3735,8 +3735,44 @@ function cloturer(){
    Aucun autre calcul, aucune autre donnée, aucune autre fonctionnalité
    de l'application n'est modifiée par cet ajout.
    ================================================================ */
+/**
+ * CORRECTIF ("activités de l'Associé non supprimées par une clôture
+ * faite sur un autre appareil — cause exacte trouvée") : executerCloture()
+ * calcule la liste des activités à supprimer UNIQUEMENT à partir de
+ * D.activites tel qu'il se trouve, localement, sur l'appareil qui
+ * clique "Clôturer". Si une activité créée sur un autre appareil (ex.
+ * un téléphone de l'Associé) n'avait pas encore été synchronisée vers
+ * le serveur au moment précis de la clôture, elle restait invisible
+ * pour l'appareil qui clôture — donc jamais incluse dans la suppression
+ * envoyée à Supabase. Elle survivait alors indéfiniment, et pouvait
+ * même réapparaître plus tard, une fois cet autre appareil synchronisé
+ * à son tour, donnant l'impression que "les activités de l'Associé
+ * remplacent celles de l'Administrateur" après une clôture. Corrigé en
+ * forçant une VRAIE synchronisation avec le serveur (rafraîchissement
+ * complet des activités, exactement le même mécanisme que celui déjà
+ * utilisé ailleurs dans l'app) juste avant de calculer quoi supprimer —
+ * pour que la clôture agisse sur tout ce qui a réellement atteint le
+ * serveur à cet instant, pas seulement sur le cache local de l'appareil
+ * qui clôture. Ne change ni le calcul de la clôture elle-même, ni les
+ * 3 étapes déjà en place ci-dessous, ni aucune autre fonctionnalité.
+ */
 function lancerClotureSecurisee(){
-  notif('🔒 Clôture sécurisée — Étape 1/3 : sauvegarde cloud en cours…', 5000);
+  notif('🔄 Clôture sécurisée — Étape 0/3 : synchronisation avec le serveur…', 5000);
+  var session = getSession();
+  var pretASynchroniser = session && session.access_token && navigator.onLine;
+  var etapeSync = pretASynchroniser
+    ? chargerActivitesEtStockDepuisTables(session)
+    : Promise.resolve({ ok:false, detail:'aucune session active ou pas de connexion internet' });
+  etapeSync.then(function(r0){
+    if(!r0 || r0.ok===false){
+      notif('❌ CLÔTURE ANNULÉE — Étape 0/3 (synchronisation) a échoué : '+(r0&&r0.detail?r0.detail:'connexion impossible')+'. Reconnectez tous les appareils au réseau avant de réessayer. Aucune donnée n\'a été modifiée ou supprimée.', 12000);
+      return;
+    }
+    notif('✅ Étape 0/3 réussie ('+D.activites.length+' activité(s) à jour avec le serveur) — Étape 1/3 : sauvegarde cloud…', 5000);
+    lancerClotureApresSynchronisation();
+  });
+}
+function lancerClotureApresSynchronisation(){
   sauvegardeCloudVerifiee().then(function(r1){
     if(!r1.ok){
       notif('❌ CLÔTURE ANNULÉE — Étape 1/3 (sauvegarde cloud) a échoué : '+r1.detail+'. Aucune donnée n\'a été modifiée ou supprimée.', 12000);
@@ -3756,7 +3792,7 @@ function lancerClotureSecurisee(){
         }
         notif('✅ Étape 3/3 réussie (fichier Excel exporté) — les 3 vérifications ont réussi. Clôture en cours…', 5000);
         executerCloture();
-        notif('🔒✅ Clôture sécurisée terminée : sauvegarde cloud + JSON + Excel confirmés AVANT suppression. Vos 2 fichiers de secours sont dans vos téléchargements.', 10000);
+        notif('🔒✅ Clôture sécurisée terminée : synchronisation + sauvegarde cloud + JSON + Excel confirmés AVANT suppression. Vos 2 fichiers de secours sont dans vos téléchargements.', 10000);
       });
     });
   });
