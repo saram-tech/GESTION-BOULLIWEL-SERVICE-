@@ -326,7 +326,7 @@ tbody tr:last-child td{border-bottom:none;}
 </div>
 
 <header>
-  <div class="logo">GESTION-BOULLIWEL-SERVICE.app <small>Gestion Intégrée v3 · <span id="hdr-maj" onclick="ouvrirAPropos()" style="cursor:pointer;text-decoration:underline dotted" title="Voir les détails de la dernière mise à jour">MAJ —</span></small></div>
+  <div class="logo">GESTION-BOULLIWEL-SERVICE.app <small>Gestion Intégrée <span id="hdr-version" onclick="ouvrirAPropos()" style="cursor:pointer;text-decoration:underline dotted" title="Voir les détails de la dernière mise à jour">v—</span> · <span id="hdr-maj" onclick="ouvrirAPropos()" style="cursor:pointer;text-decoration:underline dotted" title="Voir les détails de la dernière mise à jour">MAJ —</span></small></div>
   <div id="sync-status" class="sync-badge sync-offline" title="Statut de synchronisation — Toucher pour voir le diagnostic détaillé" onclick="diagnosticConnexion()" style="cursor:pointer">⚪ Vérification…</div>
   <div id="hbts-admin" class="hbts">
     <button id="btn-refresh-admin" class="btn-refresh" onclick="rafraichirDonnees()" title="Rafraîchir les données affichées">⟳</button>
@@ -1967,21 +1967,49 @@ var _timerSyncEntDoitStockPerso = null;
  * l'Admin — c'était la cause de l'écart observé). Débouncé et n'envoie
  * que si une des deux valeurs a changé.
  */
+/**
+ * CORRECTIF ("valeur du Bilan Associé/Visiteur potentiellement périmée
+ * — Point 3/3") : le débounce de 1,5s ci-dessous est CONSERVÉ tel quel
+ * (utile pour éviter de spammer le serveur pendant une saisie rapide),
+ * mais jusqu'ici, si l'Administrateur fermait l'app / mettait l'écran en
+ * veille / se déconnectait dans cette fenêtre de 1,5s, le setTimeout()
+ * en attente n'était jamais exécuté : la valeur envoyée au serveur
+ * restait l'ancienne, et l'Associé/le Visiteur continuaient d'afficher
+ * un chiffre périmé jusqu'à la PROCHAINE modification qui réussirait à
+ * aboutir. Corrigé en gardant en mémoire la dernière valeur EN ATTENTE
+ * (pas seulement la dernière ENVOYÉE) et en exposant une fonction de
+ * purge (flush) qui l'envoie immédiatement, sans attendre le débounce —
+ * appelée aux 3 moments où l'app peut disparaître : mise en arrière-plan
+ * (visibilitychange), fermeture/rechargement (pagehide) et déconnexion
+ * explicite (doLogout), voir plus bas. Aucun calcul ni aucune autre
+ * donnée n'est modifié — uniquement la garantie d'envoi de ce qui est
+ * déjà calculé.
+ */
+var _enAttenteEntDoitStockPerso = null, _enAttenteBeneficeAdmin = null;
+function envoyerEntDoitStockPersoMaintenant(){
+  if(_enAttenteEntDoitStockPerso===null && _enAttenteBeneficeAdmin===null) return;
+  if(!SUPABASE_CONFIG.enabled || !navigator.onLine) return;
+  var session=getSession();
+  if(!session || !session.access_token || session.role!=='admin') return;
+  var valeurStockPerso=_enAttenteEntDoitStockPerso, valeurBenefice=_enAttenteBeneficeAdmin;
+  if(_dernierEntDoitStockPersoEnvoye===valeurStockPerso && _dernierBeneficeAdminEnvoye===valeurBenefice) return;
+  clearTimeout(_timerSyncEntDoitStockPerso); _timerSyncEntDoitStockPerso=null;
+  _dernierEntDoitStockPersoEnvoye=valeurStockPerso;
+  _dernierBeneficeAdminEnvoye=valeurBenefice;
+  supabaseTable('/rest/v1/parametres', {
+    method:'POST',
+    headers:{ 'Prefer':'resolution=merge-duplicates' },
+    body: JSON.stringify({ id:1, ent_doit_stock_perso: valeurStockPerso, mon_benefice_admin: valeurBenefice })
+  }, session.access_token).catch(function(e){ console.error('[syncEntDoitStockPerso]', e); });
+}
 function syncEntDoitStockPersoAuServeur(valeurStockPerso, valeurBenefice){
   if(!SUPABASE_CONFIG.enabled || !navigator.onLine) return;
   var session=getSession();
   if(!session || !session.access_token || session.role!=='admin') return;
+  _enAttenteEntDoitStockPerso=valeurStockPerso; _enAttenteBeneficeAdmin=valeurBenefice;
   if(_dernierEntDoitStockPersoEnvoye===valeurStockPerso && _dernierBeneficeAdminEnvoye===valeurBenefice) return;
   clearTimeout(_timerSyncEntDoitStockPerso);
-  _timerSyncEntDoitStockPerso=setTimeout(function(){
-    _dernierEntDoitStockPersoEnvoye=valeurStockPerso;
-    _dernierBeneficeAdminEnvoye=valeurBenefice;
-    supabaseTable('/rest/v1/parametres', {
-      method:'POST',
-      headers:{ 'Prefer':'resolution=merge-duplicates' },
-      body: JSON.stringify({ id:1, ent_doit_stock_perso: valeurStockPerso, mon_benefice_admin: valeurBenefice })
-    }, session.access_token).catch(function(e){ console.error('[syncEntDoitStockPerso]', e); });
-  }, 1500);
+  _timerSyncEntDoitStockPerso=setTimeout(envoyerEntDoitStockPersoMaintenant, 1500);
 }
 var _dernierInteretAssocieEnvoye = null;
 var _dernierResteAPayerEnvoye = null;
@@ -2005,22 +2033,42 @@ var _timerSyncPartAssocie = null;
  * serveur peut voir des données légèrement en différé par rapport à
  * l'appareil de l'Administrateur).
  */
+/** Voir envoyerEntDoitStockPersoMaintenant() ci-dessus — même correctif, même principe. */
+var _enAttenteInteretAssocie = null, _enAttenteResteAPayer = null;
+function envoyerPartAssocieMaintenant(){
+  if(_enAttenteInteretAssocie===null && _enAttenteResteAPayer===null) return;
+  if(!SUPABASE_CONFIG.enabled || !navigator.onLine) return;
+  var session=getSession();
+  if(!session || !session.access_token || session.role!=='admin') return;
+  var valeurInteret=_enAttenteInteretAssocie, valeurResteAPayer=_enAttenteResteAPayer;
+  if(_dernierInteretAssocieEnvoye===valeurInteret && _dernierResteAPayerEnvoye===valeurResteAPayer) return;
+  clearTimeout(_timerSyncPartAssocie); _timerSyncPartAssocie=null;
+  _dernierInteretAssocieEnvoye=valeurInteret;
+  _dernierResteAPayerEnvoye=valeurResteAPayer;
+  supabaseTable('/rest/v1/parametres', {
+    method:'POST',
+    headers:{ 'Prefer':'resolution=merge-duplicates' },
+    body: JSON.stringify({ id:1, part_interet_admin: valeurInteret, reste_a_payer_admin: valeurResteAPayer })
+  }, session.access_token).catch(function(e){ console.error('[syncPartAssocie]', e); });
+}
 function syncPartAssocieAuServeur(valeurInteret, valeurResteAPayer){
   if(!SUPABASE_CONFIG.enabled || !navigator.onLine) return;
   var session=getSession();
   if(!session || !session.access_token || session.role!=='admin') return;
+  _enAttenteInteretAssocie=valeurInteret; _enAttenteResteAPayer=valeurResteAPayer;
   if(_dernierInteretAssocieEnvoye===valeurInteret && _dernierResteAPayerEnvoye===valeurResteAPayer) return;
   clearTimeout(_timerSyncPartAssocie);
-  _timerSyncPartAssocie=setTimeout(function(){
-    _dernierInteretAssocieEnvoye=valeurInteret;
-    _dernierResteAPayerEnvoye=valeurResteAPayer;
-    supabaseTable('/rest/v1/parametres', {
-      method:'POST',
-      headers:{ 'Prefer':'resolution=merge-duplicates' },
-      body: JSON.stringify({ id:1, part_interet_admin: valeurInteret, reste_a_payer_admin: valeurResteAPayer })
-    }, session.access_token).catch(function(e){ console.error('[syncPartAssocie]', e); });
-  }, 1500);
+  _timerSyncPartAssocie=setTimeout(envoyerPartAssocieMaintenant, 1500);
 }
+/** Purge immédiate des deux compteurs ci-dessus (n'envoie que s'il y a réellement quelque chose en attente). */
+function purgerSyncsBilanEnAttente(){
+  envoyerEntDoitStockPersoMaintenant();
+  envoyerPartAssocieMaintenant();
+}
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState==='hidden') purgerSyncsBilanEnAttente();
+});
+window.addEventListener('pagehide', purgerSyncsBilanEnAttente);
 function syncParametresVersNouvelleTable(){
   var session=getSession();
   if(!session || !session.access_token || session.role!=='admin' || !navigator.onLine) return;
@@ -2305,7 +2353,7 @@ function validerActionSecurisee(){
 function ajusterStockVendu(desig, delta){
   if(!desig || !delta) return;
   var pr=D.stock.find(function(p){ return normNom(p.nom)===normNom(desig); });
-  if(pr){ pr.qteVendue=Math.max(0,(pr.qteVendue||0)+delta); pr.qteRestante=Math.max(0,pr.qteInitiale-(pr.qteVendue||0)); }
+  if(pr){ pr.qteVendue=Math.max(0,(pr.qteVendue||0)+delta); pr.qteRestante=Math.max(0,pr.qteInitiale-(pr.qteVendue||0)); pr._localTouchedAt=Date.now(); }
 }
 /**
  * Trouve le produit correspondant dans Stock Entreprise, ou le crée s'il
@@ -2322,6 +2370,7 @@ function fusionnerDansStockEnt(nom, qte, achat, vente, date){
     if(!s.achat) s.achat=achat;
     if(!s.vente && vente) s.vente=vente;
     s.qteRestante=Math.max(0,s.qteInitiale-(s.qteVendue||0));
+    s._localTouchedAt=Date.now();
     return s;
   }
   var ns={id:Date.now()+Math.floor(Math.random()*1000),nom:nom,qteInitiale:qte,qteVendue:0,qteRestante:qte,achat:achat,vente:vente||achat,seuil:3,date:date||td(),origPerso:qte};
@@ -2335,6 +2384,7 @@ function retirerDeStockEnt(nom, qte){
   s.qteInitiale=Math.max(0,(s.qteInitiale||0)-qte);
   s.origPerso=Math.max(0,(s.origPerso||0)-qte);
   s.qteRestante=Math.max(0,s.qteInitiale-(s.qteVendue||0));
+  s._localTouchedAt=Date.now();
 }
 /**
  * Ouvre le formulaire d'ajout rapide de quantité pour une fiche du Stock
@@ -2360,6 +2410,7 @@ function enrAjoutQte(){
     s.qteRestante=Math.max(0,s.qteInitiale-(s.qteVendue||0));
     // Suivi de la dernière opération d'ajout (affichage + possibilité d'annuler)
     s.dernierAjoutQte=delta; s.dernierAjoutDate=maintenant;
+    s._localTouchedAt=Date.now();
     ah('stock','Ajout quantité: '+s.nom+' +'+delta,0,td());
     save(); cm('maq'); rStock(); notif('✅ '+s.nom+' : +'+delta+' unité(s) ajoutée(s)');
   } else {
@@ -2396,6 +2447,7 @@ function annulerDernierAjout(id, type){
     s.qteInitiale=Math.max(0,(s.qteInitiale||0)-qte);
     s.qteRestante=Math.max(0,s.qteInitiale-(s.qteVendue||0));
     s.dernierAjoutQte=0; s.dernierAjoutDate=null;
+    s._localTouchedAt=Date.now();
     ah('stock','Annulation ajout: '+s.nom+' -'+qte,0,td());
     save(); rStock(); notif('↩️ Dernier ajout annulé sur '+s.nom+' (-'+qte+')');
   } else {
@@ -2490,6 +2542,7 @@ function enrAct(){
       // coïncidence au nom d'un article.
       if(a.type==='Vente') ajusterStockVendu(a.desig, -(a.qte||0));
       a.date=date;a.type=type;a.desig=desig;a.panne=panne;a.achat=achat;a.qte=qte;a.apayer=apayer;a.paye=paye;a.reste=reste;a.benefice=ben;a.ticket=ticket;a.client=client;
+      a._localTouchedAt=Date.now();
       if(type==='Vente') ajusterStockVendu(desig, qte);
     }
     ah('activite','Modif: '+desig,paye,date);
@@ -2644,11 +2697,11 @@ function enrStock(){
   var eid=v('s-eid');
   if(eid){
     var s=D.stock.find(function(x){ return x.id==eid; });
-    if(s){ s.nom=nom;s.qteInitiale=qte;s.achat=achat;s.vente=vente;s.seuil=seuil;s.categorie=categorie;s.qteRestante=Math.max(0,qte-(s.qteVendue||0)); }
+    if(s){ s.nom=nom;s.qteInitiale=qte;s.achat=achat;s.vente=vente;s.seuil=seuil;s.categorie=categorie;s.qteRestante=Math.max(0,qte-(s.qteVendue||0)); s._localTouchedAt=Date.now(); }
     ah('stock','Modif stock: '+nom,achat*qte,date);
   } else {
     var ex=D.stock.find(function(x){ return normNom(x.nom)===normNom(nom); });
-    if(ex){ ex.qteInitiale+=qte;ex.achat=achat;ex.vente=vente;ex.seuil=seuil;if(categorie)ex.categorie=categorie;ex.qteRestante=Math.max(0,ex.qteInitiale-(ex.qteVendue||0)); }
+    if(ex){ ex.qteInitiale+=qte;ex.achat=achat;ex.vente=vente;ex.seuil=seuil;if(categorie)ex.categorie=categorie;ex.qteRestante=Math.max(0,ex.qteInitiale-(ex.qteVendue||0)); ex._localTouchedAt=Date.now(); }
     else D.stock.push({id:Date.now(),nom:nom,qteInitiale:qte,qteVendue:0,qteRestante:qte,achat:achat,vente:vente,seuil:seuil,categorie:categorie,date:date,heure:nowHM()});
     ah('stock','Entrée: '+nom+' x'+qte,achat*qte,date);
   }
@@ -2771,10 +2824,10 @@ function enrDette(){
   var eid=v('det-eid');
   if(eid){
     var d=D.dettes.find(function(x){ return x.id==eid; });
-    if(d){ d.date=date;d.type=type;d.desc=desc;d.montant=m; }
+    if(d){ d.date=date;d.type=type;d.desc=desc;d.montant=m; d._localTouchedAt=Date.now(); }
     ah('dette','Modif dette: '+desc,m,date);
   } else {
-    D.dettes.push({id:Date.now(),date:date,heure:nowHM(),type:type,desc:desc,montant:m});
+    D.dettes.push({id:Date.now(),date:date,heure:nowHM(),type:type,desc:desc,montant:m,_localTouchedAt:Date.now()});
     ah('dette','Dette: '+desc,m,date);
   }
   save(); cm('mdet'); rDF(); notif('✅ Dette enregistrée: '+fmt(m));
@@ -2831,10 +2884,10 @@ function enrPaym(){
   var eid=v('paym-eid');
   if(eid){
     var p=D.paiements.find(function(x){ return x.id==eid; });
-    if(p){ p.montant=m;p.type=type;p.note=note;p.date=date; }
+    if(p){ p.montant=m;p.type=type;p.note=note;p.date=date; p._localTouchedAt=Date.now(); }
     ah('paiement','Modif paiement: '+note,m,date);
   } else {
-    D.paiements.push({id:Date.now(),montant:m,type:type,note:note,date:date,heure:nowHM()});
+    D.paiements.push({id:Date.now(),montant:m,type:type,note:note,date:date,heure:nowHM(),_localTouchedAt:Date.now()});
     ah('paiement','Paiement ('+type+'): '+note,m,date);
   }
   save(); cm('mpaym'); rPAF(); notif('✅ Paiement: '+fmt(m));
@@ -2940,10 +2993,10 @@ function enrDep(){
   var eid=v('dep-eid');
   if(eid){
     var d=D.depenses.find(function(x){ return x.id==eid; });
-    if(d){ d.cat=cat;d.desc=desc;d.qte=qte;d.prix=prix;d.montant=total;d.date=date; }
+    if(d){ d.cat=cat;d.desc=desc;d.qte=qte;d.prix=prix;d.montant=total;d.date=date; d._localTouchedAt=Date.now(); }
     ah('depense','Modif dépense: '+desc,total,date);
   } else {
-    D.depenses.push({id:Date.now(),cat:cat,desc:desc,qte:qte,prix:prix,montant:total,date:date,heure:nowHM()});
+    D.depenses.push({id:Date.now(),cat:cat,desc:desc,qte:qte,prix:prix,montant:total,date:date,heure:nowHM(),_localTouchedAt:Date.now()});
     ah('depense','Dépense '+cat+': '+desc,total,date);
   }
   save(); cm('md'); rDepF(); notif('✅ Dépense enregistrée');
@@ -3023,11 +3076,11 @@ function enrCmd(){
   var eid=v('c-eid');
   if(eid){
     var c=D.commandes.find(function(x){ return x.id==eid; });
-    if(c){ c.date=date;c.num=num;c.client=client;c.tel=tel;c.adresse=v('c-adr');c.produits=cmdLignes.slice();c.total=total;c.statut=v('c-st');c.note=v('c-note'); }
+    if(c){ c.date=date;c.num=num;c.client=client;c.tel=tel;c.adresse=v('c-adr');c.produits=cmdLignes.slice();c.total=total;c.statut=v('c-st');c.note=v('c-note'); c._localTouchedAt=Date.now(); }
     ah('commande','Modif commande: '+client,total,date);
   } else {
     D._co++;
-    D.commandes.push({id:Date.now(),date:date,heure:nowHM(),num:num,client:client,tel:tel,adresse:v('c-adr'),produits:cmdLignes.slice(),total:total,statut:v('c-st'),note:v('c-note')});
+    D.commandes.push({id:Date.now(),date:date,heure:nowHM(),num:num,client:client,tel:tel,adresse:v('c-adr'),produits:cmdLignes.slice(),total:total,statut:v('c-st'),note:v('c-note'),_localTouchedAt:Date.now()});
     ah('commande','Commande: '+client+' — '+num,total,date);
   }
   save(); cm('mc'); rCF(); notif('✅ Commande enregistrée');
@@ -3053,7 +3106,7 @@ function delCmd(id){
 }
 function cStatCmd(id,s){
   var c=D.commandes.find(function(x){ return x.id===id; });
-  if(c){ c.statut=s; ah('commande','Statut → '+s+': '+c.client,0,td()); save(); }
+  if(c){ c.statut=s; c._localTouchedAt=Date.now(); ah('commande','Statut → '+s+': '+c.client,0,td()); save(); }
 }
 /**
  * Regroupe tous les produits de toutes les commandes clients actives
@@ -4129,6 +4182,27 @@ function lotIdsPourMessage(ids){ return ids.length; }
 /** Conservé pour compatibilité (appelée depuis executerCloture). */
 function supprimerActivitesClotureesSurServeur(ids){
   supprimerActivitesSurServeurAvecAlerte(ids, 'activités de la période clôturée');
+}
+/**
+ * Relance automatique de supprimerActivitesSurServeurAvecAlerte() pour
+ * des activités déjà tombstonées localement mais encore présentes côté
+ * serveur (échec ou refus RLS lors d'une tentative précédente — voir
+ * l'appel dans chargerActivitesEtStockDepuisTables()). Limitée à une
+ * tentative par minute pour le même ensemble d'ids, pour ne jamais
+ * spammer ni le réseau ni l'écran d'alertes si le problème persiste.
+ */
+var _dernierEnsembleRetryCloture = null;
+var _dernierRetryClotureTS = 0;
+var RETRY_CLOTURE_INTERVAL_MS = 60000;
+function reessayerSuppressionsActivitesEnAttente(idsAReessayer){
+  if(!idsAReessayer || !idsAReessayer.length) return;
+  var cle = idsAReessayer.slice().sort(function(a,b){ return a-b; }).join(',');
+  var maintenant = Date.now();
+  var nouvelEnsemble = (cle !== _dernierEnsembleRetryCloture);
+  if(!nouvelEnsemble && (maintenant - _dernierRetryClotureTS) < RETRY_CLOTURE_INTERVAL_MS) return;
+  _dernierEnsembleRetryCloture = cle;
+  _dernierRetryClotureTS = maintenant;
+  supprimerActivitesSurServeurAvecAlerte(idsAReessayer, 'activités déjà clôturées (nouvelle tentative automatique)');
 }
 /** Filet de sécurité pour les installations restées bloquées par
  * l'ancien bug (detteVerrou resté à true après une clôture). */
@@ -5501,7 +5575,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v41';
+var APP_VERSION = 'v42';
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
@@ -5525,7 +5599,7 @@ function toggleTriAZ(tbl){
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-08-27T19:00:00'; // CORRECTIF Associé : les activités déjà clôturées pouvaient ressurgir dans le Compte Associé (la suppression serveur fonctionnait, mais le cache local de son téléphone les faisait revivre à chaque actualisation) — la clôture efface désormais pour de bon les activités de l'Associé, sans risque pour une vente tout juste créée pas encore synchronisée. Aucun autre calcul modifié.
+var APP_DERNIERE_MAJ = '2026-08-30T12:30:00'; // AJOUT : numéro de version (APP_VERSION, déjà utilisé dans "À propos" et les exports JSON, passé de v41 à v42) désormais aussi affiché dans l'en-tête, à la place du texte fixe "v3" qui n'avait plus été mis à jour depuis longtemps et ne correspondait plus à la vraie version. Aucun calcul, aucune donnée modifiée.
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
@@ -5672,6 +5746,41 @@ function doLogin() {
  * doLoginVisiteur) : bascule l'interface et charge les données
  * autorisées pour ce rôle.
  */
+/**
+ * CORRECTIF ("écran Administrateur qui semble vidé après un passage
+ * Associé sur le même appareil, hors ligne") — cause exacte trouvée :
+ * chargerDonneesAssocie() vide volontairement D.perso/depenses/dettes/
+ * paiements/commandes/histo/corbeille en local à chaque connexion
+ * Associé (D.params reçoit alors le marqueur "_placeholderAssocie":true
+ * — voir chargerDonneesAssocie) — un choix de sécurité VOLONTAIRE et
+ * CONSERVÉ ici tel quel : ces données confidentielles de l'Administrateur
+ * ne doivent jamais rester lisibles dans le stockage local d'un appareil
+ * pendant une session Associé. Le problème n'est donc pas ce vidage
+ * (qui reste nécessaire), mais le fait qu'un Administrateur qui se
+ * reconnecte ENSUITE sur ce même appareil SANS connexion Internet ne
+ * pouvait pas re-télécharger ces données (chargerActivitesEtStockDepuisTables/
+ * chargerDonneesAssocie ne sont appelées que si navigator.onLine) : il
+ * voyait alors un tableau de bord affichant 0 dépense/dette/historique
+ * comme si c'était réellement le cas, sans aucune indication que ces
+ * chiffres sont en réalité indisponibles hors ligne. Corrigé en
+ * détectant ce marqueur et en avertissant clairement l'Administrateur,
+ * au lieu de laisser un vide silencieux faire croire à une perte de
+ * données réelle. Ne restaure rien par magie (impossible sans reconnexion
+ * — ces données ne sont, par sécurité, jamais mises en cache pour
+ * l'Associé) et ne modifie aucun calcul, aucune donnée, aucune autre
+ * fonctionnalité : uniquement un avertissement visuel.
+ */
+var _avertissementCacheAssocieAffiche = false;
+function avertirCacheAssocieSiNecessaire(role){
+  if (role !== 'admin') return;
+  if (navigator.onLine) return;
+  if (!(D && D.params && D.params._placeholderAssocie)) return;
+  if (typeof setSyncStatus === 'function') setSyncStatus('error', '🔴 Données locales incomplètes (hors ligne)');
+  if (_avertissementCacheAssocieAffiche) return; // un seul popup bloquant par session, le badge rouge ci-dessus reste affiché en permanence
+  _avertissementCacheAssocieAffiche = true;
+  setTimeout(function(){
+    alert('⚠️ DONNÉES LOCALES INCOMPLÈTES (hors ligne)\n\nLe compte Associé a été utilisé sur cet appareil depuis votre dernière connexion Administrateur, et vous êtes actuellement hors ligne.\n\nPar sécurité, les Dépenses, Dettes, Paiements, Commandes, Stock Perso, Historique et Corbeille ne sont JAMAIS conservés localement pendant une session Associé (uniquement les Activités et le Stock Entreprise, protégés séparément). Ces sections peuvent donc afficher 0 ou paraître vides ci-dessous — ce n\'est PAS une perte de données, rien n\'a été supprimé côté serveur.\n\nReconnectez cet appareil à Internet dès que possible : ces données se resynchroniseront automatiquement, sans aucune action de votre part.'); }, 200);
+}
 function appliquerSession(session){
   sessionStorage.setItem('bpro_session', '1');
   sessionStorage.setItem('bpro_role', session.role);
@@ -5686,7 +5795,7 @@ function appliquerSession(session){
     notif('✅ Bienvenue ' + libelleRole + ' !');
     demarrerAutoSyncActivites(); // synchro automatique en arrière-plan tant que la session reste active
   };
-  if (!navigator.onLine) { apres(); return; }
+  if (!navigator.onLine) { avertirCacheAssocieSiNecessaire(session.role); apres(); return; }
   if (session.role === 'admin') {
     chargerActivitesEtStockDepuisTables(session).then(function(){
       reconcileOnStartup(); // dépenses/dettes/paiements/commandes/perso/historique/corbeille (ancien système, admin uniquement)
@@ -5760,6 +5869,13 @@ function doLogout() {
       if (typeof syncActivitesEtStockVersNouvellesTables === 'function') syncActivitesEtStockVersNouvellesTables();
       if (typeof syncDepensesDettesPaiementsVersNouvellesTables === 'function') syncDepensesDettesPaiementsVersNouvellesTables();
       if (s.role === 'admin' && typeof syncToCloud === 'function') syncToCloud();
+      // CORRECTIF (Point 3/3 — voir purgerSyncsBilanEnAttente) : une
+      // déconnexion explicite ne déclenche pas forcément un
+      // visibilitychange/pagehide (l'onglet peut rester au premier plan) —
+      // on purge donc ici aussi tout montant de Bilan Associé/Visiteur
+      // encore en attente d'envoi, pour ne jamais laisser une valeur
+      // périmée derrière soi après une déconnexion volontaire.
+      if (s.role === 'admin' && typeof purgerSyncsBilanEnAttente === 'function') purgerSyncsBilanEnAttente();
     }
   }
   sessionStorage.removeItem('bpro_session');
@@ -6380,6 +6496,13 @@ document.addEventListener('DOMContentLoaded',function(){
     var hh=('0'+d.getHours()).slice(-2), mn=('0'+d.getMinutes()).slice(-2);
     el.textContent='MAJ '+jj+'-'+mm+'-'+aa+' à '+hh+':'+mn;
   })();
+  // Numéro de version, affiché dans l'en-tête (même constante APP_VERSION
+  // que celle déjà utilisée dans l'écran "À propos" et les exports JSON —
+  // une seule source, jamais deux numéros différents affichés ailleurs).
+  (function(){
+    var el=document.getElementById('hdr-version'); if(!el) return;
+    el.textContent = (typeof APP_VERSION !== 'undefined' && APP_VERSION) ? APP_VERSION : 'v—';
+  })();
   // Restaurer l'onglet actif avant l'actualisation, au lieu de toujours
   // revenir au tableau de bord (Administrateur uniquement — la vue
   // Associé n'a pas d'onglets à restaurer).
@@ -6397,6 +6520,7 @@ document.addEventListener('DOMContentLoaded',function(){
   } else if(isLoggedIn()){
     document.getElementById('login-screen').classList.add('hidden');
     activerInterfaceSelonRole();
+    avertirCacheAssocieSiNecessaire(getRole()); // même avertissement qu'à la connexion, voir appliquerSession()
     demarrerAutoSyncActivites(); // session déjà active (page rechargée) : la synchro automatique doit reprendre ici aussi
     /**
      * CORRECTIF (Compte Visiteur — écran figé après actualisation) :
@@ -6818,14 +6942,86 @@ function chargerActivitesEtStockDepuisTables(session){
       });
       serverAct.forEach(function(a){ if(a.id>maxVu) maxVu=a.id; });
       D._maxIdConfirmeActivite = maxVu;
+      /**
+       * CORRECTIF ("suppression des activités de l'Associé non garantie
+       * lors d'une clôture si la policy RLS Supabase la refuse") — voir
+       * supprimerActivitesSurServeurAvecAlerte() : jusqu'ici, un échec
+       * (même partiel) de cette suppression au moment précis de la
+       * clôture n'était JAMAIS retenté automatiquement ensuite — seule
+       * une alerte s'affichait une fois, et l'activité restait visible
+       * indéfiniment côté Associé (qui lit directement la table
+       * "activites") tant que personne ne relançait manuellement une
+       * action de suppression. Corrigé en comparant, à CHAQUE
+       * synchronisation admin (démarrage + toutes les ~15s), les
+       * tombstones déjà posés localement (delIdsActivites, qui contient
+       * D._del.activites — jamais modifié ici) à ce qui est réellement
+       * encore présent côté serveur (idsServeur) : tout id tombstoné
+       * mais encore sur le serveur est automatiquement renvoyé à
+       * supprimerActivitesSurServeurAvecAlerte(), voir
+       * reessayerSuppressionsActivitesEnAttente() plus bas (limitée à
+       * une tentative par minute pour ne pas spammer le serveur ni
+       * l'écran si le problème persiste). Dès que la suppression réussit
+       * réellement (RLS correctement configurée), l'id disparaît de
+       * idsServeur au prochain rafraîchissement et plus aucune tentative
+       * n'est faite — mécanisme auto-terminant. N'ajoute ni ne modifie
+       * aucune policy Supabase (aucun accès à votre projet pour cela),
+       * ni aucun autre calcul ou fonctionnalité.
+       */
+      if (session.role === 'admin') {
+        var idsEncoreSurServeurApresTombstone = delIdsActivites.filter(function(id){ return idsServeur[id]; });
+        if (idsEncoreSurServeurApresTombstone.length && typeof reessayerSuppressionsActivitesEnAttente === 'function') {
+          reessayerSuppressionsActivitesEnAttente(idsEncoreSurServeurApresTombstone);
+        }
+      }
     }
     // Fusion, jamais d'écrasement direct : toute activité/stock créé
     // localement (ex. hors ligne) mais pas encore présent côté serveur
     // est conservé — voir mergeArraysById(). Les tombstones (_del, plus
     // ci-dessus le tombstone implicite ajouté pour l'Associé) continuent
     // de faire disparaître ce qui a été supprimé exprès.
-    if (serverAct)   D.activites = mergeArraysById(D.activites, serverAct,   delIdsActivites);
-    if (serverStock) D.stock     = mergeArraysById(D.stock,     serverStock, (D._del&&D._del.stock)||[]);
+    if (serverAct){
+      var activitesAvant = D.activites;
+      D.activites = mergeArraysById(D.activites, serverAct, delIdsActivites);
+      // Voir protegerEditionsRecentes() : une modification locale toute
+      // fraîche (< 30s) reprend le dessus le temps que son envoi aboutisse.
+      D.activites = protegerEditionsRecentes(D.activites, activitesAvant);
+    }
+    if (serverStock){
+      var stockAvant = D.stock;
+      D.stock = mergeArraysById(D.stock, serverStock, (D._del&&D._del.stock)||[]);
+      /**
+       * CORRECTIF URGENT ("ajout hors ligne dans Stock Perso perdu après
+       * reconnexion") — même cause exacte que dans mergeAppData() (voir
+       * ce correctif) : ajouter une quantité à un produit déjà existant
+       * modifie sa fiche EN PLACE (même id). Cette synchronisation tourne
+       * ici plus souvent (démarrage + ~15s en arrière-plan), donc soumise
+       * au même risque : mergeArraysById() garde l'objet ENTIER d'un
+       * seul côté par id, jamais un mélange champ par champ, et pouvait
+       * donc remplacer une quantité augmentée localement par l'ancienne
+       * valeur du serveur. Corrigé en gardant, uniquement pour les ids
+       * déjà présents localement, la plus grande quantité connue entre
+       * les deux versions — jamais une quantité ne recule par une simple
+       * synchronisation. Rien d'autre n'est changé.
+       */
+      var avantParId={}; stockAvant.forEach(function(s){ if(s&&s.id!=null) avantParId[s.id]=s; });
+      D.stock.forEach(function(item){
+        if(!item || item.id==null) return;
+        var av=avantParId[item.id];
+        if(av){
+          var maxQte=Math.max(Number(av.qteInitiale)||0, Number(item.qteInitiale)||0);
+          if((Number(item.qteInitiale)||0) < maxQte){
+            item.qteInitiale=maxQte;
+            item.origPerso=Math.max(Number(av.origPerso)||0, Number(item.origPerso)||0);
+            item.qteRestante=Math.max(0, maxQte-(Number(item.qteVendue)||0));
+          }
+        }
+      });
+      // Voir protegerEditionsRecentes() : une modification locale toute
+      // fraîche (< 30s — vente, ajout de quantité, édition…) reprend le
+      // dessus le temps que son envoi aboutisse, en plus de la protection
+      // de quantité ci-dessus (qui reste active au-delà de cette fenêtre).
+      D.stock = protegerEditionsRecentes(D.stock, stockAvant);
+    }
     persist();
     enregistrerDiagnostic('Synchro activités/stock', true, 'Chargement réussi — '+D.activites.length+' activité(s), '+D.stock.length+' article(s).');
     console.log('[sync] activites/stock fusionnés au lieu d\'écrasés — '+D.activites.length+' activité(s), '+D.stock.length+' article(s) de stock en local.');
@@ -7138,17 +7334,61 @@ function syncDepensesDettesPaiementsVersNouvellesTables(){
   var payloadPaiements = D.paiements.map(function(p){
     return { id:p.id, montant:p.montant||0, type:p.type||'', note:p.note||'', date:p.date, heure:p.heure||'' };
   });
+  /**
+   * CORRECTIF — Point 3 ("rendre visibles toutes les erreurs d'envoi/
+   * suppression de Dépenses, Dettes et Paiements") — cause exacte
+   * trouvée : chaque appel réseau ci-dessous se contentait d'un
+   * `.catch(function(e){ console.error(...); })` — invisible pour
+   * l'utilisateur (pas de console accessible sur Chrome Android), et ne
+   * vérifiait même pas `r.ok` : un refus HTTP (ex. RLS) ne déclenchait
+   * ni le .catch, ni aucun message, puisque fetch() ne rejette QUE sur
+   * une vraie panne réseau, jamais sur un code d'erreur HTTP. Une
+   * dépense/dette/paiement pouvait donc rester bloqué sur le serveur,
+   * ou une suppression rester sans effet, sans que rien ne le signale.
+   * Corrigé en appliquant le même modèle déjà utilisé et validé pour
+   * delDette()/delPaym()/delDep() et pour l'envoi des Activités : on
+   * vérifie `r.ok`, on affiche le détail réel renvoyé par Supabase à
+   * l'écran (une seule fois par message différent, pour ne pas
+   * spammer), et on distingue toujours "refus du serveur" de "réseau
+   * injoignable". Aucun contenu envoyé, aucun calcul, aucune autre
+   * logique n'est modifié.
+   */
+  var _dernierMsgErreurSyncDDP = syncDepensesDettesPaiementsVersNouvellesTables._dernierMsgErreur || null;
+  var afficherErreurReelleDDP = function(prefixe, r, corps){
+    var detail = '';
+    try{
+      var j = JSON.parse(corps);
+      detail = j.message || j.error_description || j.error || j.hint || j.details || corps;
+    }catch(e){ detail = corps || ''; }
+    var msg = prefixe+' — code '+r.status+(detail?(' : '+detail):'');
+    if (msg !== _dernierMsgErreurSyncDDP) {
+      syncDepensesDettesPaiementsVersNouvellesTables._dernierMsgErreur = msg;
+      notif('❌ '+msg, 10000);
+    }
+  };
   if (payloadDep.length) {
     supabaseTable('/rest/v1/depenses', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:JSON.stringify(payloadDep) }, session.access_token)
-      .catch(function(e){ console.error('[sync depenses]', e); });
+      .then(function(r){
+        if (r.ok) return;
+        r.text().then(function(corps){ console.error('[sync depenses] échec —', r.status, corps); afficherErreurReelleDDP('Échec de l\'envoi des dépenses', r, corps); });
+      })
+      .catch(function(e){ console.error('[sync depenses]', e); notif('❌ Impossible de joindre le serveur pour envoyer les dépenses ('+e.message+').', 8000); });
   }
   if (payloadDettes.length) {
     supabaseTable('/rest/v1/dettes', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:JSON.stringify(payloadDettes) }, session.access_token)
-      .catch(function(e){ console.error('[sync dettes]', e); });
+      .then(function(r){
+        if (r.ok) return;
+        r.text().then(function(corps){ console.error('[sync dettes] échec —', r.status, corps); afficherErreurReelleDDP('Échec de l\'envoi des dettes', r, corps); });
+      })
+      .catch(function(e){ console.error('[sync dettes]', e); notif('❌ Impossible de joindre le serveur pour envoyer les dettes ('+e.message+').', 8000); });
   }
   if (payloadPaiements.length) {
     supabaseTable('/rest/v1/paiements', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:JSON.stringify(payloadPaiements) }, session.access_token)
-      .catch(function(e){ console.error('[sync paiements]', e); });
+      .then(function(r){
+        if (r.ok) return;
+        r.text().then(function(corps){ console.error('[sync paiements] échec —', r.status, corps); afficherErreurReelleDDP('Échec de l\'envoi des paiements', r, corps); });
+      })
+      .catch(function(e){ console.error('[sync paiements]', e); notif('❌ Impossible de joindre le serveur pour envoyer les paiements ('+e.message+').', 8000); });
   }
   // CORRECTIF (Compte Associé — "Détail de votre situation" et "Total
   // dépenses" restaient affichés après une Clôture ou un "Tout
@@ -7168,16 +7408,29 @@ function syncDepensesDettesPaiementsVersNouvellesTables(){
   // tombstone local qu'une fois la suppression serveur confirmée, pour
   // ne jamais perdre une suppression en cas d'échec réseau.
   var del = D._del || {};
+  var labelsChamp = {depenses:'dépense',dettes:'dette',paiements:'paiement'};
   ['depenses','dettes','paiements'].forEach(function(champ){
     var ids = del[champ];
     if (!ids || !ids.length) return;
     var enCours = ids.slice();
+    var echecsSuppr = [];
     Promise.all(enCours.map(function(id){
-      return supabaseTable('/rest/v1/'+champ+'?id=eq.'+id, { method:'DELETE' }, session.access_token)
-        .catch(function(e){ console.error('[sync suppression '+champ+']', e); return null; });
+      return supabaseTable('/rest/v1/'+champ+'?id=eq.'+id, { method:'DELETE', headers:{'Prefer':'return=representation'} }, session.access_token)
+        .then(function(r){
+          if (r.ok) return r.json().catch(function(){ return []; }).then(function(supprimees){
+            if (Array.isArray(supprimees) && supprimees.length===0) echecsSuppr.push(id);
+            return r;
+          });
+          return r.text().then(function(corps){ echecsSuppr.push(id); console.error('[sync suppression '+champ+'] refusée —', r.status, corps); return r; });
+        })
+        .catch(function(e){ echecsSuppr.push(id); console.error('[sync suppression '+champ+']', e); return null; });
     })).then(function(){
+      var idsReussis = enCours.filter(function(id){ return echecsSuppr.indexOf(id)===-1; });
       if (D._del && D._del[champ]) {
-        D._del[champ] = D._del[champ].filter(function(id){ return enCours.indexOf(id)===-1; });
+        D._del[champ] = D._del[champ].filter(function(id){ return idsReussis.indexOf(id)===-1; });
+      }
+      if (echecsSuppr.length) {
+        notif('❌ '+echecsSuppr.length+' suppression(s) de '+labelsChamp[champ]+'(s) refusée(s) par le serveur — nouvelle tentative automatique plus tard.', 10000);
       }
     });
   });
@@ -7324,6 +7577,45 @@ function mergeArraysById(arrBase, arrPrioritaire, delIds) {
 }
 
 /**
+ * CORRECTIF URGENT — Priorité 1 ("le rafraîchissement automatique ~15s
+ * peut écraser une modification locale récente pas encore confirmée par
+ * le serveur") — cause exacte trouvée : dans mergeArraysById() ci-dessus,
+ * pour un même id présent des deux côtés, la version SERVEUR (toujours
+ * passée en second argument) l'emporte systématiquement — sans savoir
+ * si la copie locale vient d'être modifiée à l'instant (ex : vente,
+ * ajout de quantité, modification d'une activité) et que l'envoi vers
+ * le serveur n'a pas encore eu le temps d'aboutir. Si le rafraîchissement
+ * automatique (toutes les ~15s) relit le serveur pendant cette fenêtre,
+ * il ramène alors l'ANCIENNE valeur par-dessus la modification toute
+ * fraîche — y compris sur le MÊME appareil, sans qu'aucun autre appareil
+ * ne soit impliqué.
+ * Corrigé en marquant chaque modification locale d'une Activité ou d'un
+ * article de Stock avec _localTouchedAt (horodatage précis, voir les
+ * points de sauvegarde concernés : enrAct, enrStock, enrAjoutQte,
+ * annulerDernierAjout, ajusterStockVendu, fusionnerDansStockEnt,
+ * retirerDeStockEnt). Après la fusion normale (union) ci-dessus, cette
+ * fonction restaure la version locale pour tout id modifié il y a moins
+ * de GRACE_MS — le temps que l'envoi ait une vraie chance d'aboutir —
+ * puis laisse à nouveau la main au serveur normalement ensuite (le
+ * comportement existant, déjà validé, n'est pas modifié au-delà de
+ * cette fenêtre). N'affecte que l'affichage/la fusion locale : aucun
+ * calcul, aucune autre donnée, aucune autre fonctionnalité.
+ */
+var GRACE_MS_EDITION_LOCALE = 30000;
+function protegerEditionsRecentes(arrFusionne, arrLocalAvant){
+  var localParId = {};
+  (arrLocalAvant || []).forEach(function (item) { if (item && item.id != null) localParId[item.id] = item; });
+  return arrFusionne.map(function (item) {
+    if (!item || item.id == null) return item;
+    var loc = localParId[item.id];
+    if (loc && loc._localTouchedAt && (Date.now() - loc._localTouchedAt) < GRACE_MS_EDITION_LOCALE) {
+      return loc;
+    }
+    return item;
+  });
+}
+
+/**
  * Fusionne deux ensembles de tombstones (union simple par champ).
  */
 function mergeTombstones(delA, delB) {
@@ -7376,6 +7668,84 @@ function mergeAppData(cloudData, localData, cloudIsNewer) {
   merged.params = paramsPriorite || paramsBase || {reinvest:20,stockPerso:15,fournisseurTel:''};
   MERGEABLE_ARRAYS.forEach(function (f) {
     merged[f] = mergeArraysById(base[f], priorite[f], mergedDel[f]);
+  });
+  /**
+   * CORRECTIF — Point 2 ("Dettes/Paiements/Dépenses/Commandes : une
+   * donnée plus ancienne venant d'un autre appareil ne doit jamais
+   * écraser une modification plus récente") — cause exacte trouvée :
+   * pour un id présent des deux côtés (même dette/paiement/dépense/
+   * commande modifiée séparément sur deux appareils), mergeArraysById()
+   * ci-dessus tranche uniquement selon quel CÔTÉ est "prioritaire" pour
+   * TOUT le blob (cloudIsNewer, calculé une seule fois, globalement) —
+   * jamais selon quelle VERSION de CET élément précis a réellement été
+   * modifiée le plus récemment. Un appareil resté ouvert sans rien
+   * changer peut ainsi "gagner" simplement parce qu'il s'est reconnecté
+   * en dernier, écrasant une vraie modification plus récente faite sur
+   * l'autre appareil entre-temps.
+   * Corrigé en comparant, pour ces 4 tables seulement, et uniquement
+   * pour les ids modifiés des deux côtés, l'horodatage _localTouchedAt
+   * (posé par enrDette/enrPaym/enrDep/enrCmd/cStatCmd à chaque création
+   * ou modification) : la version la PLUS RÉCEMMENT modifiée l'emporte,
+   * élément par élément — une vraie fusion sans perte, pas un simple
+   * remplacement en bloc. Si l'un des deux côtés n'a pas cet horodatage
+   * (anciennes données, jamais modifiées depuis cette mise à jour), le
+   * comportement précédent (union par id ci-dessus) reste inchangé pour
+   * cet élément. N'affecte que ces 4 tables : Activités, Stock, Stock
+   * Perso et toutes les autres restent gérées exactement comme avant.
+   */
+  ['dettes','paiements','depenses','commandes'].forEach(function(f){
+    var baseById={}, prioById={};
+    (base[f]||[]).forEach(function(x){ if(x&&x.id!=null) baseById[x.id]=x; });
+    (priorite[f]||[]).forEach(function(x){ if(x&&x.id!=null) prioById[x.id]=x; });
+    merged[f] = merged[f].map(function(item){
+      if(!item || item.id==null) return item;
+      var bItem=baseById[item.id], pItem=prioById[item.id];
+      if(bItem && pItem && bItem!==pItem){
+        var tB=bItem._localTouchedAt||0, tP=pItem._localTouchedAt||0;
+        if(tB>tP) return bItem;
+        if(tP>tB) return pItem;
+      }
+      return item;
+    });
+  });
+  /**
+   * CORRECTIF URGENT ("ajout hors ligne dans Stock Perso perdu après
+   * reconnexion") — cause exacte trouvée : quand un produit existe déjà
+   * (même id), ajouter une quantité modifie la fiche EXISTANTE en place
+   * (qteInitiale augmentée), au lieu de créer une nouvelle ligne — voir
+   * fusionnerDansStockEnt() et l'ajout perso ci-dessus. Or la fusion
+   * juste au-dessus (mergeArraysById) résout un id présent des deux
+   * côtés en gardant l'OBJET ENTIER d'une seule version — jamais un
+   * mélange champ par champ. Si l'ajout hors ligne avait eu lieu sur la
+   * version jugée "non prioritaire" (ex : un autre appareil a ré-envoyé
+   * sans rien changer, ce qui avance quand même la date du cloud), la
+   * quantité augmentée disparaissait entièrement, remplacée par
+   * l'ancienne valeur plus basse. Corrigé en gardant, uniquement pour
+   * les ids présents des deux côtés dans Stock et Stock Perso, la plus
+   * grande quantité connue entre les deux versions — jamais une
+   * quantité ne doit reculer par une simple fusion. Les produits
+   * distincts (id différent), tous les autres champs, et toutes les
+   * autres tables restent gérés exactement comme avant par l'union
+   * ci-dessus, sans aucun changement.
+   */
+  ['stock','perso'].forEach(function(f){
+    var baseById={}, prioById={};
+    (base[f]||[]).forEach(function(x){ if(x&&x.id!=null) baseById[x.id]=x; });
+    (priorite[f]||[]).forEach(function(x){ if(x&&x.id!=null) prioById[x.id]=x; });
+    merged[f].forEach(function(item){
+      if(!item || item.id==null) return;
+      var bItem=baseById[item.id], pItem=prioById[item.id];
+      if(bItem && pItem){
+        var maxQte = Math.max(Number(bItem.qteInitiale)||0, Number(pItem.qteInitiale)||0);
+        if((Number(item.qteInitiale)||0) < maxQte){
+          item.qteInitiale = maxQte;
+          if(f==='stock'){
+            item.origPerso = Math.max(Number(bItem.origPerso)||0, Number(pItem.origPerso)||0);
+            item.qteRestante = Math.max(0, maxQte - (Number(item.qteVendue)||0));
+          }
+        }
+      }
+    });
   });
   merged._o = Math.max(cloudData._o || 1, localData._o || 1);
   merged._co = Math.max(cloudData._co || 1, localData._co || 1);

@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v93';
+const CACHE_VERSION = 'v97'; // 30-08-2026 : numéro de version (APP_VERSION v42) désormais affiché dans l'en-tête de l'app, en plus de l'écran "À propos"
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
