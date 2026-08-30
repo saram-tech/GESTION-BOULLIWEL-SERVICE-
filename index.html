@@ -144,13 +144,13 @@ thead th{background:var(--bg4);color:var(--tx2);padding:8px 10px;text-align:left
 tbody td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle;}
 tbody tr:hover td{background:rgba(79,142,247,.04);}
 tbody tr:last-child td{border-bottom:none;}
-/* --- Commandes : lignes compactes pour afficher plus de commandes à l'écran (sans perte d'info, sans casser les actions) --- */
-#tab-commandes thead th{padding:5px 8px;}
-#tab-commandes tbody td{padding:3px 8px;line-height:1.25;}
-#tab-commandes tbody tr .badge{padding:1px 6px;line-height:1.5;}
-#tab-commandes tbody tr select{padding:1px 5px !important;}
-#tab-commandes tbody tr .ac{gap:2px;}
-#tab-commandes tbody tr .btn.bxs{padding:2px 6px;min-height:22px;}
+/* --- Commandes : lignes compactes au maximum pour afficher le plus de commandes possible à l'écran (sans perte d'info, sans casser les actions) --- */
+#tab-commandes thead th{padding:2px 6px;font-size:.6rem;}
+#tab-commandes tbody td{padding:0px 6px;line-height:1.05;font-size:.72rem;}
+#tab-commandes tbody tr .badge{padding:0px 5px;line-height:1.2;font-size:.63rem;}
+#tab-commandes tbody tr select{padding:0px 4px !important;font-size:.68rem !important;}
+#tab-commandes tbody tr .ac{gap:1px;}
+#tab-commandes tbody tr .btn.bxs{padding:0px 4px;min-height:18px;line-height:18px;}
 .badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:.67rem;font-weight:600;}
 .bgr{background:rgba(34,197,94,.15);color:var(--gr);}.bdr{background:rgba(239,68,68,.15);color:var(--re);}
 .bbr{background:rgba(79,142,247,.15);color:var(--ac);}.bor{background:rgba(240,180,41,.15);color:var(--go);}
@@ -408,7 +408,7 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
       <select id="va-periode" onchange="rVueAssocie()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option>
+        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option>
       </select>
       <input type="text" id="va-search" placeholder="🔍 Rechercher..." oninput="deb('va',rVueAssocie)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
     </div>
@@ -439,8 +439,8 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div style="font-size:.74rem;color:var(--tx2);margin-bottom:8px">Biens, matériels et outils de travail propres à BAH Ousmane au sein de l'entreprise.</div>
     <div class="tw"><table>
-      <thead><tr><th>Bien</th><th>Qté</th><th>Date</th></tr></thead>
-      <tbody id="tbl-vue-visiteur"><tr><td colspan="3" style="text-align:center;color:var(--tx2);padding:20px">Chargement…</td></tr></tbody>
+      <thead><tr><th>#</th><th>Bien</th><th>Qté</th><th>Date</th></tr></thead>
+      <tbody id="tbl-vue-visiteur"><tr><td colspan="4" style="text-align:center;color:var(--tx2);padding:20px">Chargement…</td></tr></tbody>
     </table></div>
   </div>
 </div>
@@ -519,7 +519,7 @@ tbody tr:last-child td{border-bottom:none;}
         <option value="">Tous les auteurs</option><option value="Administrateur">👤 Administrateur seul</option><option value="Associé">🤝 Associé seul</option><option value="masquer_associe">🚫 Masquer l'Associé</option>
       </select>
       <select id="f-periode-act" onchange="togglePeriodeCustom('f-periode-act');rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
+        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
       </select>
       <span id="f-periode-act-range" style="display:none;gap:5px;align-items:center">
         <input type="date" id="f-periode-act-start" onchange="rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
@@ -546,6 +546,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div><div class="st">Stock Entreprise</div><div class="ss">Marchandises communes — seuil d'alerte par produit</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn bp bsm" onclick="rSF();om('ms')">+ Entrée stock</button>
+      <button class="btn bh bsm" onclick="toggleTriAZ('stock')" id="btn-az-stock" title="Trier les produits par ordre alphabétique">🔤 A-Z</button>
       <button class="btn bd bsm" onclick="viderStock()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
       <button class="btn bh bsm no-print" onclick="imprimerSection('tab-stock','Stock Entreprise')" title="Imprimer">🖨️</button>
     </div>
@@ -558,7 +559,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
       <input type="text" id="f-search-stock" placeholder="🔍 Rechercher un produit..." oninput="deb('stock',rStock)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
       <select id="f-periode-stock" onchange="togglePeriodeCustom('f-periode-stock');rStock()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
+        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
       </select>
       <span id="f-periode-stock-range" style="display:none;gap:5px;align-items:center">
         <input type="date" id="f-periode-stock-start" onchange="rStock()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
@@ -577,8 +578,8 @@ tbody tr:last-child td{border-bottom:none;}
       </select>
     </div>
     <div class="tw"><table>
-    <thead><tr><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>Niveau</th><th>Seuil</th><th>Prix Unitaire</th><th>P.Vente</th><th>Valeur</th><th>Date</th><th>Actions</th></tr></thead>
-    <tbody id="tbl-stock"><tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit</td></tr></tbody>
+    <thead><tr><th>#</th><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>Niveau</th><th>Seuil</th><th>Prix Unitaire</th><th>P.Vente</th><th>Valeur</th><th>Date</th><th>Actions</th></tr></thead>
+    <tbody id="tbl-stock"><tr><td colspan="12" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit</td></tr></tbody>
   </table></div></div>
 </div>
 
@@ -588,6 +589,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div><div class="st">Stock Personnel</div><div class="ss">Suivi comptable — vos produits sont fusionnés au Stock Entreprise</div></div>
     <div style="display:flex;gap:6px">
       <button class="btn bg bsm" onclick="rPF();om('mp')">+ Ajouter</button>
+      <button class="btn bh bsm" onclick="toggleTriAZ('perso')" id="btn-az-perso" title="Trier les produits par ordre alphabétique">🔤 A-Z</button>
       <button class="btn bd bsm" onclick="viderPerso()" title="🔒 Mot de passe requis">🗑️ Vider</button>
     </div>
   </div>
@@ -601,7 +603,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
       <input type="text" id="f-search-perso" placeholder="🔍 Rechercher un produit..." oninput="deb('perso',rPerso)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
       <select id="f-periode-perso" onchange="togglePeriodeCustom('f-periode-perso');rPerso()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
+        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
       </select>
       <span id="f-periode-perso-range" style="display:none;gap:5px;align-items:center">
         <input type="date" id="f-periode-perso-start" onchange="rPerso()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
@@ -610,8 +612,8 @@ tbody tr:last-child td{border-bottom:none;}
       </span>
     </div>
     <div class="tw"><table>
-    <thead><tr><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>Prix Unitaire</th><th>Prix Revient</th><th>+15%</th><th>Total Dû</th><th>Statut</th><th>Dernière modif</th><th>Actions</th></tr></thead>
-    <tbody id="tbl-perso"><tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr></tbody>
+    <thead><tr><th>#</th><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>Prix Unitaire</th><th>Prix Revient</th><th>+15%</th><th>Total Dû</th><th>Statut</th><th>Dernière modif</th><th>Actions</th></tr></thead>
+    <tbody id="tbl-perso"><tr><td colspan="12" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr></tbody>
   </table></div>
   <div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--bd);display:flex;justify-content:space-between">
     <span style="color:var(--tx2)">Total que l'entreprise vous doit :</span>
@@ -688,7 +690,7 @@ tbody tr:last-child td{border-bottom:none;}
       <div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">
         <input type="text" id="f-search-dettes" placeholder="🔍 Rechercher..." oninput="deb('dettes',rDettes)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 8px;color:var(--tx);font-size:.72rem;flex:1;min-width:90px;outline:none">
         <select id="f-periode-dettes" onchange="togglePeriodeCustom('f-periode-dettes');rDettes()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.7rem">
-          <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Semaine</option><option value="mois">Mois</option><option value="annee">Année</option><option value="custom">Personnalisé</option>
+          <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Semaine</option><option value="mois">Mois</option><option value="annee">Année</option><option value="custom">Personnalisé</option>
         </select>
         <span id="f-periode-dettes-range" style="display:none;gap:4px;align-items:center;width:100%">
           <input type="date" id="f-periode-dettes-start" onchange="rDettes()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.7rem;flex:1">
@@ -697,8 +699,8 @@ tbody tr:last-child td{border-bottom:none;}
         </span>
       </div>
       <div class="tw"><table>
-        <thead><tr><th>Date</th><th>Description</th><th>Type</th><th>Montant</th><th>Actions</th></tr></thead>
-        <tbody id="tbl-dettes"><tr><td colspan="5" style="text-align:center;color:var(--tx2);padding:14px">Aucune dette</td></tr></tbody>
+        <thead><tr><th>#</th><th>Date</th><th>Description</th><th>Type</th><th>Montant</th><th>Actions</th></tr></thead>
+        <tbody id="tbl-dettes"><tr><td colspan="6" style="text-align:center;color:var(--tx2);padding:14px">Aucune dette</td></tr></tbody>
       </table></div>
       <div style="margin-top:9px;padding:9px;background:var(--bg4);border-radius:8px">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--tx2);font-size:.8rem">Dettes actives :</span><span id="tot-da" style="color:var(--re)">0 GNF</span></div>
@@ -712,7 +714,7 @@ tbody tr:last-child td{border-bottom:none;}
       <div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">
         <input type="text" id="f-search-paiements" placeholder="🔍 Rechercher..." oninput="deb('paiements',rDettes)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 8px;color:var(--tx);font-size:.72rem;flex:1;min-width:90px;outline:none">
         <select id="f-periode-paiements" onchange="togglePeriodeCustom('f-periode-paiements');rDettes()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.7rem">
-          <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Semaine</option><option value="mois">Mois</option><option value="annee">Année</option><option value="custom">Personnalisé</option>
+          <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Semaine</option><option value="mois">Mois</option><option value="annee">Année</option><option value="custom">Personnalisé</option>
         </select>
         <span id="f-periode-paiements-range" style="display:none;gap:4px;align-items:center;width:100%">
           <input type="date" id="f-periode-paiements-start" onchange="rDettes()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.7rem;flex:1">
@@ -721,8 +723,8 @@ tbody tr:last-child td{border-bottom:none;}
         </span>
       </div>
       <div class="tw" style="max-height:200px;overflow-y:auto"><table>
-        <thead><tr><th>Date</th><th>Type</th><th>Note</th><th>Montant</th><th>Actions</th></tr></thead>
-        <tbody id="tbl-paym"><tr><td colspan="5" style="text-align:center;color:var(--tx2);padding:12px">Aucun paiement</td></tr></tbody>
+        <thead><tr><th>#</th><th>Date</th><th>Type</th><th>Note</th><th>Montant</th><th>Actions</th></tr></thead>
+        <tbody id="tbl-paym"><tr><td colspan="6" style="text-align:center;color:var(--tx2);padding:12px">Aucun paiement</td></tr></tbody>
       </table></div>
       <div style="margin-top:9px;padding:9px;background:var(--bg4);border-radius:8px">
         <div style="display:flex;justify-content:space-between"><span style="font-weight:600">Total payé :</span><span id="tot-pp" style="color:var(--gr);font-family:'Syne',sans-serif;font-size:1rem">0 GNF</span></div>
@@ -750,7 +752,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
       <input type="text" id="f-search-dep" placeholder="🔍 Rechercher (catégorie, description)..." oninput="deb('dep',rDep)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
       <select id="f-periode-dep" onchange="togglePeriodeCustom('f-periode-dep');rDep()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
+        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
       </select>
       <span id="f-periode-dep-range" style="display:none;gap:5px;align-items:center">
         <input type="date" id="f-periode-dep-start" onchange="rDep()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
@@ -759,8 +761,8 @@ tbody tr:last-child td{border-bottom:none;}
       </span>
     </div>
     <div class="tw"><table>
-    <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>Qté</th><th>Prix Unit.</th><th>Total</th><th>Actions</th></tr></thead>
-    <tbody id="tbl-dep"><tr><td colspan="7" style="text-align:center;color:var(--tx2);padding:20px">Aucune dépense</td></tr></tbody>
+    <thead><tr><th>#</th><th>Date</th><th>Catégorie</th><th>Description</th><th>Qté</th><th>Prix Unit.</th><th>Total</th><th>Actions</th></tr></thead>
+    <tbody id="tbl-dep"><tr><td colspan="8" style="text-align:center;color:var(--tx2);padding:20px">Aucune dépense</td></tr></tbody>
   </table></div></div>
 </div>
 
@@ -770,6 +772,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div><div class="st">Commandes</div><div class="ss">Clients + Alertes stock faible → Fournisseurs</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn bo bsm" onclick="rCF();om('mc')">+ Nouvelle commande</button>
+      <button class="btn bh bsm" onclick="toggleTriAZ('cmd')" id="btn-az-cmd" title="Trier les commandes par nom de client, par ordre alphabétique">🔤 A-Z</button>
       <button class="btn bg bsm" onclick="genererCmdFournisseurAuto()" title="Génère (ou met à jour) automatiquement une commande fournisseur à partir des produits en stock faible, groupée par catégorie, modifiable avant envoi">📦 Générer commande fournisseur</button>
       <button class="btn bd bsm" onclick="viderCommandes()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
     </div>
@@ -787,7 +790,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
       <input type="text" id="f-search-cmd" placeholder="🔍 Rechercher (client, n° cmd, produit)..." oninput="deb('cmd',rCmd)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
       <select id="f-periode-cmd" onchange="togglePeriodeCustom('f-periode-cmd');rCmd()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
+        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
       </select>
       <span id="f-periode-cmd-range" style="display:none;gap:5px;align-items:center">
         <input type="date" id="f-periode-cmd-start" onchange="rCmd()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
@@ -796,8 +799,8 @@ tbody tr:last-child td{border-bottom:none;}
       </span>
     </div>
     <div class="tw"><table>
-    <thead><tr><th>Date</th><th>N° Cmd</th><th>Client</th><th>Téléphone</th><th>Produits</th><th>Total</th><th>Statut</th><th>Actions</th></tr></thead>
-    <tbody id="tbl-cmd"><tr><td colspan="8" style="text-align:center;color:var(--tx2);padding:20px">Aucune commande</td></tr></tbody>
+    <thead><tr><th>#</th><th>Date</th><th>N° Cmd</th><th>Client</th><th>Téléphone</th><th>Produits</th><th>Total</th><th>Statut</th><th>Actions</th></tr></thead>
+    <tbody id="tbl-cmd"><tr><td colspan="9" style="text-align:center;color:var(--tx2);padding:20px">Aucune commande</td></tr></tbody>
   </table></div></div>
 </div>
 
@@ -810,7 +813,7 @@ tbody tr:last-child td{border-bottom:none;}
         <option value="">Tout</option><option value="activite">Activités</option><option value="stock">Stock</option><option value="depense">Dépenses</option><option value="paiement">Paiements</option><option value="dette">Dettes</option><option value="commande">Commandes</option>
       </select>
       <select id="f-periode-histo" onchange="togglePeriodeCustom('f-periode-histo');rHisto()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
+        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
       </select>
       <span id="f-periode-histo-range" style="display:none;gap:5px;align-items:center">
         <input type="date" id="f-periode-histo-start" onchange="rHisto()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
@@ -821,8 +824,8 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
   </div>
   <div class="card"><div class="tw"><table>
-    <thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Montant</th></tr></thead>
-    <tbody id="tbl-histo"><tr><td colspan="4" style="text-align:center;color:var(--tx2);padding:20px">Aucun historique</td></tr></tbody>
+    <thead><tr><th>#</th><th>Date</th><th>Type</th><th>Description</th><th>Montant</th></tr></thead>
+    <tbody id="tbl-histo"><tr><td colspan="5" style="text-align:center;color:var(--tx2);padding:20px">Aucun historique</td></tr></tbody>
   </table></div></div>
 
 <!-- RAPPORT DES ACTIVITÉS -->
@@ -836,7 +839,7 @@ tbody tr:last-child td{border-bottom:none;}
         <option value="Associé">👤 Associé uniquement</option>
       </select>
       <select id="f-periode-rapport" onchange="togglePeriodeCustom('f-periode-rapport');rRapport()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
+        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
       </select>
       <span id="f-periode-rapport-range" style="display:none;gap:5px;align-items:center">
         <input type="date" id="f-periode-rapport-start" onchange="rRapport()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
@@ -1588,6 +1591,17 @@ function normSearch(s){
 function matchPeriode(dateStr, periode){
   if(!periode || !dateStr) return true;
   if(periode==='jour') return dateStr===td();
+  // DEMANDE ("ajouter Hier et Avant-hier dans Tri période") : même
+  // logique que 'jour' ci-dessus, juste décalée d'1 ou 2 jours en
+  // arrière — aucun autre cas, aucun calcul existant modifié.
+  if(periode==='hier'){
+    var h=new Date(); h.setHours(0,0,0,0); h.setDate(h.getDate()-1);
+    return dateStr===h.toISOString().slice(0,10);
+  }
+  if(periode==='avanthier'){
+    var ah2=new Date(); ah2.setHours(0,0,0,0); ah2.setDate(ah2.getDate()-2);
+    return dateStr===ah2.toISOString().slice(0,10);
+  }
   if(periode==='mois') return dateStr.slice(0,7)===td().slice(0,7);
   if(periode==='annee') return dateStr.slice(0,4)===td().slice(0,4);
   if(periode==='semaine'){
@@ -4200,16 +4214,21 @@ function rStock(){
   var triStock=v('f-tri-stock');
   if(triStock==='qte_desc') items=items.slice().sort(function(a,b){ return (b.qteRestante!==undefined?b.qteRestante:b.qteInitiale)-(a.qteRestante!==undefined?a.qteRestante:a.qteInitiale); });
   else if(triStock==='qte_asc') items=items.slice().sort(function(a,b){ return (a.qteRestante!==undefined?a.qteRestante:a.qteInitiale)-(b.qteRestante!==undefined?b.qteRestante:b.qteInitiale); });
-  if(!items.length){ tb.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit</td></tr>'; return; }
+  // DEMANDE ("bouton A-Z pour trier par produit") : purement un ordre
+  // d'affichage, appliqué en dernier s'il est actif — aucune donnée,
+  // aucun total, aucun calcul n'est modifié.
+  if(triAZ.stock) items=items.slice().sort(function(a,b){ return normSearch(a.nom).localeCompare(normSearch(b.nom)); });
+  if(!items.length){ tb.innerHTML='<tr><td colspan="12" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit</td></tr>'; return; }
   var html='';
   var totInit=0,totVendu=0,totRestant=0,totValeur=0,totAchatU=0,totVenteU=0;
-  items.forEach(function(s){
+  items.forEach(function(s,idx){
     var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
     var seuil=s.seuil||3;
     var niv=niveauStock(restant,seuil);
     totInit+=s.qteInitiale||0; totVendu+=s.qteVendue||0; totRestant+=restant; totValeur+=restant*s.achat;
     totAchatU+=s.achat||0; totVenteU+=s.vente||0;
     html+='<tr>';
+    html+='<td style="color:var(--tx3)">'+(idx+1)+'</td>';
     html+='<td><strong>'+echap(s.nom)+'</strong>'+(s.origPerso>0?' <span class="badge bor" style="font-size:.65rem" title="Dont '+s.origPerso+' unité(s) apportée(s) personnellement">👤 dont '+s.origPerso+'</span>':'')+'</td>';
     html+='<td>'+s.qteInitiale+'</td>';
     html+='<td style="color:var(--or)">'+(s.qteVendue||0)+'</td>';
@@ -4224,7 +4243,7 @@ function rStock(){
     html+='</tr>';
   });
   html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
-  html+='<td>TOTAL</td><td>'+totInit+'</td><td style="color:var(--or)">'+totVendu+'</td><td>'+totRestant+'</td>';
+  html+='<td>—</td><td>TOTAL</td><td>'+totInit+'</td><td style="color:var(--or)">'+totVendu+'</td><td>'+totRestant+'</td>';
   html+='<td>—</td><td>—</td><td>—</td><td>'+fmt(totVenteU)+'</td><td style="color:var(--go)">'+fmt(totValeur)+'</td><td>—</td><td>—</td>';
   html+='</tr>';
   tb.innerHTML=html;
@@ -4235,16 +4254,20 @@ function rPerso(){
   var fs=normSearch(v('f-search-perso'));
   var items=D.perso.filter(function(p){ return matchPeriodeFull(p.date,'f-periode-perso'); });
   if(fs) items=items.filter(function(p){ return normSearch(p.nom).indexOf(fs)>-1; });
-  if(!items.length){ tb.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr>'; var resteEntVide=Math.max(0,calculerBilanData().resteEnt); st('t-perso',fmt(resteEntVide)); st('t-perso-reste',fmt(resteEntVide)); return; }
+  // DEMANDE ("bouton A-Z pour trier par produit") : purement un ordre
+  // d'affichage — aucune donnée, aucun total, aucun calcul modifié.
+  if(triAZ.perso) items=items.slice().sort(function(a,b){ return normSearch(a.nom).localeCompare(normSearch(b.nom)); });
+  if(!items.length){ tb.innerHTML='<tr><td colspan="12" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr>'; var resteEntVide=Math.max(0,calculerBilanData().resteEnt); st('t-perso',fmt(resteEntVide)); st('t-perso-reste',fmt(resteEntVide)); return; }
   var tot=0, html='';
   var totInit=0,totVendu=0,totRestant=0,totAchatU=0,totRevient=0,totCommission=0,totDu=0;
-  items.forEach(function(p){
+  items.forEach(function(p,idx){
     var r=p.totalDu-p.rembourse; tot+=r;
     var vr=calcPersoVenduRestant(p);
     var lie=D.stock.some(function(s){ return normNom(s.nom)===normNom(p.nom); });
     totInit+=p.qteInitiale||0; totVendu+=vr.vendu; totRestant+=vr.restant; totAchatU+=p.achat||0;
     totRevient+=(p.prixRevient||p.achat*p.qteInitiale); totCommission+=p.commission||0; totDu+=p.totalDu||0;
     html+='<tr>';
+    html+='<td style="color:var(--tx3)">'+(idx+1)+'</td>';
     html+='<td><strong>'+echap(p.nom)+'</strong>'+(lie?' <span style="font-size:.65rem;color:var(--tx3)" title="Fusionné dans le Stock Entreprise">🔗</span>':' <span style="font-size:.65rem;color:var(--re)" title="Non retrouvé dans le Stock Entreprise">⚠️</span>')+(p.dernierAjoutQte>0?'<br><span class="badge bor" style="font-size:.62rem" title="Dernière modification">🕒 +'+p.dernierAjoutQte+' le '+fmtDateHeureISO(p.dernierAjoutDate)+'</span>':'')+'</td>';
     html+='<td>'+p.qteInitiale+'</td>';
     html+='<td style="color:var(--or)">'+vr.vendu+'</td>';
@@ -4259,7 +4282,7 @@ function rPerso(){
     html+='</tr>';
   });
   html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
-  html+='<td>TOTAL</td><td>'+totInit+'</td><td style="color:var(--or)">'+totVendu+'</td><td>'+totRestant+'</td>';
+  html+='<td>—</td><td>TOTAL</td><td>'+totInit+'</td><td style="color:var(--or)">'+totVendu+'</td><td>'+totRestant+'</td>';
   html+='<td>—</td><td style="color:var(--tx2)">'+fmt(totRevient)+'</td><td style="color:var(--gr)">+'+fmt(totCommission)+'</td><td style="color:var(--go)">'+fmt(totDu)+'</td><td>—</td><td>—</td><td>—</td>';
   html+='</tr>';
   tb.innerHTML=html; var resteEnt=calculerBilanData().resteEnt; st('t-perso',fmt(Math.max(0,resteEnt)));
@@ -4275,11 +4298,11 @@ function rDettes(){
   var fsD=normSearch(v('f-search-dettes'));
   var itemsD=D.dettes.filter(function(d){ return matchPeriodeFull(d.date,'f-periode-dettes'); });
   if(fsD) itemsD=itemsD.filter(function(d){ return normSearch(d.desc).indexOf(fsD)>-1||normSearch(d.type).indexOf(fsD)>-1; });
-  if(!itemsD.length) tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--tx2);padding:12px">'+(D.dettes.length?'Aucun résultat':'Aucune dette active')+'</td></tr>';
+  if(!itemsD.length) tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--tx2);padding:12px">'+(D.dettes.length?'Aucun résultat':'Aucune dette active')+'</td></tr>';
   else{
     var html='';
-    itemsD.forEach(function(d){
-      html+='<tr><td>'+fmtDateHeure(d.date,d.heure)+'</td><td>'+echap(d.desc)+'</td>';
+    itemsD.forEach(function(d,idx){
+      html+='<tr><td style="color:var(--tx3)">'+(idx+1)+'</td><td>'+fmtDateHeure(d.date,d.heure)+'</td><td>'+echap(d.desc)+'</td>';
       html+='<td><span class="badge bnr">'+d.type+'</span></td>';
       html+='<td style="color:var(--re)">'+fmt(d.montant)+'</td>';
       html+='<td class="ac">'+(locked?'<span class="badge bgg">🔒</span>':'<button class="btn bh bxs" onclick="editDette('+d.id+')">✏️</button><button class="btn bd bxs" onclick="delDette('+d.id+')">🗑️</button>')+'</td></tr>';
@@ -4295,11 +4318,11 @@ function rDettes(){
   var fsP=normSearch(v('f-search-paiements'));
   var itemsP=D.paiements.filter(function(p){ return matchPeriodeFull(p.date,'f-periode-paiements'); });
   if(fsP) itemsP=itemsP.filter(function(p){ return normSearch(p.note).indexOf(fsP)>-1||normSearch(p.type).indexOf(fsP)>-1; });
-  if(!itemsP.length) tb2.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--tx2);padding:10px">'+(D.paiements.length?'Aucun résultat':'Aucun paiement')+'</td></tr>';
+  if(!itemsP.length) tb2.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--tx2);padding:10px">'+(D.paiements.length?'Aucun résultat':'Aucun paiement')+'</td></tr>';
   else{
     var html2='';
-    itemsP.slice().reverse().forEach(function(p){
-      html2+='<tr><td>'+fmtDateHeure(p.date,p.heure)+'</td><td><span class="badge bgr">'+p.type+'</span></td>';
+    itemsP.slice().reverse().forEach(function(p,idx){
+      html2+='<tr><td style="color:var(--tx3)">'+(idx+1)+'</td><td>'+fmtDateHeure(p.date,p.heure)+'</td><td><span class="badge bgr">'+p.type+'</span></td>';
       html2+='<td style="font-size:.76rem">'+(p.note||'—')+'</td>';
       html2+='<td style="color:var(--gr)">'+fmt(p.montant)+'</td>';
       html2+='<td class="ac"><button class="btn bh bxs" onclick="editPaym('+p.id+')">✏️</button><button class="btn bd bxs" onclick="delPaym('+p.id+')">🗑️</button></td></tr>';
@@ -4319,13 +4342,13 @@ function rDep(){
   var fs=normSearch(v('f-search-dep'));
   var items=D.depenses.filter(function(d){ return matchPeriodeFull(d.date,'f-periode-dep'); });
   if(fs) items=items.filter(function(d){ return normSearch(d.cat).indexOf(fs)>-1||normSearch(d.desc).indexOf(fs)>-1; });
-  if(!items.length){ tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--tx2);padding:20px">'+(D.depenses.length?'Aucun résultat':'Aucune dépense')+'</td></tr>'; st('k-dt','0 GNF'); st('k-dm','0 GNF'); return; }
+  if(!items.length){ tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--tx2);padding:20px">'+(D.depenses.length?'Aucun résultat':'Aucune dépense')+'</td></tr>'; st('k-dt','0 GNF'); st('k-dm','0 GNF'); return; }
   var tot=0, mois=0, m=new Date().toISOString().slice(0,7), html='';
   var lastDateDep=null;
-  items.forEach(function(d){
+  items.forEach(function(d,idx){
     tot+=d.montant; if(d.date&&d.date.startsWith(m)) mois+=d.montant;
     var isNewDayDep=(d.date!==lastDateDep); lastDateDep=d.date;
-    html+='<tr><td>'+(isNewDayDep?('<strong>'+(d.date?fmtDateJour(d.date):'—')+'</strong>'):'')+(d.heure?' <span style="color:var(--tx3);font-size:.66rem">🕒'+d.heure+'</span>':'')+'</td><td><span class="badge bbr">'+d.cat+'</span></td>';
+    html+='<tr><td style="color:var(--tx3)">'+(idx+1)+'</td><td>'+(isNewDayDep?('<strong>'+(d.date?fmtDateJour(d.date):'—')+'</strong>'):'')+(d.heure?' <span style="color:var(--tx3);font-size:.66rem">🕒'+d.heure+'</span>':'')+'</td><td><span class="badge bbr">'+d.cat+'</span></td>';
     html+='<td>'+(d.desc||'—')+'</td><td>'+(d.qte||1)+'</td>';
     html+='<td>'+fmt(d.prix||d.montant)+'</td>';
     html+='<td style="color:var(--re)"><strong>'+fmt(d.montant)+'</strong></td>';
@@ -4333,7 +4356,7 @@ function rDep(){
   });
   var totQte=items.reduce(function(s,d){ return s+(d.qte||1); },0);
   html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
-  html+='<td colspan="3">TOTAL GÉNÉRAL ('+items.length+' dépense'+(items.length>1?'s':'')+')</td><td>'+totQte+'</td><td>—</td><td style="color:var(--re)">'+fmt(tot)+'</td><td>—</td>';
+  html+='<td>—</td><td colspan="3">TOTAL GÉNÉRAL ('+items.length+' dépense'+(items.length>1?'s':'')+')</td><td>'+totQte+'</td><td>—</td><td style="color:var(--re)">'+fmt(tot)+'</td><td>—</td>';
   html+='</tr>';
   tb.innerHTML=html; st('k-dt',fmt(tot)); st('k-dm',fmt(mois));
 }
@@ -4346,11 +4369,15 @@ function rCmd(){
     var prodMatch=(c.produits||[]).some(function(l){ return normSearch(l.produit).indexOf(fs)>-1; });
     return normSearch(c.client).indexOf(fs)>-1||normSearch(c.num).indexOf(fs)>-1||normSearch(c.tel).indexOf(fs)>-1||prodMatch;
   });
-  if(!items.length){ tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--tx2);padding:20px">'+(D.commandes.length?'Aucun résultat':'Aucune commande')+'</td></tr>'; return; }
+  if(!items.length){ tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--tx2);padding:20px">'+(D.commandes.length?'Aucun résultat':'Aucune commande')+'</td></tr>'; return; }
+  // DEMANDE ("bouton A-Z pour trier par nom") : purement un ordre
+  // d'affichage — aucune donnée, aucun total, aucun calcul modifié.
+  if(triAZ.cmd) items=items.slice().sort(function(a,b){ return normSearch(a.client).localeCompare(normSearch(b.client)); });
   var sc={'En attente':'bnr','En cours':'bbr','Livré':'bgr','Annulé':'bdr'};
   var html='';
-  items.forEach(function(c){
+  items.forEach(function(c,idx){
     html+='<tr>';
+    html+='<td style="color:var(--tx3)">'+(idx+1)+'</td>';
     html+='<td>'+fmtDateHeure(c.date,c.heure)+'</td>';
     html+='<td><span class="badge bpr">'+c.num+'</span></td>';
     html+='<td><strong>'+c.client+'</strong></td>';
@@ -4365,7 +4392,7 @@ function rCmd(){
   });
   var totCmd=items.reduce(function(s,c){ return s+(c.total||0); },0);
   html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
-  html+='<td colspan="5">TOTAL ('+items.length+' commande'+(items.length>1?'s':'')+')</td><td style="color:var(--go)">'+fmt(totCmd)+'</td><td>—</td><td>—</td>';
+  html+='<td>—</td><td colspan="5">TOTAL ('+items.length+' commande'+(items.length>1?'s':'')+')</td><td style="color:var(--go)">'+fmt(totCmd)+'</td><td>—</td><td>—</td>';
   html+='</tr>';
   tb.innerHTML=html;
 }
@@ -4377,11 +4404,11 @@ function rHisto(){
   if(ft) items=items.filter(function(i){ return i.type===ft; });
   items=items.filter(function(i){ return matchPeriodeFull(i.date,'f-periode-histo'); });
   if(fs) items=items.filter(function(i){ return normSearch(i.desc).indexOf(fs)>-1||normSearch(i.type).indexOf(fs)>-1; });
-  if(!items.length){ tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--tx2);padding:20px">'+(D.histo.length?'Aucun résultat':'Aucun historique')+'</td></tr>'; return; }
+  if(!items.length){ tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--tx2);padding:20px">'+(D.histo.length?'Aucun résultat':'Aucun historique')+'</td></tr>'; return; }
   var tc={activite:'bbr',stock:'bgr',depense:'bdr',paiement:'bor',dette:'bnr',perso:'bpr',commande:'btr'};
   var html='';
-  items.forEach(function(i){
-    html+='<tr><td>'+fmtDateHeure(i.date,i.heure)+'</td><td><span class="badge '+(tc[i.type]||'bbr')+'">'+i.type+'</span></td><td>'+echap(i.desc)+'</td><td>'+(i.montant?fmt(i.montant):'—')+'</td></tr>';
+  items.forEach(function(i,idx){
+    html+='<tr><td style="color:var(--tx3)">'+(idx+1)+'</td><td>'+fmtDateHeure(i.date,i.heure)+'</td><td><span class="badge '+(tc[i.type]||'bbr')+'">'+i.type+'</span></td><td>'+echap(i.desc)+'</td><td>'+(i.montant?fmt(i.montant):'—')+'</td></tr>';
   });
   tb.innerHTML=html;
 }
@@ -5475,6 +5502,21 @@ function viderDep() {
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
 var APP_VERSION = 'v41';
+/**
+ * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
+ * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
+ * n'est modifié. true = la table concernée est actuellement triée par
+ * ordre alphabétique du produit/nom ; false = ordre habituel inchangé.
+ */
+var triAZ = {stock:false, perso:false, cmd:false};
+function toggleTriAZ(tbl){
+  triAZ[tbl] = !triAZ[tbl];
+  var btn = document.getElementById('btn-az-'+tbl);
+  if(btn) btn.classList.toggle('bp', triAZ[tbl]);
+  if(tbl==='stock') rStock();
+  else if(tbl==='perso') rPerso();
+  else if(tbl==='cmd') rCmd();
+}
 // CORRECTIF ("l'application ne tient pas compte de l'actualisation de la
 // date de sa dernière mise à jour") : cette date n'est PAS calculée
 // automatiquement (ce fichier est un fichier unique sans étape de build,
@@ -5946,10 +5988,14 @@ function afficherVueVisiteur(biens, capitalAdmin, montantDu, stockPersoDu, total
   st('vv-stockperso', fmt(stockPersoDu));
   st('vv-total', fmt(totalAvoirs));
   var tb=document.getElementById('tbl-vue-visiteur');
-  if(!biens.length){ tb.innerHTML='<tr><td colspan="3" style="text-align:center;color:var(--tx2);padding:20px">Aucun bien enregistré pour le moment.</td></tr>'; return; }
+  if(!biens.length){ tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--tx2);padding:20px">Aucun bien enregistré pour le moment.</td></tr>'; return; }
+  // DEMANDE ("Visiteur : numéro d'ordre + tri A-Z par défaut") : tri
+  // alphabétique systématique par nom de bien — purement l'ordre
+  // d'affichage, aucune donnée reçue du serveur n'est modifiée.
+  var biensTries = biens.slice().sort(function(a,b){ return normSearch(a.nom).localeCompare(normSearch(b.nom)); });
   var html='';
-  biens.forEach(function(b){
-    html+='<tr><td>'+echap(b.nom)+'</td><td>'+(b.quantite||1)+'</td><td>'+(b.date?fmtDateJour(b.date):'—')+'</td></tr>';
+  biensTries.forEach(function(b,idx){
+    html+='<tr><td style="color:var(--tx3)">'+(idx+1)+'</td><td>'+echap(b.nom)+'</td><td>'+(b.quantite||1)+'</td><td>'+(b.date?fmtDateJour(b.date):'—')+'</td></tr>';
   });
   tb.innerHTML=html;
 }
@@ -6741,7 +6787,32 @@ function chargerActivitesEtStockDepuisTables(session){
       serverAct.forEach(function(a){ idsServeur[a.id]=true; });
       var premierPassage = (D._maxIdConfirmeActivite===undefined);
       var maxConfirme = D._maxIdConfirmeActivite||0, maxVu=maxConfirme;
+      /**
+       * CORRECTIF URGENT ("perte des activités Administrateur quand
+       * plusieurs comptes sont utilisés successivement sur le même
+       * appareil") — cause exacte trouvée : D._maxIdConfirmeActivite est
+       * UN SEUL champ, partagé par TOUS les rôles sur un même appareil
+       * (jamais séparé Admin/Associé). Après un passage Administrateur
+       * sur l'appareil (qui voit tout, donc fixe ce seuil très haut), un
+       * passage Associé ensuite réutilisait ce même seuil déjà élevé —
+       * et puisque la lecture Associé (filtrée par RLS) ne contient
+       * jamais les activités de l'Administrateur, la boucle ci-dessous
+       * les jugeait à tort "absentes du serveur donc supprimées", et les
+       * effaçait du cache local PARTAGÉ de l'appareil (persist() juste
+       * après) — avant même qu'un Administrateur ne se reconnecte. Le
+       * stockage local n'était donc jamais vraiment "mélangé" entre
+       * comptes, mais une lecture PARTIELLE et légitime (RLS) d'un rôle
+       * était prise à tort comme preuve d'une suppression réelle.
+       * Corrigé en n'appliquant cette inférence de suppression, pour
+       * l'Associé, qu'à SES PROPRES activités (auteur === 'Associé') —
+       * jamais à celles de l'Administrateur, qu'il n'a de toute façon
+       * jamais le droit de voir : leur absence de sa lecture ne prouve
+       * rien, elle ne signifie pas "supprimées". Pour l'Administrateur,
+       * rien ne change : il voit tout via RLS, donc l'absence reste
+       * une preuve valable, exactement comme avant.
+       */
       (D.activites||[]).forEach(function(a){
+        if (session.role==='associe' && a.auteur!=='Associé') return;
         var considereeSupprimee = !idsServeur[a.id] && (premierPassage || a.id<=maxConfirme);
         if(considereeSupprimee && delIdsActivites.indexOf(a.id)===-1) delIdsActivites.push(a.id);
       });
