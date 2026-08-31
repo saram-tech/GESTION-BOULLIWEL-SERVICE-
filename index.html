@@ -4270,7 +4270,19 @@ function rAct(){
 function rStock(){
   var tb=document.getElementById('tbl-stock');
   var fs=normSearch(v('f-search-stock'));
-  var items=D.stock.filter(function(s){ return matchPeriodeFull(s.date,'f-periode-stock'); });
+  // CORRECTIF (filtre Période Stock ignorait les réapprovisionnements) :
+  // le filtre se basait uniquement sur s.date (date de CRÉATION de la
+  // fiche), donc un produit créé il y a longtemps mais réapprovisionné
+  // aujourd'hui (bouton ➕ Ajouter une quantité) n'apparaissait jamais
+  // en filtrant sur "Aujourd'hui"/"Cette semaine"/etc. On utilise
+  // désormais s.dernierAjoutDate (date du dernier ajout, format ISO
+  // avec heure) quand elle existe, sinon on retombe sur s.date comme
+  // avant — aucune donnée modifiée, uniquement la date de référence du
+  // filtre d'affichage.
+  var items=D.stock.filter(function(s){
+    var dateRef = s.dernierAjoutDate ? s.dernierAjoutDate.slice(0,10) : s.date;
+    return matchPeriodeFull(dateRef,'f-periode-stock');
+  });
   if(fs) items=items.filter(function(s){ return normSearch(s.nom).indexOf(fs)>-1; });
   // CORRECTIF (filtre Stock Entreprise / Stock Perso / les deux) :
   // affichage uniquement — aucune donnée ni calcul modifié. Par défaut
