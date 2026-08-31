@@ -2732,6 +2732,14 @@ function fillDLCategoriesStock(){
 }
 function rSF(){
   ['s-nom','s-qte','s-achat','s-eid','s-categorie'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+  // CORRECTIF (nouveau produit prenant une ancienne date au lieu
+  // d'aujourd'hui) : le champ Date n'était jamais réinitialisé à
+  // l'ouverture de "+ Entrée stock" — il gardait la dernière valeur
+  // laissée dans le champ (ex: après avoir édité un autre produit),
+  // ce qui faisait échouer le filtre Période sur "Aujourd'hui" pour un
+  // produit pourtant ajouté le jour même. On le pré-remplit maintenant
+  // avec la date du jour, comme point de départ (modifiable si besoin).
+  sv('s-date', td());
   sv('s-vente',0); sv('s-seuil',3); st('ms-t','📦 Entrée Stock');
   fillDLCategoriesStock();
   var b=document.getElementById('btn-ss'); b.textContent='✓ Enregistrer'; b.onclick=enrStock;
@@ -5599,7 +5607,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v44';
+var APP_VERSION = 'v45';
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
@@ -5623,7 +5631,7 @@ function toggleTriAZ(tbl){
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-08-30T12:30:00'; // AJOUT : numéro de version (APP_VERSION, déjà utilisé dans "À propos" et les exports JSON, passé de v41 à v42) désormais aussi affiché dans l'en-tête, à la place du texte fixe "v3" qui n'avait plus été mis à jour depuis longtemps et ne correspondait plus à la vraie version. Aucun calcul, aucune donnée modifiée.
+var APP_DERNIERE_MAJ = '2026-08-31T12:00:00'; // CORRECTIF : filtre Période du Stock — le réapprovisionnement d'un produit existant via "+ Entrée stock" ne mettait pas à jour dernierAjoutDate, donc n'apparaissait jamais dans les filtres Aujourd'hui/Hier/Avant-hier/Cette semaine.
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
