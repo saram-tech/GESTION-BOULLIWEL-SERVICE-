@@ -850,6 +850,10 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
   </div>
   <div id="rapport-synthese"></div>
+  <!-- AJOUT (31-08-2026) : affichage historique simple des 2 dernières
+       clôtures (Date | Capital Ent | Val. Ent | Val. Perso | Reste Perso),
+       indépendant de Supabase — voir rHistoriqueClotures(). -->
+  <div id="rapport-historique-clotures"></div>
   <div class="card"><div class="tw"><table>
     <thead><tr><th>Date</th><th>Heure</th><th>Auteur</th><th>Type</th><th>Produit</th><th>Qté</th><th>Client</th><th>Montant Payé</th><th>Statut</th></tr></thead>
     <tbody id="tbl-rapport"><tr><td colspan="9" style="text-align:center;color:var(--tx2);padding:20px">Aucune activité</td></tr></tbody>
@@ -1411,13 +1415,13 @@ let D = {
   activites:[],stock:[],perso:[],depenses:[],
   dettes:[],dettesClot:0,detteVerrou:false,
   paiements:[],commandes:[],histo:[],corbeille:[],
-  _o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,stockPerso:15,fournisseurTel:''}
+  _o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}
 };
 
 function load(){
   try{
     const s=localStorage.getItem(KEY);
-    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,stockPerso:15,fournisseurTel:''}},d); if(!D._del) D._del={}; }
+    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}},d); if(!D._del) D._del={}; }
   }catch(e){}
 }
 
@@ -4078,7 +4082,26 @@ function exportExcelVerifie(){
     });
   });
 }
+/**
+ * AJOUT (31-08-2026) — Historique simple des 2 dernières clôtures pour
+ * l'onglet Rapport (affichage uniquement, aucune donnée Supabase dédiée,
+ * aucun nouveau calcul : on fige ici les mêmes valeurs déjà produites par
+ * calculerBilanData() / calculerCapitalTotalEntreprise(), exactement telles
+ * qu'affichées dans le Bilan juste avant de cliquer "Clôturer"). Appelée
+ * en tout premier dans executerCloture(), avant toute suppression/mise à
+ * jour, pour que le figé corresponde à l'état réel au moment de la
+ * clôture. Ne modifie aucune donnée existante, ne touche à aucun autre
+ * calcul de l'application.
+ */
+function enregistrerSnapshotClotureRapport(){
+  var bd=calculerBilanData();
+  var capitalEnt=calculerCapitalTotalEntreprise();
+  var valEnt=D.stock.reduce(function(s,p){ var r=(p.qteRestante!==undefined?p.qteRestante:p.qteInitiale); return s+r*(p.achat||0); },0);
+  var snap={ date: td(), capitalEnt:capitalEnt, valEnt:valEnt, valPerso:bd.entDoit, restePerso:bd.resteEnt };
+  D.historiqueClotures=(D.historiqueClotures||[]).concat([snap]).slice(-2);
+}
 function executerCloture(){
+  enregistrerSnapshotClotureRapport();
   var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0);
   var totP=D.paiements.reduce(function(s,p){ return s+p.montant; },0);
   D.dettesClot=Math.max(0,totD-totP)+D.dettesClot;
@@ -4553,9 +4576,32 @@ function rHisto(){
  * (réutilise matchPeriodeFull, qui gère déjà correctement les heures de
  * début/fin de journée pour ne rien exclure à tort).
  */
+/**
+ * AJOUT (31-08-2026) — affiche, dans l'onglet Rapport uniquement, les 2
+ * derniers snapshots figés par enregistrerSnapshotClotureRapport() (voir
+ * executerCloture()). Simple lecture de D.historiqueClotures, aucun
+ * calcul, aucun appel réseau/Supabase : reproduit la structure du tableau
+ * papier (Date | Capital Ent | Val. Ent | Val. Perso | Reste Perso), du
+ * plus ancien (avant-dernière clôture) au plus récent (dernière clôture).
+ */
+function rHistoriqueClotures(){
+  var el=document.getElementById('rapport-historique-clotures');
+  if(!el) return;
+  var lignes=D.historiqueClotures||[];
+  if(!lignes.length){ el.innerHTML=''; return; }
+  var html='<div class="card" style="margin-bottom:12px"><div class="tw"><table>'+
+    '<thead><tr><th>Date</th><th>Capital Ent</th><th>Val. Ent</th><th>Val. Perso</th><th>Reste Perso</th></tr></thead><tbody>';
+  lignes.forEach(function(l){
+    html+='<tr><td>'+fmtDateJour(l.date)+'</td><td>'+fmt(l.capitalEnt)+'</td><td>'+fmt(l.valEnt)+'</td>'+
+      '<td>'+fmt(l.valPerso)+'</td><td>'+fmt(l.restePerso)+'</td></tr>';
+  });
+  html+='</tbody></table></div></div>';
+  el.innerHTML=html;
+}
 function rRapport(){
   var tb=document.getElementById('tbl-rapport');
   if(!tb) return;
+  rHistoriqueClotures();
   var q=normSearch(v('f-search-rapport'));
   var auteurFiltre=v('f-rapport-auteur');
   var items=D.activites.slice().reverse();
@@ -5310,7 +5356,7 @@ function saveCloud(){
 function loadFromHash(){
   var h=window.location.hash;
   if(h&&h.startsWith('#data=')){
-    try{ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,stockPerso:15,fournisseurTel:''}},JSON.parse(decodeURIComponent(atob(h.slice(6))))); persist(); notif('✅ Données restaurées !'); return true; }catch(e){}
+    try{ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}},JSON.parse(decodeURIComponent(atob(h.slice(6))))); persist(); notif('✅ Données restaurées !'); return true; }catch(e){}
   } return false;
 }
 
@@ -5635,7 +5681,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v46';
+var APP_VERSION = 'v47';
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
@@ -5854,6 +5900,7 @@ function appliquerSession(session){
     activerInterfaceSelonRole();
     notif('✅ Bienvenue ' + libelleRole + ' !');
     demarrerAutoSyncActivites(); // synchro automatique en arrière-plan tant que la session reste active
+    demarrerAutoSyncAppData(); // idem pour Stock Perso/Dettes/Paiements/Dépenses/Commandes/Historique (voir demarrerAutoSyncAppData) — sans effet pour l'Associé/Visiteur (déjà filtré dans la fonction elle-même)
   };
   if (!navigator.onLine) { avertirCacheAssocieSiNecessaire(session.role); apres(); return; }
   if (session.role === 'admin') {
@@ -5919,6 +5966,7 @@ function activerInterfaceSelonRole(){
 
 function doLogout() {
   arreterAutoSyncActivites(); // stoppe la synchro automatique : plus de session valide à interroger
+  arreterAutoSyncAppData(); // idem pour la synchro app_data (Stock Perso/Dettes/Paiements/Dépenses/Commandes/Historique)
   // Dernière tentative d'envoi, meilleur effort, avant de quitter la
   // session : si des activités/stock/dépenses/dettes/paiements créés ou
   // modifiés localement n'ont pas encore atteint Supabase, on essaie une
@@ -6582,6 +6630,7 @@ document.addEventListener('DOMContentLoaded',function(){
     activerInterfaceSelonRole();
     avertirCacheAssocieSiNecessaire(getRole()); // même avertissement qu'à la connexion, voir appliquerSession()
     demarrerAutoSyncActivites(); // session déjà active (page rechargée) : la synchro automatique doit reprendre ici aussi
+    demarrerAutoSyncAppData(); // idem pour la synchro app_data (Stock Perso/Dettes/Paiements/Dépenses/Commandes/Historique)
     /**
      * CORRECTIF (Compte Visiteur — écran figé après actualisation) :
      * les valeurs du patrimoine (vv-capital, vv-doit, vv-total…) ne
@@ -7318,28 +7367,48 @@ function rafraichirActivitesSilencieux(){
   if (!session || !session.access_token) return;
   _autoSyncEnCours = true;
   var termine = function(){ _autoSyncEnCours = false; };
-  if (session.role === 'admin') {
-    chargerActivitesEtStockDepuisTables(session).then(function(){ renderAll(); termine(); }).catch(termine);
-  } else {
-    chargerDonneesAssocie(session).then(function(resultat){
-      // Même correctif que dans appliquerSession() : reflète le vrai
-      // résultat du chargement sur le badge, y compris lors des
-      // rafraîchissements automatiques silencieux (toutes les 15s /
-      // retour au premier plan) — jusqu'ici toujours muets en cas
-      // d'échec pour ce rôle.
-      if (typeof setSyncStatus === 'function') {
-        if (resultat && resultat.ok===false) setSyncStatus('error', '🔴 '+resultat.detail);
-        // DEMANDE ("indicateur en ligne pour le Compte Associé") : cette
-        // fonction (rafraichirActivitesSilencieux) ne s'exécute que si
-        // navigator.onLine était vrai (voir tout en haut de la fonction)
-        // — donc "en ligne" ici est du réel, à chaque rafraîchissement
-        // automatique (~15s). Badge VERT au lieu du gris fixe.
-        else if (isAssocie()) setSyncStatus('online', '🟢 En ligne (Associé)');
-      }
-      if (isAssocie()) rVueAssocie();
-      termine();
-    }).catch(termine);
-  }
+  /**
+   * CORRECTIF ("401 JWT expired" pendant le rafraîchissement automatique
+   * ~15s) — cause exacte trouvée : ce rafraîchissement envoyait le jeton
+   * tel quel, sans jamais vérifier s'il avait expiré, contrairement à
+   * d'autres points d'entrée de l'app qui appellent déjà
+   * assurerTokenValide(). Une fois le jeton expiré (~1h), chaque
+   * rafraîchissement échouait alors en boucle avec "JWT expired", sans
+   * jamais se rétablir tout seul tant que l'utilisateur ne se
+   * reconnectait pas manuellement. Corrigé en renouvelant le jeton ici
+   * AVANT d'appeler chargerActivitesEtStockDepuisTables()/
+   * chargerDonneesAssocie() — assurerTokenValide() ne fait rien si le
+   * jeton est déjà valide (cas normal), donc aucun changement de
+   * comportement en dehors de ce cas précis d'expiration. N'affecte ni
+   * les données, ni la fusion multi-appareils, ni l'isolation des
+   * sessions entre comptes sur un même appareil (voir setSession()) —
+   * uniquement le jeton de LA session active à cet instant.
+   */
+  assurerTokenValide().then(function(){
+    session = getSession() || session; // reprend le jeton éventuellement renouvelé
+    if (session.role === 'admin') {
+      chargerActivitesEtStockDepuisTables(session).then(function(){ renderAll(); termine(); }).catch(termine);
+    } else {
+      chargerDonneesAssocie(session).then(function(resultat){
+        // Même correctif que dans appliquerSession() : reflète le vrai
+        // résultat du chargement sur le badge, y compris lors des
+        // rafraîchissements automatiques silencieux (toutes les 15s /
+        // retour au premier plan) — jusqu'ici toujours muets en cas
+        // d'échec pour ce rôle.
+        if (typeof setSyncStatus === 'function') {
+          if (resultat && resultat.ok===false) setSyncStatus('error', '🔴 '+resultat.detail);
+          // DEMANDE ("indicateur en ligne pour le Compte Associé") : cette
+          // fonction (rafraichirActivitesSilencieux) ne s'exécute que si
+          // navigator.onLine était vrai (voir tout en haut de la fonction)
+          // — donc "en ligne" ici est du réel, à chaque rafraîchissement
+          // automatique (~15s). Badge VERT au lieu du gris fixe.
+          else if (isAssocie()) setSyncStatus('online', '🟢 En ligne (Associé)');
+        }
+        if (isAssocie()) rVueAssocie();
+        termine();
+      }).catch(termine);
+    }
+  }).catch(termine);
 }
 /** Démarre le rafraîchissement automatique périodique (appelée après connexion réussie, et au chargement si une session était déjà active). */
 function demarrerAutoSyncActivites(){
@@ -7585,7 +7654,7 @@ function syncFromCloud() {
     .then(function (res) { return res.json(); })
     .then(function (rows) {
       if (rows && rows.length && rows[0].data) {
-        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,stockPerso:15,fournisseurTel:''}}, rows[0].data);
+        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}}, rows[0].data);
         persist(); renderAll();
         notif('✅ Données restaurées depuis le cloud');
         return true;
@@ -7613,7 +7682,7 @@ function syncFromCloud() {
 // donc on peut combiner les entrées de deux appareils au lieu d'en
 // écraser une avec l'autre.
 var MERGEABLE_ARRAYS = ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille'];
-var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],resetCodes:[],patrimoine:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,params:{reinvest:20,stockPerso:15,fournisseurTel:''}};
+var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],resetCodes:[],patrimoine:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}};
 
 /**
  * Fusionne deux tableaux d'éléments par leur "id" (union), sans perte,
@@ -7841,10 +7910,23 @@ function mergeAppData(cloudData, localData, cloudIsNewer) {
   return merged;
 }
 
-function reconcileOnStartup() {
+/**
+ * Cœur de la réconciliation app_data (Stock Perso, Dettes, Paiements,
+ * Dépenses, Commandes, Historique, Corbeille + montants qui en
+ * dépendent) — RÉUTILISE STRICTEMENT le même fetch, la même fusion
+ * (mergeAppData, déjà protégée : union sans perte + priorité à la
+ * modification la plus récente via _localTouchedAt + quantités qui ne
+ * reculent jamais) et le même renvoi (syncToCloud) que ceux déjà
+ * validés pour reconcileOnStartup() — aucune nouvelle logique de fusion
+ * n'est créée ici. Le seul paramètre, `silencieux`, contrôle uniquement
+ * l'affichage du message de confirmation, pour ne pas spammer
+ * l'utilisateur si cette fonction est appelée automatiquement toutes
+ * les 20 secondes (voir demarrerAutoSyncAppData ci-dessous).
+ */
+function _reconcilerAppDataCoeur(silencieux) {
   if (!SUPABASE_CONFIG.enabled) return;
-  if (!navigator.onLine) { setSyncStatus('offline', '⚪ Hors ligne'); return; }
-  setSyncStatus('syncing', '🟠 Vérification cloud…');
+  if (!navigator.onLine) { if(!silencieux) setSyncStatus('offline', '⚪ Hors ligne'); return; }
+  if (!silencieux) setSyncStatus('syncing', '🟠 Vérification cloud…');
 
   fetch(SUPABASE_CONFIG.url + '/rest/v1/app_data?id=eq.' + encodeURIComponent(ROW_ID) + '&select=data,updated_at', {
     headers: {
@@ -7874,12 +7956,49 @@ function reconcileOnStartup() {
       // On repousse immédiatement la version fusionnée, pour que le
       // cloud et cet appareil convergent tout de suite vers l'union.
       syncToCloud();
-      notif('☁️ Données fusionnées avec le cloud (rien n\'est perdu)');
+      if (!silencieux) notif('☁️ Données fusionnées avec le cloud (rien n\'est perdu)');
     })
     .catch(function (err) {
-      console.error('[Supabase] Échec de la réconciliation au démarrage :', err);
-      setSyncStatus('error', '🔴 Erreur de synchronisation');
+      console.error('[Supabase] Échec de la réconciliation' + (silencieux?' (auto)':' au démarrage') + ' :', err);
+      if (!silencieux) setSyncStatus('error', '🔴 Erreur de synchronisation');
     });
+}
+function reconcileOnStartup() {
+  _reconcilerAppDataCoeur(false);
+}
+/**
+ * DEMANDE ("actualisation automatique sécurisée de app_data, sans
+ * attendre une reconnexion/un redémarrage") — cause du problème :
+ * reconcileOnStartup() (Stock Perso/Dettes/Paiements/Dépenses/
+ * Commandes/Historique) n'avait, contrairement aux Activités/Stock
+ * Entreprise, AUCUN minuteur périodique — seulement au démarrage, à la
+ * connexion, ou à un retour en ligne. Deux appareils restés connectés
+ * en continu pouvaient donc afficher des données différentes pendant
+ * toute une session, sans jamais se recaler tout seuls.
+ * Corrigé en ajoutant ici un second minuteur, sur le même modèle exact
+ * que demarrerAutoSyncActivites()/AUTO_SYNC_INTERVAL_MS ci-dessus, mais
+ * pour app_data — Admin uniquement (l'Associé n'a ni accès ni usage de
+ * ces données, exactement comme pour les appels existants de
+ * reconcileOnStartup() ailleurs dans le fichier). Aucune nouvelle
+ * fusion : cette fonction appelle le même _reconcilerAppDataCoeur() que
+ * reconcileOnStartup(), juste en silencieux pour ne pas spammer de
+ * notification toutes les 20 secondes.
+ */
+var APP_DATA_SYNC_INTERVAL_MS = 20000; // 20s : légèrement plus espacé que les Activités (15s), car app_data est un envoi plus lourd (tout le blob)
+var _autoSyncAppDataTimer = null;
+function reconcilerAppDataSilencieux(){
+  if (!isLoggedIn() || isVisiteur() || isAssocie()) return; // app_data : Admin uniquement, comme reconcileOnStartup() ailleurs
+  if (!navigator.onLine || !SUPABASE_CONFIG.enabled) return;
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+  _reconcilerAppDataCoeur(true);
+}
+function demarrerAutoSyncAppData(){
+  arreterAutoSyncAppData(); // jamais deux minuteurs en parallèle (ex: connexions répétées)
+  if (!SUPABASE_CONFIG.enabled || isVisiteur() || isAssocie()) return;
+  _autoSyncAppDataTimer = setInterval(reconcilerAppDataSilencieux, APP_DATA_SYNC_INTERVAL_MS);
+}
+function arreterAutoSyncAppData(){
+  if (_autoSyncAppDataTimer) { clearInterval(_autoSyncAppDataTimer); _autoSyncAppDataTimer = null; }
 }
 
 /**
