@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v98'; // 31-08-2026 : correctif filtre Période du Stock (utilise dernierAjoutDate si disponible)
+const CACHE_VERSION = 'v99'; // 31-08-2026 : vrai correctif — la fusion "+ Entrée stock" sur un produit existant ne mettait pas à jour dernierAjoutDate, donc le filtre Période restait vide
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne

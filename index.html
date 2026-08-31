@@ -2701,7 +2701,19 @@ function enrStock(){
     ah('stock','Modif stock: '+nom,achat*qte,date);
   } else {
     var ex=D.stock.find(function(x){ return normNom(x.nom)===normNom(nom); });
-    if(ex){ ex.qteInitiale+=qte;ex.achat=achat;ex.vente=vente;ex.seuil=seuil;if(categorie)ex.categorie=categorie;ex.qteRestante=Math.max(0,ex.qteInitiale-(ex.qteVendue||0)); ex._localTouchedAt=Date.now(); }
+    // CORRECTIF (filtre Période Stock toujours vide sur "Aujourd'hui"/
+    // "Hier"/"Avant-hier"/"Cette semaine" pour un réapprovisionnement via
+    // "+ Entrée stock" sur un produit déjà existant) : cette fusion ne
+    // mettait à jour ni date ni dernierAjoutDate/Qte — seule la voie
+    // "➕" (enrAjoutQte) le faisait. Le filtre Période (qui se base sur
+    // dernierAjoutDate en priorité, sinon date) ne voyait donc jamais ce
+    // mouvement. On aligne ce chemin sur enrAjoutQte : la quantité et
+    // les montants restent inchangés, seule la date de référence du
+    // filtre d'affichage est mise à jour.
+    if(ex){
+      ex.qteInitiale+=qte;ex.achat=achat;ex.vente=vente;ex.seuil=seuil;if(categorie)ex.categorie=categorie;ex.qteRestante=Math.max(0,ex.qteInitiale-(ex.qteVendue||0)); ex._localTouchedAt=Date.now();
+      ex.dernierAjoutQte=qte; ex.dernierAjoutDate=new Date().toISOString();
+    }
     else D.stock.push({id:Date.now(),nom:nom,qteInitiale:qte,qteVendue:0,qteRestante:qte,achat:achat,vente:vente,seuil:seuil,categorie:categorie,date:date,heure:nowHM()});
     ah('stock','Entrée: '+nom+' x'+qte,achat*qte,date);
   }
@@ -5587,7 +5599,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v43';
+var APP_VERSION = 'v44';
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
