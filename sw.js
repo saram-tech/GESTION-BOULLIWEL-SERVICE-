@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v104'; // 31-08-2026 : onglet Rapport — affichage historique simple des 2 dernières clôtures (Capital Ent/Val.Ent/Val.Perso/Reste Perso)
+const CACHE_VERSION = 'v105'; // 31-08-2026 : onglet Rapport — mise en valeur visuelle du tableau clôtures (bordures nettes, gras, Reste Perso agrandi)
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
