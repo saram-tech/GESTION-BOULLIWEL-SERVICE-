@@ -4589,11 +4589,16 @@ function rHistoriqueClotures(){
   if(!el) return;
   var lignes=D.historiqueClotures||[];
   if(!lignes.length){ el.innerHTML=''; return; }
-  var html='<div class="card" style="margin-bottom:12px"><div class="tw"><table>'+
-    '<thead><tr><th>Date</th><th>Capital Ent</th><th>Val. Ent</th><th>Val. Perso</th><th>Reste Perso</th></tr></thead><tbody>';
+  var bStyle='border:1.5px solid var(--bd2)';
+  var html='<div class="card" style="margin-bottom:12px"><div class="tw"><table style="border-collapse:collapse">'+
+    '<thead><tr><th style="'+bStyle+';font-weight:700">Date</th><th style="'+bStyle+';font-weight:700">Capital Ent</th><th style="'+bStyle+';font-weight:700">Val. Ent</th><th style="'+bStyle+';font-weight:700">Val. Perso</th><th style="'+bStyle+';font-weight:700">Reste Perso</th></tr></thead><tbody>';
   lignes.forEach(function(l){
-    html+='<tr><td>'+fmtDateJour(l.date)+'</td><td>'+fmt(l.capitalEnt)+'</td><td>'+fmt(l.valEnt)+'</td>'+
-      '<td>'+fmt(l.valPerso)+'</td><td>'+fmt(l.restePerso)+'</td></tr>';
+    html+='<tr><td rowspan="2" style="'+bStyle+';font-weight:700;vertical-align:middle">'+fmtDateJour(l.date)+'</td>'+
+      '<td rowspan="2" style="'+bStyle+';font-weight:700;vertical-align:middle">'+fmt(l.capitalEnt)+'</td>'+
+      '<td rowspan="2" style="'+bStyle+';font-weight:700;vertical-align:middle">'+fmt(l.valEnt)+'</td>'+
+      '<td style="'+bStyle+';font-weight:700">'+fmt(l.valPerso)+'</td>'+
+      '<td rowspan="2" style="'+bStyle+';font-weight:700;vertical-align:middle">'+fmt(l.restePerso)+'</td></tr>';
+    html+='<tr><td style="'+bStyle+';font-weight:800;font-size:1.35rem;color:var(--gr)">'+fmt(l.restePerso)+'</td></tr>';
   });
   html+='</tbody></table></div></div>';
   el.innerHTML=html;
