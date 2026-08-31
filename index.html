@@ -2401,6 +2401,17 @@ function ouvrirAjoutQte(id,type){
   om('maq');
 }
 function enrAjoutQte(){
+  // CORRECTIF ("+1 devient +2" sur Stock Perso / Stock Entreprise) :
+  // rien n'empêchait un double-tap/double-clic sur "✓ Ajouter" (écran
+  // qui répond avec un léger délai, connexion lente) de déclencher
+  // enrAjoutQte() deux fois de suite avant que le modal ne se ferme,
+  // appliquant deux fois la quantité saisie. On verrouille le bouton
+  // dès le premier appel et on le déverrouille à la fin (ou en cas
+  // d'erreur), sans changer aucun calcul.
+  var btnAq=document.querySelector('#maq .btn.bs');
+  if(btnAq && btnAq.disabled) return;
+  if(btnAq) btnAq.disabled=true;
+  try{
   var id=v('aq-id'), type=v('aq-type'), delta=parseInt(v('aq-qte'))||0;
   if(delta<=0){ notif('⚠️ Entrez une quantité valide (> 0)'); return; }
   var maintenant=new Date().toISOString();
@@ -2429,6 +2440,9 @@ function enrAjoutQte(){
     p.derniereModifDate=maintenant;
     ah('perso','Ajout quantité perso: '+p.nom+' +'+delta,0,td());
     save(); cm('maq'); rPerso(); notif('✅ '+p.nom+' : +'+delta+' unité(s) ajoutée(s) (fusionné au stock entreprise)');
+  }
+  } finally {
+    if(btnAq) btnAq.disabled=false;
   }
 }
 /**
@@ -2792,7 +2806,10 @@ function enrPerso(){
     ah('perso','Modif perso: '+nom,totalDu,date);
   } else {
     var ex=D.perso.find(function(x){ return normNom(x.nom)===normNom(nom); });
-    if(ex){ ex.qteInitiale+=qte;ex.prixRevient+=prixRevient;ex.commission+=commission;ex.totalDu+=totalDu; ex.derniereModifDate=maintenant; }
+    // CORRECTIF (même cause que Stock Entreprise, voir enrStock()) :
+    // cette fusion ne mettait pas à jour dernierAjoutDate/Qte, donc le
+    // filtre Période de rPerso() ne voyait jamais ce réapprovisionnement.
+    if(ex){ ex.qteInitiale+=qte;ex.prixRevient+=prixRevient;ex.commission+=commission;ex.totalDu+=totalDu; ex.derniereModifDate=maintenant; ex.dernierAjoutQte=qte; ex.dernierAjoutDate=maintenant; }
     else D.perso.push({id:Date.now(),nom:nom,qteInitiale:qte,achat:achat,vente:vente,prixRevient:prixRevient,commission:commission,totalDu:totalDu,rembourse:0,date:date,heure:nowHM(),derniereModifDate:maintenant});
     // Fusion immédiate et automatique dans le Stock Entreprise (stock physique unique)
     fusionnerDansStockEnt(nom,qte,achat,vente,date);
@@ -2802,6 +2819,10 @@ function enrPerso(){
 }
 function rPF(){
   ['p-nom','p-qte','p-achat','p-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+  // CORRECTIF (même cause que Stock Entreprise, voir rSF()) : le champ
+  // Date n'était jamais réinitialisé à l'ouverture de "+ Ajouter",
+  // gardant l'ancienne valeur d'un précédent produit édité.
+  sv('p-date', td());
   sv('p-vente',0);
   st('mp-t','🏷️ Produit Personnel');
   var b=document.getElementById('btn-sp'); b.textContent='✓ Enregistrer'; b.onclick=enrPerso;
@@ -4358,7 +4379,14 @@ function rStock(){
 function rPerso(){
   var tb=document.getElementById('tbl-perso');
   var fs=normSearch(v('f-search-perso'));
-  var items=D.perso.filter(function(p){ return matchPeriodeFull(p.date,'f-periode-perso'); });
+  // CORRECTIF (même cause que Stock Entreprise, voir rStock()) : le
+  // filtre Période se basait uniquement sur p.date (création), jamais
+  // mis à jour par un ajout via ➕ — utilise désormais dernierAjoutDate
+  // en priorité, sinon date, aucune donnée modifiée.
+  var items=D.perso.filter(function(p){
+    var dateRef = p.dernierAjoutDate ? p.dernierAjoutDate.slice(0,10) : p.date;
+    return matchPeriodeFull(dateRef,'f-periode-perso');
+  });
   if(fs) items=items.filter(function(p){ return normSearch(p.nom).indexOf(fs)>-1; });
   // DEMANDE ("bouton A-Z pour trier par produit") : purement un ordre
   // d'affichage — aucune donnée, aucun total, aucun calcul modifié.
@@ -5607,7 +5635,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v45';
+var APP_VERSION = 'v46';
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
@@ -5631,7 +5659,7 @@ function toggleTriAZ(tbl){
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-08-31T12:00:00'; // CORRECTIF : filtre Période du Stock — le réapprovisionnement d'un produit existant via "+ Entrée stock" ne mettait pas à jour dernierAjoutDate, donc n'apparaissait jamais dans les filtres Aujourd'hui/Hier/Avant-hier/Cette semaine.
+var APP_DERNIERE_MAJ = '2026-08-31T15:00:00'; // CORRECTIF : filtre Période étendu à Stock Perso + verrou anti double-clic sur "Ajouter une quantité" (évitait un +1 devenant +2) + date par défaut sur les formulaires Stock/Perso.
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
