@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v109'; // 01-09-2026 : CORRECTIF CRITIQUE — Activités : suppression du raccourci "premierPassage" dans chargerActivitesEtStockDepuisTables(), qui effaçait TOUTE activité locale non encore envoyée au serveur dès le tout premier cycle de synchro d'un appareil (appareil neuf, cache vidé, ou premier cycle après l'introduction de ce champ) — cause exacte, démontrée et reproduite, du bug "activités saisies hors ligne qui disparaissent au retour en ligne, remplacées par l'état d'un autre appareil". Stock/Stock Perso/Dettes/Paiements/Dépenses/Commandes/Historique/Corbeille/Patrimoine ne sont pas concernés (aucun n'utilise ce mécanisme, uniquement des tombstones explicites). Voir aussi v108 (Patrimoine — résolution par élément).
+const CACHE_VERSION = 'v110'; // 01-09-2026 : CORRECTIF CRITIQUE — "TOUTES les activités ont disparu" après mise à jour : une réponse serveur HTTP 200 mais VIDE pour la table "activites" (jeton expiré au mauvais moment, latence RLS, coupure réseau partielle...) n'était PAS traitée comme une erreur, et faisait donc effacer en bloc TOUT l'historique local déjà connu du serveur (a.id<=maxConfirme) via l'inférence de suppression dans chargerActivitesEtStockDepuisTables(). Corrigé : cette inférence ne s'exécute plus que si le serveur a réellement répondu au moins une ligne. Preuve : test reproduisant 50→0 activités sans le garde-fou, 50→50 avec. Voir aussi v109 (activités hors ligne perdues au premier passage) et v108 (Patrimoine par élément).
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne

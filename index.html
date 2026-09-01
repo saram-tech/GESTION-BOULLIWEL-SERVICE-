@@ -5686,7 +5686,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v50';
+var APP_VERSION = 'v51';
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
@@ -5710,7 +5710,7 @@ function toggleTriAZ(tbl){
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-09-01T00:00:00'; // CORRECTIF CRITIQUE : Activités — suppression du raccourci "premierPassage" qui effaçait les activités saisies hors ligne au retour en ligne dès le tout premier cycle de synchro d'un appareil (remplacées à tort par l'état d'un autre appareil). Patrimoine : résolution de conflit par élément (comme Dettes/Paiements/Dépenses/Commandes) au lieu d'un remplacement en bloc.
+var APP_DERNIERE_MAJ = '2026-09-01T01:00:00'; // CORRECTIF CRITIQUE : Activités — "TOUTES mes activités ont disparu" corrigé. Une réponse serveur vide (200 mais 0 ligne, ex : jeton expiré au mauvais moment) déclenchait à tort l'effacement en bloc de tout l'historique local déjà connu du serveur. L'inférence de suppression n'agit désormais que si le serveur a réellement répondu au moins une ligne — les suppressions réelles (clôture, corbeille) restent propagées via les tombstones explicites, inchangés.
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
@@ -7130,6 +7130,33 @@ function chargerActivitesEtStockDepuisTables(session){
        * synchronisations suivantes de CE même appareil restent protégées
        * exactement comme avant dès que maxConfirme est réellement établi.
        */
+      /**
+       * CORRECTIF CRITIQUE (01-09-2026 — "TOUTES les activités ont
+       * disparu après mise à jour") — cause exacte trouvée : une réponse
+       * serveur HTTP 200 mais VIDE (zéro ligne — ex : jeton juste
+       * rafraîchi/expiré au mauvais moment, latence RLS, coupure réseau
+       * partielle...) n'est PAS une erreur pour ce code (r.ok est vrai,
+       * res[0] est un tableau valide, donc serverAct=[] et non null) —
+       * elle contournait donc entièrement la branche d'erreur ci-dessus
+       * (enregistrerDiagnostic + null). Avec idsServeur alors vide,
+       * TOUTE activité locale déjà connue du serveur par le passé
+       * (a.id<=maxConfirme, donc pratiquement tout l'historique dès que
+       * l'appareil a déjà synchronisé au moins une fois) était jugée
+       * "absente du serveur donc supprimée" et effacée en bloc par
+       * mergeArraysById() juste plus bas — un effacement TOTAL déclenché
+       * par un simple aléa réseau/serveur, sans lien avec une suppression
+       * réelle. Corrigé en n'exécutant cette inférence de suppression que
+       * si le serveur a réellement répondu avec au moins une ligne :
+       * un serveur authentiquement vide (cas très rare — juste après une
+       * toute première mise en place) verra son nettoyage simplement
+       * reporté au cycle suivant, sans aucun risque — les suppressions
+       * réelles restent, elles, toujours propagées immédiatement via les
+       * tombstones explicites (D._del.activites, voir markDeleted()),
+       * totalement indépendants de ce mécanisme. Rien d'autre n'est
+       * changé : la fusion par union (juste en dessous) continue de
+       * fonctionner normalement dans tous les cas, vide ou non.
+       */
+      if (serverAct && serverAct.length) {
       (D.activites||[]).forEach(function(a){
         if (session.role==='associe' && a.auteur!=='Associé') return;
         var considereeSupprimee = !idsServeur[a.id] && a.id<=maxConfirme;
@@ -7137,6 +7164,7 @@ function chargerActivitesEtStockDepuisTables(session){
       });
       serverAct.forEach(function(a){ if(a.id>maxVu) maxVu=a.id; });
       D._maxIdConfirmeActivite = maxVu;
+      }
       /**
        * CORRECTIF ("suppression des activités de l'Associé non garantie
        * lors d'une clôture si la policy RLS Supabase la refuse") — voir
