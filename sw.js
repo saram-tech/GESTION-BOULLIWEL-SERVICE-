@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v105'; // 31-08-2026 : onglet Rapport — mise en valeur visuelle du tableau clôtures (bordures nettes, gras, Reste Perso agrandi)
+const CACHE_VERSION = 'v106'; // 01-09-2026 : synchro cloud — message "fusionné avec le cloud" affiché uniquement après confirmation réelle de l'envoi (plus de faux positif en cas d'échec réseau/RLS)
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne

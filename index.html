@@ -5686,7 +5686,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v48';
+var APP_VERSION = 'v49';
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
@@ -7583,7 +7583,14 @@ function syncToCloud() {
   if (!SUPABASE_CONFIG.enabled) return;
   if (!navigator.onLine) { setSyncStatus('offline', '⚪ Hors ligne — en attente'); return; }
   setSyncStatus('syncing', '🟠 Synchronisation…');
-  fetch(SUPABASE_CONFIG.url + '/rest/v1/app_data', {
+  // CORRECTIF (message "Données fusionnées avec le cloud, rien n'est
+  // perdu" affiché avant même de savoir si l'envoi a réussi) : on
+  // renvoie désormais la promesse de l'envoi, pour que l'appelant
+  // (_reconcilerAppDataCoeur) puisse attendre la confirmation réelle
+  // avant d'annoncer un succès cloud. Rien d'autre n'est changé ici :
+  // le .then()/.catch() existants, setSyncStatus() et le message
+  // d'erreur restent strictement identiques.
+  return fetch(SUPABASE_CONFIG.url + '/rest/v1/app_data', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -7604,6 +7611,13 @@ function syncToCloud() {
     console.error('[Supabase] Échec de synchronisation (envoi) :', err);
     notif('⚠️ Échec de synchronisation cloud : ' + err.message, 6000);
     setSyncStatus('error', '🔴 Erreur de synchronisation');
+    // CORRECTIF : l'erreur était interceptée ici sans être relancée, donc
+    // la promesse renvoyée par syncToCloud() se terminait toujours en
+    // succès (même en cas d'échec réel), empêchant tout appelant de
+    // distinguer un envoi réussi d'un envoi échoué. Le message affiché
+    // ci-dessus reste strictement le même ; on relance seulement l'erreur
+    // pour que la promesse reflète l'échec réel.
+    throw err;
   });
 }
 
@@ -7960,8 +7974,24 @@ function _reconcilerAppDataCoeur(silencieux) {
       persist(); renderAll();
       // On repousse immédiatement la version fusionnée, pour que le
       // cloud et cet appareil convergent tout de suite vers l'union.
-      syncToCloud();
-      if (!silencieux) notif('☁️ Données fusionnées avec le cloud (rien n\'est perdu)');
+      // CORRECTIF : le message "fusionné avec le cloud, rien n'est
+      // perdu" s'affichait immédiatement, avant même de savoir si cet
+      // envoi (syncToCloud) allait réussir — s'il échouait ensuite
+      // (réseau, RLS…), le message avait déjà annoncé à tort un succès
+      // cloud confirmé. On attend donc désormais la vraie confirmation
+      // avant de l'afficher. En cas d'échec, syncToCloud() affiche déjà
+      // son propre message d'erreur (inchangé) : on ne le double pas.
+      var envoi = syncToCloud();
+      if (envoi && typeof envoi.then === 'function') {
+        envoi.then(function () {
+          if (!silencieux) notif('☁️ Données fusionnées avec le cloud (rien n\'est perdu)');
+        }).catch(function () { /* message d'erreur déjà affiché par syncToCloud() */ });
+      } else if (!silencieux) {
+        // syncToCloud() n'a rien renvoyé (hors ligne/désactivé au moment
+        // de l'appel) : la fusion est faite localement, mais pas encore
+        // confirmée avec le cloud — on ne prétend pas le contraire.
+        notif('✅ Données fusionnées localement (en attente d\'envoi au cloud)');
+      }
     })
     .catch(function (err) {
       console.error('[Supabase] Échec de la réconciliation' + (silencieux?' (auto)':' au démarrage') + ' :', err);
