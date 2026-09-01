@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v106'; // 01-09-2026 : synchro cloud — message "fusionné avec le cloud" affiché uniquement après confirmation réelle de l'envoi (plus de faux positif en cas d'échec réseau/RLS)
+const CACHE_VERSION = 'v109'; // 01-09-2026 : CORRECTIF CRITIQUE — Activités : suppression du raccourci "premierPassage" dans chargerActivitesEtStockDepuisTables(), qui effaçait TOUTE activité locale non encore envoyée au serveur dès le tout premier cycle de synchro d'un appareil (appareil neuf, cache vidé, ou premier cycle après l'introduction de ce champ) — cause exacte, démontrée et reproduite, du bug "activités saisies hors ligne qui disparaissent au retour en ligne, remplacées par l'état d'un autre appareil". Stock/Stock Perso/Dettes/Paiements/Dépenses/Commandes/Historique/Corbeille/Patrimoine ne sont pas concernés (aucun n'utilise ce mécanisme, uniquement des tombstones explicites). Voir aussi v108 (Patrimoine — résolution par élément).
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne

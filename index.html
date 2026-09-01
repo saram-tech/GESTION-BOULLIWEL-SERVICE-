@@ -5686,7 +5686,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v49';
+var APP_VERSION = 'v50';
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
@@ -5710,7 +5710,7 @@ function toggleTriAZ(tbl){
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-08-31T15:00:00'; // CORRECTIF : filtre Période étendu à Stock Perso + verrou anti double-clic sur "Ajouter une quantité" (évitait un +1 devenant +2) + date par défaut sur les formulaires Stock/Perso.
+var APP_DERNIERE_MAJ = '2026-09-01T00:00:00'; // CORRECTIF CRITIQUE : Activités — suppression du raccourci "premierPassage" qui effaçait les activités saisies hors ligne au retour en ligne dès le tout premier cycle de synchro d'un appareil (remplacées à tort par l'état d'un autre appareil). Patrimoine : résolution de conflit par élément (comme Dettes/Paiements/Dépenses/Commandes) au lieu d'un remplacement en bloc.
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
@@ -6258,15 +6258,46 @@ function mapPatrimoineVersRow(p){
   return { id:p.id, nom:p.nom, categorie:p.categorie, quantite:p.quantite, valeur:p.valeur,
     prix_achat:p.achat, date:p.date, etat:p.etat, description:p.description, utilisation:p.utilisation };
 }
-/** Charge le Patrimoine depuis la table sécurisée (Administrateur uniquement). */
+/**
+ * Charge le Patrimoine depuis la table sécurisée (Administrateur uniquement).
+ * CORRECTIF URGENT (01-09-2026) — "perte de données hors ligne sur
+ * l'appareil A, écrasées par l'état de l'appareil B au retour en
+ * ligne" — cause exacte trouvée ICI : cette fonction remplaçait
+ * jusqu'ici D.patrimoine EN BLOC par la réponse serveur
+ * (D.patrimoine = rows.map(...)), sans jamais tenir compte de ce qui
+ * existait déjà localement. Un bien ajouté hors ligne sur un appareil
+ * (donc pas encore poussé côté serveur) disparaissait donc purement et
+ * simplement dès que cet appareil se reconnectait et rechargeait sa
+ * session (appliquerSession → chargerPatrimoine), remplacé par la
+ * version — incomplète de son point de vue — d'un autre appareil déjà
+ * synchronisé. Tous les autres modules (Activités, Stock, Dettes,
+ * Paiements, Dépenses, Commandes, Perso, Historique, Corbeille)
+ * fusionnent déjà par id via mergeArraysById() + tombstones — le
+ * Patrimoine était le seul oublié de ce mécanisme. Corrigé en
+ * appliquant exactement le même principe : fusion par id (union, sans
+ * perte), tombstones locaux (D._del.patrimoine, voir markDeleted() dans
+ * delPatrimoine) pour que les suppressions restent bien effectives, puis
+ * renvoi immédiat vers le serveur de tout ce qui manquait encore côté
+ * cloud (idempotent, upsert par id — jamais de doublon), exactement
+ * comme chargerActivitesEtStockDepuisTables() le fait déjà pour
+ * Activités/Stock. Aucun autre calcul ni fonctionnalité n'est modifié.
+ */
 function chargerPatrimoine(session){
   if(!session || !session.access_token || !navigator.onLine) return Promise.resolve();
   return supabaseTable('/rest/v1/patrimoine?select=*&order=date.desc', {}, session.access_token)
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){
-      if(Array.isArray(rows)) D.patrimoine = rows.map(mapRowVersPatrimoine);
+      if(Array.isArray(rows)){
+        var serveur = rows.map(mapRowVersPatrimoine);
+        var delIds = (D._del && D._del.patrimoine) || [];
+        D.patrimoine = mergeArraysById(D.patrimoine, serveur, delIds);
+      }
       persist();
       rPatrimoine(); // rafraîchit l'écran dès que les données arrivent, même si apres() a déjà rendu la page
+      // Repousse tout de suite ce qui manquait encore côté serveur
+      // (biens ajoutés hors ligne, pas encore envoyés) — idempotent
+      // grâce à l'upsert par id, jamais de doublon créé.
+      if (typeof syncPatrimoineVersNouvelleTable === 'function') syncPatrimoineVersNouvelleTable();
     }).catch(function(e){ console.error('[chargerPatrimoine]',e); });
 }
 /** Pousse le Patrimoine actuel vers la table sécurisée (upsert), Administrateur uniquement. */
@@ -6296,10 +6327,16 @@ function enrPatrimoine(){
     description:v('pt-description').trim(), utilisation:v('pt-utilisation').trim() };
   if(eid){
     var p=D.patrimoine.find(function(x){ return x.id==eid; });
-    if(p) Object.assign(p,champ);
+    // CORRECTIF (01-09-2026 — audit synchronisation complet) : _localTouchedAt
+    // posé ici, exactement comme pour Dettes/Paiements/Dépenses/Commandes
+    // (voir enrDette/enrPaym/enrDep/enrCmd), pour que mergeAppData() puisse
+    // faire gagner la modification la plus récente élément par élément en
+    // cas de fusion entre deux appareils, au lieu de trancher uniquement
+    // selon quel camp est "prioritaire" pour tout le blob.
+    if(p){ Object.assign(p,champ); p._localTouchedAt=Date.now(); }
     notif('✅ Bien modifié');
   } else {
-    D.patrimoine.push(Object.assign({id:Date.now()},champ));
+    D.patrimoine.push(Object.assign({id:Date.now(),_localTouchedAt:Date.now()},champ));
     notif('✅ Bien ajouté au patrimoine');
   }
   save(); syncPatrimoineVersNouvelleTable();
@@ -6317,6 +6354,15 @@ function editPatrimoine(id){
 function delPatrimoine(id){
   var p=(D.patrimoine||[]).find(function(x){ return x.id===id; }); if(!p) return;
   demanderConfirmationSecurisee('🗑️ Supprimer ce bien du patrimoine', '• <strong>'+echap(p.nom)+'</strong><br>• Ce bien ne sera plus visible par le compte Visiteur.', false, function(){
+    // CORRECTIF (01-09-2026) — "perte de données hors ligne, appareil A
+    // écrasé par l'état de l'appareil B" : contrairement à TOUTES les
+    // autres suppressions de l'app (activités, stock, dettes, paiements,
+    // dépenses, commandes, perso, corbeille — voir markDeleted()), la
+    // suppression d'un bien du Patrimoine ne posait aucun tombstone.
+    // Sans ça, chargerPatrimoine()/mergeAppData() (voir plus bas) ne
+    // pouvaient pas distinguer "supprimé exprès" de "pas encore connu de
+    // ce côté" lors d'une fusion — un bien supprimé pouvait réapparaître.
+    markDeleted('patrimoine', id);
     D.patrimoine=D.patrimoine.filter(function(x){ return x.id!==id; });
     save();
     var session=getSession();
@@ -7023,7 +7069,6 @@ function chargerActivitesEtStockDepuisTables(session){
     if (serverAct) {
       var idsServeur={};
       serverAct.forEach(function(a){ idsServeur[a.id]=true; });
-      var premierPassage = (D._maxIdConfirmeActivite===undefined);
       var maxConfirme = D._maxIdConfirmeActivite||0, maxVu=maxConfirme;
       /**
        * CORRECTIF URGENT ("perte des activités Administrateur quand
@@ -7049,9 +7094,45 @@ function chargerActivitesEtStockDepuisTables(session){
        * rien ne change : il voit tout via RLS, donc l'absence reste
        * une preuve valable, exactement comme avant.
        */
+      /**
+       * CORRECTIF CRITIQUE (01-09-2026 — "activités saisies hors ligne
+       * qui disparaissent au retour en ligne, l'appareil récupère l'état
+       * d'un autre appareil") — cause exacte trouvée ICI : la variable
+       * "premierPassage" (D._maxIdConfirmeActivite encore undefined —
+       * appareil neuf, cache vidé/réinstallé, OU simplement le tout
+       * premier cycle de synchro suivant l'introduction de ce champ)
+       * faisait passer TOUTE activité locale absente de CETTE réponse
+       * serveur précise pour "supprimée", sans aucune condition sur son
+       * id — y compris une activité créée hors ligne et jamais encore
+       * envoyée au serveur. Elle était alors ajoutée à delIdsActivites,
+       * puis mergeArraysById() (juste plus bas) la retirait purement et
+       * simplement du tableau fusionné — protegerEditionsRecentes() ne
+       * pouvant pas la restaurer, puisqu'elle n'existe déjà plus dans le
+       * tableau qu'elle reçoit. C'est très exactement le scénario vécu :
+       * appareil A hors ligne saisit des activités → appareil B, en
+       * ligne, saisit les siennes → A se reconnecte, relit le serveur
+       * (qui ne contient que l'état de B), et efface ses propres
+       * activités locales pas encore envoyées, croyant qu'elles ont été
+       * supprimées ailleurs.
+       * Corrigé en retirant ce raccourci "premierPassage" : maxConfirme
+       * vaut désormais 0 par défaut (au lieu d'un déclenchement
+       * inconditionnel), et un id réel d'activité (Date.now(), toujours
+       * très supérieur à 0) ne peut alors JAMAIS être inféré comme
+       * supprimé tant qu'un seuil réel n'a pas été confirmé lors d'une
+       * synchronisation précédente. Le nettoyage ponctuel que
+       * "premierPassage" permettait (voir l'historique de cette
+       * fonction) reste inutile aujourd'hui : les suppressions réelles
+       * (clôture, suppression manuelle) continuent de se propager
+       * normalement via les tombstones explicites (D._del.activites,
+       * voir markDeleted()), totalement indépendants de ce mécanisme.
+       * Rien d'autre n'est changé : le Stock n'a jamais utilisé ce
+       * mécanisme (uniquement des tombstones explicites), et les
+       * synchronisations suivantes de CE même appareil restent protégées
+       * exactement comme avant dès que maxConfirme est réellement établi.
+       */
       (D.activites||[]).forEach(function(a){
         if (session.role==='associe' && a.auteur!=='Associé') return;
-        var considereeSupprimee = !idsServeur[a.id] && (premierPassage || a.id<=maxConfirme);
+        var considereeSupprimee = !idsServeur[a.id] && a.id<=maxConfirme;
         if(considereeSupprimee && delIdsActivites.indexOf(a.id)===-1) delIdsActivites.push(a.id);
       });
       serverAct.forEach(function(a){ if(a.id>maxVu) maxVu=a.id; });
@@ -7700,7 +7781,14 @@ function syncFromCloud() {
 // Listes fusionnables : chaque élément a un "id" unique (Date.now()),
 // donc on peut combiner les entrées de deux appareils au lieu d'en
 // écraser une avec l'autre.
-var MERGEABLE_ARRAYS = ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille'];
+// CORRECTIF (01-09-2026) — "perte de données hors ligne, appareil A
+// écrasé par l'état de l'appareil B" : 'patrimoine' ajouté à cette
+// liste — il était le seul module de D absent d'ici, donc le seul que
+// mergeAppData() (voir plus bas) écrasait encore en bloc (Object.assign)
+// au lieu de le fusionner par id comme tout le reste. Voir aussi le
+// tombstone désormais posé dans delPatrimoine() et la fusion appliquée
+// dans chargerPatrimoine().
+var MERGEABLE_ARRAYS = ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille','patrimoine'];
 var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],resetCodes:[],patrimoine:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}};
 
 /**
@@ -7840,8 +7928,18 @@ function mergeAppData(cloudData, localData, cloudIsNewer) {
    * comportement précédent (union par id ci-dessus) reste inchangé pour
    * cet élément. N'affecte que ces 4 tables : Activités, Stock, Stock
    * Perso et toutes les autres restent gérées exactement comme avant.
+   *
+   * EXTENSION (01-09-2026 — audit synchronisation complet) : "patrimoine"
+   * ajouté à cette liste. Depuis son ajout à MERGEABLE_ARRAYS, le
+   * Patrimoine bénéficiait déjà de l'union sans perte + tombstones, mais
+   * PAS encore de cette résolution fine par élément — un bien modifié
+   * (ex: valeur ou état changés) séparément sur deux appareils entre deux
+   * synchronisations aurait été tranché uniquement par le camp "priorite"
+   * global, comme pour Dettes/Paiements/Dépenses/Commandes avant ce
+   * correctif. Même mécanisme, même horodatage _localTouchedAt (désormais
+   * posé par enrPatrimoine), aucun autre changement.
    */
-  ['dettes','paiements','depenses','commandes'].forEach(function(f){
+  ['dettes','paiements','depenses','commandes','patrimoine'].forEach(function(f){
     var baseById={}, prioById={};
     (base[f]||[]).forEach(function(x){ if(x&&x.id!=null) baseById[x.id]=x; });
     (priorite[f]||[]).forEach(function(x){ if(x&&x.id!=null) prioById[x.id]=x; });
