@@ -188,7 +188,7 @@ tbody tr:last-child td{border-bottom:none;}
 /* ===== LOGIN ===== */
 #login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;}
 #login-screen.hidden{display:none;}
-.login-box{background:var(--bg2);border:1px solid var(--bd2);border-radius:20px;padding:36px 32px;max-width:420px;width:100%;text-align:center;}
+.login-box{background:var(--bg2);border:1px solid var(--bd2);border-radius:20px;padding:36px 32px;max-width:420px;width:100%;text-align:center;max-height:min(92vh,92%);overflow-y:auto;}
 .login-logo{font-family:var(--font-display);font-size:1.4rem;font-weight:800;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;}
 .login-sub{font-size:.8rem;color:var(--tx2);margin-bottom:28px;}
 .login-box .fg{text-align:left;margin-bottom:14px;}
@@ -5686,7 +5686,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v51';
+var APP_VERSION = 'v53';
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
@@ -5710,7 +5710,7 @@ function toggleTriAZ(tbl){
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-09-01T01:00:00'; // CORRECTIF CRITIQUE : Activités — "TOUTES mes activités ont disparu" corrigé. Une réponse serveur vide (200 mais 0 ligne, ex : jeton expiré au mauvais moment) déclenchait à tort l'effacement en bloc de tout l'historique local déjà connu du serveur. L'inférence de suppression n'agit désormais que si le serveur a réellement répondu au moins une ligne — les suppressions réelles (clôture, corbeille) restent propagées via les tombstones explicites, inchangés.
+var APP_DERNIERE_MAJ = '2026-09-01T03:00:00'; // CORRECTIF UI : boîtes de dialogue/formulaires masqués par le clavier sur mobile. #login-screen (connexion + récupération de mot de passe) ajouté au mécanisme d'adaptation au clavier déjà utilisé par toutes les autres fenêtres (.ov/.modal), avec défilement interne si besoin. UI uniquement, aucune donnée ni calcul modifié.
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
@@ -6620,9 +6620,25 @@ function doChangerPass() {
  */
 (function(){
   if(!window.visualViewport) return;
+  /**
+   * CORRECTIF UI (01-09-2026 — "boîtes de dialogue masquées par le clavier
+   * sur mobile") : ce mécanisme couvrait déjà toutes les fenêtres .ov/.modal
+   * (Nouvelle activité, Paiement, etc.), mais PAS #login-screen (l'écran de
+   * connexion et les écrans de récupération de mot de passe, qui partagent
+   * le même conteneur .login-box) — un conteneur plein écran séparé, en
+   * dehors du système .ov, jamais inclus dans ce querySelectorAll. Sur un
+   * petit écran, le clavier pouvait donc masquer le bouton de connexion ou
+   * les derniers champs d'un formulaire de récupération, sans aucun
+   * repositionnement automatique. Corrigé en ajoutant #login-screen à la
+   * liste, avec le même traitement (hauteur/position calées sur le
+   * visualViewport) — voir aussi .login-box, qui reçoit maintenant le même
+   * max-height + overflow-y:auto que .modal, pour un défilement interne si
+   * le formulaire est plus grand que l'espace visible restant. Aucune
+   * autre fenêtre, aucune logique métier, aucun calcul n'est modifié.
+   */
   function adjustForKeyboard(){
     var vv=window.visualViewport;
-    document.querySelectorAll('.ov').forEach(function(ov){
+    document.querySelectorAll('.ov, #login-screen').forEach(function(ov){
       if(getComputedStyle(ov).display==='none') return;
       ov.style.height=vv.height+'px';
       ov.style.top=vv.offsetTop+'px';
@@ -7009,7 +7025,35 @@ function chargerActivitesEtStockDepuisTables(session){
   ]).then(function(res){
     var serverAct = Array.isArray(res[0]) ? res[0].map(mapRowVersActivite) : null;
     var serverStock = Array.isArray(res[1]) ? res[1].map(mapRowVersStock) : null;
-    var delIdsActivites = (D._del&&D._del.activites)||[];
+    /**
+     * CORRECTIF CRITIQUE (01-09-2026 — "une fausse suppression locale
+     * pourrait effacer les données du serveur, donc du second appareil")
+     * — cause exacte trouvée : ce tableau était auparavant LA MÊME
+     * référence mémoire que D._del.activites dès que ce dernier existait
+     * déjà (delIdsActivites = D._del.activites, jamais une copie). La
+     * boucle d'inférence plus bas (considereeSupprimee) faisait alors
+     * delIdsActivites.push(id) — ce qui modifiait ET sauvegardait
+     * directement, en PERMANENCE, le vrai registre des suppressions
+     * explicites (D._del.activites) avec de simples suppositions. Or ce
+     * même registre sert plus bas à décider quels ids envoyer en
+     * SUPPRESSION RÉELLE au serveur (reessayerSuppressionsActivitesEnAttente
+     * → supprimerActivitesSurServeurAvecAlerte → DELETE Supabase) dès
+     * qu'une synchro redevient saine. Une simple erreur d'inférence
+     * locale (ex : réponse serveur vide, voir le correctif juste en
+     * dessous) pouvait donc, une fois "empoisonnée" ainsi, provoquer une
+     * VRAIE suppression côté serveur au cycle suivant — effaçant les
+     * données pour TOUS les appareils, y compris ceux qui les avaient
+     * encore intactes. Corrigé en travaillant désormais sur une COPIE
+     * (.slice()) pour les tombstones explicites, et en gardant les
+     * tombstones INFÉRÉS dans un tableau séparé, qui ne sert plus qu'au
+     * filtrage d'affichage local de cette fusion précise (jamais
+     * persisté, jamais transmis à la suppression serveur). Seuls les
+     * VRAIS tombstones explicites (delAct/executerCloture/vidage, déjà
+     * dans D._del.activites AVANT cette fonction) peuvent désormais
+     * déclencher une suppression serveur — jamais une supposition.
+     */
+    var delIdsExplicites = ((D._del&&D._del.activites)||[]).slice();
+    var delIdsInferes = [];
     /**
      * CORRECTIF ("la clôture doit effacer les activités de l'Associé") :
      * cause exacte trouvée — mergeArraysById() est une fusion par UNION,
@@ -7160,7 +7204,7 @@ function chargerActivitesEtStockDepuisTables(session){
       (D.activites||[]).forEach(function(a){
         if (session.role==='associe' && a.auteur!=='Associé') return;
         var considereeSupprimee = !idsServeur[a.id] && a.id<=maxConfirme;
-        if(considereeSupprimee && delIdsActivites.indexOf(a.id)===-1) delIdsActivites.push(a.id);
+        if(considereeSupprimee && delIdsExplicites.indexOf(a.id)===-1 && delIdsInferes.indexOf(a.id)===-1) delIdsInferes.push(a.id);
       });
       serverAct.forEach(function(a){ if(a.id>maxVu) maxVu=a.id; });
       D._maxIdConfirmeActivite = maxVu;
@@ -7191,7 +7235,10 @@ function chargerActivitesEtStockDepuisTables(session){
        * ni aucun autre calcul ou fonctionnalité.
        */
       if (session.role === 'admin') {
-        var idsEncoreSurServeurApresTombstone = delIdsActivites.filter(function(id){ return idsServeur[id]; });
+        // CORRECTIF CRITIQUE (voir plus haut) : uniquement delIdsExplicites
+        // ici — jamais delIdsInferes — pour qu'une supposition locale ne
+        // puisse plus jamais déclencher une vraie suppression serveur.
+        var idsEncoreSurServeurApresTombstone = delIdsExplicites.filter(function(id){ return idsServeur[id]; });
         if (idsEncoreSurServeurApresTombstone.length && typeof reessayerSuppressionsActivitesEnAttente === 'function') {
           reessayerSuppressionsActivitesEnAttente(idsEncoreSurServeurApresTombstone);
         }
@@ -7204,7 +7251,12 @@ function chargerActivitesEtStockDepuisTables(session){
     // de faire disparaître ce qui a été supprimé exprès.
     if (serverAct){
       var activitesAvant = D.activites;
-      D.activites = mergeArraysById(D.activites, serverAct, delIdsActivites);
+      // Union des tombstones explicites (persistés, déclenchent une
+      // vraie suppression serveur) et inférés (locaux à cette fusion
+      // uniquement) — l'affichage reste identique à avant, seule la
+      // PERSISTANCE et la PROPAGATION SERVEUR des tombstones inférés
+      // ont été retirées (voir correctifs ci-dessus).
+      D.activites = mergeArraysById(D.activites, serverAct, delIdsExplicites.concat(delIdsInferes));
       // Voir protegerEditionsRecentes() : une modification locale toute
       // fraîche (< 30s) reprend le dessus le temps que son envoi aboutisse.
       D.activites = protegerEditionsRecentes(D.activites, activitesAvant);
@@ -7660,17 +7712,43 @@ function syncDepensesDettesPaiementsVersNouvellesTables(){
     Promise.all(enCours.map(function(id){
       return supabaseTable('/rest/v1/'+champ+'?id=eq.'+id, { method:'DELETE', headers:{'Prefer':'return=representation'} }, session.access_token)
         .then(function(r){
-          if (r.ok) return r.json().catch(function(){ return []; }).then(function(supprimees){
-            if (Array.isArray(supprimees) && supprimees.length===0) echecsSuppr.push(id);
-            return r;
-          });
+          /**
+           * CORRECTIF CIBLÉ (01-09-2026 — "1 suppression(s) de paiement(s)
+           * refusée(s) par le serveur" affiché sans qu'aucune suppression
+           * manuelle n'ait été faite) — cause exacte trouvée : un DELETE
+           * Supabase qui RÉUSSIT (HTTP 200, r.ok===true) mais qui ne
+           * trouve plus aucune ligne à supprimer (déjà supprimée lors
+           * d'une tentative précédente — cas parfaitement normal et
+           * attendu, DELETE étant idempotent) renvoie `[]`. Ce code
+           * traitait alors `[]` comme un ÉCHEC (echecsSuppr.push(id)),
+           * ce qui empêchait indéfiniment le retrait de l'id de
+           * D._del.paiements : le même id déjà traité était donc
+           * retenté, et le même faux message d'échec réaffiché, à
+           * CHAQUE save() de l'appli (activité, stock, etc. — voir
+           * save(), sans lien avec une suppression volontaire).
+           * Corrigé : un DELETE avec r.ok===true est désormais TOUJOURS
+           * une réussite, que la réponse contienne 0 ou plusieurs
+           * lignes — seul un vrai refus HTTP (r.ok===false, ex. RLS)
+           * compte encore comme un échec. Aucun autre comportement
+           * changé : le tombstone n'est retiré que pour les ids dont le
+           * DELETE a effectivement réussi, jamais pour un id non encore
+           * envoyé, et markDeleted() (seule origine possible d'un id
+           * dans D._del) est totalement inchangé.
+           */
+          if (r.ok) return r;
           return r.text().then(function(corps){ echecsSuppr.push(id); console.error('[sync suppression '+champ+'] refusée —', r.status, corps); return r; });
         })
         .catch(function(e){ echecsSuppr.push(id); console.error('[sync suppression '+champ+']', e); return null; });
     })).then(function(){
       var idsReussis = enCours.filter(function(id){ return echecsSuppr.indexOf(id)===-1; });
-      if (D._del && D._del[champ]) {
+      if (idsReussis.length && D._del && D._del[champ]) {
         D._del[champ] = D._del[champ].filter(function(id){ return idsReussis.indexOf(id)===-1; });
+        // CORRECTIF CIBLÉ (voir ci-dessus) : sans ce persist(), le
+        // nettoyage du tombstone ne restait qu'en mémoire — un rechargement
+        // de page avant le save() suivant aurait ramené l'ancien
+        // D._del[champ] depuis le localStorage, et le faux message
+        // aurait pu réapparaître malgré une suppression déjà réussie.
+        if (typeof persist === 'function') persist();
       }
       if (echecsSuppr.length) {
         notif('❌ '+echecsSuppr.length+' suppression(s) de '+labelsChamp[champ]+'(s) refusée(s) par le serveur — nouvelle tentative automatique plus tard.', 10000);
