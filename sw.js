@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v110'; // 01-09-2026 : CORRECTIF CRITIQUE — "TOUTES les activités ont disparu" après mise à jour : une réponse serveur HTTP 200 mais VIDE pour la table "activites" (jeton expiré au mauvais moment, latence RLS, coupure réseau partielle...) n'était PAS traitée comme une erreur, et faisait donc effacer en bloc TOUT l'historique local déjà connu du serveur (a.id<=maxConfirme) via l'inférence de suppression dans chargerActivitesEtStockDepuisTables(). Corrigé : cette inférence ne s'exécute plus que si le serveur a réellement répondu au moins une ligne. Preuve : test reproduisant 50→0 activités sans le garde-fou, 50→50 avec. Voir aussi v109 (activités hors ligne perdues au premier passage) et v108 (Patrimoine par élément).
+const CACHE_VERSION = 'v112'; // 01-09-2026 : CORRECTIF UI — boîtes de dialogue/formulaires masqués par le clavier sur mobile (Android/iOS). Le mécanisme d'adaptation au clavier (visualViewport) couvrait déjà toutes les fenêtres .ov/.modal, mais pas #login-screen (connexion + récupération de mot de passe), un conteneur plein écran séparé. Ajouté à la liste, plus max-height/overflow-y:auto sur .login-box (même traitement que .modal) pour un défilement interne si besoin. UI uniquement — aucune logique métier, donnée, calcul ou synchronisation modifiés. Voir aussi v111/v110/v109/v108.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
