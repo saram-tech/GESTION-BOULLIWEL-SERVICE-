@@ -159,6 +159,26 @@ tbody tr:last-child td{border-bottom:none;}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:12px;}
 .ov.open{display:flex;}
 .modal{background:var(--bg2);border:1px solid var(--bd2);border-radius:17px;padding:20px;max-width:640px;width:100%;max-height:min(92vh,92%);overflow-y:auto;}
+/**
+ * CORRECTIF UI (03-09-2026 — "clavier Android + suggestions de noms de
+ * produits masquent encore la boîte de dialogue, notamment le bouton
+ * Enregistrer") : le mécanisme existant (adjustForKeyboard sur .ov, voir
+ * script en fin de fichier) redimensionne déjà correctement l'overlay
+ * .ov selon window.visualViewport, ce qui réduit d'autant le max-height
+ * de .modal — mais la ligne de boutons (Annuler / Enregistrer) restait
+ * un simple dernier enfant du flux normal, donc reléguée en bas d'un
+ * contenu qui peut devenir plus grand que l'espace visible restant :
+ * il fallait alors faire défiler manuellement pour l'atteindre.
+ * .mft ("modal footer") fixe ce point PUREMENT visuel : la ligne de
+ * boutons reste "collée" (position:sticky) au bas de la zone visible
+ * de .modal (qui défile déjà en interne via overflow-y:auto), donc
+ * toujours visible sans aucun défilement manuel, clavier ouvert ou non,
+ * avec ou sans le bandeau de suggestions de produits au-dessus du
+ * clavier. Purement CSS : aucune logique, donnée, ni synchronisation
+ * modifiée ; le contenu du formulaire défile normalement sous la ligne
+ * de boutons, qui elle ne bouge plus.
+ */
+.mft{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;position:sticky;bottom:-20px;margin:14px -20px -20px;padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));background:var(--bg2);border-top:1px solid var(--bd);border-radius:0 0 17px 17px;z-index:5;flex-shrink:0;}
 .mhd{font-family:var(--font-display);font-size:.97rem;font-weight:700;color:var(--tx);margin-bottom:15px;display:flex;justify-content:space-between;align-items:center;}
 .mcl{background:none;border:none;color:var(--tx2);cursor:pointer;font-size:1.1rem;padding:3px;}.mcl:hover{color:var(--re);}
 .dv{display:flex;align-items:center;gap:9px;margin:11px 0;color:var(--tx3);font-size:.67rem;text-transform:uppercase;letter-spacing:.07em;}
@@ -953,7 +973,7 @@ tbody tr:last-child td{border-bottom:none;}
         <span>Bénéfice : <strong id="pv-b">0</strong></span>
       </div>
     </div>
-    <div style="display:flex;gap:7px;justify-content:flex-end">
+    <div class="mft">
       <button class="btn bh" onclick="cm('ma');rAF()">Annuler</button>
       <button class="btn bp" id="btn-sa" onclick="enrAct()">✓ Enregistrer</button>
     </div>
@@ -970,7 +990,7 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="fg"><label>Montant encaissé *</label><input type="number" id="pp-m" placeholder="0"></div>
       <div class="fg"><label>Date</label><input type="date" id="pp-d"></div>
     </div>
-    <div style="display:flex;gap:7px;justify-content:flex-end">
+    <div class="mft">
       <button class="btn bh" onclick="cm('mpp')">Annuler</button>
       <button class="btn bs" onclick="enrPP()">✓ Enregistrer</button>
     </div>
@@ -985,7 +1005,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div id="aq-inf" style="background:var(--bg4);border-radius:7px;padding:8px;margin-bottom:9px;font-size:.79rem"></div>
     <div class="fr"><div class="fg"><label>Quantité à ajouter *</label><input type="number" id="aq-qte" placeholder="0" min="1"></div></div>
     <div class="al ali" style="font-size:.74rem">Cette quantité s'additionne automatiquement à la quantité déjà existante du produit.</div>
-    <div style="display:flex;gap:7px;justify-content:flex-end">
+    <div class="mft">
       <button class="btn bh" onclick="cm('maq')">Annuler</button>
       <button class="btn bs" onclick="enrAjoutQte()">✓ Ajouter</button>
     </div>
@@ -1109,7 +1129,7 @@ tbody tr:last-child td{border-bottom:none;}
       <div style="display:flex;justify-content:space-between"><span style="color:var(--tx2)">Développé pour</span><strong>Boulliwel Service</strong></div>
     </div>
     <div class="al alw" style="font-size:.74rem;margin-top:10px">Dernière mise à jour majeure : fusion Stock Perso ↔ Stock Entreprise, majuscules automatiques, suggestions de produits, paramètres réglables, envoi WhatsApp fournisseur.</div>
-    <div style="display:flex;justify-content:flex-end;margin-top:12px">
+    <div class="mft">
       <button class="btn bh" onclick="cm('mabout')">Fermer</button>
     </div>
   </div>
@@ -1131,7 +1151,7 @@ tbody tr:last-child td{border-bottom:none;}
       </div>
     </div>
     <div id="sec-err" style="color:var(--re);font-size:.78rem;min-height:1.2em;margin-bottom:6px"></div>
-    <div style="display:flex;gap:7px;justify-content:flex-end">
+    <div class="mft">
       <button class="btn bh" onclick="cm('msecure')">Annuler</button>
       <button class="btn bd" onclick="validerActionSecurisee()">✓ Confirmer et exécuter</button>
     </div>
@@ -1159,7 +1179,7 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="fg"><label>Date</label><input type="date" id="s-date"></div>
     </div>
     <div class="al ali" style="font-size:.75rem">⚙️ Seuil : alerte déclenchée quand stock restant ≤ cette valeur. Ex: 3 → alerte si restant ≤ 3.</div>
-    <div style="display:flex;gap:7px;justify-content:flex-end">
+    <div class="mft">
       <button class="btn bh" onclick="cm('ms');rSF()">Annuler</button>
       <button class="btn bp" id="btn-ss" onclick="enrStock()">✓ Enregistrer</button>
     </div>
@@ -1181,7 +1201,7 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="fg"><label>Prix vente unitaire (GNF)</label><input type="number" id="p-vente" placeholder="0"></div>
     </div>
     <div class="fr"><div class="fg"><label>Date</label><input type="date" id="p-date"></div></div>
-    <div style="display:flex;gap:7px;justify-content:flex-end">
+    <div class="mft">
       <button class="btn bh" onclick="cm('mp');rPF()">Annuler</button>
       <button class="btn bg" id="btn-sp" onclick="enrPerso()">✓ Enregistrer</button>
     </div>
@@ -1201,7 +1221,7 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="fg" style="flex:2"><label>Description *</label><input type="text" id="det-desc" placeholder="Ex: Prêt du 01/04/2026..."></div>
       <div class="fg"><label>Montant (GNF) *</label><input type="number" id="det-montant" placeholder="0"></div>
     </div>
-    <div style="display:flex;gap:7px;justify-content:flex-end">
+    <div class="mft">
       <button class="btn bh" onclick="cm('mdet');rDF()">Annuler</button>
       <button class="btn bd" id="btn-sd" onclick="enrDette()">💾 Enregistrer dette</button>
     </div>
@@ -1226,7 +1246,7 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="fg"><label>Note</label><input type="text" id="paym-n" placeholder="Description..."></div>
       <div class="fg"><label>Date *</label><input type="date" id="paym-d"></div>
     </div>
-    <div style="display:flex;gap:7px;justify-content:flex-end">
+    <div class="mft">
       <button class="btn bh" onclick="cm('mpaym');rPAF()">Annuler</button>
       <button class="btn bs" id="btn-spaym" onclick="enrPaym()">✓ Enregistrer</button>
     </div>
@@ -1248,7 +1268,7 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="fg"><label>Total (auto)</label><input type="number" id="dep-tot" placeholder="0" readonly></div>
     </div>
     <div class="fr"><div class="fg"><label>Date</label><input type="date" id="dep-date"></div></div>
-    <div style="display:flex;gap:7px;justify-content:flex-end">
+    <div class="mft">
       <button class="btn bh" onclick="cm('md');rDepF()">Annuler</button>
       <button class="btn bp" id="btn-sdep" onclick="enrDep()">✓ Enregistrer</button>
     </div>
@@ -1263,7 +1283,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="fr">
       <div class="fg" style="flex:1"><label>Nouvelle catégorie</label><input type="text" id="mcat-new" placeholder="Nom de la catégorie" onkeydown="if(event.key==='Enter')ajouterCategorieDep()"></div>
     </div>
-    <div style="display:flex;gap:7px;justify-content:flex-end">
+    <div class="mft">
       <button class="btn bh" onclick="cm('mcat')">Fermer</button>
       <button class="btn bs" onclick="ajouterCategorieDep()">✓ Ajouter</button>
     </div>
@@ -1300,7 +1320,7 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="fg"><label>Statut</label><select id="c-st"><option>En attente</option><option>En cours</option><option>Livré</option><option>Annulé</option></select></div>
       <div class="fg"><label>Note</label><input type="text" id="c-note" placeholder="Remarque..."></div>
     </div>
-    <div style="display:flex;gap:7px;justify-content:flex-end">
+    <div class="mft">
       <button class="btn bh" onclick="cm('mc');rCF()">Annuler</button>
       <button class="btn bo" id="btn-sc" onclick="enrCmd()">✓ Enregistrer commande</button>
     </div>
@@ -1315,7 +1335,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="mhd">🔍 Détail de votre situation avec l'Administrateur<button class="mcl" onclick="cm('m-detail-dette')">✕</button></div>
     <div id="dd-resume" style="background:var(--bg4);border-radius:9px;padding:11px;margin-bottom:12px;font-size:.85rem"></div>
     <div id="dd-corps" style="max-height:50vh;overflow-y:auto"></div>
-    <div style="display:flex;justify-content:flex-end;margin-top:12px">
+    <div class="mft">
       <button class="btn bh" onclick="cm('m-detail-dette')">Fermer</button>
     </div>
   </div>
@@ -1327,7 +1347,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="mhd">🔍 Détail des dépenses<button class="mcl" onclick="cm('m-detail-depenses')">✕</button></div>
     <div id="ddp-resume" style="background:var(--bg4);border-radius:9px;padding:11px;margin-bottom:12px;font-size:.85rem"></div>
     <div id="ddp-corps" style="max-height:50vh;overflow-y:auto"></div>
-    <div style="display:flex;justify-content:flex-end;margin-top:12px">
+    <div class="mft">
       <button class="btn bh" onclick="cm('m-detail-depenses')">Fermer</button>
     </div>
   </div>
@@ -1340,7 +1360,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="fg" style="margin-bottom:10px"><label>Nouveau mot de passe</label><div style="position:relative"><input type="password" id="cp-nouveau" placeholder="Nouveau mot de passe (min. 4 caractères)" style="padding-right:40px"><span onclick="togglePass('cp-nouveau',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem">👁</span></div></div>
     <div class="fg" style="margin-bottom:10px"><label>Confirmer</label><div style="position:relative"><input type="password" id="cp-confirm" placeholder="Répétez le nouveau mot de passe" style="padding-right:40px"><span onclick="togglePass('cp-confirm',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem">👁</span></div></div>
     <div class="login-err" id="cp-err"></div>
-    <div style="display:flex;gap:7px;justify-content:flex-end">
+    <div class="mft">
       <button class="btn bh" onclick="cm('m-changer-pass')">Annuler</button>
       <button class="btn bp" onclick="doChangerPass()">✓ Modifier</button>
     </div>
@@ -1415,14 +1435,65 @@ let D = {
   activites:[],stock:[],perso:[],depenses:[],
   dettes:[],dettesClot:0,detteVerrou:false,
   paiements:[],commandes:[],histo:[],corbeille:[],
-  _o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}
+  _o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}
 };
 
 function load(){
   try{
     const s=localStorage.getItem(KEY);
-    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}},d); if(!D._del) D._del={}; }
+    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}},d); if(!D._del) D._del={}; }
   }catch(e){}
+  migrerEntDoitBaseStockPerso();
+}
+/**
+ * MIGRATION UNIQUE (01-09-2026 — sécurisation de l'introduction de
+ * D.entDoitBase) : pour un compte déjà utilisé AVANT cette mise à jour,
+ * D.entDejaDeduit contient déjà un vrai historique de clôtures passées,
+ * alors que D.entDoitBase (nouveau champ) démarre par défaut à 0. Sans
+ * cette migration, la toute première lecture du Bilan après la mise à
+ * jour ferait immédiatement REMONTER "Reste que l'entreprise vous doit"
+ * et "Total brut dû" du montant exact de D.entDejaDeduit — une hausse
+ * artificielle, pas une vraie dette — et cette hausse serait FIGÉE pour
+ * de bon dès la prochaine clôture (voir calculerBilanData()).
+ * Exécutée UNE SEULE FOIS (verrou D._migreEntDoitBase, qui se propage
+ * lui-même via la synchronisation normale — aucun risque de la relancer
+ * sur un autre appareil une fois qu'un premier appareil l'a déjà faite
+ * et synchronisée). Ne touche : ni D.activites, ni D.dettes, ni
+ * D.paiements, ni D.depenses, ni D.histo, ni D.dettesClot, ni
+ * D.entDejaDeduit (préservé intact, encore transmis au serveur comme
+ * avant) — AUCUNE clôture n'est déclenchée. Seul le Stock Perso est
+ * consolidé, exactement comme le ferait une clôture réelle pour ce
+ * module précis (mêmes champs vidés, même marqueur _videParCloture pour
+ * la protection anti-résurrection déjà en place lors d'une fusion
+ * multi-appareils — voir mergeAppData()), afin que "Reste que
+ * l'entreprise vous doit" reste STRICTEMENT identique avant/après :
+ *   entDoitBase = (Stock perso brut actuel) − entDejaDeduit
+ * puis les fiches existantes sont vidées de leur contenu financier
+ * (nom conservé). Comptes Associé/Visiteur : D.perso est déjà vide en
+ * permanence pour eux (voir chargerDonneesAssocie), donc cette
+ * migration n'a concrètement d'effet que sur les données Administrateur,
+ * qu'ils partagent via la synchronisation normale.
+ */
+function migrerEntDoitBaseStockPerso(){
+  if (D._migreEntDoitBase) return;
+  // Sécurité supplémentaire : si toutes les fiches sont déjà vidées
+  // (migration déjà faite ailleurs et fusionnée, ou clôture réelle déjà
+  // passée sous v54), il n'y a rien à migrer — on pose juste le verrou,
+  // sans RECALCULER entDoitBase (qui donnerait un résultat négatif/faux
+  // si on le faisait sur un Stock Perso déjà vidé).
+  var resteAMigrer = (D.perso||[]).some(function(p){ return !p._videParCloture; });
+  if (!resteAMigrer) { D._migreEntDoitBase = true; return; }
+  var tpersoRawActuel = (D.perso||[]).reduce(function(s,p){ return s+((p.totalDu||0)-(p.rembourse||0)); },0);
+  D.entDoitBase = tpersoRawActuel - (D.entDejaDeduit||0);
+  var maintenant = new Date().toISOString();
+  (D.perso||[]).forEach(function(p){
+    p.qteInitiale=0; p.achat=0; p.vente=0; p.prixRevient=0; p.commission=0;
+    p.totalDu=0; p.rembourse=0;
+    p.dernierAjoutQte=0; p.dernierAjoutDate=null; p.dernierAjoutRevient=0; p.dernierAjoutCommission=0;
+    p._videParCloture=true; p._localTouchedAt=Date.now();
+    p.derniereModifDate=maintenant;
+  });
+  D._migreEntDoitBase = true;
 }
 
 /**
@@ -3594,7 +3665,35 @@ function calculerBilanData(){
   var tr=D.activites.reduce(function(s,a){ return s+a.reste; },0);
   var bb=tp-ta;
   var tdep=D.depenses.reduce(function(s,d){ return s+d.montant; },0);
-  var tperso=D.perso.reduce(function(s,p){ return s+(p.totalDu-p.rembourse); },0);
+  /**
+   * CORRECTIF (01-09-2026 — "Reste que l'entreprise vous doit" après
+   * clôture) : jusqu'ici, "tperso" ne comptait QUE la somme brute des
+   * fiches Stock Perso encore présentes (D.perso), et le cumul
+   * D.entDejaDeduit (jamais visible dans "tperso" lui-même) était
+   * soustrait séparément dans aDeduire ci-dessous. Cause du problème
+   * signalé : après une clôture, D.perso restait INTACT (fiches jamais
+   * vidées) — donc "tperso" recomptait CHAQUE FOIS la même valeur brute
+   * historique complète, pendant que D.entDejaDeduit grossissait aussi
+   * de son côté : deux cumuls parallèles qui progressaient ensemble sans
+   * jamais se rejoindre, au lieu de se consolider en un seul chiffre.
+   * Nouveau fonctionnement : à la clôture (voir executerCloture()), les
+   * fiches Stock Perso existantes sont vidées de tout contenu financier
+   * (nom conservé, quantité/prix/valeur due remis à zéro — le stock
+   * physique est de toute façon déjà fusionné dans le Stock Entreprise
+   * depuis longtemps, voir fusionnerDansStockEnt()), et D.entDoitBase
+   * reçoit EXACTEMENT le "Reste que l'entreprise vous doit" figé juste
+   * avant cette clôture. "tperso" devient alors la somme de ce report
+   * figé + la valeur brute des SEULES fiches encore actives (nouvelles
+   * ou non vidées) — jamais les deux à la fois pour une même fiche,
+   * donc jamais compté deux fois. D.entDejaDeduit n'est PLUS utilisé
+   * ici (voir aDeduire) — il continue d'être mis à jour et transmis au
+   * serveur à l'identique (voir executerCloture() et
+   * syncParametresVersNouvelleTable()) uniquement pour ne rien changer
+   * côté RPC Supabase (bilan_confidentiel) qui pourrait en dépendre et
+   * que ce fichier ne contient pas.
+   */
+  var tpersoActuel=D.perso.reduce(function(s,p){ return s+((p.totalDu||0)-(p.rembourse||0)); },0);
+  var tperso=(D.entDoitBase||0)+tpersoActuel;
   var d20=bb*(getParams().reinvest/100), a20=bb-d20, aD=a20-tdep;
   var mp=aD/2, pab=aD/2;
   var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0)+D.dettesClot;
@@ -3603,11 +3702,11 @@ function calculerBilanData(){
   var dn=dnBrut;
   var ra=pab-dn;
   var entDoit=tperso;
-  var aDeduire=ta+d20+(D.entDejaDeduit||0);
+  var aDeduire=ta+d20;
   var resteEnt=entDoit-aDeduire;
   var resteAVousPayer=Math.max(0,-ra);
   var resteAssocieDoit=Math.max(0,-ra);
-  return {tp:tp,ta:ta,tapy:tapy,tr:tr,bb:bb,tdep:tdep,tperso:tperso,d20:d20,a20:a20,aD:aD,
+  return {tp:tp,ta:ta,tapy:tapy,tr:tr,bb:bb,tdep:tdep,tperso:tperso,tpersoActuel:tpersoActuel,d20:d20,a20:a20,aD:aD,
     mp:mp,pab:pab,totD:totD,totP:totP,dnBrut:dnBrut,
     dn:dn,ra:ra,entDoit:entDoit,aDeduire:aDeduire,resteEnt:resteEnt,
     resteAVousPayer:resteAVousPayer,resteAssocieDoit:resteAssocieDoit};
@@ -3664,10 +3763,10 @@ function calculerBilan(){
   html+='<div class="dv">Ce que l\'entreprise vous doit</div>';
   html+='<div style="background:var(--bg4);border-radius:9px;padding:12px">';
   html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">Stock perso (prix revient + 15%)</span><span style="color:var(--go)">'+fmt(tperso)+'</span></div>';
+  if((D.entDoitBase||0)>0) html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:.76rem"><span style="color:var(--tx3)">— dont report clôtures précédentes</span><span style="color:var(--tx3)">'+fmt(D.entDoitBase||0)+'</span></div>';
   html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">Total brut dû</span><span style="color:var(--go)">'+fmt(entDoit)+'</span></div>';
   html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">− Prix achat total (période)</span><span style="color:var(--re)">− '+fmt(ta)+'</span></div>';
   html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">− 20% (ajouté au prix d\'achat, période)</span><span style="color:var(--re)">− '+fmt(d20)+'</span></div>';
-  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">− Déjà déduit lors des clôtures précédentes</span><span style="color:var(--re)">− '+fmt(D.entDejaDeduit||0)+'</span></div>';
   html+='<hr class="sep">';
   html+='<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600">Reste que l\'entreprise vous doit</span><span style="font-family:Syne,sans-serif;font-size:1.05rem;color:var(--go)">'+fmt(Math.max(0,resteEnt))+'</span></div>';
   if(resteEnt<0) html+='<div style="margin-top:6px;padding:6px;background:rgba(239,68,68,.1);border-radius:7px;font-size:.77rem;color:var(--re)">⚠️ Prix d\'achat + 20% dépassent le stock perso dû de : <strong>'+fmt(Math.abs(resteEnt))+'</strong></div>';
@@ -4053,9 +4152,10 @@ function exportExcelVerifie(){
         var dnBrut=Math.max(0,totD-totP);
         var dn=dnBrut;
         var ra=pab-dn;
-        var tperso=D.perso.reduce(function(s,p){ return s+(p.totalDu-(p.rembourse||0)); },0);
+        var tpersoActuel=D.perso.reduce(function(s,p){ return s+((p.totalDu||0)-(p.rembourse||0)); },0);
+        var tperso=(D.entDoitBase||0)+tpersoActuel;
         var entDoit=tperso;
-        var aDeduire=ta+d20+(D.entDejaDeduit||0);
+        var aDeduire=ta+d20;
         var resteEnt=entDoit-aDeduire;
         var bilanData=[
           ['Total encaissé (payé)',tp],['Prix achat total (activités)',ta],['Total à payer (activités)',tapy],['Reste clients (impayé)',trReste],
@@ -4065,8 +4165,7 @@ function exportExcelVerifie(){
           ['Dette brute associé (actives + cumul clôtures)',totD],['Paiements reçus de l\'associé',totP],
           ['Dette nette (dettes − paiements reçus)',dnBrut],
           ['Part associé nette (reçoit si positif, doit si négatif)',ra],
-          ['Stock perso — total dû',tperso],['− Prix achat total (période)',ta],['− 20% (période)',d20],
-          ['− Déjà déduit (cumul clôtures précédentes)',D.entDejaDeduit||0],
+          ['Stock perso — total dû',tperso],['— dont report clôtures précédentes',D.entDoitBase||0],['− Prix achat total (période)',ta],['− 20% (période)',d20],
           ['Reste que l\'entreprise vous doit (stock perso)',resteEnt],
           ['Cumul dettes clôturées (dettesClot)',D.dettesClot]
         ];
@@ -4117,7 +4216,50 @@ function executerCloture(){
   var tpPeriode=D.activites.reduce(function(s,a){ return s+a.paye; },0);
   var bbPeriode=tpPeriode-taPeriode;
   var d20Periode=bbPeriode*(getParams().reinvest/100);
+  // CONSERVÉ à l'identique (voir calculerBilanData()) uniquement pour ne
+  // rien changer côté RPC Supabase (bilan_confidentiel) susceptible d'en
+  // dépendre — ce fichier ne contient pas cette fonction serveur, donc ce
+  // cumul continue d'être mis à jour et transmis par prudence, même s'il
+  // ne sert plus au calcul local ci-dessous (remplacé par D.entDoitBase).
   D.entDejaDeduit=(D.entDejaDeduit||0)+taPeriode+d20Periode;
+  /**
+   * CORRECTIF (01-09-2026 — "Reste que l'entreprise vous doit" incorrect
+   * après clôture, Stock Perso jamais vidé) : le Stock Perso (D.perso)
+   * n'était JAMAIS vidé à la clôture — pourtant son contenu physique est
+   * déjà fusionné dans le Stock Entreprise dès l'ajout (voir
+   * fusionnerDansStockEnt(), appelée immédiatement par enrPerso(), pas
+   * seulement à la clôture). Conserver le contenu financier (quantité,
+   * prix, valeur due) de ces fiches après clôture les faisait recompter
+   * en entier à CHAQUE bilan suivant, en plus du cumul D.entDejaDeduit
+   * qui grossissait de son côté — deux cumuls parallèles qui ne se
+   * rejoignaient jamais, au lieu d'une consolidation unique.
+   * Nouveau fonctionnement : on fige ici, dans D.entDoitBase, EXACTEMENT
+   * le "Reste que l'entreprise vous doit" (resteEnt) tel qu'il était
+   * juste avant cette clôture (déjà calculé ci-dessus par
+   * enregistrerSnapshotClotureRapport() via calculerBilanData(), avant
+   * toute modification — bdAvantCloture ci-dessous), puis on vide tout
+   * le contenu FINANCIER des fiches Stock Perso existantes (quantité,
+   * prix, valeur due remis à 0) en conservant uniquement le nom, pour
+   * qu'elles ne soient plus jamais recomptées (voir tpersoActuel dans
+   * calculerBilanData()) — le stock physique correspondant reste, lui,
+   * inchangé dans le Stock Entreprise, jamais touché ici. D.entDoitBase
+   * REMPLACE (et non additionne) sa valeur précédente à chaque clôture,
+   * puisque resteEnt à cet instant inclut déjà tout le report des
+   * clôtures antérieures — l'additionner reviendrait à compter deux
+   * fois. Toute nouvelle fiche Stock Perso ajoutée après cette clôture
+   * n'est PAS concernée : elle reste normale (quantité/prix/valeur due
+   * réels) et ne sera consolidée qu'à la PROCHAINE clôture.
+   */
+  var bdAvantCloture=calculerBilanData();
+  D.entDoitBase=bdAvantCloture.resteEnt;
+  var maintenantCloture=new Date().toISOString();
+  D.perso.forEach(function(p){
+    p.qteInitiale=0; p.achat=0; p.vente=0; p.prixRevient=0; p.commission=0;
+    p.totalDu=0; p.rembourse=0;
+    p.dernierAjoutQte=0; p.dernierAjoutDate=null; p.dernierAjoutRevient=0; p.dernierAjoutCommission=0;
+    p._videParCloture=true; p._localTouchedAt=Date.now();
+    p.derniereModifDate=maintenantCloture;
+  });
   /**
    * CORRECTIF (activités de l'Associé qui réapparaissent après clôture) :
    * cause exacte trouvée — les tombstones ci-dessous (markDeleted) ne
@@ -5131,9 +5273,10 @@ function exportExcel(){
       var dnBrut=Math.max(0,totD-totP);
       var dn=dnBrut;
       var ra=pab-dn;
-      var tperso=D.perso.reduce(function(s,p){ return s+(p.totalDu-(p.rembourse||0)); },0);
+      var tpersoActuel=D.perso.reduce(function(s,p){ return s+((p.totalDu||0)-(p.rembourse||0)); },0);
+      var tperso=(D.entDoitBase||0)+tpersoActuel;
       var entDoit=tperso;
-      var aDeduire=ta+d20+(D.entDejaDeduit||0);
+      var aDeduire=ta+d20;
       var resteEnt=entDoit-aDeduire;
       var bilanData=[
         ['Total encaissé (payé)',tp],['Prix achat total (activités)',ta],['Total à payer (activités)',tapy],['Reste clients (impayé)',trReste],
@@ -5143,8 +5286,7 @@ function exportExcel(){
         ['Dette brute associé (actives + cumul clôtures)',totD],['Paiements reçus de l\'associé',totP],
         ['Dette nette (dettes − paiements reçus)',dnBrut],
         ['Part associé nette (reçoit si positif, doit si négatif)',ra],
-        ['Stock perso — total dû',tperso],['− Prix achat total (période)',ta],['− 20% (période)',d20],
-        ['− Déjà déduit (cumul clôtures précédentes)',D.entDejaDeduit||0],
+        ['Stock perso — total dû',tperso],['— dont report clôtures précédentes',D.entDoitBase||0],['− Prix achat total (période)',ta],['− 20% (période)',d20],
         ['Reste que l\'entreprise vous doit (stock perso)',resteEnt],
         ['Cumul dettes clôturées (dettesClot)',D.dettesClot]
       ];
@@ -5361,7 +5503,7 @@ function saveCloud(){
 function loadFromHash(){
   var h=window.location.hash;
   if(h&&h.startsWith('#data=')){
-    try{ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}},JSON.parse(decodeURIComponent(atob(h.slice(6))))); persist(); notif('✅ Données restaurées !'); return true; }catch(e){}
+    try{ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}},JSON.parse(decodeURIComponent(atob(h.slice(6))))); persist(); notif('✅ Données restaurées !'); return true; }catch(e){}
   } return false;
 }
 
@@ -5572,7 +5714,7 @@ function viderTout() {
     });
     D.activites = []; D.stock = []; D.perso = []; D.depenses = [];
     D.dettes = []; D.paiements = []; D.commandes = []; D.histo = []; D.corbeille = [];
-    D.dettesClot = 0; D.detteVerrou = false; D._o = 1; D._co = 1; D.entDejaDeduit = 0;
+    D.dettesClot = 0; D.detteVerrou = false; D._o = 1; D._co = 1; D.entDejaDeduit = 0; D.entDoitBase = 0;
     save(); notif('✅ Tous les éléments supprimés.');
   });
 }
@@ -5686,7 +5828,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v53';
+var APP_VERSION = 'v57';
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
@@ -5710,7 +5852,7 @@ function toggleTriAZ(tbl){
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-09-01T03:00:00'; // CORRECTIF UI : boîtes de dialogue/formulaires masqués par le clavier sur mobile. #login-screen (connexion + récupération de mot de passe) ajouté au mécanisme d'adaptation au clavier déjà utilisé par toutes les autres fenêtres (.ov/.modal), avec défilement interne si besoin. UI uniquement, aucune donnée ni calcul modifié.
+var APP_DERNIERE_MAJ = '2026-09-03T00:00:00'; // CORRECTIF UI : bouton "Enregistrer" des boîtes de dialogue toujours visible au-dessus du clavier Android (voir .mft dans le CSS), sans défilement manuel. Aucune logique, donnée ni synchronisation modifiée.
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
@@ -7335,7 +7477,7 @@ function chargerActivitesEtStockDepuisTables(session){
 function chargerDonneesAssocie(session){
   return chargerActivitesEtStockDepuisTables(session).then(function(resultat){
     D.perso=[]; D.depenses=[]; D.dettes=[]; D.paiements=[]; D.commandes=[]; D.histo=[]; D.corbeille=[];
-    D.dettesClot=0; D.detteVerrou=false; D.entDejaDeduit=0; D.auth=null; D.resetCodes=[];
+    D.dettesClot=0; D.detteVerrou=false; D.entDejaDeduit=0; D.entDoitBase=0; D.auth=null; D.resetCodes=[];
     // Un minimum de paramètres non confidentiels pour que l'interface
     // fonctionne (aucun montant, aucun secret). CORRECTIF (persistance
     // des % Administrateur après déconnexion/reconnexion) : ce jeu de
@@ -7860,7 +8002,7 @@ function syncFromCloud() {
     .then(function (res) { return res.json(); })
     .then(function (rows) {
       if (rows && rows.length && rows[0].data) {
-        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}}, rows[0].data);
+        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}}, rows[0].data);
         persist(); renderAll();
         notif('✅ Données restaurées depuis le cloud');
         return true;
@@ -7895,7 +8037,7 @@ function syncFromCloud() {
 // tombstone désormais posé dans delPatrimoine() et la fusion appliquée
 // dans chargerPatrimoine().
 var MERGEABLE_ARRAYS = ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille','patrimoine'];
-var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],resetCodes:[],patrimoine:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}};
+var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],resetCodes:[],patrimoine:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}};
 
 /**
  * Fusionne deux tableaux d'éléments par leur "id" (union), sans perte,
@@ -8087,6 +8229,48 @@ function mergeAppData(cloudData, localData, cloudIsNewer) {
     merged[f].forEach(function(item){
       if(!item || item.id==null) return;
       var bItem=baseById[item.id], pItem=prioById[item.id];
+      /**
+       * CORRECTIF (01-09-2026 — "Stock Perso vidé par une clôture ou une
+       * migration qui réapparaît après une fusion multi-appareils") :
+       * la protection anti-recul de quantité ci-dessous existait pour
+       * éviter qu'un ajout hors ligne se perde. Mais une fiche
+       * volontairement vidée par une clôture ou par la migration
+       * entDoitBase (voir executerCloture()/migrerEntDoitBaseStockPerso(),
+       * champ _videParCloture) a une quantité à 0 qui n'est PAS une perte
+       * accidentelle — sans cette exception, sa créance a déjà été
+       * consolidée dans D.entDoitBase, et la recompter serait un double
+       * comptage.
+       * CORRECTIF SUPPLÉMENTAIRE (même date) — cause exacte trouvée : la
+       * première version de ce garde-fou ne regardait que "item"
+       * (le résultat DÉJÀ choisi par l'union mergeArraysById() plus
+       * haut), qui prend systématiquement toute la fiche du côté
+       * "prioritaire" pour cet id. Un appareil resté sur une ANCIENNE
+       * version (sans migration, fiche encore pleine) qui se synchronise
+       * APRÈS qu'un autre appareil a migré peut écraser tout le bloc
+       * cloud (voir syncToCloud(), remplacement complet, pas une fusion
+       * fine) — si cette poussée devient alors le côté "prioritaire"
+       * lors de la fusion suivante, l'union choisissait sa fiche
+       * ancienne, pleine, SANS _videParCloture : le test ne le
+       * détectait pas, la fiche revenait avec sa valeur d'origine,
+       * ALORS que D.entDoitBase restait, lui, correctement protégé
+       * (Math.max ci-dessous) — un vrai double comptage. Corrigé en
+       * regardant aussi les DEUX côtés AVANT fusion (bItem/pItem) : si
+       * L'UN OU L'AUTRE porte déjà _videParCloture pour cet id, l'état
+       * vidé est ré-appliqué de force au résultat, quel que soit le
+       * côté choisi par l'union — un vidage par clôture/migration ne
+       * peut donc plus jamais être annulé par une version plus ancienne
+       * arrivant plus tard, sur cet appareil comme sur un autre.
+       */
+      if(f==='perso'){
+        var dejaVideAilleurs = (bItem && bItem._videParCloture) || (pItem && pItem._videParCloture) || item._videParCloture;
+        if(dejaVideAilleurs){
+          item.qteInitiale=0; item.achat=0; item.vente=0; item.prixRevient=0; item.commission=0;
+          item.totalDu=0; item.rembourse=0;
+          item.dernierAjoutQte=0; item.dernierAjoutDate=null; item.dernierAjoutRevient=0; item.dernierAjoutCommission=0;
+          item._videParCloture=true;
+          return;
+        }
+      }
       if(bItem && pItem){
         var maxQte = Math.max(Number(bItem.qteInitiale)||0, Number(pItem.qteInitiale)||0);
         if((Number(item.qteInitiale)||0) < maxQte){
@@ -8101,6 +8285,14 @@ function mergeAppData(cloudData, localData, cloudIsNewer) {
   });
   merged._o = Math.max(cloudData._o || 1, localData._o || 1);
   merged._co = Math.max(cloudData._co || 1, localData._co || 1);
+  // CORRECTIF (01-09-2026 — Stock Perso, resteEnt figé à la clôture) :
+  // D.entDoitBase est un cumul figé qui REMPLACE sa valeur à chaque
+  // clôture (voir executerCloture()) — exactement le même genre de champ
+  // verrouillé que dettesClot juste en dessous, jamais un simple champ
+  // qu'Object.assign() peut écraser en bloc lors d'une fusion. On garde
+  // systématiquement le plus grand des deux cumuls connus, jamais un
+  // recul (même logique, même raison que dettesClot/entDejaDeduit).
+  merged.entDoitBase = Math.max(Number(cloudData.entDoitBase) || 0, Number(localData.entDoitBase) || 0);
   // CORRECTIF (Stock Perso — "Entreprise me doit" incorrect après
   // clôture) : entDejaDeduit est un cumul qui ne fait qu'augmenter à
   // chaque clôture (voir executerCloture()), exactement comme _o/_co
@@ -8175,6 +8367,11 @@ function _reconcilerAppDataCoeur(silencieux) {
 
       var merged = mergeAppData(rows[0].data, D, cloudIsNewer);
       D = merged;
+      // Sécurité migration entDoitBase : couvre le cas d'un appareil qui
+      // aurait chargé v54 hors ligne (donc avec un état local pas encore
+      // migré) et ne fusionne qu'ici avec le cloud pour la première fois.
+      // Sans effet si déjà fait (verrou D._migreEntDoitBase).
+      migrerEntDoitBaseStockPerso();
       persist(); renderAll();
       // On repousse immédiatement la version fusionnée, pour que le
       // cloud et cet appareil convergent tout de suite vers l'union.
