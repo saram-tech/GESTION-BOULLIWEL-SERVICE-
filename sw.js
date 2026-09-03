@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v112'; // 01-09-2026 : CORRECTIF UI — boîtes de dialogue/formulaires masqués par le clavier sur mobile (Android/iOS). Le mécanisme d'adaptation au clavier (visualViewport) couvrait déjà toutes les fenêtres .ov/.modal, mais pas #login-screen (connexion + récupération de mot de passe), un conteneur plein écran séparé. Ajouté à la liste, plus max-height/overflow-y:auto sur .login-box (même traitement que .modal) pour un défilement interne si besoin. UI uniquement — aucune logique métier, donnée, calcul ou synchronisation modifiés. Voir aussi v111/v110/v109/v108.
+const CACHE_VERSION = 'v116'; // 03-09-2026 : CORRECTIF UI — clavier Android + suggestions de noms de produits masquaient encore le bouton "Enregistrer" des boîtes de dialogue (.ov/.modal). Ajout de la classe .mft (footer collé en bas, position:sticky, purement CSS) sur la ligne de boutons de chaque modale à formulaire : elle reste désormais toujours visible au-dessus du clavier, sans défilement manuel. Aucune logique, donnée ni synchronisation modifiée. Voir aussi v115/v114/v113/v112.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
