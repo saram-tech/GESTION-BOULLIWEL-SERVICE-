@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v116'; // 03-09-2026 : CORRECTIF UI — clavier Android + suggestions de noms de produits masquaient encore le bouton "Enregistrer" des boîtes de dialogue (.ov/.modal). Ajout de la classe .mft (footer collé en bas, position:sticky, purement CSS) sur la ligne de boutons de chaque modale à formulaire : elle reste désormais toujours visible au-dessus du clavier, sans défilement manuel. Aucune logique, donnée ni synchronisation modifiée. Voir aussi v115/v114/v113/v112.
+const CACHE_VERSION = 'v117'; // 03-09-2026 : CORRECTIF CRITIQUE — un produit Stock Perso réintroduit sous un nom déjà présent auparavant (fiche consolidée par la migration v55 ou une clôture, nom conservé mais valeurs vidées) était vidé automatiquement par la synchronisation suivante, AVANT toute clôture réelle : la fiche réutilisée recevait une vraie nouvelle valeur sans jamais perdre son marqueur _videParCloture, ce qui déclenchait à tort la protection anti-résurrection (v56). Corrigé dans enrPerso() (édition et fusion par nom) et enrAjoutQte() (ajout rapide de quantité) : le marqueur est retiré dès qu'une fiche reçoit à nouveau un contenu financier actif. Testé : le scénario exact (Stock Perso existant + nouvel ajout sous le même nom avant clôture) est reproduit puis corrigé — le montant dû augmente et survit désormais à la synchronisation ; un produit entièrement nouveau reste, lui, inchangé (non-régression). Voir aussi v116/v115/v114.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
