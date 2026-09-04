@@ -2513,6 +2513,14 @@ function enrAjoutQte(){
     p.dernierAjoutQte=delta; p.dernierAjoutDate=maintenant;
     p.dernierAjoutRevient=addRevient; p.dernierAjoutCommission=addCommission;
     p.derniereModifDate=maintenant;
+    // CORRECTIF (même cause exacte que dans enrPerso(), voir son
+    // commentaire détaillé) : une fiche déjà consolidée (migration
+    // entDoitBase ou clôture) recevant ici une VRAIE nouvelle quantité
+    // doit perdre son marqueur _videParCloture, sinon la protection
+    // anti-résurrection (v56) la revide dès la synchronisation suivante,
+    // avant toute clôture réelle.
+    if(p._videParCloture){ p._videParCloture=false; }
+    p._localTouchedAt=Date.now();
     ah('perso','Ajout quantité perso: '+p.nom+' +'+delta,0,td());
     save(); cm('maq'); rPerso(); notif('✅ '+p.nom+' : +'+delta+' unité(s) ajoutée(s) (fusionné au stock entreprise)');
   }
@@ -2877,6 +2885,21 @@ function enrPerso(){
       }
       p.nom=nom;p.qteInitiale=qte;p.achat=achat;p.vente=vente;p.prixRevient=prixRevient;p.commission=commission;p.totalDu=totalDu;
       p.derniereModifDate=maintenant;
+      /**
+       * CORRECTIF (01-09-2026 — "un produit ajouté au Stock Perso est vidé
+       * automatiquement avant la clôture") : cause exacte trouvée — une
+       * fiche déjà consolidée (migration entDoitBase v55, ou clôture)
+       * garde son marqueur _videParCloture même une fois réutilisée ici
+       * avec une VRAIE nouvelle valeur. Cette fiche redevient alors une
+       * cible pour la protection anti-résurrection ajoutée en v56 (voir
+       * mergeAppData()) : celle-ci, voyant _videParCloture toujours
+       * présent, revide la fiche dès la synchronisation suivante — AVANT
+       * toute clôture réelle. Corrigé en retirant ce marqueur dès qu'une
+       * fiche reçoit à nouveau un contenu financier actif : elle n'est
+       * alors plus jamais traitée comme "déjà consolidée" tant qu'une
+       * VRAIE clôture ne l'a pas revidée elle-même.
+       */
+      if(p._videParCloture){ p._videParCloture=false; p._localTouchedAt=Date.now(); }
     }
     ah('perso','Modif perso: '+nom,totalDu,date);
   } else {
@@ -2884,7 +2907,15 @@ function enrPerso(){
     // CORRECTIF (même cause que Stock Entreprise, voir enrStock()) :
     // cette fusion ne mettait pas à jour dernierAjoutDate/Qte, donc le
     // filtre Période de rPerso() ne voyait jamais ce réapprovisionnement.
-    if(ex){ ex.qteInitiale+=qte;ex.prixRevient+=prixRevient;ex.commission+=commission;ex.totalDu+=totalDu; ex.derniereModifDate=maintenant; ex.dernierAjoutQte=qte; ex.dernierAjoutDate=maintenant; }
+    if(ex){
+      ex.qteInitiale+=qte;ex.prixRevient+=prixRevient;ex.commission+=commission;ex.totalDu+=totalDu; ex.derniereModifDate=maintenant; ex.dernierAjoutQte=qte; ex.dernierAjoutDate=maintenant;
+      // CORRECTIF (même cause qu'au-dessus, voir le commentaire détaillé
+      // dans la branche d'édition ci-dessus) : une fiche déjà consolidée
+      // et réutilisée ici par correspondance de nom doit elle aussi
+      // perdre son marqueur _videParCloture, sinon elle est revidée dès
+      // la prochaine synchronisation, avant toute clôture réelle.
+      if(ex._videParCloture){ ex._videParCloture=false; ex._localTouchedAt=Date.now(); }
+    }
     else D.perso.push({id:Date.now(),nom:nom,qteInitiale:qte,achat:achat,vente:vente,prixRevient:prixRevient,commission:commission,totalDu:totalDu,rembourse:0,date:date,heure:nowHM(),derniereModifDate:maintenant});
     // Fusion immédiate et automatique dans le Stock Entreprise (stock physique unique)
     fusionnerDansStockEnt(nom,qte,achat,vente,date);
@@ -5828,7 +5859,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v57';
+var APP_VERSION = 'v58';
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
@@ -5852,7 +5883,7 @@ function toggleTriAZ(tbl){
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-09-03T00:00:00'; // CORRECTIF UI : bouton "Enregistrer" des boîtes de dialogue toujours visible au-dessus du clavier Android (voir .mft dans le CSS), sans défilement manuel. Aucune logique, donnée ni synchronisation modifiée.
+var APP_DERNIERE_MAJ = '2026-09-03T01:00:00'; // CORRECTIF CRITIQUE : un produit Stock Perso réintroduit sous un nom déjà consolidé (migration/clôture) était vidé automatiquement à la synchronisation suivante, avant toute clôture réelle. Corrigé dans enrPerso() et enrAjoutQte() : le marqueur de consolidation est retiré dès qu'une fiche redevient active — le montant dû augmente normalement et survit à la synchronisation.
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
