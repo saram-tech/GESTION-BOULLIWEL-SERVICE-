@@ -3962,20 +3962,21 @@ function cloturer(){
   if(!exigerAdmin()) return;
   var nAct=D.activites.length, nDep=D.depenses.length, nDet=D.dettes.length, nPay=D.paiements.length;
   /**
-   * CORRECTIF (05-09-2026 — cumul verrouillé : demande explicite) : cet
-   * aperçu affichait 'net : '+fmt(Math.max(0,totD0-totP0)) où totD0/totP0
-   * ne portaient QUE sur les dettes/paiements de la période EN COURS
-   * (D.dettes/D.paiements), sans inclure l'ancien cumul déjà verrouillé
-   * (D.dettesClot) — un nombre qui ne correspondait donc déjà pas à ce
-   * qui allait réellement être verrouillé par executerCloture() (voir le
-   * correctif juste là-bas). Remplacé par exactement la même valeur
-   * (calculerBilanData().dnBrut) que celle qui sera effectivement écrite
-   * dans D.dettesClot, pour que l'aperçu affiché avant confirmation
-   * corresponde toujours au résultat réel après clôture.
+   * CORRECTIF CRITIQUE (05-09-2026 — retour en arrière, demande explicite
+   * de l'utilisateur) : un correctif précédent affichait ici
+   * calculerBilanData().dnBrut (= dettes − paiements, SANS déduire la
+   * part associé). Consigne explicite reçue depuis : ce chiffre ne doit
+   * PAS servir de reste impayé — le seul montant à afficher (et à
+   * verrouiller, voir executerCloture() juste plus bas) est le "RESTE À
+   * PAYER (DETTE NON COUVERTE)" déjà calculé par le bilan de la Part
+   * Associé, c'est-à-dire calculerBilanData().resteAVousPayer. Aucun
+   * nouveau calcul créé, aucune modification du calcul existant de la
+   * Part Associé : on réutilise tel quel le champ déjà retourné par
+   * calculerBilanData().
    */
   var bdApercu=calculerBilanData();
   var details='• '+nAct+' activité(s), '+nDep+' dépense(s) et l\'historique seront <strong>supprimés</strong><br>'+
-    '• '+nDet+' dette(s) + '+nPay+' paiement(s) — reste impayé net : '+fmt(bdApercu.dnBrut)+' seront verrouillés dans le cumul<br>'+
+    '• '+nDet+' dette(s) + '+nPay+' paiement(s) — Reste à payer (dette non couverte) : '+fmt(bdApercu.resteAVousPayer)+' sera verrouillé dans le cumul<br>'+
     '• Stock (Entreprise + Perso) et Commandes seront <strong>conservés intégralement</strong><br>'+
     '• "Ce que l\'entreprise vous doit" (stock perso) reste exact, rien n\'est perdu<br>'+
     '• De nouvelles dettes pourront être saisies dès la période suivante<br>'+
@@ -4262,35 +4263,24 @@ function enregistrerSnapshotClotureRapport(){
 function executerCloture(){
   enregistrerSnapshotClotureRapport();
   /**
-   * CORRECTIF (05-09-2026 — cumul verrouillé : demande explicite de
-   * l'utilisateur) : D.dettesClot verrouillait jusqu'ici
-   * calculerBilanData().resteAVousPayer, une valeur qui ne net pas
-   * seulement les dettes contre les paiements reçus, mais les nette
-   * ENSUITE une seconde fois contre "pab" (la part associé — voir
-   * ra=pab-dn puis resteAVousPayer=max(0,-ra) juste au-dessus dans
-   * calculerBilanData()). Cause exacte du désaccord signalé : une dette
-   * pouvait donc se retrouver verrouillée pour un montant inférieur au
-   * simple "dette moins paiements reçus" dès que la part associé (pab)
-   * couvrait tout ou partie du solde — ce n'est PAS ce qui doit être
-   * verrouillé ici. Consigne explicite reçue : le cumul verrouillé doit
-   * enregistrer UNIQUEMENT le reste impayé des dettes après déduction
-   * des seuls paiements effectués (ex. Dette 500 000 − Paiement 123 310
-   * = 376 690 verrouillés), sans fusionner/additionner ni soustraire
-   * quoi que ce soit d'autre (aucune part associé).
-   * Corrigé en verrouillant désormais calculerBilanData().dnBrut —
-   * champ déjà calculé et retourné par cette même fonction (aucune
-   * nouvelle formule introduite), qui vaut exactement
-   * Math.max(0, totD-totP) avec totD = D.dettes de la période + l'ancien
-   * D.dettesClot (le cumul précédent, déjà correctement reporté) et
-   * totP = D.paiements de la période — ni plus, ni moins. dnBrut inclut
-   * donc déjà, comme avant, le report des clôtures antérieures : cette
-   * valeur REMPLACE (n'additionne pas) l'ancien D.dettesClot. Rien
-   * d'autre n'est modifié : ni le Bilan ni la Vue Associé (qui
-   * continuent d'utiliser resteAVousPayer, inchangé, pour leur propre
-   * affichage), ni aucun autre calcul de cette fonction.
+   * CORRECTIF CRITIQUE (05-09-2026 — retour en arrière, demande explicite
+   * de l'utilisateur) : un correctif précédent avait remplacé
+   * resteAVousPayer par dnBrut ici (= dettes − paiements, sans déduire la
+   * part associé). Consigne explicite reçue depuis : ce n'est PAS ce
+   * montant qui doit être verrouillé. Le cumul verrouillé doit provenir
+   * EXACTEMENT du calcul déjà existant de la Part de bénéfice de
+   * l'Associé — celui qui donne le "RESTE À PAYER (DETTE NON COUVERTE)"
+   * (calculerBilanData().resteAVousPayer, = Math.max(0,-ra) avec
+   * ra=pab-dn, dn=Math.max(0,totD-totP)) — sans créer aucun nouveau
+   * calcul et sans toucher au calcul existant de la Part Associé
+   * lui-même. Remis à resteAVousPayer, qui inclut déjà le report des
+   * clôtures antérieures (via totD ci-dessus, inchangé) : cette valeur
+   * REMPLACE (n'additionne pas) l'ancien D.dettesClot. Rien d'autre
+   * n'est modifié : ni le Bilan ni la Vue Associé, qui utilisaient déjà
+   * ce même champ pour leur propre affichage.
    */
   var bdPourDettesClot=calculerBilanData();
-  D.dettesClot=bdPourDettesClot.dnBrut;
+  D.dettesClot=bdPourDettesClot.resteAVousPayer;
   // IMPORTANT : "Ce que l'entreprise vous doit" (stock perso) se calcule
   // comme (Stock perso dû) − (Prix achat total de la période + 20%).
   // Cette déduction (prix achat + 20%) vient des ACTIVITÉS DE LA PÉRIODE,
@@ -6132,7 +6122,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v64'; // 05-09-2026 : correctif cumul verrouillé (dettes-paiements sans part associé, voir sw.js v126)
+var APP_VERSION = 'v65'; // 05-09-2026 : cumul verrouillé revient au calcul Part Associé (resteAVousPayer, voir sw.js v127)
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
