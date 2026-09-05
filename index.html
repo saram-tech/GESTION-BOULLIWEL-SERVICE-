@@ -1168,7 +1168,7 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="fg"><label>Catégorie</label><input type="text" id="s-categorie" placeholder="Ex: POCHETTE, BATTERIE..." list="dl-categorie-stock" onblur="capitaliserChamp('s-categorie')"><datalist id="dl-categorie-stock"></datalist></div>
     </div>
     <div class="fr">
-      <div class="fg"><label>Quantité initiale *</label><input type="number" id="s-qte" placeholder="0" min="1"></div>
+      <div class="fg"><label>Quantité initiale *</label><input type="number" id="s-qte" placeholder="0" min="0"></div>
       <div class="fg"><label>Prix achat unitaire (GNF) *</label><input type="number" id="s-achat" placeholder="0"></div>
     </div>
     <div class="fr">
@@ -1194,7 +1194,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="al alw" style="font-size:.77rem">Créance = (Prix achat × Qté) × 1.15 — Prix revient + 15%</div>
     <div class="fr">
       <div class="fg"><label>Nom produit *</label><input type="text" id="p-nom" placeholder="Ex: Cahiers" list="dl-prod" oninput="autoPP()" onblur="capitaliserChamp('p-nom');autoPP()"></div>
-      <div class="fg"><label>Quantité *</label><input type="number" id="p-qte" placeholder="0" min="1"></div>
+      <div class="fg"><label>Quantité *</label><input type="number" id="p-qte" placeholder="0" min="0"></div>
     </div>
     <div class="fr">
       <div class="fg"><label>Prix achat unitaire (GNF) *</label><input type="number" id="p-achat" placeholder="0"></div>
@@ -2790,8 +2790,12 @@ function niveauStock(restant,seuil){
 }
 function enrStock(){
   var nom=v('s-nom').trim(),qte=parseInt(v('s-qte'))||0,achat=fl('s-achat'),vente=fl('s-vente'),date=v('s-date'),seuil=parseInt(v('s-seuil'))||3,categorie=v('s-categorie').trim();
-  if(!nom||qte<=0||achat<=0){ notif('⚠️ Nom, quantité et prix achat obligatoires'); return; }
   var eid=v('s-eid');
+  // CORRECTIF (diminution de quantité en édition) : en édition (eid présent),
+  // une quantité de 0 est désormais acceptée (permet de diminuer jusqu'à 0),
+  // mais jamais négative. En création, une quantité > 0 reste obligatoire.
+  if(qte<0){ notif('⚠️ La quantité ne peut pas être négative'); return; }
+  if(!nom||achat<=0||(!eid&&qte<=0)){ notif('⚠️ Nom, quantité et prix achat obligatoires'); return; }
   if(eid){
     var s=D.stock.find(function(x){ return x.id==eid; });
     if(s){ s.nom=nom;s.qteInitiale=qte;s.achat=achat;s.vente=vente;s.seuil=seuil;s.categorie=categorie;s.qteRestante=Math.max(0,qte-(s.qteVendue||0)); s._localTouchedAt=Date.now(); }
@@ -2861,10 +2865,14 @@ function delStock(id){
 // ================================================================
 function enrPerso(){
   var nom=capitaliserMots(v('p-nom').trim()),qte=parseInt(v('p-qte'))||0,achat=fl('p-achat'),vente=fl('p-vente'),date=v('p-date');
-  if(!nom||qte<=0||achat<=0){ notif('⚠️ Champs obligatoires manquants'); return; }
+  var eid=v('p-eid');
+  // CORRECTIF (diminution de quantité en édition) : en édition (eid présent),
+  // une quantité de 0 est désormais acceptée (permet de diminuer jusqu'à 0),
+  // mais jamais négative. En création, une quantité > 0 reste obligatoire.
+  if(qte<0){ notif('⚠️ La quantité ne peut pas être négative'); return; }
+  if(!nom||achat<=0||(!eid&&qte<=0)){ notif('⚠️ Champs obligatoires manquants'); return; }
   // Prix revient = achat × qte ; créance = prix revient × (X% réglable)
   var prixRevient=achat*qte, commission=prixRevient*(getParams().stockPerso/100), totalDu=prixRevient+commission;
-  var eid=v('p-eid');
   // Horodatage de la modification réelle de cette fiche — utilisé par la
   // colonne "Dernière modif" du Stock Perso, au même format ISO que
   // "dernierAjoutDate" (déjà en place) pour rester cohérent dans tout le
@@ -3607,6 +3615,22 @@ function ouvrirDetailDette(){
       var totalDettes = dettes.reduce(function(s,d){ return s+d.montant; },0);
       var totalPayes = paiements.reduce(function(s,p){ return s+p.montant; },0);
       var resteAffiche = v('va-reste'); // déjà calculé côté serveur (bilan_confidentiel), on ne recalcule pas ici
+      /**
+       * AJOUT (05-09-2026) — même ligne "Reste à payer" que côté Admin
+       * (tableau Paiements reçus), pour que l'Associé voie exactement le
+       * même montant via "En savoir plus". Calculée ici à partir des
+       * MÊMES valeurs déjà utilisées juste au-dessus (totalDettes,
+       * paiements) — aucun nouveau calcul de dette introduit, aucune
+       * valeur existante modifiée (totalDettes/totalPayes/resteAffiche
+       * restent inchangés).
+       */
+      var paiementsOrdreChronoAssocie=paiements.slice().sort(function(a,b){
+        var ca=(a.date||'')+' '+(a.heure||'00:00:00'), cb=(b.date||'')+' '+(b.heure||'00:00:00');
+        if(ca!==cb) return ca<cb?-1:1;
+        return 0;
+      });
+      var cumulPaiementsChronoAssocie=0;
+      paiementsOrdreChronoAssocie.forEach(function(p){ cumulPaiementsChronoAssocie+=(p.montant||0); p._resteApresPaiement=Math.max(0,totalDettes-cumulPaiementsChronoAssocie); });
 
       document.getElementById('dd-resume').innerHTML =
         '<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Montant total concerné (dettes) :</span><strong>'+fmt(totalDettes)+'</strong></div>'+
@@ -3630,6 +3654,7 @@ function ouvrirDetailDette(){
           html+='<div style="background:var(--bg3);border-radius:7px;padding:8px 10px;margin-bottom:6px;font-size:.8rem">'+
             '<div style="display:flex;justify-content:space-between"><strong>'+(p.note||p.type||'Paiement')+'</strong><span style="color:var(--gr)">'+fmt(p.montant)+'</span></div>'+
             '<div style="color:var(--tx3);font-size:.7rem;margin-top:2px">'+fmtDateJour(p.date)+(p.heure?(' · 🕒 '+p.heure):'')+'</div>'+
+            '<div style="color:var(--tx3);font-size:.7rem;margin-top:2px">Reste à payer après ce paiement : <strong style="color:var(--re)">'+fmt(p._resteApresPaiement!==undefined?p._resteApresPaiement:0)+'</strong></div>'+
           '</div>';
         });
       }
@@ -4232,9 +4257,30 @@ function enregistrerSnapshotClotureRapport(){
 }
 function executerCloture(){
   enregistrerSnapshotClotureRapport();
-  var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0);
-  var totP=D.paiements.reduce(function(s,p){ return s+p.montant; },0);
-  D.dettesClot=Math.max(0,totD-totP)+D.dettesClot;
+  /**
+   * CORRECTIF (05-09-2026 — onglet Associé : à la clôture, les dettes
+   * doivent tenir compte des paiements reçus ET des intérêts) : jusqu'ici,
+   * D.dettesClot n'était net des dettes qu'après déduction des paiements
+   * reçus (totP) — jamais de la part associé (pab, ses "intérêts"), qui
+   * sert pourtant déjà ailleurs dans l'app (voir "Il reçoit (net)"/"Reste
+   * à vous payer (dette non couverte)" du Bilan) à couvrir une partie de
+   * cette même dette. Une dette entièrement couverte par cette part
+   * associé, même sans AUCUN paiement reçu, continuait donc à être
+   * reportée intégralement dans D.dettesClot au lieu de tomber à 0.
+   * Corrigé en reportant désormais EXACTEMENT calculerBilanData().resteAVousPayer
+   * — déjà la formule exacte utilisée et affichée partout ailleurs sous
+   * "Reste à vous payer (dette non couverte)" (= dette totale, incluant le
+   * cumul des clôtures précédentes, moins paiements reçus, moins part
+   * associé, jamais sous 0) — aucune nouvelle formule introduite. Cette
+   * valeur REMPLACE (et n'additionne plus) l'ancien D.dettesClot, car elle
+   * inclut déjà ce cumul dans son propre calcul (voir totD dans
+   * calculerBilanData()) : seul le montant réellement impayé est donc
+   * conservé. Ne touche ni au tableau de bord (Bilan/Vue Associé, qui
+   * utilisaient déjà cette même formule), ni à aucune autre fonction —
+   * uniquement ce report vers D.dettesClot.
+   */
+  var bdPourDettesClot=calculerBilanData();
+  D.dettesClot=bdPourDettesClot.resteAVousPayer;
   // IMPORTANT : "Ce que l'entreprise vous doit" (stock perso) se calcule
   // comme (Stock perso dû) − (Prix achat total de la période + 20%).
   // Cette déduction (prix achat + 20%) vient des ACTIVITÉS DE LA PÉRIODE,
@@ -4648,13 +4694,34 @@ function rDettes(){
   var fsP=normSearch(v('f-search-paiements'));
   var itemsP=D.paiements.filter(function(p){ return matchPeriodeFull(p.date,'f-periode-paiements'); });
   if(fsP) itemsP=itemsP.filter(function(p){ return normSearch(p.note).indexOf(fsP)>-1||normSearch(p.type).indexOf(fsP)>-1; });
+  /**
+   * AJOUT (05-09-2026) — "Reste à payer" après chaque paiement (Admin →
+   * Associé, tableau Paiements reçus) : pour chaque paiement, calcule la
+   * dette encore due immédiatement après CE paiement précis, en suivant
+   * l'ordre chronologique réel (date+heure, puis id en cas d'égalité) —
+   * et non l'ordre d'affichage ci-dessous (le plus récent en premier).
+   * Utilise EXACTEMENT les mêmes montants que "Dettes actives + Cumulé
+   * clôtures" (total dettes, ta+D.dettesClot) et "Total payé" (totPaye)
+   * déjà affichés plus bas — aucun nouveau calcul de dette, seule une
+   * lecture intermédiaire (cumul progressif) de ces mêmes chiffres.
+   * N'affecte ni totD, ni totP, ni dn, ni aucun autre montant existant.
+   */
+  var totDettesPourPaiements=D.dettes.reduce(function(s,d){ return s+d.montant; },0)+D.dettesClot;
+  var paiementsOrdreChrono=D.paiements.slice().sort(function(a,b){
+    var ca=(a.date||'')+' '+(a.heure||'00:00:00'), cb=(b.date||'')+' '+(b.heure||'00:00:00');
+    if(ca!==cb) return ca<cb?-1:1;
+    return (a.id||0)-(b.id||0);
+  });
+  var cumulPaiementsChrono=0, resteApresPaiementParId={};
+  paiementsOrdreChrono.forEach(function(p){ cumulPaiementsChrono+=(p.montant||0); resteApresPaiementParId[p.id]=Math.max(0,totDettesPourPaiements-cumulPaiementsChrono); });
   if(!itemsP.length) tb2.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--tx2);padding:10px">'+(D.paiements.length?'Aucun résultat':'Aucun paiement')+'</td></tr>';
   else{
     var html2='';
     itemsP.slice().reverse().forEach(function(p,idx){
+      var resteApresCePaiement=resteApresPaiementParId[p.id]!==undefined?resteApresPaiementParId[p.id]:0;
       html2+='<tr><td style="color:var(--tx3)">'+(idx+1)+'</td><td>'+fmtDateHeure(p.date,p.heure)+'</td><td><span class="badge bgr">'+p.type+'</span></td>';
       html2+='<td style="font-size:.76rem">'+(p.note||'—')+'</td>';
-      html2+='<td style="color:var(--gr)">'+fmt(p.montant)+'</td>';
+      html2+='<td style="color:var(--gr)">'+fmt(p.montant)+'<br><span style="font-size:.65rem;color:var(--tx3)">Reste à payer après ce paiement : '+fmt(resteApresCePaiement)+'</span></td>';
       html2+='<td class="ac"><button class="btn bh bxs" onclick="editPaym('+p.id+')">✏️</button><button class="btn bd bxs" onclick="delPaym('+p.id+')">🗑️</button></td></tr>';
     });
     tb2.innerHTML=html2;
