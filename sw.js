@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v126'; // 05-09-2026 : CORRECTIF cumul verrouillé (dettesClot) — le montant verrouillé à la clôture nettait les dettes ET les paiements ET une seconde fois la part associé (pab), ce qui pouvait verrouiller moins que "dette − paiements reçus". Corrigé : D.dettesClot verrouille désormais exactement max(0, dettes − paiements), sans déduire la part associé (ex. 500 000 − 123 310 = 376 690). L'aperçu affiché avant confirmation ("Clôturer la période") a aussi été corrigé pour afficher ce même montant réellement verrouillé. Bilan/Vue Associé inchangés. Voir aussi v125/v124.
+const CACHE_VERSION = 'v127'; // 05-09-2026 : CORRECTIF CRITIQUE cumul verrouillé — retour en arrière sur v126, demande explicite de l'utilisateur. Le montant "dette − paiements" (dnBrut, v126) NE doit PAS être verrouillé : D.dettesClot verrouille désormais exactement calculerBilanData().resteAVousPayer, c'est-à-dire le "RESTE À PAYER (DETTE NON COUVERTE)" déjà calculé par la Part de bénéfice de l'Associé (dette nette des paiements ET de la part associé) — aucun nouveau calcul créé, calcul Part Associé lui-même inchangé. L'aperçu avant confirmation ("Clôturer la période") affiche aussi ce même montant. Voir v126/v125/v124.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
