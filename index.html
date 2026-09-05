@@ -3615,18 +3615,19 @@ function ouvrirDetailDette(){
         .map(function(r){ return { date:r.date, heure:r.heure, type:r.type, note:r.libelle, montant:Number(r.montant)||0 }; });
       var totalDettes = dettes.reduce(function(s,d){ return s+d.montant; },0);
       var totalPayes = paiements.reduce(function(s,p){ return s+p.montant; },0);
-      var resteAffiche = v('va-reste'); // déjà calculé côté serveur (bilan_confidentiel), on ne recalcule pas ici
       /**
-       * CORRECTIF (05-09-2026) — la ligne "Reste à payer" en double
-       * (déjà présente sous "Reste actuel") et la ligne répétée après
-       * chaque paiement ont été retirées : le reste est affiché une
-       * seule fois, sous "Reste actuel", ici dans "En savoir plus".
+       * CORRECTIF (05-09-2026) — "Reste actuel : undefined" : v('va-reste')
+       * lit .value, une propriété réservée aux champs de saisie — va-reste
+       * est un <div> (affichage), qui n'a pas de .value, d'où "undefined".
+       * Simplifié en retirant cette ligne : le montant "Reste que vous
+       * devez à votre associé" est déjà affiché juste au-dessus, sur
+       * l'écran principal, avant même d'ouvrir "En savoir plus" — cette
+       * fenêtre n'a plus besoin de le répéter, elle montre uniquement le
+       * détail (dettes / paiements) qui n'est pas déjà visible ailleurs.
        */
-
       document.getElementById('dd-resume').innerHTML =
         '<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Montant total concerné (dettes) :</span><strong>'+fmt(totalDettes)+'</strong></div>'+
-        '<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Déjà réglé (paiements) :</span><strong style="color:var(--gr)">'+fmt(totalPayes)+'</strong></div>'+
-        '<div style="display:flex;justify-content:space-between;border-top:1px solid var(--bd);padding-top:6px;margin-top:4px"><span>Reste actuel :</span><strong style="color:var(--re)">'+resteAffiche+'</strong></div>';
+        '<div style="display:flex;justify-content:space-between"><span>Déjà réglé (paiements) :</span><strong style="color:var(--gr)">'+fmt(totalPayes)+'</strong></div>';
 
       var html='';
       if(dettes.length){
@@ -3683,8 +3684,11 @@ function ouvrirDetailDepenses(){
       var deps = lignes.map(function(r){ return { date:r.date, heure:r.heure, cat:r.categorie, desc:r.description, montant:Number(r.montant)||0 }; });
       var total = deps.reduce(function(s,d){ return s+d.montant; },0);
 
-      document.getElementById('ddp-resume').innerHTML =
-        '<div style="display:flex;justify-content:space-between"><span>Total dépenses :</span><strong style="color:var(--re)">'+fmt(total)+'</strong></div>';
+      // CORRECTIF (05-09-2026) — "Total dépenses" est déjà affiché sur
+      // l'écran principal, juste au-dessus du bouton "En savoir plus" :
+      // cette fenêtre montre uniquement le détail (ci-dessous), sans le
+      // répéter — le cas "aucune dépense" reste géré plus bas (ddp-corps).
+      document.getElementById('ddp-resume').innerHTML = '';
 
       var html='';
       if(deps.length){
@@ -4454,6 +4458,57 @@ function lotIdsPourMessage(ids){ return ids.length; }
 /** Conservé pour compatibilité (appelée depuis executerCloture). */
 function supprimerActivitesClotureesSurServeur(ids){
   supprimerActivitesSurServeurAvecAlerte(ids, 'activités de la période clôturée');
+}
+/**
+ * CORRECTIF CRITIQUE ("Tout" ne supprime pas réellement les données
+ * Supabase, notamment les Activités) — voir le correctif détaillé dans
+ * viderTout() plus bas pour la cause exacte. Cette fonction généralise
+ * EXACTEMENT le même mécanisme déjà validé par
+ * supprimerActivitesSurServeurAvecAlerte() ci-dessus (suppression réelle
+ * par lot, vérification du nombre de lignes réellement supprimées via
+ * "Prefer: return=representation", alertes bloquantes en cas d'échec
+ * total, partiel, ou hors ligne) — seule la table Supabase ciblée
+ * change (paramètre `table`). Créée à part, plutôt que de modifier
+ * directement supprimerActivitesSurServeurAvecAlerte(), pour ne rien
+ * changer au comportement déjà en place de cette dernière ni de ses
+ * appelants existants (clôture, "Vider les activités"…).
+ */
+function supprimerLotTableSurServeur(table, ids, libelle){
+  if(!ids || !ids.length) return;
+  libelle = libelle || table;
+  var session=getSession();
+  if(!(session && session.access_token && navigator.onLine)){
+    notif('⚠️ Suppression serveur des '+libelle+' reportée (hors ligne). Ils/elles resteront visibles ailleurs tant que la connexion ne sera pas rétablie et qu\'une nouvelle synchro n\'aura pas eu lieu.', 8000);
+    setTimeout(function(){ alert('⚠️ SUPPRESSION reportée (hors ligne)\n\n'+ids.length+' '+libelle+' n\'ont PAS pu être supprimé(e)s du serveur car cet appareil est hors ligne.\n\nReconnectez cet appareil dès que possible pour terminer la suppression.'); }, 100);
+    return;
+  }
+  var TAILLE_LOT=200;
+  for(var i=0;i<ids.length;i+=TAILLE_LOT){
+    (function(lot){
+      supabaseTable('/rest/v1/'+table+'?id=in.('+lot.join(',')+')', { method:'DELETE', headers:{'Prefer':'return=representation'} }, session.access_token)
+        .then(function(r){
+          if(!r.ok){
+            r.text().then(function(corps){
+              var detail = extraireDetailErreur(corps, r.status);
+              console.error('[suppression '+libelle+'] refusée', r.status, corps);
+              notif('❌ Le serveur a refusé la suppression de '+lot.length+' '+libelle+' (HTTP '+r.status+'). Détail : '+corps.slice(0,160), 10000);
+              setTimeout(function(){ alert('❌ SUPPRESSION REFUSÉE par le serveur\n\n'+lot.length+' '+libelle+' n\'ont PAS été supprimé(e)s.\n\nCause exacte : '+detail+'\n\nFaites une capture d\'écran de ce message.'); }, 100);
+            });
+            return;
+          }
+          r.json().then(function(supprimees){
+            var nSupprimees = Array.isArray(supprimees) ? supprimees.length : null;
+            if(nSupprimees!==null && nSupprimees<lot.length){
+              notif('⚠️ Seul(e)s '+nSupprimees+' sur '+lot.length+' '+libelle+' ont pu être supprimé(e)s côté serveur (droits d\'accès Supabase).', 12000);
+            }
+          }).catch(function(){});
+        })
+        .catch(function(e){
+          console.error('[suppression '+libelle+']', e);
+          notif('❌ Impossible de joindre le serveur pour supprimer les '+libelle+' ('+e.message+').', 8000);
+        });
+    })(ids.slice(i, i+TAILLE_LOT));
+  }
 }
 /**
  * Relance automatique de supprimerActivitesSurServeurAvecAlerte() pour
@@ -5266,6 +5321,17 @@ function pousserImportVersCloud(){
   try{
     if (typeof SUPABASE_CONFIG!=='undefined' && SUPABASE_CONFIG.enabled && navigator.onLine){
       if (typeof syncActivitesEtStockVersNouvellesTables==='function') syncActivitesEtStockVersNouvellesTables();
+      // CORRECTIF (05-09-2026) : Dettes/Paiements/Dépenses vivent elles
+      // aussi désormais dans des tables Supabase dédiées (voir
+      // syncDepensesDettesPaiementsVersNouvellesTables(), utilisée par
+      // save()) — le commentaire au-dessus de cette fonction, écrit avant
+      // leur création, ne mentionnait encore que "app_data" pour elles.
+      // Sans cet appel, une Dette/un Paiement/une Dépense restauré(e) par
+      // un import n'atteignait ces tables dédiées qu'au hasard d'une
+      // prochaine action (enrDette/enrPaym/enrDep) déclenchant save().
+      // Même mécanisme que pour Activités/Stock ci-dessus, aucun autre
+      // changement.
+      if (typeof syncDepensesDettesPaiementsVersNouvellesTables==='function') syncDepensesDettesPaiementsVersNouvellesTables();
       if (typeof syncToCloud==='function') syncToCloud().catch(function(){ /* message d'erreur déjà géré par syncToCloud() ; un nouvel essai aura lieu au prochain cycle automatique */ });
     }
   }catch(e2){ console.error('[import] Échec de l\'envoi immédiat vers le cloud (sera retenté par la synchro automatique) :', e2); }
@@ -5887,6 +5953,44 @@ function viderTout() {
     '• Compteurs et cumuls (dettes clôturées, créances) remis à zéro<br>'+
     '• Cette opération sert uniquement à une remise à zéro complète de l\'application';
   demanderConfirmationSecurisee('⚠️ Suppression TOTALE de l\'application', details, true, function(){
+    /**
+     * CORRECTIF CRITIQUE (05-09-2026 — "Tout" ne supprime pas réellement
+     * les données Supabase, notamment les Activités) — cause exacte
+     * trouvée : cette fonction ne posait que des tombstones LOCAUX
+     * (markDeleted) puis vidait D en mémoire/localStorage avant d'appeler
+     * save(). Or save() ne fait qu'un UPSERT des tableaux courants vers
+     * les tables Supabase DÉDIÉES (activites/stock/dettes/paiements/
+     * depenses — voir syncActivitesEtStockVersNouvellesTables() et
+     * syncDepensesDettesPaiementsVersNouvellesTables()) : un upsert avec
+     * un tableau désormais VIDE n'efface RIEN côté serveur, il se
+     * contente de n'envoyer aucune ligne — les anciennes lignes
+     * restaient donc indéfiniment dans ces tables dédiées, et
+     * réapparaissaient dès qu'un appareil les retéléchargeait (voir
+     * chargerActivitesEtStockDepuisTables, utilisée par l'Associé et par
+     * l'actualisation automatique). Seul l'ancien blob "app_data" (Stock
+     * Perso, Commandes, Historique, Corbeille…) était réellement vidé
+     * côté serveur, car syncToCloud() y REMPLACE tout le contenu de la
+     * ligne au lieu d'un upsert par lot.
+     * Corrigé en capturant, AVANT tout vidage, les ids de chaque table
+     * dédiée concernée, puis en demandant une VRAIE suppression serveur
+     * (DELETE ... WHERE id IN (...), avec vérification du nombre de
+     * lignes réellement supprimées et alerte en cas d'échec/refus RLS —
+     * exactement le mécanisme déjà en place et validé pour "Vider les
+     * activités" seul) pour les Activités (supprimerActivitesSurServeur
+     * AvecAlerte, déjà existante, réutilisée telle quelle) ainsi que pour
+     * le Stock Entreprise, les Dettes, les Paiements et les Dépenses
+     * (nouvelle fonction générique supprimerLotTableSurServeur(), voir
+     * plus haut). Rien d'autre n'est modifié : ni le calcul, ni la
+     * corbeille, ni les compteurs, ni le comportement déjà correct pour
+     * Stock Perso/Commandes/Historique/Corbeille (déjà réellement vidés
+     * via l'écrasement complet de app_data par save()/syncToCloud()).
+     */
+    var idIt=function(it){ return it && it.id!=null ? it.id : null; };
+    var idsActivites = (D.activites||[]).map(idIt).filter(function(id){ return id!=null; });
+    var idsStock     = (D.stock||[]).map(idIt).filter(function(id){ return id!=null; });
+    var idsDettes    = (D.dettes||[]).map(idIt).filter(function(id){ return id!=null; });
+    var idsPaiements = (D.paiements||[]).map(idIt).filter(function(id){ return id!=null; });
+    var idsDepenses  = (D.depenses||[]).map(idIt).filter(function(id){ return id!=null; });
     ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille'].forEach(function(field){
       (D[field]||[]).forEach(function(it){ if(it&&it.id!=null) markDeleted(field,it.id); });
     });
@@ -5894,6 +5998,11 @@ function viderTout() {
     D.dettes = []; D.paiements = []; D.commandes = []; D.histo = []; D.corbeille = [];
     D.dettesClot = 0; D.detteVerrou = false; D._o = 1; D._co = 1; D.entDejaDeduit = 0; D.entDoitBase = 0;
     save(); notif('✅ Tous les éléments supprimés.');
+    supprimerActivitesSurServeurAvecAlerte(idsActivites, 'activités');
+    supprimerLotTableSurServeur('stock', idsStock, 'produits du Stock Entreprise');
+    supprimerLotTableSurServeur('dettes', idsDettes, 'dettes');
+    supprimerLotTableSurServeur('paiements', idsPaiements, 'paiements');
+    supprimerLotTableSurServeur('depenses', idsDepenses, 'dépenses');
   });
 }
 
@@ -6006,7 +6115,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v61';
+var APP_VERSION = 'v63'; // 05-09-2026 : correctif "Tout"/import Supabase (voir sw.js v124 pour le détail)
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
@@ -6030,7 +6139,7 @@ function toggleTriAZ(tbl){
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-09-05T02:00:00'; // CORRECTIF AFFICHAGE : suppression du doublon "Reste à payer après ce paiement" répété sur chaque paiement (Admin + Associé) et du doublon dans "En savoir plus" (Associé). Une seule ligne "RESTE À PAYER" ajoutée côté Admin sous TOTAL (carte Dettes), identique des deux côtés (calculerBilanData().resteAVousPayer). Aucun calcul ni logique modifié.
+var APP_DERNIERE_MAJ = '2026-09-05T03:00:00'; // CORRECTIF EXPRESS : "Reste actuel : undefined" corrigé côté Associé (v('va-reste') lisait .value sur un <div>). Simplifié : "En savoir plus" (Dettes et Dépenses) ne répète plus les montants déjà visibles sur l'écran principal, ne montre que le détail. Aucun calcul modifié.
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
@@ -8304,7 +8413,55 @@ function mergeTombstones(delA, delB) {
 function mergeAppData(cloudData, localData, cloudIsNewer) {
   var base = cloudIsNewer ? localData : cloudData;
   var priorite = cloudIsNewer ? cloudData : localData;
-  var mergedDel = mergeTombstones(cloudData._del, localData._del);
+  /**
+   * CORRECTIF CRITIQUE (05-09-2026 — "des données importées disparaissent
+   * moins d'une minute après l'import") — cause exacte trouvée :
+   * mergedDel était jusqu'ici une simple UNION des tombstones des deux
+   * côtés (cloud + local), appliquée ENSUITE aux tableaux fusionnés par
+   * mergeArraysById() sans aucune distinction — y compris pour un id
+   * pourtant présent comme donnée bien réelle côté "priorite" (le côté
+   * censé l'emporter sur tout conflit, exactement comme documenté juste
+   * en dessous pour mergeArraysById : "la version prioritaire l'emporte
+   * pour cet élément précis").
+   * Scénario exact reproduit : un import restaure un id X et retire X de
+   * D._del en local (voir retirerTombstonesPourIdsImportes(), déjà en
+   * place pour l'import), puis pousserImportVersCloud() envoie ce nouvel
+   * état vers Supabase — mais cet envoi (fetch réseau) prend un instant.
+   * Si le cycle de réconciliation automatique de app_data se déclenche
+   * PENDANT cette fenêtre (toutes les 20s, voir demarrerAutoSyncAppData),
+   * il relit encore l'ANCIENNE ligne cloud, qui n'a pas encore reçu
+   * l'import et qui porte donc encore l'ancien tombstone pour X. Même
+   * quand "local plus récent" était correctement détecté (priorite=local,
+   * donc l'import gagnant), l'union aveugle des tombstones remettait
+   * quand même X dans mergedDel à cause du seul VIEUX tombstone cloud —
+   * et mergeArraysById() supprimait alors X du résultat fusionné, MÊME
+   * présent et à jour côté "priorite" gagnant. Cette suppression fantôme
+   * était ensuite persistée ET repoussée vers le cloud juste après (voir
+   * _reconcilerAppDataCoeur → syncToCloud()), effaçant réellement et
+   * durablement la donnée tout juste restaurée.
+   * Corrigé en ne conservant, pour chaque champ, que les tombstones qui
+   * ne contredisent pas une donnée réellement présente côté "priorite" :
+   * un id supprimé UNIQUEMENT par le côté perdant (base) mais toujours
+   * vivant dans le côté gagnant (priorite) n'est plus traité comme
+   * supprimé. Une suppression réellement voulue reste, elle, intacte
+   * dans tous les cas : soit parce que le côté gagnant a lui-même son
+   * propre tombstone pour cet id (priorite._del), soit simplement parce
+   * que sa donnée est de toute façon absente de son propre tableau (rien
+   * à protéger, le filtre ne change alors rien). Rien d'autre n'est
+   * modifié : le reste de la fusion (union par id, résolution fine par
+   * _localTouchedAt, cumuls Math.max…) continue de fonctionner
+   * exactement comme avant.
+   */
+  var mergedDelBrut = mergeTombstones(cloudData._del, localData._del);
+  var mergedDel = {};
+  Object.keys(mergedDelBrut).forEach(function(champ){
+    var presentsChezPriorite = {};
+    (priorite[champ]||[]).forEach(function(item){ if(item && item.id!=null) presentsChezPriorite[item.id]=true; });
+    var delPropreAuGagnant = (priorite._del && priorite._del[champ]) || [];
+    mergedDel[champ] = mergedDelBrut[champ].filter(function(id){
+      return !presentsChezPriorite[id] || delPropreAuGagnant.indexOf(id)!==-1;
+    });
+  });
   var merged = Object.assign({}, DEFAULT_SHAPE, base, priorite);
   merged._del = mergedDel;
   // Le mot de passe (auth) est un champ simple, pas un tableau fusionnable :
