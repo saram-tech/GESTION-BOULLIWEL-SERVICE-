@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v125'; // 05-09-2026 : suite du correctif v124 (viderTout + fusion import) — APP_VERSION incrémentée à v63 dans index.html pour rendre le correctif visible dans l'app elle-même ; aucun changement de logique supplémentaire ici. Voir v124 pour le détail des 2 bugs corrigés.
+const CACHE_VERSION = 'v126'; // 05-09-2026 : CORRECTIF cumul verrouillé (dettesClot) — le montant verrouillé à la clôture nettait les dettes ET les paiements ET une seconde fois la part associé (pab), ce qui pouvait verrouiller moins que "dette − paiements reçus". Corrigé : D.dettesClot verrouille désormais exactement max(0, dettes − paiements), sans déduire la part associé (ex. 500 000 − 123 310 = 376 690). L'aperçu affiché avant confirmation ("Clôturer la période") a aussi été corrigé pour afficher ce même montant réellement verrouillé. Bilan/Vue Associé inchangés. Voir aussi v125/v124.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
