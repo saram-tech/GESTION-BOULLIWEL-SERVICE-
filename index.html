@@ -727,6 +727,7 @@ tbody tr:last-child td{border-bottom:none;}
         <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--tx2);font-size:.8rem">Cumulé clôtures :</span><span id="tot-dc" style="color:var(--or)">0 GNF</span></div>
         <hr class="sep">
         <div style="display:flex;justify-content:space-between"><span style="font-weight:600">TOTAL :</span><span id="tot-dg" style="color:var(--re);font-family:'Syne',sans-serif;font-size:1rem">0 GNF</span></div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px"><span style="font-weight:600">RESTE À PAYER :</span><span id="tot-reste" style="color:var(--re);font-family:'Syne',sans-serif;font-size:1rem">0 GNF</span></div>
       </div>
     </div>
     <div class="card">
@@ -3616,27 +3617,16 @@ function ouvrirDetailDette(){
       var totalPayes = paiements.reduce(function(s,p){ return s+p.montant; },0);
       var resteAffiche = v('va-reste'); // déjà calculé côté serveur (bilan_confidentiel), on ne recalcule pas ici
       /**
-       * AJOUT (05-09-2026) — même ligne "Reste à payer" que côté Admin
-       * (tableau Paiements reçus), pour que l'Associé voie exactement le
-       * même montant via "En savoir plus". Calculée ici à partir des
-       * MÊMES valeurs déjà utilisées juste au-dessus (totalDettes,
-       * paiements) — aucun nouveau calcul de dette introduit, aucune
-       * valeur existante modifiée (totalDettes/totalPayes/resteAffiche
-       * restent inchangés).
+       * CORRECTIF (05-09-2026) — la ligne "Reste à payer" en double
+       * (déjà présente sous "Reste actuel") et la ligne répétée après
+       * chaque paiement ont été retirées : le reste est affiché une
+       * seule fois, sous "Reste actuel", ici dans "En savoir plus".
        */
-      var paiementsOrdreChronoAssocie=paiements.slice().sort(function(a,b){
-        var ca=(a.date||'')+' '+(a.heure||'00:00:00'), cb=(b.date||'')+' '+(b.heure||'00:00:00');
-        if(ca!==cb) return ca<cb?-1:1;
-        return 0;
-      });
-      var cumulPaiementsChronoAssocie=0;
-      paiementsOrdreChronoAssocie.forEach(function(p){ cumulPaiementsChronoAssocie+=(p.montant||0); p._resteApresPaiement=Math.max(0,totalDettes-cumulPaiementsChronoAssocie); });
 
       document.getElementById('dd-resume').innerHTML =
         '<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Montant total concerné (dettes) :</span><strong>'+fmt(totalDettes)+'</strong></div>'+
         '<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Déjà réglé (paiements) :</span><strong style="color:var(--gr)">'+fmt(totalPayes)+'</strong></div>'+
-        '<div style="display:flex;justify-content:space-between;border-top:1px solid var(--bd);padding-top:6px;margin-top:4px"><span>Reste actuel :</span><strong style="color:var(--re)">'+resteAffiche+'</strong></div>'+
-        '<div style="display:flex;justify-content:space-between;margin-top:4px"><span>Reste à payer :</span><strong style="color:var(--re)">'+resteAffiche+'</strong></div>';
+        '<div style="display:flex;justify-content:space-between;border-top:1px solid var(--bd);padding-top:6px;margin-top:4px"><span>Reste actuel :</span><strong style="color:var(--re)">'+resteAffiche+'</strong></div>';
 
       var html='';
       if(dettes.length){
@@ -3654,7 +3644,6 @@ function ouvrirDetailDette(){
           html+='<div style="background:var(--bg3);border-radius:7px;padding:8px 10px;margin-bottom:6px;font-size:.8rem">'+
             '<div style="display:flex;justify-content:space-between"><strong>'+(p.note||p.type||'Paiement')+'</strong><span style="color:var(--gr)">'+fmt(p.montant)+'</span></div>'+
             '<div style="color:var(--tx3);font-size:.7rem;margin-top:2px">'+fmtDateJour(p.date)+(p.heure?(' · 🕒 '+p.heure):'')+'</div>'+
-            '<div style="color:var(--tx3);font-size:.7rem;margin-top:2px">Reste à payer après ce paiement : <strong style="color:var(--re)">'+fmt(p._resteApresPaiement!==undefined?p._resteApresPaiement:0)+'</strong></div>'+
           '</div>';
         });
       }
@@ -4695,33 +4684,18 @@ function rDettes(){
   var itemsP=D.paiements.filter(function(p){ return matchPeriodeFull(p.date,'f-periode-paiements'); });
   if(fsP) itemsP=itemsP.filter(function(p){ return normSearch(p.note).indexOf(fsP)>-1||normSearch(p.type).indexOf(fsP)>-1; });
   /**
-   * AJOUT (05-09-2026) — "Reste à payer" après chaque paiement (Admin →
-   * Associé, tableau Paiements reçus) : pour chaque paiement, calcule la
-   * dette encore due immédiatement après CE paiement précis, en suivant
-   * l'ordre chronologique réel (date+heure, puis id en cas d'égalité) —
-   * et non l'ordre d'affichage ci-dessous (le plus récent en premier).
-   * Utilise EXACTEMENT les mêmes montants que "Dettes actives + Cumulé
-   * clôtures" (total dettes, ta+D.dettesClot) et "Total payé" (totPaye)
-   * déjà affichés plus bas — aucun nouveau calcul de dette, seule une
-   * lecture intermédiaire (cumul progressif) de ces mêmes chiffres.
-   * N'affecte ni totD, ni totP, ni dn, ni aucun autre montant existant.
+   * CORRECTIF (05-09-2026) — la ligne "Reste à payer après ce paiement"
+   * précédemment affichée sur chaque ligne du tableau (doublon) a été
+   * retirée : une seule ligne "RESTE À PAYER" est désormais affichée,
+   * une fois, sous TOTAL (voir st('tot-reste',...) plus bas).
    */
-  var totDettesPourPaiements=D.dettes.reduce(function(s,d){ return s+d.montant; },0)+D.dettesClot;
-  var paiementsOrdreChrono=D.paiements.slice().sort(function(a,b){
-    var ca=(a.date||'')+' '+(a.heure||'00:00:00'), cb=(b.date||'')+' '+(b.heure||'00:00:00');
-    if(ca!==cb) return ca<cb?-1:1;
-    return (a.id||0)-(b.id||0);
-  });
-  var cumulPaiementsChrono=0, resteApresPaiementParId={};
-  paiementsOrdreChrono.forEach(function(p){ cumulPaiementsChrono+=(p.montant||0); resteApresPaiementParId[p.id]=Math.max(0,totDettesPourPaiements-cumulPaiementsChrono); });
   if(!itemsP.length) tb2.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--tx2);padding:10px">'+(D.paiements.length?'Aucun résultat':'Aucun paiement')+'</td></tr>';
   else{
     var html2='';
     itemsP.slice().reverse().forEach(function(p,idx){
-      var resteApresCePaiement=resteApresPaiementParId[p.id]!==undefined?resteApresPaiementParId[p.id]:0;
       html2+='<tr><td style="color:var(--tx3)">'+(idx+1)+'</td><td>'+fmtDateHeure(p.date,p.heure)+'</td><td><span class="badge bgr">'+p.type+'</span></td>';
       html2+='<td style="font-size:.76rem">'+(p.note||'—')+'</td>';
-      html2+='<td style="color:var(--gr)">'+fmt(p.montant)+'<br><span style="font-size:.65rem;color:var(--tx3)">Reste à payer après ce paiement : '+fmt(resteApresCePaiement)+'</span></td>';
+      html2+='<td style="color:var(--gr)">'+fmt(p.montant)+'</td>';
       html2+='<td class="ac"><button class="btn bh bxs" onclick="editPaym('+p.id+')">✏️</button><button class="btn bd bxs" onclick="delPaym('+p.id+')">🗑️</button></td></tr>';
     });
     tb2.innerHTML=html2;
@@ -4732,6 +4706,14 @@ function rDettes(){
   // modification, suppression ou synchronisation.
   var totPaye=D.paiements.reduce(function(s,p){ return s+(p.montant||0); },0);
   st('tot-pp',fmt(totPaye));
+  // CORRECTIF (05-09-2026) — une seule ligne "RESTE À PAYER", sous TOTAL,
+  // au lieu d'un doublon répété après chaque paiement. Réutilise
+  // directement calculerBilanData().resteAVousPayer — EXACTEMENT la même
+  // valeur déjà utilisée pour "💳 Reste à vous payer" dans le Bilan et
+  // pour "Reste que vous devez à votre associé" côté Associé (va-reste,
+  // via bilan_confidentiel côté serveur) — aucun nouveau calcul, aucune
+  // valeur existante modifiée, garantit un montant identique des deux côtés.
+  st('tot-reste',fmt(calculerBilanData().resteAVousPayer));
 }
 
 function rDep(){
@@ -6024,7 +6006,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v60'; // 05-09-2026 : cumule 3 corrections depuis v59 (voir sw.js v121 pour le détail complet) — (1) édition Stock entreprise/perso : la quantité peut désormais être diminuée jusqu'à 0 (jamais négative) ; (2) tableau Paiements reçus (Admin) + "En savoir plus" (Associé) : ajout d'une ligne "Reste à payer après ce paiement" ; (3) onglet Associé : le report de dette à la clôture (D.dettesClot) tient désormais compte des paiements ET des intérêts (part associé), plus seulement des paiements.
+var APP_VERSION = 'v61';
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
@@ -6048,7 +6030,7 @@ function toggleTriAZ(tbl){
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-09-03T01:00:00'; // CORRECTIF CRITIQUE : un produit Stock Perso réintroduit sous un nom déjà consolidé (migration/clôture) était vidé automatiquement à la synchronisation suivante, avant toute clôture réelle. Corrigé dans enrPerso() et enrAjoutQte() : le marqueur de consolidation est retiré dès qu'une fiche redevient active — le montant dû augmente normalement et survit à la synchronisation.
+var APP_DERNIERE_MAJ = '2026-09-05T02:00:00'; // CORRECTIF AFFICHAGE : suppression du doublon "Reste à payer après ce paiement" répété sur chaque paiement (Admin + Associé) et du doublon dans "En savoir plus" (Associé). Une seule ligne "RESTE À PAYER" ajoutée côté Admin sous TOTAL (carte Dettes), identique des deux côtés (calculerBilanData().resteAVousPayer). Aucun calcul ni logique modifié.
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';

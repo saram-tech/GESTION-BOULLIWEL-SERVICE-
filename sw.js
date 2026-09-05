@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v121'; // 05-09-2026 : CORRECTIF — onglet Associé (Dettes/Paiements) : à la clôture, le report de dette (D.dettesClot) tient désormais compte des paiements reçus ET des intérêts (part associé), et non plus des seuls paiements. Le report utilise maintenant exactement calculerBilanData().resteAVousPayer (déjà la formule affichée ailleurs sous "Reste à vous payer (dette non couverte)") au lieu de (totalDettes − paiements) seul. Une dette entièrement couverte par la part associé, même sans aucun paiement reçu, aboutit désormais bien à un report de 0 ; seul le montant réellement impayé est conservé. Tableau de bord et autres fonctions non modifiés. Voir aussi v120/v119/v118.
+const CACHE_VERSION = 'v122'; // 05-09-2026 : CORRECTIF AFFICHAGE — suppression de la ligne "Reste à payer après ce paiement" répétée sur chaque paiement (Admin ET Associé), et de la ligne "Reste à payer" en double dans "En savoir plus" (Associé, déjà présente sous "Reste actuel"). Une seule ligne "RESTE À PAYER" ajoutée côté Admin, sous TOTAL (carte Dettes), réutilisant directement calculerBilanData().resteAVousPayer — exactement la même valeur déjà utilisée pour "💳 Reste à vous payer" (Bilan) et pour "va-reste" côté Associé (bilan_confidentiel) : montant strictement identique des deux côtés. Aucun calcul, nom ou logique modifié — affichage uniquement. Voir aussi v121/v120.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
