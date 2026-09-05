@@ -5145,6 +5145,83 @@ function compterDonnees(d){
   };
 }
 /**
+ * CORRECTIF CRITIQUE (03-09-2026 — "l'import ne restaure pas
+ * intégralement les données exportées") — cause exacte trouvée :
+ * une importation (JSON ou Excel) ne remplaçait QUE les données
+ * LOCALES de cet appareil (D + localStorage), sans jamais avertir le
+ * cloud (Supabase) ni retirer les "tombstones" (marqueurs de
+ * suppression, D._del) déjà posés pour les mêmes identifiants.
+ * Scénario reproduit à coup sûr (celui-là même décrit dans la demande
+ * de correction) : créer une donnée de test → l'exporter → la
+ * supprimer (ce qui pose un tombstone _del et/ou, pour une Activité,
+ * fait grimper D._maxIdConfirmeActivite) → importer la sauvegarde
+ * exportée à l'étape 1 : la donnée réapparaissait un court instant en
+ * local, puis disparaissait DE NOUVEAU dès la synchronisation
+ * suivante avec le cloud (déclenchée automatiquement 15-20s plus
+ * tard, ou même immédiatement si l'appareil est en ligne) : le cloud,
+ * resté inchangé par l'import, "corrigeait" ce qu'il percevait à tort
+ * comme une résurrection fantôme — exactement le mécanisme voulu pour
+ * empêcher qu'une VRAIE suppression ne revienne, mais qui ne pouvait
+ * pas distinguer cela d'une restauration volontaire (import).
+ * Corrigé en appliquant systématiquement, après CHAQUE import (JSON
+ * ET Excel) et après l'annulation d'un import, les deux fonctions
+ * ci-dessous — aucun système parallèle créé, elles ne font que
+ * réutiliser (syncToCloud, syncActivitesEtStockVersNouvellesTables)
+ * ou compléter trivialement (filtrage) ce qui existe déjà :
+ *   1. retirerTombstonesPourIdsImportes(D) : tout id désormais présent
+ *      dans une table importée est explicitement retiré de D._del
+ *      pour cette table — un élément ne peut pas être à la fois
+ *      "restauré" et "marqué supprimé".
+ *   2. pousserImportVersCloud() : envoie IMMÉDIATEMENT (sans attendre
+ *      le prochain cycle automatique) l'état importé vers Supabase —
+ *      Activités/Stock vers leurs tables dédiées et le reste (Stock
+ *      Perso, Dépenses, Dettes, Paiements, Commandes, Historique,
+ *      Corbeille, Patrimoine, paramètres…) vers app_data — pour que le
+ *      cloud reflète l'import dès que possible, et que la fusion du
+ *      cycle suivant parte d'un état déjà cohérent au lieu de
+ *      "corriger" la restauration.
+ * De plus, D._maxIdConfirmeActivite est réinitialisé à 0 juste après
+ * chaque import/annulation (voir les points d'appel ci-dessous) : le
+ * mécanisme de suppression INFÉRÉE des Activités (voir
+ * chargerActivitesEtStockDepuisTables) ne peut alors plus confondre
+ * une vieille activité tout juste restaurée avec une activité
+ * supprimée ailleurs — il se rétablit ensuite tout seul, sans risque,
+ * dès que le serveur confirme un nouveau maximum réel (mécanisme déjà
+ * en place, voir le correctif "premierPassage" plus bas).
+ * Rien n'est supprimé côté serveur par ce correctif (aucun risque de
+ * perte supplémentaire) : seules des données sont envoyées/mises à
+ * jour (upsert, idempotent) et des tombstones devenus incohérents
+ * avec l'import sont retirés.
+ */
+function retirerTombstonesPourIdsImportes(d){
+  if(!d || !d._del) return;
+  var champs=(typeof MERGEABLE_ARRAYS!=='undefined' && MERGEABLE_ARRAYS) ||
+    ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille','patrimoine'];
+  champs.forEach(function(champ){
+    var presents={};
+    (d[champ]||[]).forEach(function(item){ if(item && item.id!=null) presents[item.id]=true; });
+    if(d._del[champ] && d._del[champ].length){
+      d._del[champ]=d._del[champ].filter(function(id){ return !presents[id]; });
+    }
+  });
+}
+/**
+ * Envoie immédiatement l'état importé (D) vers Supabase, au lieu
+ * d'attendre le prochain cycle automatique (15-20s) — voir le
+ * correctif ci-dessus pour l'explication complète. Ne fait rien si le
+ * cloud est désactivé ou l'appareil hors ligne : dans ce cas, l'envoi
+ * se fera normalement dès le retour en ligne / au prochain cycle,
+ * sans aucune perte de données locale.
+ */
+function pousserImportVersCloud(){
+  try{
+    if (typeof SUPABASE_CONFIG!=='undefined' && SUPABASE_CONFIG.enabled && navigator.onLine){
+      if (typeof syncActivitesEtStockVersNouvellesTables==='function') syncActivitesEtStockVersNouvellesTables();
+      if (typeof syncToCloud==='function') syncToCloud().catch(function(){ /* message d'erreur déjà géré par syncToCloud() ; un nouvel essai aura lieu au prochain cycle automatique */ });
+    }
+  }catch(e2){ console.error('[import] Échec de l\'envoi immédiat vers le cloud (sera retenté par la synchro automatique) :', e2); }
+}
+/**
  * EXPORT JSON — sauvegarde totale et fidèle.
  * D est l'unique source de vérité de toute l'application : l'exporter tel
  * quel garantit que 100% des données (toutes les tables, compteurs internes
@@ -5187,7 +5264,15 @@ function hImport(e){
       D=Object.assign({},DEFAULT_SHAPE,d);
       delete D._meta;
       if(!D._del) D._del={};
+      // Voir le correctif "l'import ne restaure pas intégralement les
+      // données" juste au-dessus de compterDonnees() : sans ces trois
+      // lignes, une donnée restaurée mais déjà tombstonée/inférée
+      // supprimée ailleurs disparaissait de nouveau à la synchronisation
+      // suivante.
+      retirerTombstonesPourIdsImportes(D);
+      D._maxIdConfirmeActivite = 0;
       persist(); renderAll(); afficherBandeauAnnulerImport();
+      pousserImportVersCloud();
       var total=Object.keys(nouveau).reduce(function(s,k){ return s+nouveau[k]; },0);
       notif('✅ Importation réussie : '+total+' enregistrements restaurés');
     });
@@ -5209,7 +5294,14 @@ function annulerDerniereImportation(){
     try{
       D=JSON.parse(bak);
       if(!D._del) D._del={};
+      // Même correctif que pour un import normal (voir compterDonnees) :
+      // restaurer l'état d'avant-import est, du point de vue du cloud,
+      // exactement le même genre de "résurrection volontaire" — sans
+      // ces lignes, il subirait la même disparition différée.
+      retirerTombstonesPourIdsImportes(D);
+      D._maxIdConfirmeActivite = 0;
       persist(); renderAll();
+      pousserImportVersCloud();
       var z=document.getElementById('last-import-undo-zone'); if(z) z.style.display='none';
       notif('✅ Importation annulée, données précédentes restaurées');
     }catch(e){ notif('❌ Erreur lors de la restauration : fichier de sécurité corrompu'); }
@@ -5490,10 +5582,16 @@ function hImportExcel(e){
           var ancienD=D;
           D=Object.assign({},DEFAULT_SHAPE,ancienD,nD);
           if(!D._del) D._del={};
+          // Voir le correctif "l'import ne restaure pas intégralement
+          // les données" au-dessus de compterDonnees() : même raison
+          // que pour l'import JSON.
+          retirerTombstonesPourIdsImportes(D);
+          D._maxIdConfirmeActivite = 0;
           var maxOrdre=nD.activites.reduce(function(m,a){ return Math.max(m,a.ordre||0); },0);
           D._o=Math.max(ancienD._o||1,maxOrdre+1);
           D._co=Math.max(ancienD._co||1,nD.commandes.length+1);
           persist(); renderAll(); afficherBandeauAnnulerImport();
+          pousserImportVersCloud();
           var total=Object.keys(nouveau).reduce(function(s,k){ return s+nouveau[k]; },0);
           notif('✅ Import Excel réussi : '+total+' enregistrements restaurés'+(erreursCmd>0?(' ('+erreursCmd+' ligne(s) de commande à vérifier)'):''));
         });
@@ -5859,7 +5957,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v58';
+var APP_VERSION = 'v59'; // 05-09-2026 : CORRECTIF import/export (voir sw.js v118 pour le détail complet) — l'import (JSON/Excel) et l'annulation d'import poussent désormais immédiatement l'état restauré vers Supabase et retirent les tombstones devenus incohérents, pour que les données restaurées ne disparaissent plus à la synchronisation automatique suivante.
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
