@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v122'; // 05-09-2026 : CORRECTIF AFFICHAGE — suppression de la ligne "Reste à payer après ce paiement" répétée sur chaque paiement (Admin ET Associé), et de la ligne "Reste à payer" en double dans "En savoir plus" (Associé, déjà présente sous "Reste actuel"). Une seule ligne "RESTE À PAYER" ajoutée côté Admin, sous TOTAL (carte Dettes), réutilisant directement calculerBilanData().resteAVousPayer — exactement la même valeur déjà utilisée pour "💳 Reste à vous payer" (Bilan) et pour "va-reste" côté Associé (bilan_confidentiel) : montant strictement identique des deux côtés. Aucun calcul, nom ou logique modifié — affichage uniquement. Voir aussi v121/v120.
+const CACHE_VERSION = 'v125'; // 05-09-2026 : suite du correctif v124 (viderTout + fusion import) — APP_VERSION incrémentée à v63 dans index.html pour rendre le correctif visible dans l'app elle-même ; aucun changement de logique supplémentaire ici. Voir v124 pour le détail des 2 bugs corrigés.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
