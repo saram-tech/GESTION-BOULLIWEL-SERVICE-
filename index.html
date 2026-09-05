@@ -6024,7 +6024,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v59'; // 05-09-2026 : CORRECTIF import/export (voir sw.js v118 pour le détail complet) — l'import (JSON/Excel) et l'annulation d'import poussent désormais immédiatement l'état restauré vers Supabase et retirent les tombstones devenus incohérents, pour que les données restaurées ne disparaissent plus à la synchronisation automatique suivante.
+var APP_VERSION = 'v60'; // 05-09-2026 : cumule 3 corrections depuis v59 (voir sw.js v121 pour le détail complet) — (1) édition Stock entreprise/perso : la quantité peut désormais être diminuée jusqu'à 0 (jamais négative) ; (2) tableau Paiements reçus (Admin) + "En savoir plus" (Associé) : ajout d'une ligne "Reste à payer après ce paiement" ; (3) onglet Associé : le report de dette à la clôture (D.dettesClot) tient désormais compte des paiements ET des intérêts (part associé), plus seulement des paiements.
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
