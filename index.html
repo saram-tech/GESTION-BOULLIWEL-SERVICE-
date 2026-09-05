@@ -3961,10 +3961,21 @@ function vCorbeille(){
 function cloturer(){
   if(!exigerAdmin()) return;
   var nAct=D.activites.length, nDep=D.depenses.length, nDet=D.dettes.length, nPay=D.paiements.length;
-  var totD0=D.dettes.reduce(function(s,d){ return s+d.montant; },0);
-  var totP0=D.paiements.reduce(function(s,p){ return s+p.montant; },0);
+  /**
+   * CORRECTIF (05-09-2026 — cumul verrouillé : demande explicite) : cet
+   * aperçu affichait 'net : '+fmt(Math.max(0,totD0-totP0)) où totD0/totP0
+   * ne portaient QUE sur les dettes/paiements de la période EN COURS
+   * (D.dettes/D.paiements), sans inclure l'ancien cumul déjà verrouillé
+   * (D.dettesClot) — un nombre qui ne correspondait donc déjà pas à ce
+   * qui allait réellement être verrouillé par executerCloture() (voir le
+   * correctif juste là-bas). Remplacé par exactement la même valeur
+   * (calculerBilanData().dnBrut) que celle qui sera effectivement écrite
+   * dans D.dettesClot, pour que l'aperçu affiché avant confirmation
+   * corresponde toujours au résultat réel après clôture.
+   */
+  var bdApercu=calculerBilanData();
   var details='• '+nAct+' activité(s), '+nDep+' dépense(s) et l\'historique seront <strong>supprimés</strong><br>'+
-    '• '+nDet+' dette(s) + '+nPay+' paiement(s) (net : '+fmt(Math.max(0,totD0-totP0))+') seront fusionnés dans le cumul verrouillé<br>'+
+    '• '+nDet+' dette(s) + '+nPay+' paiement(s) — reste impayé net : '+fmt(bdApercu.dnBrut)+' seront verrouillés dans le cumul<br>'+
     '• Stock (Entreprise + Perso) et Commandes seront <strong>conservés intégralement</strong><br>'+
     '• "Ce que l\'entreprise vous doit" (stock perso) reste exact, rien n\'est perdu<br>'+
     '• De nouvelles dettes pourront être saisies dès la période suivante<br>'+
@@ -4251,29 +4262,35 @@ function enregistrerSnapshotClotureRapport(){
 function executerCloture(){
   enregistrerSnapshotClotureRapport();
   /**
-   * CORRECTIF (05-09-2026 — onglet Associé : à la clôture, les dettes
-   * doivent tenir compte des paiements reçus ET des intérêts) : jusqu'ici,
-   * D.dettesClot n'était net des dettes qu'après déduction des paiements
-   * reçus (totP) — jamais de la part associé (pab, ses "intérêts"), qui
-   * sert pourtant déjà ailleurs dans l'app (voir "Il reçoit (net)"/"Reste
-   * à vous payer (dette non couverte)" du Bilan) à couvrir une partie de
-   * cette même dette. Une dette entièrement couverte par cette part
-   * associé, même sans AUCUN paiement reçu, continuait donc à être
-   * reportée intégralement dans D.dettesClot au lieu de tomber à 0.
-   * Corrigé en reportant désormais EXACTEMENT calculerBilanData().resteAVousPayer
-   * — déjà la formule exacte utilisée et affichée partout ailleurs sous
-   * "Reste à vous payer (dette non couverte)" (= dette totale, incluant le
-   * cumul des clôtures précédentes, moins paiements reçus, moins part
-   * associé, jamais sous 0) — aucune nouvelle formule introduite. Cette
-   * valeur REMPLACE (et n'additionne plus) l'ancien D.dettesClot, car elle
-   * inclut déjà ce cumul dans son propre calcul (voir totD dans
-   * calculerBilanData()) : seul le montant réellement impayé est donc
-   * conservé. Ne touche ni au tableau de bord (Bilan/Vue Associé, qui
-   * utilisaient déjà cette même formule), ni à aucune autre fonction —
-   * uniquement ce report vers D.dettesClot.
+   * CORRECTIF (05-09-2026 — cumul verrouillé : demande explicite de
+   * l'utilisateur) : D.dettesClot verrouillait jusqu'ici
+   * calculerBilanData().resteAVousPayer, une valeur qui ne net pas
+   * seulement les dettes contre les paiements reçus, mais les nette
+   * ENSUITE une seconde fois contre "pab" (la part associé — voir
+   * ra=pab-dn puis resteAVousPayer=max(0,-ra) juste au-dessus dans
+   * calculerBilanData()). Cause exacte du désaccord signalé : une dette
+   * pouvait donc se retrouver verrouillée pour un montant inférieur au
+   * simple "dette moins paiements reçus" dès que la part associé (pab)
+   * couvrait tout ou partie du solde — ce n'est PAS ce qui doit être
+   * verrouillé ici. Consigne explicite reçue : le cumul verrouillé doit
+   * enregistrer UNIQUEMENT le reste impayé des dettes après déduction
+   * des seuls paiements effectués (ex. Dette 500 000 − Paiement 123 310
+   * = 376 690 verrouillés), sans fusionner/additionner ni soustraire
+   * quoi que ce soit d'autre (aucune part associé).
+   * Corrigé en verrouillant désormais calculerBilanData().dnBrut —
+   * champ déjà calculé et retourné par cette même fonction (aucune
+   * nouvelle formule introduite), qui vaut exactement
+   * Math.max(0, totD-totP) avec totD = D.dettes de la période + l'ancien
+   * D.dettesClot (le cumul précédent, déjà correctement reporté) et
+   * totP = D.paiements de la période — ni plus, ni moins. dnBrut inclut
+   * donc déjà, comme avant, le report des clôtures antérieures : cette
+   * valeur REMPLACE (n'additionne pas) l'ancien D.dettesClot. Rien
+   * d'autre n'est modifié : ni le Bilan ni la Vue Associé (qui
+   * continuent d'utiliser resteAVousPayer, inchangé, pour leur propre
+   * affichage), ni aucun autre calcul de cette fonction.
    */
   var bdPourDettesClot=calculerBilanData();
-  D.dettesClot=bdPourDettesClot.resteAVousPayer;
+  D.dettesClot=bdPourDettesClot.dnBrut;
   // IMPORTANT : "Ce que l'entreprise vous doit" (stock perso) se calcule
   // comme (Stock perso dû) − (Prix achat total de la période + 20%).
   // Cette déduction (prix achat + 20%) vient des ACTIVITÉS DE LA PÉRIODE,
@@ -6115,7 +6132,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v63'; // 05-09-2026 : correctif "Tout"/import Supabase (voir sw.js v124 pour le détail)
+var APP_VERSION = 'v64'; // 05-09-2026 : correctif cumul verrouillé (dettes-paiements sans part associé, voir sw.js v126)
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
