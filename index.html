@@ -1169,7 +1169,18 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="fg"><label>Catégorie</label><input type="text" id="s-categorie" placeholder="Ex: POCHETTE, BATTERIE..." list="dl-categorie-stock" onblur="capitaliserChamp('s-categorie')"><datalist id="dl-categorie-stock"></datalist></div>
     </div>
     <div class="fr">
-      <div class="fg"><label>Quantité initiale *</label><input type="number" id="s-qte" placeholder="0" min="0"></div>
+      <div class="fg"><label>Quantité initiale *</label><input type="number" id="s-qte" placeholder="0" min="0">
+        <!-- AJOUT (05-09-2026 — demande explicite : pouvoir diminuer la
+             quantité existante depuis ✏️ Modifier) : enrStock() acceptait
+             déjà une quantité inférieure à l'actuelle en édition (jusqu'à
+             0, jamais négative — voir le correctif déjà en place dans
+             enrStock()), mais rien ne le signalait à l'écran, ce qui la
+             rendait peu visible/utilisable en pratique. Ce texte est
+             purement informatif (aucune logique ajoutée) : il n'apparaît
+             qu'en édition (affiché par editStock(), masqué par rSF() pour
+             une nouvelle entrée où cela n'a pas de sens). -->
+        <small id="s-qte-hint" class="ks" style="display:none">Tapez un nombre plus petit pour diminuer le stock existant.</small>
+      </div>
       <div class="fg"><label>Prix achat unitaire (GNF) *</label><input type="number" id="s-achat" placeholder="0"></div>
     </div>
     <div class="fr">
@@ -1195,7 +1206,13 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="al alw" style="font-size:.77rem">Créance = (Prix achat × Qté) × 1.15 — Prix revient + 15%</div>
     <div class="fr">
       <div class="fg"><label>Nom produit *</label><input type="text" id="p-nom" placeholder="Ex: Cahiers" list="dl-prod" oninput="autoPP()" onblur="capitaliserChamp('p-nom');autoPP()"></div>
-      <div class="fg"><label>Quantité *</label><input type="number" id="p-qte" placeholder="0" min="0"></div>
+      <div class="fg"><label>Quantité *</label><input type="number" id="p-qte" placeholder="0" min="0">
+        <!-- AJOUT (05-09-2026 — même demande que Stock Entreprise, voir
+             s-qte-hint plus haut) : enrPerso() acceptait déjà une
+             quantité inférieure à l'actuelle en édition ; affichage
+             purement informatif, aucune logique ajoutée. -->
+        <small id="p-qte-hint" class="ks" style="display:none">Tapez un nombre plus petit pour diminuer le stock existant.</small>
+      </div>
     </div>
     <div class="fr">
       <div class="fg"><label>Prix achat unitaire (GNF) *</label><input type="number" id="p-achat" placeholder="0"></div>
@@ -2845,6 +2862,7 @@ function rSF(){
   sv('s-vente',0); sv('s-seuil',3); st('ms-t','📦 Entrée Stock');
   fillDLCategoriesStock();
   var b=document.getElementById('btn-ss'); b.textContent='✓ Enregistrer'; b.onclick=enrStock;
+  var h=document.getElementById('s-qte-hint'); if(h) h.style.display='none';
 }
 function editStock(id){
   var s=D.stock.find(function(x){ return x.id===id; }); if(!s) return;
@@ -2852,6 +2870,7 @@ function editStock(id){
   fillDLCategoriesStock();
   st('ms-t','✏️ Modifier Stock');
   var b=document.getElementById('btn-ss'); b.textContent='✓ Modifier'; b.onclick=enrStock; om('ms');
+  var h=document.getElementById('s-qte-hint'); if(h) h.style.display='block';
 }
 function delStock(id){
   var s=D.stock.find(function(x){ return x.id===id; }); if(!s) return;
@@ -2941,12 +2960,14 @@ function rPF(){
   sv('p-vente',0);
   st('mp-t','🏷️ Produit Personnel');
   var b=document.getElementById('btn-sp'); b.textContent='✓ Enregistrer'; b.onclick=enrPerso;
+  var h=document.getElementById('p-qte-hint'); if(h) h.style.display='none';
 }
 function editPerso(id){
   var p=D.perso.find(function(x){ return x.id===id; }); if(!p) return;
   sv('p-eid',id);sv('p-nom',p.nom);sv('p-qte',p.qteInitiale);sv('p-achat',p.achat);sv('p-vente',p.vente||'');sv('p-date',p.date||'');
   st('mp-t','✏️ Modifier Perso');
   var b=document.getElementById('btn-sp'); b.textContent='✓ Modifier'; b.onclick=enrPerso; om('mp');
+  var h=document.getElementById('p-qte-hint'); if(h) h.style.display='block';
 }
 function delPerso(id){
   var p=D.perso.find(function(x){ return x.id===id; }); if(!p) return;
@@ -4357,6 +4378,22 @@ function executerCloture(){
    * comportement déjà correct côté Administrateur.
    */
   var idsActivitesCloturees = D.activites.map(function(a){ return a.id; });
+  /**
+   * CORRECTIF CRITIQUE (05-09-2026 — audit intégrité des données, point 1) :
+   * seules les Activités bénéficiaient d'une VRAIE suppression serveur à
+   * la clôture. Les Dettes/Paiements/Dépenses de la période vivent
+   * pourtant, elles aussi, dans des tables Supabase DÉDIÉES (voir
+   * syncDepensesDettesPaiementsVersNouvellesTables()) : les tombstones
+   * locaux + le vidage de D ci-dessous ne les effacent PAS de ces tables
+   * (un upsert avec un tableau vide n'envoie aucune ligne, il n'efface
+   * rien) — exactement le même défaut déjà corrigé pour "Tout" et pour
+   * les Activités seules, jamais étendu à la clôture pour ces 3 tables.
+   * Corrigé en capturant leurs ids AVANT le vidage, puis en demandant une
+   * vraie suppression serveur (même mécanisme que pour les Activités).
+   */
+  var idsDettesCloturees = D.dettes.map(function(d){ return d.id; });
+  var idsPaiementsClotures = D.paiements.map(function(p){ return p.id; });
+  var idsDepensesCloturees = D.depenses.map(function(d){ return d.id; });
   // Marquer les tombstones AVANT de vider, pour que la suppression
   // se propage correctement lors de la prochaine synchronisation
   // (sinon un autre appareil, ou ce même appareil après un rechargement,
@@ -4378,6 +4415,9 @@ function executerCloture(){
   // prochain appareil qui se synchronise récupère l'ancien état complet.
   save(); notif('✅ Clôture. Cumul verrouillé: '+fmt(D.dettesClot)+' — nouvelle période de dettes ouverte');
   supprimerActivitesClotureesSurServeur(idsActivitesCloturees);
+  supprimerLotTableSurServeur('dettes', idsDettesCloturees, 'dettes de la période clôturée');
+  supprimerLotTableSurServeur('paiements', idsPaiementsClotures, 'paiements de la période clôturée');
+  supprimerLotTableSurServeur('depenses', idsDepensesCloturees, 'dépenses de la période clôturée');
 }
 /**
  * Suppression serveur réelle d'activités, par lots (limite d'URL même sur
@@ -6004,6 +6044,22 @@ function viderTout() {
     D.activites = []; D.stock = []; D.perso = []; D.depenses = [];
     D.dettes = []; D.paiements = []; D.commandes = []; D.histo = []; D.corbeille = [];
     D.dettesClot = 0; D.detteVerrou = false; D._o = 1; D._co = 1; D.entDejaDeduit = 0; D.entDoitBase = 0;
+    /**
+     * CORRECTIF CRITIQUE (05-09-2026 — audit intégrité des données, point
+     * 3) : dettesClot/entDejaDeduit sont protégés dans mergeAppData() par
+     * Math.max(cloud, local) — volontaire pour ne jamais perdre un cumul
+     * suite à une resynchro tardive d'un appareil en retard. Mais cette
+     * même protection pouvait empêcher LA remise à zéro volontaire de
+     * "Tout" : si une réconciliation se déclenche juste après ce reset,
+     * mais avant que le 0 n'ait atteint le cloud, l'ancien cumul non-nul
+     * côté cloud "gagnerait" via ce Math.max. On pose donc ici une marque
+     * horodatée du reset (_resetCumulsAt) : mergeAppData() (voir plus
+     * bas) l'utilise pour ignorer le Math.max UNIQUEMENT quand le côté
+     * qui détient l'ancienne valeur plus élevée date d'AVANT ce reset —
+     * une clôture légitime survenue APRÈS "Tout" reste, elle, protégée
+     * normalement (aucun changement pour ce cas).
+     */
+    D._resetCumulsAt = new Date().toISOString();
     save(); notif('✅ Tous les éléments supprimés.');
     supprimerActivitesSurServeurAvecAlerte(idsActivites, 'activités');
     supprimerLotTableSurServeur('stock', idsStock, 'produits du Stock Entreprise');
@@ -6060,8 +6116,18 @@ function viderStock() {
   var n=D.stock.length;
   var details='• <strong>'+n+'</strong> produit(s) du Stock Entreprise seront supprimés et envoyés à la Corbeille (récupérables)';
   demanderConfirmationSecurisee('🗑️ Supprimer tout le Stock Entreprise', details, false, function(){
+    /**
+     * CORRECTIF CRITIQUE (05-09-2026 — audit intégrité des données,
+     * point 2) : ce bouton ne posait qu'un tombstone local — la table
+     * Supabase dédiée "stock" n'était jamais réellement vidée (même
+     * défaut que "Tout"/clôture, jamais corrigé ici). Corrigé en
+     * capturant les ids AVANT le vidage puis en demandant une vraie
+     * suppression serveur.
+     */
+    var ids=D.stock.map(function(s){ return s.id; });
     D.stock.forEach(function(s){ markDeleted('stock',s.id); rb('stock', s.nom, s); });
     D.stock = []; save(); notif('✅ Stock entreprise vidé → corbeille');
+    supprimerLotTableSurServeur('stock', ids, 'produits du Stock Entreprise');
   });
 }
 
@@ -6072,8 +6138,13 @@ function viderDettes() {
   var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0);
   var details='• <strong>'+n+'</strong> dette(s) actives seront supprimées et envoyées à la Corbeille (récupérables)<br>• Montant total concerné : '+fmt(totD);
   demanderConfirmationSecurisee('🗑️ Supprimer toutes les dettes', details, false, function(){
+    // CORRECTIF CRITIQUE (05-09-2026 — audit intégrité des données, point
+    // 2) : voir le correctif détaillé dans viderStock() ci-dessus, même
+    // cause exacte, appliquée ici à la table Supabase dédiée "dettes".
+    var ids=D.dettes.map(function(d){ return d.id; });
     D.dettes.forEach(function(d){ markDeleted('dettes',d.id); rb('dette', d.desc, d); });
     D.dettes = []; save(); notif('✅ Dettes vidées → corbeille');
+    supprimerLotTableSurServeur('dettes', ids, 'dettes');
   });
 }
 
@@ -6082,8 +6153,13 @@ function viderPaiements() {
   var n=D.paiements.length;
   var details='• <strong>'+n+'</strong> paiement(s) reçus seront supprimés et envoyés à la Corbeille (récupérables)';
   demanderConfirmationSecurisee('🗑️ Supprimer tous les paiements', details, false, function(){
+    // CORRECTIF CRITIQUE (05-09-2026 — audit intégrité des données, point
+    // 2) : voir le correctif détaillé dans viderStock() ci-dessus, même
+    // cause exacte, appliquée ici à la table Supabase dédiée "paiements".
+    var ids=D.paiements.map(function(p){ return p.id; });
     D.paiements.forEach(function(p){ markDeleted('paiements',p.id); rb('paiement', 'Paiement '+fmt(p.montant), p); });
     D.paiements = []; save(); notif('✅ Paiements vidés → corbeille');
+    supprimerLotTableSurServeur('paiements', ids, 'paiements');
   });
 }
 
@@ -6102,8 +6178,13 @@ function viderDep() {
   var n=D.depenses.length;
   var details='• <strong>'+n+'</strong> dépense(s) seront supprimées et envoyées à la Corbeille (récupérables)';
   demanderConfirmationSecurisee('🗑️ Supprimer toutes les dépenses', details, false, function(){
+    // CORRECTIF CRITIQUE (05-09-2026 — audit intégrité des données, point
+    // 2) : voir le correctif détaillé dans viderStock() ci-dessus, même
+    // cause exacte, appliquée ici à la table Supabase dédiée "depenses".
+    var ids=D.depenses.map(function(d){ return d.id; });
     D.depenses.forEach(function(d){ markDeleted('depenses',d.id); rb('depense', d.desc, d); });
     D.depenses = []; save(); notif('✅ Dépenses vidées → corbeille');
+    supprimerLotTableSurServeur('depenses', ids, 'dépenses');
   });
 }
 
@@ -6122,7 +6203,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v65'; // 05-09-2026 : cumul verrouillé revient au calcul Part Associé (resteAVousPayer, voir sw.js v127)
+var APP_VERSION = 'v68'; // 05-09-2026 : audit intégrité — clôture + 4 boutons Vider suppriment réellement Supabase, reset "Tout" protégé (voir sw.js v130)
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
@@ -7080,11 +7161,35 @@ function doChangerPass() {
       ov.style.top=vv.offsetTop+'px';
     });
   }
-  window.visualViewport.addEventListener('resize', adjustForKeyboard);
+  /**
+   * CORRECTIF UI (05-09-2026 — "sur Android, un champ, un bouton ou du
+   * contenu reste encore masqué par le clavier ou par le bandeau de
+   * suggestions") : adjustForKeyboard() redimensionnait déjà .ov/.modal
+   * sur la hauteur réellement visible, mais rien ne ramenait ENSUITE le
+   * champ actif dans cette zone désormais plus petite — on comptait
+   * uniquement sur le comportement par défaut du navigateur, absent ou
+   * trop tardif sur certains WebView/claviers Android (notamment quand
+   * le bandeau de suggestions apparaît APRÈS coup, une fois la saisie
+   * commencée, réduisant encore l'espace visible sans nouveau geste de
+   * l'utilisateur). Corrigé en rappelant explicitement scrollIntoView()
+   * sur le champ actif à chaque redimensionnement (resize du clavier) et
+   * après chaque prise de focus, en plus des délais déjà en place — pour
+   * que le champ, le bouton ou le contenu concerné revienne toujours
+   * automatiquement dans la zone visible, sans aucun geste manuel. Pure
+   * ergonomie : aucune logique métier, donnée ni calcul modifié.
+   */
+  function ramenerChampActifDansLaVue(){
+    var actif=document.activeElement;
+    if(actif && typeof actif.scrollIntoView==='function' && (actif.tagName==='INPUT'||actif.tagName==='TEXTAREA'||actif.tagName==='SELECT')){
+      actif.scrollIntoView({block:'nearest', inline:'nearest'});
+    }
+  }
+  window.visualViewport.addEventListener('resize', function(){ adjustForKeyboard(); ramenerChampActifDansLaVue(); });
   window.visualViewport.addEventListener('scroll', adjustForKeyboard);
   document.addEventListener('focusin', function(e){
     if(e.target && (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')){
       setTimeout(adjustForKeyboard,50); setTimeout(adjustForKeyboard,300);
+      setTimeout(ramenerChampActifDansLaVue,120); setTimeout(ramenerChampActifDansLaVue,350); setTimeout(ramenerChampActifDansLaVue,650);
     }
   });
 })();
@@ -8417,7 +8522,7 @@ function mergeTombstones(delA, delB) {
  * @param {object} localData
  * @param {boolean} cloudIsNewer - lequel des deux est prioritaire en cas de vrai conflit
  */
-function mergeAppData(cloudData, localData, cloudIsNewer) {
+function mergeAppData(cloudData, localData, cloudIsNewer, cloudDate, localDate) {
   var base = cloudIsNewer ? localData : cloudData;
   var priorite = cloudIsNewer ? cloudData : localData;
   /**
@@ -8664,6 +8769,66 @@ function mergeAppData(cloudData, localData, cloudIsNewer) {
   // deux cumuls, jamais un remplacement brutal — même correctif, même
   // raison, que pour entDejaDeduit.
   merged.dettesClot = Math.max(Number(cloudData.dettesClot) || 0, Number(localData.dettesClot) || 0);
+  /**
+   * CORRECTIF CRITIQUE (05-09-2026 — audit intégrité des données, point
+   * 3 : "Tout" ne doit plus jamais laisser réapparaître dettesClot ou
+   * entDejaDeduit après une remise à zéro) — cause exacte du risque :
+   * les deux lignes Math.max() juste au-dessus prennent toujours le PLUS
+   * GRAND des deux cumuls, sans distinguer une vraie régression (bug
+   * multi-appareils, à protéger) d'une remise à zéro VOULUE par "Tout"
+   * (voir D._resetCumulsAt, posé par viderTout()). Corrigé en ignorant ce
+   * Math.max UNIQUEMENT quand le côté qui détient l'ancienne valeur plus
+   * élevée est réellement ANTÉRIEUR à ce reset (donc obsolète) — sinon
+   * (donnée plus récente que le reset, ex. nouvelle clôture après "Tout")
+   * la protection Math.max habituelle s'applique normalement, exactement
+   * comme avant. cloudDate/localDate (dates globales du blob, déjà
+   * calculées par l'appelant _reconcilerAppDataCoeur) servent de repère
+   * : à défaut de date connue pour un côté, on NE force jamais le 0 (on
+   * garde alors le Math.max existant, par prudence).
+   */
+  var resetLocal = localData._resetCumulsAt, resetCloud = cloudData._resetCumulsAt;
+  var resetAtFinal = (resetLocal && resetCloud) ? (new Date(resetLocal) >= new Date(resetCloud) ? resetLocal : resetCloud) : (resetLocal || resetCloud || null);
+  function valeurCumulProtegeeContreReset(champ, valeurMax){
+    if(!resetAtFinal) return valeurMax;
+    var vCloud=Number(cloudData[champ])||0, vLocal=Number(localData[champ])||0;
+    var coteMax = vCloud>=vLocal ? 'cloud' : 'local';
+    var dateCoteMax = coteMax==='cloud' ? cloudDate : localDate;
+    var resetDate = new Date(resetAtFinal);
+    if(dateCoteMax && dateCoteMax<=resetDate) return 0;
+    return valeurMax;
+  }
+  merged.entDejaDeduit = valeurCumulProtegeeContreReset('entDejaDeduit', merged.entDejaDeduit);
+  merged.dettesClot = valeurCumulProtegeeContreReset('dettesClot', merged.dettesClot);
+  if(resetAtFinal) merged._resetCumulsAt = resetAtFinal;
+  /**
+   * CORRECTIF CRITIQUE (05-09-2026 — "l'historique de clôture et les
+   * données du rapport n'apparaissent pas après une clôture") : cause
+   * exacte trouvée — historiqueClotures n'était protégé par AUCUNE
+   * fusion : Object.assign() plus haut le traitait comme un simple champ,
+   * entièrement écrasé par la version "priorite" (cloud OU local, selon
+   * la date de dernière modification de TOUT le blob — pas de cette
+   * liste en particulier) — exactement le même défaut que pour
+   * dettesClot/entDoitBase/entDejaDeduit ci-dessus, jamais corrigé pour
+   * ce champ précis. Scénario exact reproduit : une clôture ajoute un
+   * nouveau snapshot en local (voir enregistrerSnapshotClotureRapport())
+   * et le pousse vers le cloud, mais un autre appareil (ou ce même
+   * appareil, si son propre cycle de réconciliation automatique se
+   * déclenche avant que ce push n'ait atteint le serveur) peut ensuite
+   * se resynchroniser et redevenir "prioritaire" avec sa PROPRE liste,
+   * plus ancienne, sans ce nouveau snapshot — qui disparaît alors
+   * purement et simplement de l'onglet Rapport, alors même que le
+   * snapshot existe bien, intact, côté perdant.
+   * Corrigé en fusionnant les deux listes par date (union, jamais un
+   * remplacement en bloc) avant de ne garder que les 2 plus récentes —
+   * exactement la même règle déjà appliquée à la création du snapshot
+   * (voir .slice(-2) dans enregistrerSnapshotClotureRapport()). Aucun
+   * calcul métier modifié : uniquement la façon dont les deux listes
+   * déjà enregistrées sont réconciliées entre elles.
+   */
+  var clotBase=(base.historiqueClotures||[]), clotPrio=(priorite.historiqueClotures||[]);
+  var clotParDate={};
+  clotBase.concat(clotPrio).forEach(function(s){ if(s&&s.date) clotParDate[s.date]=s; });
+  merged.historiqueClotures=Object.keys(clotParDate).sort().map(function(d){ return clotParDate[d]; }).slice(-2);
   return merged;
 }
 
@@ -8707,7 +8872,7 @@ function _reconcilerAppDataCoeur(silencieux) {
       var cloudDate = new Date(rows[0].updated_at);
       var cloudIsNewer = !localDate || cloudDate > localDate;
 
-      var merged = mergeAppData(rows[0].data, D, cloudIsNewer);
+      var merged = mergeAppData(rows[0].data, D, cloudIsNewer, cloudDate, localDate);
       D = merged;
       // Sécurité migration entDoitBase : couvre le cas d'un appareil qui
       // aurait chargé v54 hors ligne (donc avec un état local pas encore
