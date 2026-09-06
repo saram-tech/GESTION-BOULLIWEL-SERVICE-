@@ -2927,7 +2927,12 @@ function enrPerso(){
        * alors plus jamais traitée comme "déjà consolidée" tant qu'une
        * VRAIE clôture ne l'a pas revidée elle-même.
        */
-      if(p._videParCloture){ p._videParCloture=false; p._localTouchedAt=Date.now(); }
+      if(p._videParCloture){ p._videParCloture=false; }
+      // CORRECTIF CRITIQUE (06-09-2026 — voir commentaire détaillé dans la
+      // branche de fusion par nom ci-dessous) : une édition manquait elle
+      // aussi cet horodatage, indispensable à mergeAppData() pour choisir
+      // la modification la plus récente entre deux appareils.
+      p._localTouchedAt=Date.now();
     }
     ah('perso','Modif perso: '+nom,totalDu,date);
   } else {
@@ -2942,9 +2947,31 @@ function enrPerso(){
       // et réutilisée ici par correspondance de nom doit elle aussi
       // perdre son marqueur _videParCloture, sinon elle est revidée dès
       // la prochaine synchronisation, avant toute clôture réelle.
-      if(ex._videParCloture){ ex._videParCloture=false; ex._localTouchedAt=Date.now(); }
+      if(ex._videParCloture){ ex._videParCloture=false; }
+      /**
+       * CORRECTIF CRITIQUE (06-09-2026 — "nouveaux produits Stock Perso
+       * ne se synchronisent pas entre appareils, disparaissent parfois")
+       * — cause exacte trouvée : contrairement à TOUTES les autres
+       * fiches fusionnables (Dettes, Paiements, Dépenses, Commandes,
+       * Patrimoine, Stock — voir enrDette/enrPaym/enrDep/enrCmd/
+       * enrPatrimoine/enrStock), l'ajout ou la mise à jour d'une fiche
+       * Stock Perso ici ne posait JAMAIS _localTouchedAt. Or mergeAppData()
+       * utilise précisément cet horodatage pour départager, fiche par
+       * fiche, quelle version (locale ou cloud) a été modifiée en dernier
+       * lors d'une fusion multi-appareils (voir plus bas dans ce fichier,
+       * bloc ajouté juste après pour 'perso'). Sans lui, une fiche Stock
+       * Perso réutilisée par correspondance de nom sur un appareil pouvait
+       * être écrasée en bloc par une version plus ancienne venant d'un
+       * autre appareil (ou de ce même appareil, si son propre cycle de
+       * réconciliation ~20s se déclenchait juste après), au lieu de
+       * conserver la modification réellement la plus récente. Corrigé en
+       * posant systématiquement _localTouchedAt ici, exactement comme pour
+       * toutes les autres tables. Aucun calcul ni autre fonctionnalité
+       * modifiés.
+       */
+      ex._localTouchedAt=Date.now();
     }
-    else D.perso.push({id:Date.now(),nom:nom,qteInitiale:qte,achat:achat,vente:vente,prixRevient:prixRevient,commission:commission,totalDu:totalDu,rembourse:0,date:date,heure:nowHM(),derniereModifDate:maintenant});
+    else D.perso.push({id:Date.now(),nom:nom,qteInitiale:qte,achat:achat,vente:vente,prixRevient:prixRevient,commission:commission,totalDu:totalDu,rembourse:0,date:date,heure:nowHM(),derniereModifDate:maintenant,_localTouchedAt:Date.now()});
     // Fusion immédiate et automatique dans le Stock Entreprise (stock physique unique)
     fusionnerDansStockEnt(nom,qte,achat,vente,date);
     ah('perso','Perso: '+nom+' x'+qte+' (fusionné au stock)',totalDu,date);
@@ -6203,7 +6230,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v68'; // 05-09-2026 : audit intégrité — clôture + 4 boutons Vider suppriment réellement Supabase, reset "Tout" protégé (voir sw.js v130)
+var APP_VERSION = 'v69'; // 06-09-2026 : CORRECTIF CRITIQUE — Stock Perso ne se synchronisait pas correctement entre appareils (enrPerso() ne posait jamais _localTouchedAt, contrairement à Dettes/Paiements/Dépenses/Commandes/Patrimoine/Stock) : une fiche réapprovisionnée séparément sur deux appareils pouvait voir sa modification la plus récente écrasée par une plus ancienne à la synchronisation suivante (seule la quantité était protégée, pas le montant dû). Corrigé en posant _localTouchedAt sur chaque création/mise à jour Stock Perso, et en ajoutant 'perso' à la résolution fine par horodatage déjà validée pour les autres tables (voir sw.js v131). Aucun calcul ni autre fonctionnalité modifiés — testé (fusion multi-appareils simulée en environnement réel).
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
@@ -8633,8 +8660,25 @@ function mergeAppData(cloudData, localData, cloudIsNewer, cloudDate, localDate) 
    * global, comme pour Dettes/Paiements/Dépenses/Commandes avant ce
    * correctif. Même mécanisme, même horodatage _localTouchedAt (désormais
    * posé par enrPatrimoine), aucun autre changement.
+   *
+   * EXTENSION CRITIQUE (06-09-2026 — "nouveaux produits Stock Perso ne se
+   * synchronisent pas entre appareils, disparaissent parfois") : "perso"
+   * ajouté à cette liste. Cause exacte trouvée — enrPerso() ne posait
+   * jamais _localTouchedAt (voir correctif dans enrPerso() ci-dessus,
+   * maintenant corrigé), donc même en l'ajoutant ici, une fiche Stock
+   * Perso modifiée séparément sur deux appareils (même id, ex: même
+   * produit réapprovisionné des deux côtés) restait tranchée uniquement
+   * par le camp "priorite" global — jamais par QUELLE modification de
+   * CETTE fiche précise est la plus récente, contrairement à Dettes/
+   * Paiements/Dépenses/Commandes/Patrimoine ci-dessus. Résultat : la
+   * modification la plus ancienne pouvait écraser la plus récente à
+   * chaque synchronisation. Corrigé en appliquant ici la même résolution
+   * déjà validée pour les autres tables. La protection anti-recul de
+   * quantité juste plus bas (bloc 'stock'/'perso') s'applique ENSUITE, sur
+   * l'élément ainsi choisi — elle continue de fonctionner à l'identique,
+   * en plus de cette résolution fine, sans aucun conflit entre les deux.
    */
-  ['dettes','paiements','depenses','commandes','patrimoine'].forEach(function(f){
+  ['dettes','paiements','depenses','commandes','patrimoine','perso'].forEach(function(f){
     var baseById={}, prioById={};
     (base[f]||[]).forEach(function(x){ if(x&&x.id!=null) baseById[x.id]=x; });
     (priorite[f]||[]).forEach(function(x){ if(x&&x.id!=null) prioById[x.id]=x; });
