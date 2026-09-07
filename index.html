@@ -6230,7 +6230,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v69'; // 06-09-2026 : CORRECTIF CRITIQUE — Stock Perso ne se synchronisait pas correctement entre appareils (enrPerso() ne posait jamais _localTouchedAt, contrairement à Dettes/Paiements/Dépenses/Commandes/Patrimoine/Stock) : une fiche réapprovisionnée séparément sur deux appareils pouvait voir sa modification la plus récente écrasée par une plus ancienne à la synchronisation suivante (seule la quantité était protégée, pas le montant dû). Corrigé en posant _localTouchedAt sur chaque création/mise à jour Stock Perso, et en ajoutant 'perso' à la résolution fine par horodatage déjà validée pour les autres tables (voir sw.js v131). Aucun calcul ni autre fonctionnalité modifiés — testé (fusion multi-appareils simulée en environnement réel).
+var APP_VERSION = 'v71'; // 06-09-2026 : CORRECTIF CRITIQUE — garantie financière Administrateur / Stock Perso. migrerEntDoitBaseStockPerso() (migration ponctuelle) était appelée à CHAQUE cycle de synchronisation automatique (~20s, en continu), pas seulement une fois au chargement : si son verrou (D._migreEntDoitBase, simple booléen non protégé comme les cumuls) revenait un jour à false côté gagnant d'une fusion, tout le Stock Perso (y compris des saisies récentes) aurait été vidé automatiquement, SANS clôture ni action utilisateur. Corrigé en retirant cet appel du cycle de synchronisation (voir sw.js v133) : seule la clôture (executerCloture) déclenche désormais un vidage du Stock Perso. Aucun calcul métier ni formule modifiés — testé (saisie, mise à jour immédiate du "Reste que l'entreprise vous doit", synchronisations multiples, déconnexion/reconnexion, changement de compte, deuxième quantité, puis clôture réelle).
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
@@ -8553,54 +8553,27 @@ function mergeAppData(cloudData, localData, cloudIsNewer, cloudDate, localDate) 
   var base = cloudIsNewer ? localData : cloudData;
   var priorite = cloudIsNewer ? cloudData : localData;
   /**
-   * CORRECTIF CRITIQUE (05-09-2026 — "des données importées disparaissent
-   * moins d'une minute après l'import") — cause exacte trouvée :
-   * mergedDel était jusqu'ici une simple UNION des tombstones des deux
-   * côtés (cloud + local), appliquée ENSUITE aux tableaux fusionnés par
-   * mergeArraysById() sans aucune distinction — y compris pour un id
-   * pourtant présent comme donnée bien réelle côté "priorite" (le côté
-   * censé l'emporter sur tout conflit, exactement comme documenté juste
-   * en dessous pour mergeArraysById : "la version prioritaire l'emporte
-   * pour cet élément précis").
-   * Scénario exact reproduit : un import restaure un id X et retire X de
-   * D._del en local (voir retirerTombstonesPourIdsImportes(), déjà en
-   * place pour l'import), puis pousserImportVersCloud() envoie ce nouvel
-   * état vers Supabase — mais cet envoi (fetch réseau) prend un instant.
-   * Si le cycle de réconciliation automatique de app_data se déclenche
-   * PENDANT cette fenêtre (toutes les 20s, voir demarrerAutoSyncAppData),
-   * il relit encore l'ANCIENNE ligne cloud, qui n'a pas encore reçu
-   * l'import et qui porte donc encore l'ancien tombstone pour X. Même
-   * quand "local plus récent" était correctement détecté (priorite=local,
-   * donc l'import gagnant), l'union aveugle des tombstones remettait
-   * quand même X dans mergedDel à cause du seul VIEUX tombstone cloud —
-   * et mergeArraysById() supprimait alors X du résultat fusionné, MÊME
-   * présent et à jour côté "priorite" gagnant. Cette suppression fantôme
-   * était ensuite persistée ET repoussée vers le cloud juste après (voir
-   * _reconcilerAppDataCoeur → syncToCloud()), effaçant réellement et
-   * durablement la donnée tout juste restaurée.
-   * Corrigé en ne conservant, pour chaque champ, que les tombstones qui
-   * ne contredisent pas une donnée réellement présente côté "priorite" :
-   * un id supprimé UNIQUEMENT par le côté perdant (base) mais toujours
-   * vivant dans le côté gagnant (priorite) n'est plus traité comme
-   * supprimé. Une suppression réellement voulue reste, elle, intacte
-   * dans tous les cas : soit parce que le côté gagnant a lui-même son
-   * propre tombstone pour cet id (priorite._del), soit simplement parce
-   * que sa donnée est de toute façon absente de son propre tableau (rien
-   * à protéger, le filtre ne change alors rien). Rien d'autre n'est
-   * modifié : le reste de la fusion (union par id, résolution fine par
-   * _localTouchedAt, cumuls Math.max…) continue de fonctionner
-   * exactement comme avant.
+   * CORRECTIF CRITIQUE (06-09-2026 — "une donnée supprimée ne doit JAMAIS
+   * réapparaître après synchronisation, quel que soit l'appareil
+   * prioritaire") — cause exacte trouvée : le correctif précédent
+   * (05-09-2026, voir historique) annulait un tombstone dès que le côté
+   * "priorite" possédait encore l'élément SANS son propre tombstone —
+   * pensé pour un cas d'import précis, mais avec un effet de bord
+   * inacceptable : une suppression VOLONTAIRE faite sur l'appareil A
+   * (donc jamais réappliquée sur son propre D._del, puisqu'un appareil
+   * ne "re-tombstone" pas ce qu'il vient déjà de retirer de son propre
+   * tableau) pouvait être annulée si l'appareil B — resté simplement
+   * plus longtemps sans supprimer cet élément — devenait "priorite" lors
+   * d'une fusion : l'élément réapparaissait alors purement et simplement,
+   * malgré une suppression pourtant bien réelle et intentionnelle.
+   * Corrigé en revenant à une UNION SIMPLE et INCONDITIONNELLE des
+   * tombstones des deux côtés (comme avant le correctif du 05-09-2026) :
+   * un id supprimé, où que ce soit, le reste TOUJOURS après fusion, quel
+   * que soit le côté prioritaire. Rien d'autre n'est modifié : le reste
+   * de la fusion (union par id, résolution fine par _localTouchedAt,
+   * cumuls Math.max…) continue de fonctionner exactement comme avant.
    */
-  var mergedDelBrut = mergeTombstones(cloudData._del, localData._del);
-  var mergedDel = {};
-  Object.keys(mergedDelBrut).forEach(function(champ){
-    var presentsChezPriorite = {};
-    (priorite[champ]||[]).forEach(function(item){ if(item && item.id!=null) presentsChezPriorite[item.id]=true; });
-    var delPropreAuGagnant = (priorite._del && priorite._del[champ]) || [];
-    mergedDel[champ] = mergedDelBrut[champ].filter(function(id){
-      return !presentsChezPriorite[id] || delPropreAuGagnant.indexOf(id)!==-1;
-    });
-  });
+  var mergedDel = mergeTombstones(cloudData._del, localData._del);
   var merged = Object.assign({}, DEFAULT_SHAPE, base, priorite);
   merged._del = mergedDel;
   // Le mot de passe (auth) est un champ simple, pas un tableau fusionnable :
@@ -8918,11 +8891,31 @@ function _reconcilerAppDataCoeur(silencieux) {
 
       var merged = mergeAppData(rows[0].data, D, cloudIsNewer, cloudDate, localDate);
       D = merged;
-      // Sécurité migration entDoitBase : couvre le cas d'un appareil qui
-      // aurait chargé v54 hors ligne (donc avec un état local pas encore
-      // migré) et ne fusionne qu'ici avec le cloud pour la première fois.
-      // Sans effet si déjà fait (verrou D._migreEntDoitBase).
-      migrerEntDoitBaseStockPerso();
+      /**
+       * CORRECTIF CRITIQUE (06-09-2026 — "vidage prématuré du Stock Perso
+       * hors clôture / garantie financière Administrateur") — cause exacte
+       * trouvée : migrerEntDoitBaseStockPerso() est une migration
+       * ponctuelle (censée ne s'exécuter QU'UNE SEULE FOIS, verrouillée
+       * par D._migreEntDoitBase), mais elle était appelée ICI, dans le
+       * cycle de synchronisation automatique qui tourne en continu toutes
+       * les ~20 secondes pour toujours. Le verrou D._migreEntDoitBase est
+       * un simple booléen fusionné globalement (pas protégé comme les
+       * cumuls dettesClot/entDejaDeduit/entDoitBase juste en dessous) :
+       * si une fusion faisait un jour revenir ce verrou à false côté
+       * gagnant (ex: réconciliation avec un très ancien appareil jamais
+       * migré, ou restauration d'une sauvegarde ancienne), cette fonction
+       * aurait automatiquement remis à zéro TOUT le Stock Perso — y
+       * compris des saisies toutes récentes — sans clôture, sans action
+       * ni confirmation de l'utilisateur. Corrigé en retirant cet appel
+       * du cycle de synchronisation : il ne reste qu'à l'endroit prévu
+       * pour un usage ponctuel (chargement de l'application, voir plus
+       * haut dans ce fichier), où D.perso est vide sur tout appareil
+       * neuf et où le cas légitime (très ancien appareil jamais migré)
+       * continue d'être traité normalement, une seule fois, à son premier
+       * chargement. Aucun calcul métier, aucune formule de
+       * migrerEntDoitBaseStockPerso() elle-même, ni aucune autre
+       * fonctionnalité modifiés.
+       */
       persist(); renderAll();
       // On repousse immédiatement la version fusionnée, pour que le
       // cloud et cet appareil convergent tout de suite vers l'union.
