@@ -566,6 +566,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div><div class="st">Stock Entreprise</div><div class="ss">Marchandises communes — seuil d'alerte par produit</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn bp bsm" onclick="rSF();om('ms')">+ Entrée stock</button>
+      <button class="btn bh bsm" onclick="ouvrirReductionCapital()" title="Réduire manuellement le capital (montant + motif)">➖ Réduire le capital</button>
       <button class="btn bh bsm" onclick="toggleTriAZ('stock')" id="btn-az-stock" title="Trier les produits par ordre alphabétique">🔤 A-Z</button>
       <button class="btn bd bsm" onclick="viderStock()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
       <button class="btn bh bsm no-print" onclick="imprimerSection('tab-stock','Stock Entreprise')" title="Imprimer">🖨️</button>
@@ -1198,7 +1199,31 @@ tbody tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
-<!-- PERSO -->
+<!-- RÉDUCTION MANUELLE DU CAPITAL (Stock Entreprise, compte Administrateur) -->
+<div class="ov" id="mcr">
+  <div class="modal">
+    <div class="mhd"><span>➖ Réduire le capital</span><button class="mcl" onclick="cm('mcr')">✕</button></div>
+    <div class="al ali" style="font-size:.75rem">
+      Cette opération réduit uniquement le capital affiché. Elle ne modifie ni le stock, ni les ventes, ni les dépenses, ni les dettes. Le capital ne peut jamais devenir négatif.
+    </div>
+    <div style="font-size:.8rem;color:var(--tx2);margin:6px 0">Capital actuel : <strong id="cr-capital-actuel">0 GNF</strong></div>
+    <div class="fr">
+      <div class="fg"><label>Montant à déduire (GNF) *</label><input type="number" id="cr-montant" placeholder="0" min="0"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Motif *</label><input type="text" id="cr-motif" placeholder="Ex: Retrait personnel, perte, correction..."></div>
+    </div>
+    <div class="mft">
+      <button class="btn bh" onclick="cm('mcr')">Annuler</button>
+      <button class="btn bd" onclick="enrReductionCapital()">✓ Confirmer la réduction</button>
+    </div>
+    <div style="margin-top:12px;border-top:1px solid var(--bd);padding-top:10px">
+      <div style="font-size:.78rem;color:var(--tx2);margin-bottom:6px">Historique des réductions</div>
+      <div id="cr-historique" style="max-height:180px;overflow-y:auto;font-size:.76rem"></div>
+    </div>
+  </div>
+</div>
+
 <div class="ov" id="mp">
   <div class="modal">
     <div class="mhd"><span id="mp-t">🏷️ Produit Personnel</span><button class="mcl" onclick="cm('mp');rPF()">✕</button></div>
@@ -1459,7 +1484,7 @@ let D = {
 function load(){
   try{
     const s=localStorage.getItem(KEY);
-    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}},d); if(!D._del) D._del={}; }
+    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}},d); if(!D._del) D._del={}; }
   }catch(e){}
   migrerEntDoitBaseStockPerso();
 }
@@ -2875,9 +2900,111 @@ function editStock(id){
 function delStock(id){
   var s=D.stock.find(function(x){ return x.id===id; }); if(!s) return;
   if(!confirm('Supprimer ?')) return;
+  /**
+   * CORRECTIF CRITIQUE (06-09-2026 — "le capital de l'entreprise change
+   * quand un produit du Stock Entreprise avec reste=0 est supprimé") —
+   * cause exacte trouvée : calculerCapitalTotalEntreprise() additionne
+   * qteInitiale (la quantité D'ORIGINE, jamais réduite par les ventes) de
+   * TOUS les produits actuellement présents dans D.stock, pas la quantité
+   * restante. Un produit entièrement vendu (reste=0) continue donc de
+   * contribuer pleinement au capital tant qu'il reste dans la liste —
+   * c'est voulu (le capital représente l'investissement direct déjà
+   * réalisé, indépendant des ventes). Mais SUPPRIMER ce produit le retire
+   * intégralement de cette somme : son capital déjà investi (et déjà
+   * récupéré via les ventes) disparaissait alors purement et simplement
+   * du total, alors qu'aucune vente ni aucun stock réel n'est concerné —
+   * uniquement une fiche devenue inutile. Corrigé en conservant, dans un
+   * cumul dédié (capitalStockSupprime, jamais visible ni modifiable
+   * autrement, voir calculerCapitalTotalEntreprise()), la contribution
+   * capital exacte du produit UNIQUEMENT quand il est supprimé avec
+   * reste=0 (aucun stock physique perdu) — le capital total reste alors
+   * strictement identique avant/après la suppression. Si le produit a
+   * encore du stock restant au moment de la suppression, ce cas n'est pas
+   * concerné (comportement inchangé, comme avant ce correctif).
+   */
+  var restant = s.qteRestante!==undefined ? s.qteRestante : s.qteInitiale;
+  if(restant<=0){
+    var qteDirecteSupprimee = Math.max(0, (s.qteInitiale||0) - (s.origPerso||0));
+    D.capitalStockSupprime = (D.capitalStockSupprime||0) + qteDirecteSupprimee*(s.achat||0);
+  }
   D.stock=D.stock.filter(function(x){ return x.id!==id; });
   markDeleted('stock',id);
   rb('stock',s.nom,s); save(); notif('Stock → corbeille');
+  /**
+   * CORRECTIF CRITIQUE (06-09-2026 — "produit supprimé du Stock Entreprise
+   * toujours présent dans Supabase") — cause exacte trouvée : delStock()
+   * ne posait qu'un tombstone LOCAL (markDeleted) puis appelait save(),
+   * qui ne fait qu'un UPSERT du tableau D.stock courant vers la table
+   * Supabase dédiée "stock" (voir syncActivitesEtStockVersNouvellesTables())
+   * — un upsert n'efface jamais une ligne absente du tableau envoyé, il
+   * se contente de ne pas la renvoyer. La ligne restait donc indéfiniment
+   * côté serveur et pouvait réapparaître dès qu'un appareil retéléchargeait
+   * la table (chargerActivitesEtStockDepuisTables, utilisée à chaque
+   * connexion/actualisation/synchronisation). C'est EXACTEMENT le même
+   * défaut déjà corrigé pour "Vider tout le Stock Entreprise" (voir
+   * viderStock() ci-dessous, 05-09-2026) — jamais appliqué ici, à la
+   * suppression d'un SEUL produit. Corrigé en appelant ici la même
+   * fonction déjà existante et validée (supprimerLotTableSurServeur),
+   * ciblée sur l'identifiant unique du produit (id, jamais son nom) —
+   * une vraie suppression serveur (DELETE ... WHERE id IN (id)), avec
+   * vérification du nombre de lignes réellement supprimées et alerte en
+   * cas d'échec/refus RLS. Le tombstone local (markDeleted, déjà en
+   * place) continue en parallèle de garantir que le produit ne réapparaît
+   * jamais localement même si cette suppression serveur est momentanément
+   * différée (hors ligne). Aucun autre comportement modifié : ni le
+   * passage par la corbeille, ni le calcul du capital (voir le correctif
+   * juste au-dessus, totalement indépendant et non affecté par celui-ci).
+   */
+  supprimerLotTableSurServeur('stock', [id], 'produit du Stock Entreprise');
+}
+
+/**
+ * AJOUT (06-09-2026 — demande explicite : réduction manuelle du capital,
+ * compte Administrateur). Ouvre la fenêtre dédiée, affiche le capital
+ * actuel et l'historique déjà enregistré. Action indépendante : ne touche
+ * ni au stock, ni aux ventes, ni aux dépenses, ni aux dettes.
+ */
+function ouvrirReductionCapital(){
+  if(!exigerAdmin()) return;
+  sv('cr-montant',''); sv('cr-motif','');
+  st('cr-capital-actuel', fmt(calculerCapitalTotalEntreprise()));
+  rHistoriqueReductionsCapital();
+  om('mcr');
+}
+function rHistoriqueReductionsCapital(){
+  var el=document.getElementById('cr-historique'); if(!el) return;
+  var liste=(D.capitalReductions||[]).slice().sort(function(a,b){ return (b.id||0)-(a.id||0); });
+  if(!liste.length){ el.innerHTML='<span style="color:var(--tx3)">Aucune réduction enregistrée.</span>'; return; }
+  el.innerHTML = liste.map(function(r){
+    return '<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid var(--bd)">'+
+      '<span>'+fmtDateHeure(r.date,r.heure)+' — '+echap(r.motif||'')+'</span>'+
+      '<strong style="color:var(--dr)">− '+fmt(r.montant)+'</strong></div>';
+  }).join('');
+}
+/**
+ * AJOUT (06-09-2026 — demande explicite) : réduction manuelle du capital.
+ * Saisie montant + motif → déduit IMMÉDIATEMENT du capital affiché,
+ * enregistre l'opération (date, heure, montant, motif) dans un historique
+ * dédié (D.capitalReductions, fusionné/synchronisé comme les autres
+ * tables — voir MERGEABLE_ARRAYS). N'écrit et ne modifie RIEN d'autre :
+ * ni D.stock, ni D.activites, ni D.depenses, ni D.dettes — cette action
+ * n'existe que dans son propre historique et dans le résultat de
+ * calculerCapitalTotalEntreprise() (qui la déduit). Le capital ne peut
+ * jamais devenir négatif : une réduction supérieure au capital actuel
+ * est refusée (aucune opération enregistrée dans ce cas).
+ */
+function enrReductionCapital(){
+  if(!exigerAdmin()) return;
+  var montant=fl('cr-montant'), motif=(v('cr-motif')||'').trim();
+  if(!(montant>0)){ notif('⚠️ Montant invalide.'); return; }
+  if(!motif){ notif('⚠️ Le motif est obligatoire.'); return; }
+  var capitalActuel = calculerCapitalTotalEntreprise();
+  if(montant>capitalActuel){ notif('⚠️ Montant supérieur au capital actuel ('+fmt(capitalActuel)+') — le capital ne peut jamais devenir négatif.'); return; }
+  D.capitalReductions=(D.capitalReductions||[]);
+  D.capitalReductions.push({ id:Date.now(), date:td(), heure:nowHM(), montant:montant, motif:motif, _localTouchedAt:Date.now() });
+  save();
+  notif('✅ Capital réduit de '+fmt(montant)+'.');
+  cm('mcr');
 }
 
 // ================================================================
@@ -3487,11 +3614,25 @@ function envoyerCmdFournisseurWhatsApp(commandeId){
  * vente/achat/transfert/synchronisation, puisque tout passe par
  * renderAll() → updateKPIs()).
  */
+/**
+ * CORRECTIF CRITIQUE (06-09-2026 — capital modifié par la suppression
+ * d'un produit Stock Entreprise avec reste=0) : ajoute capitalStockSupprime
+ * (contribution conservée des produits supprimés sans stock restant, voir
+ * delStock()) — le capital ne bouge donc jamais lors de ces suppressions.
+ * AJOUT (06-09-2026 — réduction manuelle du capital, compte Administrateur) :
+ * déduit la somme des réductions manuelles enregistrées (D.capitalReductions,
+ * voir enrReductionCapital()) — action distincte, sans lien avec le stock,
+ * les ventes, les dépenses ou les dettes. Plancher à 0 : le capital ne peut
+ * jamais devenir négatif, quelle que soit la combinaison de réductions.
+ * Aucun autre terme de ce calcul n'est modifié.
+ */
 function calculerCapitalTotalEntreprise(){
-  return D.stock.reduce(function(s,p){
+  var capitalStock = D.stock.reduce(function(s,p){
     var qteDirecte = Math.max(0, (p.qteInitiale||0) - (p.origPerso||0));
     return s + qteDirecte*(p.achat||0);
   }, 0);
+  var totalReductions = (D.capitalReductions||[]).reduce(function(s,r){ return s+(r.montant||0); }, 0);
+  return Math.max(0, capitalStock + (D.capitalStockSupprime||0) - totalReductions);
 }
 /** Capital de l'Associé = sa part (50%) du capital total de l'entreprise. */
 function calculerCapitalAssocie(){
@@ -4378,6 +4519,28 @@ function executerCloture(){
   var bdAvantCloture=calculerBilanData();
   D.entDoitBase=bdAvantCloture.resteEnt;
   var maintenantCloture=new Date().toISOString();
+  /**
+   * CORRECTIF CRITIQUE (06-09-2026 — "une ancienne clôture ne doit jamais
+   * remplacer la référence de la dernière clôture") — cause exacte trouvée :
+   * mergeAppData() protégeait déjà entDoitBase contre un écrasement brutal,
+   * mais avec Math.max(cloud,local) — la même protection que pour
+   * dettesClot/entDejaDeduit, qui SONT de vrais cumuls ne faisant
+   * qu'augmenter. Or entDoitBase n'est PAS un cumul : il REMPLACE sa
+   * valeur à CHAQUE clôture (voir juste au-dessus) et peut donc
+   * légitimement DIMINUER d'une clôture à l'autre (ex: une bonne période
+   * de ventes qui rembourse une grande partie du Stock Perso dû). Avec
+   * Math.max, un appareil pas encore synchronisé depuis la clôture
+   * PRÉCÉDENTE (donc porteur d'une ancienne valeur plus grande) pouvait
+   * imposer cette ancienne valeur au lieu de la nouvelle référence,
+   * pourtant bien plus récente et correcte. Corrigé en horodatant chaque
+   * remplacement de D.entDoitBase (_entDoitBaseAt) : mergeAppData()
+   * retient désormais la valeur dont l'horodatage est le plus récent
+   * (peu importe si elle est plus grande ou plus petite que l'autre), et
+   * ne retombe sur l'ancien comportement Math.max que si l'un des deux
+   * côtés ne connaît pas encore cet horodatage (compatibilité avec des
+   * données déjà existantes avant ce correctif).
+   */
+  D._entDoitBaseAt=maintenantCloture;
   D.perso.forEach(function(p){
     p.qteInitiale=0; p.achat=0; p.vente=0; p.prixRevient=0; p.commission=0;
     p.totalDu=0; p.rembourse=0;
@@ -5821,7 +5984,7 @@ function saveCloud(){
 function loadFromHash(){
   var h=window.location.hash;
   if(h&&h.startsWith('#data=')){
-    try{ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}},JSON.parse(decodeURIComponent(atob(h.slice(6))))); persist(); notif('✅ Données restaurées !'); return true; }catch(e){}
+    try{ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}},JSON.parse(decodeURIComponent(atob(h.slice(6))))); persist(); notif('✅ Données restaurées !'); return true; }catch(e){}
   } return false;
 }
 
@@ -6071,6 +6234,9 @@ function viderTout() {
     D.activites = []; D.stock = []; D.perso = []; D.depenses = [];
     D.dettes = []; D.paiements = []; D.commandes = []; D.histo = []; D.corbeille = [];
     D.dettesClot = 0; D.detteVerrou = false; D._o = 1; D._co = 1; D.entDejaDeduit = 0; D.entDoitBase = 0;
+    D.capitalStockSupprime = 0;
+    (D.capitalReductions||[]).forEach(function(r){ markDeleted('capitalReductions', r.id); });
+    D.capitalReductions = [];
     /**
      * CORRECTIF CRITIQUE (05-09-2026 — audit intégrité des données, point
      * 3) : dettesClot/entDejaDeduit sont protégés dans mergeAppData() par
@@ -6087,6 +6253,7 @@ function viderTout() {
      * normalement (aucun changement pour ce cas).
      */
     D._resetCumulsAt = new Date().toISOString();
+    D._entDoitBaseAt = D._resetCumulsAt;
     save(); notif('✅ Tous les éléments supprimés.');
     supprimerActivitesSurServeurAvecAlerte(idsActivites, 'activités');
     supprimerLotTableSurServeur('stock', idsStock, 'produits du Stock Entreprise');
@@ -6230,7 +6397,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v71'; // 06-09-2026 : CORRECTIF CRITIQUE — garantie financière Administrateur / Stock Perso. migrerEntDoitBaseStockPerso() (migration ponctuelle) était appelée à CHAQUE cycle de synchronisation automatique (~20s, en continu), pas seulement une fois au chargement : si son verrou (D._migreEntDoitBase, simple booléen non protégé comme les cumuls) revenait un jour à false côté gagnant d'une fusion, tout le Stock Perso (y compris des saisies récentes) aurait été vidé automatiquement, SANS clôture ni action utilisateur. Corrigé en retirant cet appel du cycle de synchronisation (voir sw.js v133) : seule la clôture (executerCloture) déclenche désormais un vidage du Stock Perso. Aucun calcul métier ni formule modifiés — testé (saisie, mise à jour immédiate du "Reste que l'entreprise vous doit", synchronisations multiples, déconnexion/reconnexion, changement de compte, deuxième quantité, puis clôture réelle).
+var APP_VERSION = 'v73'; // 07-09-2026 : CORRECTIF CRITIQUE — un produit supprimé du Stock Entreprise restait indéfiniment présent dans Supabase (delStock() ne posait qu'un tombstone LOCAL, save() ne fait qu'un upsert du tableau courant vers la table dédiée "stock" — un upsert n'efface jamais une ligne absente du tableau envoyé). Corrigé en appelant, à la suppression d'UN SEUL produit, la même fonction déjà validée pour "Vider le Stock Entreprise" (supprimerLotTableSurServeur) : vraie suppression serveur (DELETE ciblé par identifiant unique, jamais par nom), avec vérification et alerte en cas d'échec. Le produit ne réapparaît plus après actualisation, reconnexion ou synchronisation, sur aucun appareil. La protection du capital (v72, "reste=0" sans impact sur le capital) reste intacte et non affectée — testée à nouveau ici. Aucun autre calcul ni fonctionnalité modifiés — testé (voir sw.js v135).
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
@@ -8428,7 +8595,7 @@ function syncFromCloud() {
     .then(function (res) { return res.json(); })
     .then(function (rows) {
       if (rows && rows.length && rows[0].data) {
-        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}}, rows[0].data);
+        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}}, rows[0].data);
         persist(); renderAll();
         notif('✅ Données restaurées depuis le cloud');
         return true;
@@ -8462,8 +8629,8 @@ function syncFromCloud() {
 // au lieu de le fusionner par id comme tout le reste. Voir aussi le
 // tombstone désormais posé dans delPatrimoine() et la fusion appliquée
 // dans chargerPatrimoine().
-var MERGEABLE_ARRAYS = ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille','patrimoine'];
-var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],resetCodes:[],patrimoine:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}};
+var MERGEABLE_ARRAYS = ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille','patrimoine','capitalReductions'];
+var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],resetCodes:[],patrimoine:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}};
 
 /**
  * Fusionne deux tableaux d'éléments par leur "id" (union), sans perte,
@@ -8651,7 +8818,7 @@ function mergeAppData(cloudData, localData, cloudIsNewer, cloudDate, localDate) 
    * l'élément ainsi choisi — elle continue de fonctionner à l'identique,
    * en plus de cette résolution fine, sans aucun conflit entre les deux.
    */
-  ['dettes','paiements','depenses','commandes','patrimoine','perso'].forEach(function(f){
+  ['dettes','paiements','depenses','commandes','patrimoine','perso','capitalReductions'].forEach(function(f){
     var baseById={}, prioById={};
     (base[f]||[]).forEach(function(x){ if(x&&x.id!=null) baseById[x.id]=x; });
     (priorite[f]||[]).forEach(function(x){ if(x&&x.id!=null) prioById[x.id]=x; });
@@ -8753,10 +8920,33 @@ function mergeAppData(cloudData, localData, cloudIsNewer, cloudDate, localDate) 
   // D.entDoitBase est un cumul figé qui REMPLACE sa valeur à chaque
   // clôture (voir executerCloture()) — exactement le même genre de champ
   // verrouillé que dettesClot juste en dessous, jamais un simple champ
-  // qu'Object.assign() peut écraser en bloc lors d'une fusion. On garde
-  // systématiquement le plus grand des deux cumuls connus, jamais un
-  // recul (même logique, même raison que dettesClot/entDejaDeduit).
-  merged.entDoitBase = Math.max(Number(cloudData.entDoitBase) || 0, Number(localData.entDoitBase) || 0);
+  // qu'Object.assign() peut écraser en bloc lors d'une fusion.
+  /**
+   * CORRECTIF CRITIQUE (06-09-2026 — "une ancienne clôture ne doit jamais
+   * remplacer la référence de la dernière clôture") : Math.max (utilisé
+   * ici jusque-là) suppose à tort qu'entDoitBase ne fait qu'augmenter —
+   * or il REMPLACE sa valeur à chaque clôture (voir executerCloture()) et
+   * peut légitimement DIMINUER d'une clôture à l'autre. Un appareil
+   * porteur d'une ANCIENNE valeur plus grande (pas encore synchronisé
+   * depuis la clôture la plus récente) imposait donc à tort cette valeur
+   * obsolète via Math.max. Corrigé : on retient désormais la valeur dont
+   * l'horodatage de clôture (_entDoitBaseAt, posé par executerCloture()
+   * et par la remise à zéro de viderTout()) est le plus récent — peu
+   * importe si elle est plus grande ou plus petite que l'autre. Si l'un
+   * des deux côtés ne connaît pas encore cet horodatage (données
+   * antérieures à ce correctif), on retombe sur l'ancien comportement
+   * Math.max, par prudence, le temps que les deux côtés se recalent.
+   */
+  (function(){
+    var atCloud = cloudData._entDoitBaseAt, atLocal = localData._entDoitBaseAt;
+    if(atCloud && atLocal){
+      merged.entDoitBase = (new Date(atCloud) >= new Date(atLocal)) ? (Number(cloudData.entDoitBase)||0) : (Number(localData.entDoitBase)||0);
+      merged._entDoitBaseAt = (new Date(atCloud) >= new Date(atLocal)) ? atCloud : atLocal;
+    } else {
+      merged.entDoitBase = Math.max(Number(cloudData.entDoitBase) || 0, Number(localData.entDoitBase) || 0);
+      merged._entDoitBaseAt = atCloud || atLocal || null;
+    }
+  })();
   // CORRECTIF (Stock Perso — "Entreprise me doit" incorrect après
   // clôture) : entDejaDeduit est un cumul qui ne fait qu'augmenter à
   // chaque clôture (voir executerCloture()), exactement comme _o/_co
@@ -8770,6 +8960,13 @@ function mergeAppData(cloudData, localData, cloudIsNewer, cloudDate, localDate) 
   // avant la clôture avait bien eu lieu. On prend donc systématiquement
   // le plus grand des deux cumuls, jamais un remplacement brutal.
   merged.entDejaDeduit = Math.max(Number(cloudData.entDejaDeduit) || 0, Number(localData.entDejaDeduit) || 0);
+  /**
+   * AJOUT (06-09-2026 — réduction manuelle du capital) : capitalStockSupprime
+   * est un cumul de la même famille qu'entDejaDeduit ci-dessus (ne fait
+   * qu'augmenter, à chaque suppression d'un produit Stock Entreprise avec
+   * reste=0 — voir delStock()) : même protection Math.max, jamais de recul.
+   */
+  merged.capitalStockSupprime = Math.max(Number(cloudData.capitalStockSupprime) || 0, Number(localData.capitalStockSupprime) || 0);
   // CORRECTIF ("Reste que vous devez à votre associé / Total dépenses
   // qui baissent tout seuls") : dettesClot est EXACTEMENT le même genre
   // de cumul figé qu'entDejaDeduit ci-dessus ("cumul verrouillé", voir
