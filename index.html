@@ -3141,7 +3141,33 @@ function viderPerso(){
     '• Chaque élément part en Corbeille (récupérable) — mais le suivi de dette associé sera perdu tant qu\'il n\'est pas restauré';
   demanderConfirmationSecurisee('Vider le Stock Personnel (suivi comptable)', details, false, function(){
     D.perso.forEach(function(p){ retirerDeStockEnt(p.nom,p.qteInitiale||0); markDeleted('perso',p.id); rb('perso', p.nom, p); });
-    D.perso=[]; save(); notif('✅ Perso vidé → corbeille (stock ajusté)');
+    D.perso=[];
+    /**
+     * CORRECTIF CRITIQUE (07-09-2026 — "Vider le Stock Perso ne supprime
+     * pas le montant Reste que l'entreprise me doit") — cause exacte
+     * trouvée : cette fonction vidait bien D.perso, mais ne touchait
+     * jamais D.entDoitBase (la référence figée à la dernière clôture,
+     * voir executerCloture()/viderTout()). Or "Reste que l'entreprise me
+     * doit" = D.entDoitBase + total actuel de D.perso (voir
+     * calculerBilanData()) : avec D.perso vidé mais D.entDoitBase
+     * inchangé, ce montant restait affiché tel quel — aussi bien dans
+     * Stock Perso ("t-perso") que dans le Tableau de bord ("k-admin-doit",
+     * qui utilise exactement la même formule, voir updateKPIs()) — au
+     * lieu de tomber à 0. Corrigé en remettant ici D.entDoitBase à 0,
+     * horodaté (_entDoitBaseAt) exactement comme le fait déjà viderTout()
+     * pour la même raison (garantit que ce 0 l'emporte lors d'une fusion
+     * multi-appareils, voir mergeAppData()). La donnée source Supabase
+     * correspondante ("parametres.ent_doit_stock_perso", lue par les
+     * comptes Associé/Visiteur) se remet elle aussi à 0 automatiquement
+     * via le mécanisme déjà existant et inchangé (updateKPIs() →
+     * syncEntDoitStockPersoAuServeur(), appelé par save() ci-dessous).
+     * Rien d'autre n'est modifié : ni le retrait du Stock Entreprise
+     * correspondant, ni le passage par la corbeille, ni entDejaDeduit,
+     * ni aucun autre cumul.
+     */
+    D.entDoitBase=0;
+    D._entDoitBaseAt=new Date().toISOString();
+    save(); notif('✅ Perso vidé → corbeille (stock ajusté)');
   });
 }
 
@@ -6397,7 +6423,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v73'; // 07-09-2026 : CORRECTIF CRITIQUE — un produit supprimé du Stock Entreprise restait indéfiniment présent dans Supabase (delStock() ne posait qu'un tombstone LOCAL, save() ne fait qu'un upsert du tableau courant vers la table dédiée "stock" — un upsert n'efface jamais une ligne absente du tableau envoyé). Corrigé en appelant, à la suppression d'UN SEUL produit, la même fonction déjà validée pour "Vider le Stock Entreprise" (supprimerLotTableSurServeur) : vraie suppression serveur (DELETE ciblé par identifiant unique, jamais par nom), avec vérification et alerte en cas d'échec. Le produit ne réapparaît plus après actualisation, reconnexion ou synchronisation, sur aucun appareil. La protection du capital (v72, "reste=0" sans impact sur le capital) reste intacte et non affectée — testée à nouveau ici. Aucun autre calcul ni fonctionnalité modifiés — testé (voir sw.js v135).
+var APP_VERSION = 'v74'; // 07-09-2026 : CORRECTIF CRITIQUE — "Vider" le Stock Perso ne remettait pas à zéro "Reste que l'entreprise me doit". Cause exacte : viderPerso() vidait D.perso mais ne touchait jamais D.entDoitBase (la référence figée à la dernière clôture) ; comme resteEnt = entDoitBase + total Stock Perso courant, l'ancienne référence restait affichée telle quelle — à la fois dans Stock Perso ("t-perso") et dans le Tableau de bord ("k-admin-doit", même formule). Corrigé en remettant D.entDoitBase à 0, horodaté (_entDoitBaseAt) comme le fait déjà "Tout" (viderTout, vérifié déjà correct, aucun changement nécessaire là) : le 0 l'emporte lors d'une fusion multi-appareils, et la donnée source Supabase correspondante (parametres.ent_doit_stock_perso) se remet elle aussi à 0 via le mécanisme déjà existant, inchangé. Aucun autre calcul ni fonctionnalité modifiés — testé (voir sw.js v136).
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
