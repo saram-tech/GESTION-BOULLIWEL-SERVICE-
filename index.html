@@ -1529,6 +1529,27 @@ function migrerEntDoitBaseStockPerso(){
   var tpersoRawActuel = (D.perso||[]).reduce(function(s,p){ return s+((p.totalDu||0)-(p.rembourse||0)); },0);
   D.entDoitBase = tpersoRawActuel - (D.entDejaDeduit||0);
   var maintenant = new Date().toISOString();
+  /**
+   * CORRECTIF (08-09-2026 — dernier trou trouvé dans la protection de la
+   * référence de clôture) : cette migration pose D.entDoitBase mais
+   * n'horodatait JAMAIS _entDoitBaseAt, contrairement à TOUS les autres
+   * points qui touchent ce champ (executerCloture(), viderPerso(),
+   * viderTout()). Or mergeAppData() (voir plus bas dans ce fichier)
+   * n'applique la comparaison "la clôture la plus récente gagne" que
+   * lorsque LES DEUX côtés (cloud et local) connaissent cet horodatage —
+   * sinon elle retombe sur Math.max, qui peut à tort choisir une valeur
+   * plus ANCIENNE mais plus grande. Un appareil ayant seulement traversé
+   * cette migration (jamais encore de vraie clôture) restait donc sans
+   * date de référence fiable, et pouvait un jour imposer sa valeur migrée
+   * à la place d'une clôture réelle plus récente mais plus petite (le cas
+   * exact décrit : une bonne période qui réduit "Reste que l'entreprise
+   * vous doit", écrasée ensuite par une ancienne valeur plus grande).
+   * Corrigé en horodatant cette migration exactement comme une vraie
+   * clôture, pour qu'elle entre dans la comparaison protégée dès le début
+   * au lieu d'y échapper. Aucun calcul, aucune formule, aucune autre
+   * donnée modifiée.
+   */
+  D._entDoitBaseAt = maintenant;
   (D.perso||[]).forEach(function(p){
     p.qteInitiale=0; p.achat=0; p.vente=0; p.prixRevient=0; p.commission=0;
     p.totalDu=0; p.rembourse=0;
@@ -6363,7 +6384,33 @@ function viderStock() {
      * suppression serveur.
      */
     var ids=D.stock.map(function(s){ return s.id; });
-    D.stock.forEach(function(s){ markDeleted('stock',s.id); rb('stock', s.nom, s); });
+    /**
+     * CORRECTIF CRITIQUE (07-09-2026 — "Vider le Stock Entreprise" fait
+     * chuter le capital, contrairement à la suppression d'un seul produit") —
+     * cause exacte trouvée : delStock() (suppression d'UN SEUL produit)
+     * préserve la contribution capital d'un produit entièrement vendu
+     * (reste=0) en la reportant dans capitalStockSupprime (voir ce
+     * correctif plus haut) — mais ce vidage GROUPÉ supprimait tous les
+     * produits d'un coup SANS jamais appliquer cette même règle, pour
+     * aucun d'entre eux. Un vidage total du Stock Entreprise faisait donc
+     * disparaître d'un coup toute la contribution capital des produits
+     * déjà entièrement vendus, alors que la suppression individuelle du
+     * même produit, elle, la préservait. Corrigé en appliquant ici,
+     * produit par produit, EXACTEMENT la même règle que delStock() : les
+     * produits sans stock restant (reste=0, rien de physique perdu)
+     * gardent leur contribution capital via capitalStockSupprime ; les
+     * produits ayant encore du stock restant ne sont pas concernés
+     * (comportement inchangé, comme pour delStock()). Rien d'autre n'est
+     * modifié : ni la corbeille, ni les suppressions serveur ci-dessous.
+     */
+    D.stock.forEach(function(s){
+      var restant = s.qteRestante!==undefined ? s.qteRestante : s.qteInitiale;
+      if(restant<=0){
+        var qteDirecteSupprimee = Math.max(0, (s.qteInitiale||0) - (s.origPerso||0));
+        D.capitalStockSupprime = (D.capitalStockSupprime||0) + qteDirecteSupprimee*(s.achat||0);
+      }
+      markDeleted('stock',s.id); rb('stock', s.nom, s);
+    });
     D.stock = []; save(); notif('✅ Stock entreprise vidé → corbeille');
     supprimerLotTableSurServeur('stock', ids, 'produits du Stock Entreprise');
   });
@@ -6441,7 +6488,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v75'; // 07-09-2026 : CORRECTIF CRITIQUE — le capital de l'entreprise revenait à 0 après un import (Export→Import), dès l'actualisation/la reconnexion/la synchronisation suivante. Cause exacte : un import restaure des produits Stock Entreprise et/ou des réductions manuelles de capital qui avaient été supprimés/vidés AVANT lui (ex: "Vider Tout") ; le tombstone de cette suppression antérieure, encore présent côté cloud tant que l'envoi post-import n'a pas abouti, était réappliqué à la première fusion (mergeTombstones fait une union inconditionnelle) et effaçait de nouveau ce que l'import venait de restaurer. Corrigé en horodatant chaque import (D._importedAt, posé par hImport() et annulerDerniereImportation()) et en neutralisant, dans mergeAppData(), UNIQUEMENT les tombstones du côté dont la dernière modification connue est antérieure à cet import, et UNIQUEMENT pour les identifiants réellement présents dans les données importées — toute suppression volontaire faite après coup reste protégée normalement. Vérifié : Export → Import → Capital conservé exact (stock, capitalStockSupprime, capitalReductions), y compris après actualisation/reconnexion/synchronisation ; réduction manuelle du capital également conservée à l'export/import. Aucun autre calcul ni fonctionnalité modifiés.
+var APP_VERSION = 'v77'; // 08-09-2026 : AUDIT COMPLET de la référence de clôture "Reste que l'entreprise vous doit" (D.entDoitBase), suite à un signalement de persistance encore incorrecte après v138 (sw.js). Relecture entière de la chaîne : executerCloture() (fige resteEnt dans D.entDoitBase + horodatage _entDoitBaseAt), calculerBilanData() (tperso = entDoitBase + total actuel de D.perso, jamais les deux à la fois pour une même fiche), mergeAppData() (comparaison par horodatage _entDoitBaseAt, la clôture la plus récente gagne, quel que soit son montant), viderPerso()/viderTout() (remise à 0 elle aussi horodatée) : tout ce circuit était déjà correct et conforme à la logique demandée. UN TROU RÉEL trouvé et corrigé : migrerEntDoitBaseStockPerso() (migration ponctuelle, une seule fois par compte) posait bien D.entDoitBase mais SANS jamais horodater _entDoitBaseAt, contrairement à tous les autres points qui touchent ce champ — un appareil n'ayant connu que cette migration (jamais de vraie clôture depuis) échappait donc à la protection par horodatage de mergeAppData() et retombait sur l'ancien Math.max, qui peut choisir à tort une valeur plus ancienne mais plus grande au lieu de la clôture réellement la plus récente. Corrigé en horodatant cette migration exactement comme une vraie clôture (voir migrerEntDoitBaseStockPerso() plus haut dans ce fichier). Aucun autre calcul, aucun renommage, aucune suppression de donnée non prévue.
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
@@ -8023,6 +8070,45 @@ function chargerActivitesEtStockDepuisTables(session){
         }
       }
     }
+    /**
+     * CORRECTIF CRITIQUE (07-09-2026 — "le capital de l'entreprise revient à
+     * 0 après un import, malgré la protection déjà en place dans
+     * mergeAppData()") — cause exacte trouvée : CETTE fonction (Stock/
+     * Activités, synchronisée toutes les ~15s via rafraichirActivitesSilencieux,
+     * donc plus tôt et plus souvent que la réconciliation app_data à 20s)
+     * applique elle aussi un tombstone (D._del.stock / D._del.activites)
+     * pour retirer du résultat fusionné tout id qu'on sait supprimé — mais
+     * SANS jamais vérifier si cet id est justement, à cet instant précis,
+     * bel et bien présent et voulu dans D.stock/D.activites (ex : un produit
+     * tout juste RESTAURÉ par un Export→Import). Si D._del contient encore
+     * (même un court instant, le temps qu'une autre fusion le nettoie —
+     * voir neutraliserTombstonesObsoletesApresImport() dans mergeAppData())
+     * un tombstone pour un id que l'on détient pourtant réellement et
+     * actuellement en local, mergeArraysById() l'efface malgré tout de
+     * force ci-dessous — y compris depuis arrBase (D.stock/D.activites
+     * lui-même), pas seulement depuis la réponse serveur. C'est ce chemin
+     * précis, indépendant de mergeAppData() et jamais protégé par
+     * D._importedAt, qui pouvait annuler une restauration par import
+     * pourtant déjà réussie localement, dès le cycle de synchro suivant.
+     * Corrigé par un principe simple et toujours valide, pas seulement pour
+     * l'import : un tombstone qui viserait un id ENCORE PRÉSENT à l'instant
+     * même dans le tableau local courant est forcément obsolète/contradictoire
+     * (un id réellement supprimé est retiré du tableau local AU MOMENT de sa
+     * suppression, voir markDeleted()/delStock()/delAct() — jamais laissé en
+     * place) : on ignore donc ces ids-là pour CETTE opération de nettoyage
+     * post-fusion, qui ne sert de toute façon qu'à empêcher la copie
+     * SERVEUR (déjà supprimée ailleurs) de revenir se glisser dans l'union —
+     * jamais à supprimer ce qu'on détient déjà, intentionnellement, en
+     * local. Aucun autre comportement modifié : une suppression réelle
+     * (id absent de D.stock/D.activites au moment de cette synchro) continue
+     * d'être appliquée exactement comme avant.
+     */
+    function idsActuellementDetenus(arr){
+      var s={}; (arr||[]).forEach(function(it){ if(it && it.id!=null) s[it.id]=true; }); return s;
+    }
+    function retirerTombstonesContredits(ids, detenus){
+      return (ids||[]).filter(function(id){ return !detenus[id]; });
+    }
     // Fusion, jamais d'écrasement direct : toute activité/stock créé
     // localement (ex. hors ligne) mais pas encore présent côté serveur
     // est conservé — voir mergeArraysById(). Les tombstones (_del, plus
@@ -8030,19 +8116,23 @@ function chargerActivitesEtStockDepuisTables(session){
     // de faire disparaître ce qui a été supprimé exprès.
     if (serverAct){
       var activitesAvant = D.activites;
+      var detenusAct = idsActuellementDetenus(D.activites);
       // Union des tombstones explicites (persistés, déclenchent une
       // vraie suppression serveur) et inférés (locaux à cette fusion
       // uniquement) — l'affichage reste identique à avant, seule la
       // PERSISTANCE et la PROPAGATION SERVEUR des tombstones inférés
       // ont été retirées (voir correctifs ci-dessus).
-      D.activites = mergeArraysById(D.activites, serverAct, delIdsExplicites.concat(delIdsInferes));
+      var delFinalAct = retirerTombstonesContredits(delIdsExplicites.concat(delIdsInferes), detenusAct);
+      D.activites = mergeArraysById(D.activites, serverAct, delFinalAct);
       // Voir protegerEditionsRecentes() : une modification locale toute
       // fraîche (< 30s) reprend le dessus le temps que son envoi aboutisse.
       D.activites = protegerEditionsRecentes(D.activites, activitesAvant);
     }
     if (serverStock){
       var stockAvant = D.stock;
-      D.stock = mergeArraysById(D.stock, serverStock, (D._del&&D._del.stock)||[]);
+      var detenusStock = idsActuellementDetenus(D.stock);
+      var delFinalStock = retirerTombstonesContredits((D._del&&D._del.stock)||[], detenusStock);
+      D.stock = mergeArraysById(D.stock, serverStock, delFinalStock);
       /**
        * CORRECTIF URGENT ("ajout hors ligne dans Stock Perso perdu après
        * reconnexion") — même cause exacte que dans mergeAppData() (voir
@@ -9063,6 +9153,20 @@ function mergeAppData(cloudData, localData, cloudIsNewer, cloudDate, localDate) 
    * qu'augmenter, à chaque suppression d'un produit Stock Entreprise avec
    * reste=0 — voir delStock()) : même protection Math.max, jamais de recul.
    */
+  /**
+   * CORRECTIF CRITIQUE (07-09-2026 — "Vider Tout" ne remettait pas toujours
+   * capitalStockSupprime à 0 de façon définitive) : ce cumul bénéficiait
+   * bien d'un Math.max (jamais de recul accidentel), exactement comme
+   * entDejaDeduit/dettesClot — mais, contrairement à eux, il n'était PAS
+   * protégé par _resetCumulsAt (voir viderTout(), qui le remet
+   * explicitement à 0 lors d'une remise à zéro TOTALE et VOULUE). Un
+   * appareil/cloud pas encore synchronisé depuis ce reset, porteur d'une
+   * ancienne valeur plus élevée, pouvait donc la faire "gagner" via ce
+   * Math.max — annulant silencieusement le "Vider Tout". Même protection
+   * que pour entDejaDeduit/dettesClot ci-dessous : on ignore ce Math.max
+   * UNIQUEMENT quand le côté porteur de la valeur la plus grande est
+   * réellement antérieur au reset (sinon, comportement Math.max inchangé).
+   */
   merged.capitalStockSupprime = Math.max(Number(cloudData.capitalStockSupprime) || 0, Number(localData.capitalStockSupprime) || 0);
   // CORRECTIF ("Reste que vous devez à votre associé / Total dépenses
   // qui baissent tout seuls") : dettesClot est EXACTEMENT le même genre
@@ -9110,6 +9214,10 @@ function mergeAppData(cloudData, localData, cloudIsNewer, cloudDate, localDate) 
   }
   merged.entDejaDeduit = valeurCumulProtegeeContreReset('entDejaDeduit', merged.entDejaDeduit);
   merged.dettesClot = valeurCumulProtegeeContreReset('dettesClot', merged.dettesClot);
+  // Voir le correctif juste au-dessus de la ligne "merged.capitalStockSupprime
+  // = Math.max(...)" : même protection contre un reset ("Vider Tout")
+  // annulé par un Math.max, désormais appliquée elle aussi à ce cumul.
+  merged.capitalStockSupprime = valeurCumulProtegeeContreReset('capitalStockSupprime', merged.capitalStockSupprime);
   if(resetAtFinal) merged._resetCumulsAt = resetAtFinal;
   /**
    * CORRECTIF CRITIQUE (05-09-2026 — "l'historique de clôture et les
