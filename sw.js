@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v140'; // 08-09-2026 : CORRECTIF (index.html v78) — dans l'onglet Stock Perso, "Total que l'entreprise vous doit" et "Reste que l'entreprise vous doit" affichaient le MÊME montant net (resteEnt) au lieu de brut/net séparément. Corrigé dans rPerso() : "Total" affiche désormais entDoit (brut), "Reste" affiche resteEnt (net après déductions), conformément aux libellés déjà à l'écran. Aucun calcul modifié.
+const CACHE_VERSION = 'v141'; // 08-09-2026 : SUPPRESSION VISUELLE demandée (index.html v79) — dans l'onglet Bilan, sous "Ce que l'entreprise vous doit", retrait de la ligne "Stock perso (prix revient + 15%)". Uniquement l'affichage HTML est retiré ; aucun calcul (tperso, entDoit, resteEnt, entDoitBase...) n'est modifié.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne

@@ -4047,7 +4047,6 @@ function calculerBilan(){
   html+='</div>';
   html+='<div class="dv">Ce que l\'entreprise vous doit</div>';
   html+='<div style="background:var(--bg4);border-radius:9px;padding:12px">';
-  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">Stock perso (prix revient + 15%)</span><span style="color:var(--go)">'+fmt(tperso)+'</span></div>';
   if((D.entDoitBase||0)>0) html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:.76rem"><span style="color:var(--tx3)">— dont report clôtures précédentes</span><span style="color:var(--tx3)">'+fmt(D.entDoitBase||0)+'</span></div>';
   html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">Total brut dû</span><span style="color:var(--go)">'+fmt(entDoit)+'</span></div>';
   html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--tx2)">− Prix achat total (période)</span><span style="color:var(--re)">− '+fmt(ta)+'</span></div>';
@@ -6502,7 +6501,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v78'; // 08-09-2026 : CORRECTIF — dans l'onglet Stock Perso, "Total que l'entreprise vous doit" (t-perso) et "Reste que l'entreprise vous doit" (t-perso-reste) affichaient le MÊME montant (resteEnt, le net après déductions), rendant les deux lignes indiscernables malgré leurs libellés différents. Corrigé dans rPerso() : t-perso affiche désormais entDoit (montant brut cumulé, avant déductions), t-perso-reste affiche resteEnt (montant net après déductions déjà appliquées) — conformément aux libellés déjà affichés à l'écran. Aucun calcul (entDoit, resteEnt, entDoitBase, aDeduire...) n'est modifié, seul l'aiguillage vers le bon champ HTML change.
+var APP_VERSION = 'v79'; // 08-09-2026 : SUPPRESSION VISUELLE demandée — dans l'onglet Bilan, sous "Ce que l'entreprise vous doit", retrait de la ligne "Stock perso (prix revient + 15%)". Uniquement l'affichage HTML est retiré (une ligne dans calculerBilan()) : la variable tperso et tout le calcul qui en dépend (entDoit, aDeduire, resteEnt, D.entDoitBase, Tableau de bord, Stock Perso...) restent strictement identiques et inchangés.
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
