@@ -4961,7 +4961,21 @@ function rPerso(){
   // DEMANDE ("bouton A-Z pour trier par produit") : purement un ordre
   // d'affichage — aucune donnée, aucun total, aucun calcul modifié.
   if(triAZ.perso) items=items.slice().sort(function(a,b){ return normSearch(a.nom).localeCompare(normSearch(b.nom)); });
-  if(!items.length){ tb.innerHTML='<tr><td colspan="12" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr>'; var resteEntVide=Math.max(0,calculerBilanData().resteEnt); st('t-perso',fmt(resteEntVide)); st('t-perso-reste',fmt(resteEntVide)); return; }
+  /**
+   * CORRECTIF (08-09-2026 — "Total" et "Reste" affichaient le même
+   * montant dans Stock Perso) : les libellés HTML distinguent bien
+   * "Total que l'entreprise vous doit" (montant BRUT cumulé, avant
+   * déductions — entDoit/tperso) et "Reste que l'entreprise vous doit"
+   * (montant NET après déductions déjà appliquées — resteEnt = entDoit −
+   * aDeduire), mais le code alimentait les DEUX avec resteEnt : "Total"
+   * affichait donc à tort le même chiffre que "Reste", rendant les deux
+   * lignes indiscernables et empêchant de voir la déduction appliquée.
+   * Corrigé en alimentant t-perso avec entDoit (brut) et t-perso-reste
+   * avec resteEnt (net), conformément aux libellés déjà affichés à
+   * l'écran. Aucun calcul (entDoit, resteEnt, entDoitBase...) n'est
+   * modifié — seul l'aiguillage vers le bon champ HTML change.
+   */
+  if(!items.length){ tb.innerHTML='<tr><td colspan="12" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr>'; var bdVide=calculerBilanData(); st('t-perso',fmt(Math.max(0,bdVide.entDoit))); st('t-perso-reste',fmt(Math.max(0,bdVide.resteEnt))); return; }
   var tot=0, html='';
   var totInit=0,totVendu=0,totRestant=0,totAchatU=0,totRevient=0,totCommission=0,totDu=0;
   items.forEach(function(p,idx){
@@ -4989,8 +5003,8 @@ function rPerso(){
   html+='<td>—</td><td>TOTAL</td><td>'+totInit+'</td><td style="color:var(--or)">'+totVendu+'</td><td>'+totRestant+'</td>';
   html+='<td>—</td><td style="color:var(--tx2)">'+fmt(totRevient)+'</td><td style="color:var(--gr)">+'+fmt(totCommission)+'</td><td style="color:var(--go)">'+fmt(totDu)+'</td><td>—</td><td>—</td><td>—</td>';
   html+='</tr>';
-  tb.innerHTML=html; var resteEnt=calculerBilanData().resteEnt; st('t-perso',fmt(Math.max(0,resteEnt)));
-  st('t-perso-reste',fmt(Math.max(0,resteEnt)));
+  tb.innerHTML=html; var bdPerso=calculerBilanData(); st('t-perso',fmt(Math.max(0,bdPerso.entDoit)));
+  st('t-perso-reste',fmt(Math.max(0,bdPerso.resteEnt)));
 }
 
 function rDettes(){
@@ -6488,7 +6502,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v77'; // 08-09-2026 : AUDIT COMPLET de la référence de clôture "Reste que l'entreprise vous doit" (D.entDoitBase), suite à un signalement de persistance encore incorrecte après v138 (sw.js). Relecture entière de la chaîne : executerCloture() (fige resteEnt dans D.entDoitBase + horodatage _entDoitBaseAt), calculerBilanData() (tperso = entDoitBase + total actuel de D.perso, jamais les deux à la fois pour une même fiche), mergeAppData() (comparaison par horodatage _entDoitBaseAt, la clôture la plus récente gagne, quel que soit son montant), viderPerso()/viderTout() (remise à 0 elle aussi horodatée) : tout ce circuit était déjà correct et conforme à la logique demandée. UN TROU RÉEL trouvé et corrigé : migrerEntDoitBaseStockPerso() (migration ponctuelle, une seule fois par compte) posait bien D.entDoitBase mais SANS jamais horodater _entDoitBaseAt, contrairement à tous les autres points qui touchent ce champ — un appareil n'ayant connu que cette migration (jamais de vraie clôture depuis) échappait donc à la protection par horodatage de mergeAppData() et retombait sur l'ancien Math.max, qui peut choisir à tort une valeur plus ancienne mais plus grande au lieu de la clôture réellement la plus récente. Corrigé en horodatant cette migration exactement comme une vraie clôture (voir migrerEntDoitBaseStockPerso() plus haut dans ce fichier). Aucun autre calcul, aucun renommage, aucune suppression de donnée non prévue.
+var APP_VERSION = 'v78'; // 08-09-2026 : CORRECTIF — dans l'onglet Stock Perso, "Total que l'entreprise vous doit" (t-perso) et "Reste que l'entreprise vous doit" (t-perso-reste) affichaient le MÊME montant (resteEnt, le net après déductions), rendant les deux lignes indiscernables malgré leurs libellés différents. Corrigé dans rPerso() : t-perso affiche désormais entDoit (montant brut cumulé, avant déductions), t-perso-reste affiche resteEnt (montant net après déductions déjà appliquées) — conformément aux libellés déjà affichés à l'écran. Aucun calcul (entDoit, resteEnt, entDoitBase, aDeduire...) n'est modifié, seul l'aiguillage vers le bon champ HTML change.
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
