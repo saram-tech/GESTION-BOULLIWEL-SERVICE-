@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v141'; // 08-09-2026 : SUPPRESSION VISUELLE demandée (index.html v79) — dans l'onglet Bilan, sous "Ce que l'entreprise vous doit", retrait de la ligne "Stock perso (prix revient + 15%)". Uniquement l'affichage HTML est retiré ; aucun calcul (tperso, entDoit, resteEnt, entDoitBase...) n'est modifié.
+const CACHE_VERSION = 'v142'; // 08-09-2026 : AUDIT + CORRECTION (index.html v80) — gestion des variations de prix d'achat pour un même produit (Stock Entreprise + Stock Perso). Un réassort à un prix différent écrasait l'ancien prix (enrStock()) ; un apport personnel à un prix différent était au contraire ignoré si un prix existait déjà (fusionnerDansStockEnt()) — dans les deux cas l'ancien/le nouveau prix disparaissait. Ajout d'un journal additif (historiquePrix : prix, qté, date, fournisseur) sur chaque fiche existante, sans nouvelle table Supabase, sans modification d'aucun calcul existant, sans changement de quantité pour une simple raison de prix. Ajout d'un champ Fournisseur optionnel et d'une consultation en lecture seule (🕘).
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
