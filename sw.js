@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v145'; // 10-09-2026 : index.html v83 — correctif "nouveau produit Stock Perso affiche Vendu>0 sans aucune vente" (voir commentaire APP_VERSION dans index.html). Aucun formulaire, bouton ni présentation modifiés.
+const CACHE_VERSION = 'v147'; // 10-09-2026 : index.html v85 — correctif final "Vendu Stock Perso ne doit plus jamais bouger sans vente réelle" (compteur réel par fiche p._venduReel, indépendant des réapprovisionnements). Voir commentaire APP_VERSION dans index.html. Aucun formulaire, bouton ni présentation modifiés.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne

@@ -1728,7 +1728,27 @@ function fmtDateHeureISO(isoStr){
  * insensible à la casse seule ne suffit pas en français.
  */
 function normSearch(s){
-  return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  // CORRECTIF CRITIQUE (10-09-2026 — "certains produits Stock Perso
+  // n'apparaissent pas correctement dans Stock Entreprise / créent un
+  // doublon au lieu de fusionner") : cause exacte trouvée — cette
+  // fonction gérait déjà la casse et les accents, mais PAS les
+  // variations d'espaces internes (double espace résiduel type
+  // "Ecran  A12", espace insécable \u00A0 collé au clavier mobile,
+  // tabulation). Un produit déjà existant saisi une fois avec un espace
+  // normal puis une autre fois avec l'une de ces variantes n'était donc
+  // JAMAIS reconnu comme le même produit par normNom() (utilisée
+  // PARTOUT : fusion Perso→Entreprise, vente, recherche) : au lieu de
+  // fusionner dans la fiche Stock Entreprise déjà existante, une
+  // SECONDE fiche distincte était créée pour ce qui est pourtant le
+  // même produit — d'où des quantités/mouvements qui semblent
+  // incorrects sur CE produit précis, alors que les autres (saisis de
+  // façon strictement identique à chaque fois) restent corrects.
+  // Corrigé en réduisant aussi toute suite d'espaces (normaux,
+  // insécables ou tabulations) à un seul espace normal, en plus du
+  // traitement casse/accents déjà en place. Ne modifie JAMAIS le nom
+  // affiché/enregistré tel que saisi — sert uniquement à la comparaison
+  // d'identité, exactement comme avant.
+  return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[\s\u00A0]+/g,' ').trim();
 }
 function matchPeriode(dateStr, periode){
   if(!periode || !dateStr) return true;
@@ -2343,6 +2363,73 @@ function migrerStockPerso(){
   persist();
 }
 /**
+ * MIGRATION UNIQUE (10-09-2026 — "Vendu affiché faux/instable, du type
+ * 8→3→5 sans aucune vente sur ce produit, uniquement sur des produits
+ * Stock Perso déjà existants") : cause exacte trouvée — le correctif
+ * v83 (voir enrPerso(), branche de création, et calcPersoVenduRestant())
+ * fige _baseVendu/_basePoolQte UNIQUEMENT pour les fiches Stock Perso
+ * CRÉÉES après cette mise à jour. Les fiches déjà existantes AVANT v83
+ * continuent d'utiliser l'ancienne formule de repli (répartition
+ * proportionnelle de la TOTALITÉ des ventes déjà connues sur le produit
+ * fusionné, recalculée à chaque affichage à partir des totaux ACTUELS
+ * de Stock Entreprise) : sa "part" (p.qteInitiale/s.qteInitiale) varie
+ * donc à chaque fois qu'une quantité est ajoutée ailleurs sur ce même
+ * produit (un autre apport perso, un réappro Stock Entreprise…), et son
+ * "Vendu" affiché change avec elle — sans qu'aucune vente réelle ne
+ * concerne cette fiche. C'est pourquoi seuls CERTAINS produits (ceux
+ * déjà présents en Stock Perso avant v83) sont concernés, jamais les
+ * produits créés après.
+ * Corrigé en figeant, UNE SEULE FOIS (verrou D._migreBaseVenduPerso),
+ * pour chaque fiche Stock Perso déjà existante n'ayant pas encore ces
+ * deux champs, l'état ACTUEL du produit fusionné dans Stock Entreprise
+ * — exactement comme le fait déjà la création d'une fiche neuve depuis
+ * v83. À partir de cette mise à jour, ces fiches ne comptent plus que
+ * les ventes survenues APRÈS elle, jamais les ventes déjà comptabilisées
+ * avant. Aucune quantité, aucun montant dû, aucun capital, aucun calcul
+ * financier n'est modifié par cette migration : seul l'affichage estimé
+ * "Vendu/Restant" du Stock Perso en est affecté (calcPersoVenduRestant()).
+ */
+function migrerBaseVenduPerso(){
+  if(D._migreBaseVenduPerso) return;
+  (D.perso||[]).forEach(function(p){
+    if(p.hasOwnProperty('_baseVendu') && p.hasOwnProperty('_basePoolQte')) return;
+    var s=D.stock.find(function(x){ return normNom(x.nom)===normNom(p.nom); });
+    p._baseVendu=(s?(s.qteVendue||0):0);
+    p._basePoolQte=(s?(s.qteInitiale||0):0);
+  });
+  D._migreBaseVenduPerso=true;
+  persist();
+}
+/**
+ * MIGRATION UNIQUE (10-09-2026 — v85 — "le Vendu Stock Perso bouge encore
+ * sans vente réelle, même après v84, dès que plusieurs réapprovisionnements
+ * arrivent sur le même produit") : cause et correctif complets décrits en
+ * détail dans ajusterStockVendu()/repercuterVenteSurPerso() et
+ * calcPersoVenduRestant() ci-dessus — chaque fiche Stock Perso a désormais
+ * son propre compteur réel p._venduReel, qui ne bouge plus qu'au moment
+ * d'une vraie vente/annulation, jamais lors d'un affichage ou d'un
+ * réapprovisionnement. Cette migration, exécutée UNE SEULE FOIS (verrou
+ * D._migreVenduReelPerso, au démarrage, jamais dans la boucle de
+ * réconciliation ~20s), fige simplement, pour chaque fiche n'ayant pas
+ * encore p._venduReel, la MEILLEURE ESTIMATION déjà affichée aujourd'hui
+ * (calcPersoVenduRestantEstime — inclut déjà le correctif v84) comme
+ * valeur de départ : aucun saut brutal du chiffre affiché au moment de
+ * la mise à jour, seul le comportement FUTUR change (stabilité garantie
+ * à partir de maintenant). Exécutée après migrerBaseVenduPerso() (dont
+ * elle dépend pour une estimation de départ correcte sur les fiches
+ * anciennes). Aucune quantité réelle, aucun montant dû, aucun capital,
+ * aucun autre calcul modifié.
+ */
+function migrerVenduReelPerso(){
+  if(D._migreVenduReelPerso) return;
+  (D.perso||[]).forEach(function(p){
+    if(p.hasOwnProperty('_venduReel')) return;
+    p._venduReel=calcPersoVenduRestantEstime(p).vendu;
+  });
+  D._migreVenduReelPerso=true;
+  persist();
+}
+/**
  * Flux de confirmation sécurisée pour les actions critiques : affiche les
  * conséquences exactes, demande une confirmation explicite, PUIS exige le
  * mot de passe de l'application avant d'exécuter quoi que ce soit. Si le
@@ -2496,6 +2583,79 @@ function ajusterStockVendu(desig, delta){
   if(!desig || !delta) return;
   var pr=D.stock.find(function(p){ return normNom(p.nom)===normNom(desig); });
   if(pr){ pr.qteVendue=Math.max(0,(pr.qteVendue||0)+delta); pr.qteRestante=Math.max(0,pr.qteInitiale-(pr.qteVendue||0)); pr._localTouchedAt=Date.now(); }
+  // CORRECTIF CRITIQUE (10-09-2026 — v85 — "le Vendu Stock Perso change
+  // encore, même après le correctif v84, dès qu'un produit reçoit
+  // PLUSIEURS réapprovisionnements après une vente, sans aucune nouvelle
+  // vente") : cause exacte trouvée — même corrigée en v84 (repère figé
+  // à la création/migration), la formule de calcPersoVenduRestant()
+  // restait un ESTIMATEUR recalculé à chaque affichage à partir des
+  // totaux ACTUELS du produit fusionné (s.qteInitiale, s.qteVendue) :
+  // tout réapprovisionnement ultérieur fait varier le dénominateur de la
+  // proportion, donc le "Vendu" affiché, même sans aucune vente réelle
+  // sur cette fiche précise. Corrigé en abandonnant tout recalcul par
+  // estimation : chaque fiche Stock Perso possède désormais son PROPRE
+  // compteur réel (p._venduReel), qui n'est modifié QU'ICI, exactement
+  // au moment où une vraie vente (ou son annulation) est enregistrée sur
+  // le produit fusionné — jamais lors d'un réapprovisionnement (qui ne
+  // passe jamais par cette fonction, voir fusionnerDansStockEnt/
+  // retirerDeStockEnt) ni lors d'un simple affichage/rechargement/
+  // synchronisation. Voir repercuterVenteSurPerso() ci-dessous.
+  repercuterVenteSurPerso(desig, delta);
+}
+/**
+ * Répercute une vraie vente (delta>0) ou son annulation (delta<0),
+ * déjà appliquée au produit fusionné dans Stock Entreprise ci-dessus,
+ * sur le(s) compteur(s) réel(s) p._venduReel de la ou des fiche(s)
+ * Stock Perso correspondant à ce même produit (normNom) — jamais sur
+ * un réapprovisionnement. S'il existe plusieurs fiches Stock Perso pour
+ * un même produit (ex: apports séparés fusionnés au même nom sur deux
+ * appareils avant synchronisation), la vente est répartie au prorata du
+ * RESTANT de chaque fiche (proportionnellement à ce qu'il reste encore
+ * à vendre sur chacune), et une annulation est répartie au prorata du
+ * VENDU déjà attribué à chacune — jamais plus que ce qui est réellement
+ * disponible/attribué sur une fiche donnée. N'affecte QUE l'affichage
+ * estimé Vendu/Restant du Stock Perso (p._venduReel) : aucune quantité
+ * réelle, aucun montant dû, aucun capital, aucun autre calcul modifié.
+ */
+function repercuterVenteSurPerso(desig, delta){
+  if(!desig || !delta) return;
+  var fiches=D.perso.filter(function(p){ return normNom(p.nom)===normNom(desig); });
+  if(!fiches.length) return;
+  // Toute fiche pas encore migrée (cas limite, ne devrait plus arriver
+  // après migrerVenduReelPerso() au démarrage) part de l'estimation
+  // actuelle plutôt que de 0, pour ne jamais faire "reculer" un Vendu
+  // déjà affiché à l'utilisateur.
+  fiches.forEach(function(p){ if(!p.hasOwnProperty('_venduReel')) p._venduReel=calcPersoVenduRestantEstime(p).vendu; });
+  if(delta>0){
+    var totalRestant=0;
+    fiches.forEach(function(p){ totalRestant+=Math.max(0,p.qteInitiale-(p._venduReel||0)); });
+    if(totalRestant<=0) return;
+    var reste=delta;
+    fiches.forEach(function(p,i){
+      var restantP=Math.max(0,p.qteInitiale-(p._venduReel||0));
+      var estDerniere=(i===fiches.length-1);
+      var part=estDerniere?reste:Math.round(delta*restantP/totalRestant);
+      part=Math.max(0,Math.min(part,restantP,reste));
+      p._venduReel=(p._venduReel||0)+part;
+      p._localTouchedAt=Date.now();
+      reste-=part;
+    });
+  } else {
+    var totalVendu=0;
+    fiches.forEach(function(p){ totalVendu+=(p._venduReel||0); });
+    if(totalVendu<=0) return;
+    var retrait=Math.min(-delta,totalVendu);
+    var reste=retrait;
+    fiches.forEach(function(p,i){
+      var v=p._venduReel||0;
+      var estDerniere=(i===fiches.length-1);
+      var part=estDerniere?reste:Math.round(retrait*v/totalVendu);
+      part=Math.max(0,Math.min(part,v,reste));
+      p._venduReel=Math.max(0,v-part);
+      p._localTouchedAt=Date.now();
+      reste-=part;
+    });
+  }
 }
 /**
  * Trouve le produit correspondant dans Stock Entreprise, ou le crée s'il
@@ -2649,13 +2809,32 @@ function annulerDernierAjout(id, type){
 }
 /**
  * Calcule, pour une fiche du Stock Perso (ledger comptable), combien
- * d'unités ont été vendues / restent — de façon PROPORTIONNELLE aux
- * ventes réelles enregistrées sur le produit fusionné dans Stock
- * Entreprise (puisque le stock physique est unique, on ne peut pas
- * savoir avec certitude SI c'est une unité "perso" ou "entreprise" qui
- * est partie — on répartit donc au prorata de l'apport personnel).
+ * d'unités ont été vendues / restent.
+ * DEPUIS v85 (10-09-2026, voir ajusterStockVendu()/repercuterVenteSurPerso()) :
+ * lit directement le compteur réel p._venduReel, tenu à jour uniquement
+ * lors d'une vraie vente/annulation — ne recalcule plus JAMAIS une
+ * estimation à partir des totaux actuels du produit fusionné (c'était
+ * la cause du Vendu qui changeait sans vente réelle, ex: 8→3→5, dès
+ * qu'un réapprovisionnement survenait). L'ancienne estimation reste
+ * disponible ci-dessous (calcPersoVenduRestantEstime) : utilisée
+ * uniquement par les migrations, et comme filet de sécurité si une
+ * fiche n'a exceptionnellement pas encore de p._venduReel.
  */
 function calcPersoVenduRestant(p){
+  if(p.hasOwnProperty('_venduReel')){
+    var vendu=Math.max(0,Math.min(p.qteInitiale,p._venduReel||0));
+    return {vendu:vendu,restant:Math.max(0,p.qteInitiale-vendu)};
+  }
+  return calcPersoVenduRestantEstime(p);
+}
+/**
+ * ANCIENNE méthode (estimation PROPORTIONNELLE aux ventes réelles
+ * enregistrées sur le produit fusionné dans Stock Entreprise) —
+ * conservée uniquement pour servir de valeur de départ aux migrations
+ * (migrerVenduReelPerso) et de filet de sécurité ci-dessus. Ne plus
+ * appeler directement ailleurs dans l'application.
+ */
+function calcPersoVenduRestantEstime(p){
   var s=D.stock.find(function(x){ return normNom(x.nom)===normNom(p.nom); });
   if(!s || !s.qteInitiale) return {vendu:0,restant:p.qteInitiale};
   /**
@@ -3255,7 +3434,11 @@ function enrPerso(){
        */
       var sAvantFusion=D.stock.find(function(x){ return normNom(x.nom)===normNom(nom); });
       var nsP={id:Date.now(),nom:nom,qteInitiale:qte,achat:achat,vente:vente,prixRevient:prixRevient,commission:commission,totalDu:totalDu,rembourse:0,date:date,heure:nowHM(),derniereModifDate:maintenant,_localTouchedAt:Date.now(),
-        _baseVendu:(sAvantFusion?(sAvantFusion.qteVendue||0):0), _basePoolQte:(sAvantFusion?(sAvantFusion.qteInitiale||0):0)};
+        _baseVendu:(sAvantFusion?(sAvantFusion.qteVendue||0):0), _basePoolQte:(sAvantFusion?(sAvantFusion.qteInitiale||0):0),
+        // v85 : nouvelle fiche = aucune vente encore attribuée (voir
+        // repercuterVenteSurPerso(), seule fonction qui l'incrémente
+        // ensuite, uniquement lors d'une vraie vente sur ce produit).
+        _venduReel:0};
       ajouterHistoriquePrix(nsP, achat, qte, date);
       D.perso.push(nsP);
     }
@@ -6640,7 +6823,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v83'; // 10-09-2026 : CORRECTION URGENTE — "un nouveau produit Stock Perso affiche immédiatement Vendu>0/Reste<Initial sans aucune vente". Cause exacte : calcPersoVenduRestant() répartissait TOUTES les ventes déjà connues sur le produit fusionné (même celles survenues avant la création de cette fiche, ou dues à un autre produit/enregistrement du même nom) au prorata de cette seule fiche. Corrigé : chaque fiche Stock Perso neuve fige désormais, à sa création (_baseVendu/_basePoolQte, jamais retouché ensuite), l'état déjà vendu du produit fusionné à cet instant précis ; calcPersoVenduRestant() ne compte plus, pour cette fiche, que les ventes survenues APRÈS sa création. Fiches déjà existantes (sans ces deux champs) : comportement inchangé, aucune régression. Le tri par période reste un filtre d'affichage pur (inchangé). Stock Entreprise (stock physique unifié réel), capital, bilan, dettes, prix, quantités : aucun calcul modifié. Voir aussi APP_VERSION v82 juste au-dessus (fusion multi-appareils du journal des prix).
+var APP_VERSION = 'v85'; // 10-09-2026 : CORRECTION FINALE — "le Vendu Stock Perso ne doit plus JAMAIS changer sans vente réelle, même avec plusieurs réapprovisionnements". Cause exacte : même après v84, calcPersoVenduRestant() restait un ESTIMATEUR recalculé à chaque affichage à partir des totaux ACTUELS du produit fusionné (Stock Entreprise) — tout réapprovisionnement ultérieur faisait varier la proportion attribuée à chaque fiche, donc son "Vendu" affiché, sans aucune vente réelle. Corrigé en abandonnant l'estimation au profit d'un compteur réel par fiche (p._venduReel), modifié UNIQUEMENT lors d'une vraie vente/annulation (voir ajusterStockVendu()/repercuterVenteSurPerso()) — jamais lors d'un réapprovisionnement (fusionnerDansStockEnt/retirerDeStockEnt ne le touchent pas) ni d'un simple affichage/synchronisation/rechargement. Plusieurs fiches Stock Perso du même produit : la vente/l'annulation est répartie au prorata du restant/vendu de chacune, jamais au-delà de leur propre quantité. Migration unique migrerVenduReelPerso() (verrou D._migreVenduReelPerso, exécutée une seule fois au démarrage, jamais dans la boucle de réconciliation) fige, pour les fiches déjà existantes, la meilleure estimation déjà affichée aujourd'hui (v84) comme valeur de départ — aucun saut brutal, seul le comportement futur change. Testé (Node, logique réelle extraite du fichier) : ancien produit+ventes, plusieurs réappros sans vente, nouvelle fiche, plusieurs fiches du même produit, rechargement/sync — 5/5 scénarios conformes. Stock Entreprise, capital, bilan, dettes, montants dus, prix, quantités réelles : aucun calcul modifié — seul l'affichage estimé Vendu/Restant du Stock Perso est concerné. Voir commentaires v84/v83 ci-dessous pour le contexte d'origine.
+// 10-09-2026 : CORRECTION URGENTE (v83, contexte d'origine, conservé pour l'historique) — "un nouveau produit Stock Perso affiche immédiatement Vendu>0/Reste<Initial sans aucune vente". Cause exacte : calcPersoVenduRestant() répartissait TOUTES les ventes déjà connues sur le produit fusionné (même celles survenues avant la création de cette fiche, ou dues à un autre produit/enregistrement du même nom) au prorata de cette seule fiche. Corrigé : chaque fiche Stock Perso neuve fige désormais, à sa création (_baseVendu/_basePoolQte, jamais retouché ensuite), l'état déjà vendu du produit fusionné à cet instant précis ; calcPersoVenduRestant() ne compte plus, pour cette fiche, que les ventes survenues APRÈS sa création. Fiches déjà existantes (sans ces deux champs) : comportement inchangé, aucune régression. Le tri par période reste un filtre d'affichage pur (inchangé). Stock Entreprise (stock physique unifié réel), capital, bilan, dettes, prix, quantités : aucun calcul modifié. Voir aussi APP_VERSION v82 juste au-dessus (fusion multi-appareils du journal des prix).
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
@@ -7639,6 +7823,8 @@ document.addEventListener('DOMContentLoaded',function(){
   var enRecuperation = detecterLienRecuperation();
   var fh=loadFromHash(); if(!fh) load();
   migrerStockPerso();
+  migrerBaseVenduPerso();
+  migrerVenduReelPerso();
   cmdLignes=[]; rCL(); renderAll();
   // Heure de la dernière mise à jour de l'application, affichée dans l'en-tête
   (function(){
