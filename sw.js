@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v142'; // 08-09-2026 : AUDIT + CORRECTION (index.html v80) — gestion des variations de prix d'achat pour un même produit (Stock Entreprise + Stock Perso). Un réassort à un prix différent écrasait l'ancien prix (enrStock()) ; un apport personnel à un prix différent était au contraire ignoré si un prix existait déjà (fusionnerDansStockEnt()) — dans les deux cas l'ancien/le nouveau prix disparaissait. Ajout d'un journal additif (historiquePrix : prix, qté, date, fournisseur) sur chaque fiche existante, sans nouvelle table Supabase, sans modification d'aucun calcul existant, sans changement de quantité pour une simple raison de prix. Ajout d'un champ Fournisseur optionnel et d'une consultation en lecture seule (🕘).
+const CACHE_VERSION = 'v145'; // 10-09-2026 : index.html v83 — correctif "nouveau produit Stock Perso affiche Vendu>0 sans aucune vente" (voir commentaire APP_VERSION dans index.html). Aucun formulaire, bouton ni présentation modifiés.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne

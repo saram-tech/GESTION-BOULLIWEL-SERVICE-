@@ -1191,7 +1191,6 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="fr">
     <div class="fr">
       <div class="fg"><label>Date</label><input type="date" id="s-date"></div>
-      <div class="fg"><label>Fournisseur (optionnel)</label><input type="text" id="s-fournisseur" placeholder="Ex: Grossiste Conakry" list="dl-fournisseur" onblur="capitaliserChamp('s-fournisseur')"><datalist id="dl-fournisseur"></datalist></div>
     </div>
     <div class="al ali" style="font-size:.75rem">⚙️ Seuil : alerte déclenchée quand stock restant ≤ cette valeur. Ex: 3 → alerte si restant ≤ 3.</div>
     <div class="mft">
@@ -1247,26 +1246,11 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="fr">
       <div class="fg"><label>Date</label><input type="date" id="p-date"></div>
-      <div class="fg"><label>Fournisseur (optionnel)</label><input type="text" id="p-fournisseur" placeholder="Ex: Grossiste Conakry" list="dl-fournisseur" onblur="capitaliserChamp('p-fournisseur')"></div>
     </div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mp');rPF()">Annuler</button>
       <button class="btn bg" id="btn-sp" onclick="enrPerso()">✓ Enregistrer</button>
     </div>
-  </div>
-</div>
-
-<!-- AUDIT + AJOUT (08-09-2026 — demande explicite : conserver et pouvoir
-     consulter l'historique de chaque prix d'achat d'un même produit,
-     sans jamais modifier rétroactivement les anciens achats). Modale de
-     consultation en LECTURE SEULE, partagée entre Stock Entreprise et
-     Stock Perso (voir voirHistoriquePrix()) : n'écrit jamais dans D,
-     n'affecte aucun calcul, aucune quantité, aucune fiche existante. -->
-<div class="ov" id="mhp">
-  <div class="modal">
-    <div class="mhd"><span>🕘 Historique des prix</span><button class="mcl" onclick="cm('mhp')">✕</button></div>
-    <div id="mhp-nom" style="font-weight:700;margin-bottom:8px"></div>
-    <div id="mhp-liste" style="max-height:340px;overflow-y:auto;font-size:.8rem"></div>
   </div>
 </div>
 
@@ -2520,7 +2504,7 @@ function ajusterStockVendu(desig, delta){
  * plus jamais deux stocks physiques séparés, seulement un suivi de qui a
  * apporté quoi (champ origPerso) au sein du stock unique.
  */
-function fusionnerDansStockEnt(nom, qte, achat, vente, date, fournisseur){
+function fusionnerDansStockEnt(nom, qte, achat, vente, date){
   var s=D.stock.find(function(x){ return normNom(x.nom)===normNom(nom); });
   if(s){
     // AUDIT (08-09-2026, voir ajouterHistoriquePrix()) : avant cette
@@ -2529,18 +2513,17 @@ function fusionnerDansStockEnt(nom, qte, achat, vente, date, fournisseur){
     // ligne juste en dessous, if(!s.achat), inchangée ici, décidait du
     // prix "courant"). Le prix de CE lot est désormais conservé dans le
     // journal, sans toucher au prix "courant" existant ni à la quantité.
-    ajouterHistoriquePrix(s, achat, qte, date, fournisseur);
+    ajouterHistoriquePrix(s, achat, qte, date);
     s.qteInitiale=(s.qteInitiale||0)+qte;
     s.origPerso=(s.origPerso||0)+qte;
     if(!s.achat) s.achat=achat;
     if(!s.vente && vente) s.vente=vente;
-    if(!s.fournisseur && fournisseur) s.fournisseur=fournisseur;
     s.qteRestante=Math.max(0,s.qteInitiale-(s.qteVendue||0));
     s._localTouchedAt=Date.now();
     return s;
   }
-  var ns={id:Date.now()+Math.floor(Math.random()*1000),nom:nom,qteInitiale:qte,qteVendue:0,qteRestante:qte,achat:achat,vente:vente||achat,seuil:3,date:date||td(),origPerso:qte,fournisseur:fournisseur||''};
-  ajouterHistoriquePrix(ns, achat, qte, date, fournisseur);
+  var ns={id:Date.now()+Math.floor(Math.random()*1000),nom:nom,qteInitiale:qte,qteVendue:0,qteRestante:qte,achat:achat,vente:vente||achat,seuil:3,date:date||td(),origPerso:qte};
+  ajouterHistoriquePrix(ns, achat, qte, date);
   D.stock.push(ns);
   return ns;
 }
@@ -2589,7 +2572,7 @@ function enrAjoutQte(){
     // déjà connu, sans le changer) — le journal trace quand même ce lot,
     // avec le prix courant inchangé, pour garder un historique complet
     // des entrées, pas seulement des variations de prix.
-    ajouterHistoriquePrix(s, s.achat, delta, td(), s.fournisseur);
+    ajouterHistoriquePrix(s, s.achat, delta, td());
     s.qteInitiale=(s.qteInitiale||0)+delta;
     s.qteRestante=Math.max(0,s.qteInitiale-(s.qteVendue||0));
     // Suivi de la dernière opération d'ajout (affichage + possibilité d'annuler)
@@ -2601,13 +2584,13 @@ function enrAjoutQte(){
     var p=D.perso.find(function(x){ return x.id==id; }); if(!p) return;
     // AUDIT (08-09-2026, voir ajouterHistoriquePrix()) : même principe
     // que pour le Stock Entreprise ci-dessus, côté fiche Stock Perso.
-    ajouterHistoriquePrix(p, p.achat, delta, td(), p.fournisseur);
+    ajouterHistoriquePrix(p, p.achat, delta, td());
     p.qteInitiale=(p.qteInitiale||0)+delta;
     var addRevient=(p.achat||0)*delta, addCommission=addRevient*(getParams().stockPerso/100);
     p.prixRevient=(p.prixRevient||0)+addRevient;
     p.commission=(p.commission||0)+addCommission;
     p.totalDu=(p.totalDu||0)+addRevient+addCommission;
-    fusionnerDansStockEnt(p.nom,delta,p.achat,p.vente,td(),p.fournisseur);
+    fusionnerDansStockEnt(p.nom,delta,p.achat,p.vente,td());
     // Suivi de la dernière opération d'ajout — montants exacts conservés
     // (pas recalculés) pour une annulation fidèle même si le prix d'achat
     // change entre-temps.
@@ -2665,36 +2648,6 @@ function annulerDernierAjout(id, type){
   }
 }
 /**
- * AUDIT + AJOUT (08-09-2026, voir ajouterHistoriquePrix()) : affiche, en
- * LECTURE SEULE, le journal des prix/quantités/fournisseurs déjà
- * enregistrés pour une fiche du Stock Entreprise ('stock') ou du Stock
- * Perso ('perso'). N'écrit jamais dans D, ne modifie aucune donnée.
- */
-function voirHistoriquePrix(type, id){
-  var item=(type==='stock'?D.stock:D.perso).find(function(x){ return x.id==id; });
-  if(!item) return;
-  document.getElementById('mhp-nom').textContent=item.nom+' — prix courant: '+fmt(item.achat)+' GNF'+(item.fournisseur?' ('+item.fournisseur+')':'');
-  var hist=(item.historiquePrix||[]).slice().reverse();
-  var html='';
-  if(!hist.length){
-    html='<div style="color:var(--tx2)">Aucune entrée de journal pour ce produit (créé avant cette fonctionnalité, ou jamais modifié depuis).</div>';
-  } else {
-    html+='<table style="width:100%;border-collapse:collapse">';
-    html+='<tr style="color:var(--tx2);font-size:.72rem;text-align:left"><th style="padding:4px 6px 4px 0">Date</th><th style="padding:4px 6px">Qté</th><th style="padding:4px 6px">Prix unitaire</th><th style="padding:4px 0 4px 6px">Fournisseur</th></tr>';
-    hist.forEach(function(h){
-      html+='<tr style="border-top:1px solid var(--bd)">'
-        +'<td style="padding:5px 6px 5px 0">'+fmtDateHeure(h.date,h.heure)+'</td>'
-        +'<td style="padding:5px 6px">'+(h.qte>0?('+'+h.qte):'<span style="color:var(--tx3)">—</span>')+'</td>'
-        +'<td style="padding:5px 6px;color:var(--go)">'+fmt(h.prix)+'</td>'
-        +'<td style="padding:5px 0 5px 6px;color:var(--tx2)">'+(h.fournisseur?echap(h.fournisseur):'—')+'</td>'
-        +'</tr>';
-    });
-    html+='</table>';
-  }
-  document.getElementById('mhp-liste').innerHTML=html;
-  om('mhp');
-}
-/**
  * Calcule, pour une fiche du Stock Perso (ledger comptable), combien
  * d'unités ont été vendues / restent — de façon PROPORTIONNELLE aux
  * ventes réelles enregistrées sur le produit fusionné dans Stock
@@ -2705,6 +2658,25 @@ function voirHistoriquePrix(type, id){
 function calcPersoVenduRestant(p){
   var s=D.stock.find(function(x){ return normNom(x.nom)===normNom(p.nom); });
   if(!s || !s.qteInitiale) return {vendu:0,restant:p.qteInitiale};
+  /**
+   * CORRECTIF CRITIQUE (10-09-2026 — voir le commentaire détaillé dans
+   * enrPerso(), branche de création d'une fiche neuve) : quand cette
+   * fiche connaît _baseVendu/_basePoolQte (l'état du produit fusionné
+   * juste avant qu'elle n'y entre), on ne répartit plus que les ventes
+   * survenues DEPUIS sa création — jamais les ventes déjà comptabilisées
+   * avant qu'elle n'existe. Pour une fiche neuve sans aucune vente
+   * depuis sa création, ceci donne toujours Vendu=0 / Reste=Initial,
+   * quel que soit l'historique déjà présent sur le produit fusionné.
+   */
+  if(p.hasOwnProperty('_baseVendu') && p.hasOwnProperty('_basePoolQte')){
+    var venduDepuisCreation=Math.max(0,(s.qteVendue||0)-p._baseVendu);
+    var poolAjouteDepuisCreation=Math.max(p.qteInitiale,(s.qteInitiale||0)-p._basePoolQte);
+    var partDepuis=p.qteInitiale/poolAjouteDepuisCreation;
+    var venduDepuis=Math.min(p.qteInitiale,Math.round(venduDepuisCreation*partDepuis));
+    return {vendu:venduDepuis,restant:Math.max(0,p.qteInitiale-venduDepuis)};
+  }
+  // Fiches créées avant ce correctif (sans _baseVendu/_basePoolQte) :
+  // comportement conservé à l'identique, aucune régression.
   var part=p.qteInitiale/s.qteInitiale;
   var vendu=Math.min(p.qteInitiale,Math.round((s.qteVendue||0)*part));
   return {vendu:vendu,restant:Math.max(0,p.qteInitiale-vendu)};
@@ -2920,67 +2892,45 @@ function niveauStock(restant,seuil){
   return {label:'OK',color:'var(--gr)',lvl:3};
 }
 /**
- * AUDIT + CORRECTION (08-09-2026 — demande explicite : "je veux pouvoir
- * avoir le même produit avec plusieurs prix d'achat différents / auprès
- * de fournisseurs différents, en conservant l'historique de chaque prix,
- * sans modifier rétroactivement les anciens achats").
- *
- * DIAGNOSTIC précis effectué avant toute correction :
- * un produit du Stock Entreprise ou du Stock Perso est retrouvé par NOM
- * normalisé (normNom) et tient un SEUL prix d'achat courant (s.achat /
- * p.achat), utilisé à la fois comme quantité-fusionnable et comme base
- * de calcul (valeur de stock, marge, Bilan...). Deux chemins fusionnent
- * une nouvelle quantité sur une fiche déjà existante :
- *   1) enrStock() — création avec un nom déjà présent : écrasait
- *      purement et simplement l'ancien prix (ex.achat=achat), donc un
- *      réassort à un prix différent faisait DISPARAÎTRE le prix
- *      précédent (ex : 5 à 100 000 puis 3 à 120 000 → les 8 unités
- *      affichaient 120 000, le prix de 100 000 était perdu).
- *   2) fusionnerDansStockEnt() (fusion Stock Perso → Stock Entreprise) —
- *      l'inverse : ne touchait au prix QUE si aucun prix n'existait
- *      encore (if(!s.achat)), donc un nouveau prix différent était cette
- *      fois silencieusement IGNORÉ.
- * Dans les deux cas, l'ancien mécanisme de prix "courant" (s.achat/
- * p.achat), utilisé par tous les calculs existants (valeur de stock,
- * marge, Bilan, Tableau de bord, clôture...), n'est PAS la cause du
- * problème et n'a donc pas été touché : ces calculs continuent d'utiliser
- * exactement le même prix "courant" qu'avant, avec le même comportement
- * qu'avant (le prix affiché sur la fiche reste le dernier connu — comme
- * c'était déjà le cas). Ce qui manquait, c'est un JOURNAL séparé,
- * purement additif, qui conserve CHAQUE prix réellement payé (et son
- * fournisseur), sans jamais réécrire les entrées passées ni changer la
- * quantité autrement que lors d'une vraie opération de quantité (déjà le
- * cas partout ailleurs — vérifié dans enrStock/enrPerso/enrAjoutQte/
- * fusionnerDansStockEnt/retirerDeStockEnt : aucune de ces fonctions ne
- * modifie la quantité pour une simple raison de prix, et réciproquement).
- *
- * Ce journal (item.historiquePrix, tableau ajouté sur chaque fiche Stock
- * Entreprise/Stock Perso) est stocké DANS la fiche elle-même — donc
- * réutilise la structure Supabase existante (le blob JSON "data" déjà en
- * place) sans créer aucune nouvelle table ni colonne. Il suit
- * automatiquement les mêmes règles de fusion multi-appareils que le
- * reste (mergeArraysById fusionne des objets ENTIERS par id, donc ce
- * nouveau tableau est déjà protégé comme tout le reste de la fiche —
- * vérifié dans mergeAppData()/mergeArraysById(), aucune modification
- * nécessaire là non plus) ainsi que l'import/export existant (qui
- * exporte/importe D dans son intégralité).
- * C'est un journal STRICTEMENT ADDITIF (append-only, jamais réécrit ni
- * supprimé rétroactivement) : chaque opération qui fait réellement
- * entrer une quantité à un prix (nouvelle fiche, réassort, fusion Perso→
- * Entreprise, ajout rapide "➕") y ajoute une ligne {prix, qte, date,
- * heure, fournisseur}; une simple correction de prix sans changement de
- * quantité (✏️ Modifier) y ajoute aussi une ligne, avec qte:0, pour
- * tracer la correction sans jamais prétendre à une entrée physique de
- * stock supplémentaire.
+ * URGENT — REVERT + RECONSTRUCTION (08-09-2026, v81) : suite au signalement
+ * "le bouton Ajouter de Stock Perso ne fonctionne plus dans v80", et à la
+ * demande explicite de ne plus toucher aux formulaires (aucun champ
+ * fournisseur, aucune présentation modifiée), TOUT ce que v80 avait ajouté
+ * à l'interface est retiré intégralement : le champ "Fournisseur" des deux
+ * formulaires, sa datalist, le bouton 🕘 et sa modale de consultation.
+ * L'application redevient, à l'écran, identique à la version stable
+ * précédente (v79) — aucun formulaire, aucun bouton, aucune présentation
+ * modifiés par rapport à v79.
+ * Diagnostic honnête : une relecture complète du code de v80 (enrPerso(),
+ * enrAjoutQte(), fusionnerDansStockEnt(), la modale #mp, le bouton
+ * "✓ Ajouter") n'a fait apparaître aucune erreur de syntaxe (vérifié) ni
+ * d'incohérence de logique reproductible par relecture statique. Plutôt
+ * que de risquer de laisser en place une cause non identifiée avec
+ * certitude, la totalité du code ajouté par v80 côté interface est
+ * retirée ici, ce qui élimine structurellement toute cause possible liée
+ * à ces ajouts.
+ * Le besoin réel (gérer plusieurs prix pour un même produit, conserver
+ * l'historique de chaque prix sans jamais modifier rétroactivement les
+ * anciens achats, sans jamais changer la quantité pour une simple raison
+ * de prix) reste assuré, mais désormais de façon strictement INVISIBLE :
+ * un journal interne (item.historiquePrix : prix, qté, date, heure — plus
+ * de champ fournisseur, puisqu'aucun formulaire n'en fournit plus) continue
+ * d'être alimenté par enrStock(), enrPerso(), fusionnerDansStockEnt() et
+ * enrAjoutQte(), exactement comme avant pour la quantité et pour le prix
+ * "courant" (s.achat/p.achat, utilisé par tous les calculs existants —
+ * strictement inchangé). Ce journal reste stocké dans la fiche existante
+ * (aucune nouvelle table Supabase), et suit déjà les mêmes règles de
+ * fusion multi-appareils que le reste (mergeArraysById fusionne des objets
+ * entiers par id).
  */
-function ajouterHistoriquePrix(item, prix, qte, date, fournisseur){
+function ajouterHistoriquePrix(item, prix, qte, date){
   if(!item) return;
   if(!item.historiquePrix) item.historiquePrix=[];
-  item.historiquePrix.push({prix:Number(prix)||0, qte:Number(qte)||0, date:date||td(), heure:nowHM(), fournisseur:(fournisseur||'').trim()});
+  item.historiquePrix.push({prix:Number(prix)||0, qte:Number(qte)||0, date:date||td(), heure:nowHM()});
 }
 
 function enrStock(){
-  var nom=v('s-nom').trim(),qte=parseInt(v('s-qte'))||0,achat=fl('s-achat'),vente=fl('s-vente'),date=v('s-date'),seuil=parseInt(v('s-seuil'))||3,categorie=v('s-categorie').trim(),fournisseur=(v('s-fournisseur')||'').trim();
+  var nom=v('s-nom').trim(),qte=parseInt(v('s-qte'))||0,achat=fl('s-achat'),vente=fl('s-vente'),date=v('s-date'),seuil=parseInt(v('s-seuil'))||3,categorie=v('s-categorie').trim();
   var eid=v('s-eid');
   // CORRECTIF (diminution de quantité en édition) : en édition (eid présent),
   // une quantité de 0 est désormais acceptée (permet de diminuer jusqu'à 0),
@@ -2996,8 +2946,8 @@ function enrStock(){
       // 0 si la quantité baisse ou reste identique) — le journal trace la
       // correction de prix (qte:0) séparément d'un vrai réassort.
       var qteAjoutee=Math.max(0, qte-(s.qteInitiale||0));
-      if(qteAjoutee>0 || s.achat!==achat) ajouterHistoriquePrix(s, achat, qteAjoutee, date, fournisseur);
-      s.nom=nom;s.qteInitiale=qte;s.achat=achat;s.vente=vente;s.seuil=seuil;s.categorie=categorie;s.qteRestante=Math.max(0,qte-(s.qteVendue||0)); if(fournisseur) s.fournisseur=fournisseur; s._localTouchedAt=Date.now();
+      if(qteAjoutee>0 || s.achat!==achat) ajouterHistoriquePrix(s, achat, qteAjoutee, date);
+      s.nom=nom;s.qteInitiale=qte;s.achat=achat;s.vente=vente;s.seuil=seuil;s.categorie=categorie;s.qteRestante=Math.max(0,qte-(s.qteVendue||0)); s._localTouchedAt=Date.now();
     }
     ah('stock','Modif stock: '+nom,achat*qte,date);
   } else {
@@ -3019,13 +2969,13 @@ function enrStock(){
       // "courant" (ex.achat) continue d'être mis à jour EXACTEMENT comme
       // avant (aucun calcul existant changé), mais le prix de CE lot est
       // désormais aussi conservé dans le journal avant l'écrasement.
-      ajouterHistoriquePrix(ex, achat, qte, date, fournisseur);
-      ex.qteInitiale+=qte;ex.achat=achat;ex.vente=vente;ex.seuil=seuil;if(categorie)ex.categorie=categorie;ex.qteRestante=Math.max(0,ex.qteInitiale-(ex.qteVendue||0)); if(fournisseur) ex.fournisseur=fournisseur; ex._localTouchedAt=Date.now();
+      ajouterHistoriquePrix(ex, achat, qte, date);
+      ex.qteInitiale+=qte;ex.achat=achat;ex.vente=vente;ex.seuil=seuil;if(categorie)ex.categorie=categorie;ex.qteRestante=Math.max(0,ex.qteInitiale-(ex.qteVendue||0)); ex._localTouchedAt=Date.now();
       ex.dernierAjoutQte=qte; ex.dernierAjoutDate=new Date().toISOString();
     }
     else {
-      var nsS={id:Date.now(),nom:nom,qteInitiale:qte,qteVendue:0,qteRestante:qte,achat:achat,vente:vente,seuil:seuil,categorie:categorie,date:date,heure:nowHM(),fournisseur:fournisseur};
-      ajouterHistoriquePrix(nsS, achat, qte, date, fournisseur);
+      var nsS={id:Date.now(),nom:nom,qteInitiale:qte,qteVendue:0,qteRestante:qte,achat:achat,vente:vente,seuil:seuil,categorie:categorie,date:date,heure:nowHM()};
+      ajouterHistoriquePrix(nsS, achat, qte, date);
       D.stock.push(nsS);
     }
     ah('stock','Entrée: '+nom+' x'+qte,achat*qte,date);
@@ -3043,27 +2993,8 @@ function fillDLCategoriesStock(){
     var o=document.createElement('option'); o.value=c; dl.appendChild(o);
   });
 }
-/**
- * AUDIT + CORRECTION (08-09-2026, voir ajouterHistoriquePrix()) : simples
- * suggestions de saisie (comme fillDLCategoriesStock() ci-dessus), pour
- * retrouver facilement un fournisseur déjà utilisé — aucune donnée ni
- * calcul, uniquement une liste d'autocomplétion partagée entre Stock
- * Entreprise et Stock Perso.
- */
-function fillDLFournisseurs(){
-  var dl=document.getElementById('dl-fournisseur'); if(!dl) return;
-  dl.innerHTML='';
-  var vues={};
-  function ajouter(nomF){
-    var f=(nomF||'').trim(); if(!f || vues[f.toLowerCase()]) return;
-    vues[f.toLowerCase()]=true;
-    var o=document.createElement('option'); o.value=f; dl.appendChild(o);
-  }
-  D.stock.forEach(function(s){ ajouter(s.fournisseur); (s.historiquePrix||[]).forEach(function(h){ ajouter(h.fournisseur); }); });
-  D.perso.forEach(function(p){ ajouter(p.fournisseur); (p.historiquePrix||[]).forEach(function(h){ ajouter(h.fournisseur); }); });
-}
 function rSF(){
-  ['s-nom','s-qte','s-achat','s-eid','s-categorie','s-fournisseur'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+  ['s-nom','s-qte','s-achat','s-eid','s-categorie'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
   // CORRECTIF (nouveau produit prenant une ancienne date au lieu
   // d'aujourd'hui) : le champ Date n'était jamais réinitialisé à
   // l'ouverture de "+ Entrée stock" — il gardait la dernière valeur
@@ -3074,15 +3005,13 @@ function rSF(){
   sv('s-date', td());
   sv('s-vente',0); sv('s-seuil',3); st('ms-t','📦 Entrée Stock');
   fillDLCategoriesStock();
-  fillDLFournisseurs();
   var b=document.getElementById('btn-ss'); b.textContent='✓ Enregistrer'; b.onclick=enrStock;
   var h=document.getElementById('s-qte-hint'); if(h) h.style.display='none';
 }
 function editStock(id){
   var s=D.stock.find(function(x){ return x.id===id; }); if(!s) return;
-  sv('s-eid',id);sv('s-nom',s.nom);sv('s-qte',s.qteInitiale);sv('s-achat',s.achat);sv('s-vente',s.vente||'');sv('s-date',s.date||'');sv('s-seuil',s.seuil||3);sv('s-categorie',s.categorie||'');sv('s-fournisseur',s.fournisseur||'');
+  sv('s-eid',id);sv('s-nom',s.nom);sv('s-qte',s.qteInitiale);sv('s-achat',s.achat);sv('s-vente',s.vente||'');sv('s-date',s.date||'');sv('s-seuil',s.seuil||3);sv('s-categorie',s.categorie||'');
   fillDLCategoriesStock();
-  fillDLFournisseurs();
   st('ms-t','✏️ Modifier Stock');
   var b=document.getElementById('btn-ss'); b.textContent='✓ Modifier'; b.onclick=enrStock; om('ms');
   var h=document.getElementById('s-qte-hint'); if(h) h.style.display='block';
@@ -3201,7 +3130,7 @@ function enrReductionCapital(){
 // STOCK PERSO
 // ================================================================
 function enrPerso(){
-  var nom=capitaliserMots(v('p-nom').trim()),qte=parseInt(v('p-qte'))||0,achat=fl('p-achat'),vente=fl('p-vente'),date=v('p-date'),fournisseur=(v('p-fournisseur')||'').trim();
+  var nom=capitaliserMots(v('p-nom').trim()),qte=parseInt(v('p-qte'))||0,achat=fl('p-achat'),vente=fl('p-vente'),date=v('p-date');
   var eid=v('p-eid');
   // CORRECTIF (diminution de quantité en édition) : en édition (eid présent),
   // une quantité de 0 est désormais acceptée (permet de diminuer jusqu'à 0),
@@ -3221,12 +3150,12 @@ function enrPerso(){
       // Répercute la DIFFÉRENCE de quantité sur le stock fusionné, pas la
       // quantité totale (sinon on la compterait deux fois).
       var deltaQte=qte-(p.qteInitiale||0);
-      if(deltaQte>0) fusionnerDansStockEnt(nom,deltaQte,achat,vente,date,fournisseur);
+      if(deltaQte>0) fusionnerDansStockEnt(nom,deltaQte,achat,vente,date);
       else if(deltaQte<0) retirerDeStockEnt(p.nom,-deltaQte);
       if(normNom(nom)!==normNom(p.nom)){
         // Renommage : on déplace toute la quantité de l'ancien nom vers le nouveau
         retirerDeStockEnt(p.nom,qte-Math.max(0,deltaQte));
-        fusionnerDansStockEnt(nom,qte-Math.max(0,deltaQte),achat,vente,date,fournisseur);
+        fusionnerDansStockEnt(nom,qte-Math.max(0,deltaQte),achat,vente,date);
       }
       // AUDIT (08-09-2026, voir ajouterHistoriquePrix()) : une seule
       // ligne de journal par édition, qui combine la vraie augmentation
@@ -3234,9 +3163,8 @@ function enrPerso(){
       // change pas — déjà tracée séparément dans le Stock Entreprise via
       // fusionnerDansStockEnt() ci-dessus) et une correction de prix
       // éventuelle (p.achat!==achat) — jamais les deux comptées deux fois.
-      if(deltaQte>0 || p.achat!==achat) ajouterHistoriquePrix(p, achat, Math.max(0,deltaQte), date, fournisseur);
+      if(deltaQte>0 || p.achat!==achat) ajouterHistoriquePrix(p, achat, Math.max(0,deltaQte), date);
       p.nom=nom;p.qteInitiale=qte;p.achat=achat;p.vente=vente;p.prixRevient=prixRevient;p.commission=commission;p.totalDu=totalDu;
-      if(fournisseur) p.fournisseur=fournisseur;
       p.derniereModifDate=maintenant;
       /**
        * CORRECTIF (01-09-2026 — "un produit ajouté au Stock Perso est vidé
@@ -3269,8 +3197,8 @@ function enrPerso(){
       // AUDIT (08-09-2026, voir ajouterHistoriquePrix()) : trace ce lot
       // sur la fiche Stock Perso elle-même, avant l'accumulation des
       // montants ci-dessous (qui reste, elle, strictement inchangée).
-      ajouterHistoriquePrix(ex, achat, qte, date, fournisseur);
-      ex.qteInitiale+=qte;ex.prixRevient+=prixRevient;ex.commission+=commission;ex.totalDu+=totalDu; ex.derniereModifDate=maintenant; ex.dernierAjoutQte=qte; ex.dernierAjoutDate=maintenant; if(fournisseur) ex.fournisseur=fournisseur;
+      ajouterHistoriquePrix(ex, achat, qte, date);
+      ex.qteInitiale+=qte;ex.prixRevient+=prixRevient;ex.commission+=commission;ex.totalDu+=totalDu; ex.derniereModifDate=maintenant; ex.dernierAjoutQte=qte; ex.dernierAjoutDate=maintenant;
       // CORRECTIF (même cause qu'au-dessus, voir le commentaire détaillé
       // dans la branche d'édition ci-dessus) : une fiche déjà consolidée
       // et réutilisée ici par correspondance de nom doit elle aussi
@@ -3301,32 +3229,56 @@ function enrPerso(){
       ex._localTouchedAt=Date.now();
     }
     else {
-      var nsP={id:Date.now(),nom:nom,qteInitiale:qte,achat:achat,vente:vente,prixRevient:prixRevient,commission:commission,totalDu:totalDu,rembourse:0,date:date,heure:nowHM(),derniereModifDate:maintenant,_localTouchedAt:Date.now(),fournisseur:fournisseur};
-      ajouterHistoriquePrix(nsP, achat, qte, date, fournisseur);
+      /**
+       * CORRECTIF CRITIQUE (10-09-2026 — "un produit Stock Perso tout
+       * juste créé, sans aucune vente, affiche immédiatement Vendu>0 /
+       * Reste<Initial") — cause exacte trouvée : calcPersoVenduRestant()
+       * répartit le total des ventes déjà enregistrées sur le produit
+       * fusionné (s.qteVendue), AU PRORATA de la quantité de CETTE
+       * fiche — y compris les ventes survenues AVANT que cette fiche
+       * n'existe (ex: un produit du même nom déjà présent et déjà
+       * partiellement vendu dans le Stock Entreprise, ou un ancien
+       * apport personnel antérieur). Une fiche neuve héritait donc
+       * instantanément d'une part de ventes qui ne la concernent pas.
+       * Corrigé en figeant ici, à la création de CETTE fiche uniquement
+       * (jamais modifié ensuite, même par un réapprovisionnement futur —
+       * voir calcPersoVenduRestant()), l'état du produit fusionné JUSTE
+       * AVANT que cette nouvelle quantité n'y entre (_baseVendu = ventes
+       * déjà comptabilisées à cet instant, _basePoolQte = quantité déjà
+       * présente à cet instant) : calcPersoVenduRestant() ne comptera
+       * plus, pour cette fiche, que les ventes survenues APRÈS sa
+       * création — jamais d'anciennes ventes, d'anciennes périodes ou
+       * d'un autre produit/enregistrement. Aucun autre calcul (Stock
+       * Entreprise, capital, bilan, prix, quantités) n'est modifié : le
+       * Stock Entreprise reste, lui, le reflet exact du stock physique
+       * réellement unique.
+       */
+      var sAvantFusion=D.stock.find(function(x){ return normNom(x.nom)===normNom(nom); });
+      var nsP={id:Date.now(),nom:nom,qteInitiale:qte,achat:achat,vente:vente,prixRevient:prixRevient,commission:commission,totalDu:totalDu,rembourse:0,date:date,heure:nowHM(),derniereModifDate:maintenant,_localTouchedAt:Date.now(),
+        _baseVendu:(sAvantFusion?(sAvantFusion.qteVendue||0):0), _basePoolQte:(sAvantFusion?(sAvantFusion.qteInitiale||0):0)};
+      ajouterHistoriquePrix(nsP, achat, qte, date);
       D.perso.push(nsP);
     }
     // Fusion immédiate et automatique dans le Stock Entreprise (stock physique unique)
-    fusionnerDansStockEnt(nom,qte,achat,vente,date,fournisseur);
+    fusionnerDansStockEnt(nom,qte,achat,vente,date);
     ah('perso','Perso: '+nom+' x'+qte+' (fusionné au stock)',totalDu,date);
   }
   save(); cm('mp'); rPF(); notif('✅ Produit perso ajouté au stock entreprise. L\'entreprise vous doit: '+fmt(totalDu));
 }
 function rPF(){
-  ['p-nom','p-qte','p-achat','p-eid','p-fournisseur'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+  ['p-nom','p-qte','p-achat','p-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
   // CORRECTIF (même cause que Stock Entreprise, voir rSF()) : le champ
   // Date n'était jamais réinitialisé à l'ouverture de "+ Ajouter",
   // gardant l'ancienne valeur d'un précédent produit édité.
   sv('p-date', td());
   sv('p-vente',0);
   st('mp-t','🏷️ Produit Personnel');
-  fillDLFournisseurs();
   var b=document.getElementById('btn-sp'); b.textContent='✓ Enregistrer'; b.onclick=enrPerso;
   var h=document.getElementById('p-qte-hint'); if(h) h.style.display='none';
 }
 function editPerso(id){
   var p=D.perso.find(function(x){ return x.id===id; }); if(!p) return;
-  sv('p-eid',id);sv('p-nom',p.nom);sv('p-qte',p.qteInitiale);sv('p-achat',p.achat);sv('p-vente',p.vente||'');sv('p-date',p.date||'');sv('p-fournisseur',p.fournisseur||'');
-  fillDLFournisseurs();
+  sv('p-eid',id);sv('p-nom',p.nom);sv('p-qte',p.qteInitiale);sv('p-achat',p.achat);sv('p-vente',p.vente||'');sv('p-date',p.date||'');
   st('mp-t','✏️ Modifier Perso');
   var b=document.getElementById('btn-sp'); b.textContent='✓ Modifier'; b.onclick=enrPerso; om('mp');
   var h=document.getElementById('p-qte-hint'); if(h) h.style.display='block';
@@ -4345,7 +4297,7 @@ function restaurer(id){
   var c=D.corbeille.find(function(x){ return x.id===id; }); if(!c) return;
   if(c.type==='activite'){ D.activites.push(c.data); ajusterStockVendu(c.data.desig, c.data.qte||0); }
   else if(c.type==='stock') D.stock.push(c.data);
-  else if(c.type==='perso'){ D.perso.push(c.data); fusionnerDansStockEnt(c.data.nom,c.data.qteInitiale||0,c.data.achat,c.data.vente,c.data.date,c.data.fournisseur); }
+  else if(c.type==='perso'){ D.perso.push(c.data); fusionnerDansStockEnt(c.data.nom,c.data.qteInitiale||0,c.data.achat,c.data.vente,c.data.date); }
   else if(c.type==='depense') D.depenses.push(c.data);
   else if(c.type==='dette') D.dettes.push(c.data);
   else if(c.type==='paiement') D.paiements.push(c.data);
@@ -5122,7 +5074,7 @@ function rStock(){
     html+='<td>'+fmt(s.vente||0)+'</td>';
     html+='<td>'+fmt(restant*s.achat)+'</td>';
     html+='<td>'+fmtDateHeure(s.date,s.heure)+(s.dernierAjoutQte>0?'<br><span class="badge bor" style="font-size:.62rem" title="Dernière modification">🕒 +'+s.dernierAjoutQte+' le '+fmtDateHeureISO(s.dernierAjoutDate)+'</span>':'')+'</td>';
-    html+='<td class="ac"><button class="btn bs bxs" onclick="ouvrirAjoutQte('+s.id+',\'stock\')" title="Ajouter une quantité (s\'additionne au stock existant)">➕</button>'+(s.dernierAjoutQte>0?'<button class="btn bh bxs" onclick="annulerDernierAjout('+s.id+',\'stock\')" title="Annuler le dernier ajout (+'+s.dernierAjoutQte+')">↩️</button>':'')+'<button class="btn bh bxs" onclick="voirHistoriquePrix(\'stock\','+s.id+')" title="Historique des prix d\'achat">🕘</button><button class="btn bh bxs" onclick="editStock('+s.id+')">✏️</button><button class="btn bd bxs" onclick="delStock('+s.id+')">🗑️</button></td>';
+    html+='<td class="ac"><button class="btn bs bxs" onclick="ouvrirAjoutQte('+s.id+',\'stock\')" title="Ajouter une quantité (s\'additionne au stock existant)">➕</button>'+(s.dernierAjoutQte>0?'<button class="btn bh bxs" onclick="annulerDernierAjout('+s.id+',\'stock\')" title="Annuler le dernier ajout (+'+s.dernierAjoutQte+')">↩️</button>':'')+'<button class="btn bh bxs" onclick="editStock('+s.id+')">✏️</button><button class="btn bd bxs" onclick="delStock('+s.id+')">🗑️</button></td>';
     html+='</tr>';
   });
   html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
@@ -5182,7 +5134,7 @@ function rPerso(){
     html+='<td style="color:var(--go)">'+fmt(p.totalDu)+'</td>';
     html+='<td><span class="badge '+(r>0?'bor':'bgr')+'">'+(r>0?'En attente':'Remboursé')+'</span></td>';
     html+='<td style="font-size:.72rem;color:var(--tx2)">'+(p.derniereModifDate?fmtDateHeureISO(p.derniereModifDate):'—')+'</td>';
-    html+='<td class="ac"><button class="btn bs bxs" onclick="ouvrirAjoutQte('+p.id+',\'perso\')" title="Ajouter une quantité (s\'additionne au stock existant)">➕</button>'+(p.dernierAjoutQte>0?'<button class="btn bh bxs" onclick="annulerDernierAjout('+p.id+',\'perso\')" title="Annuler le dernier ajout (+'+p.dernierAjoutQte+')">↩️</button>':'')+'<button class="btn bh bxs" onclick="voirHistoriquePrix(\'perso\','+p.id+')" title="Historique des prix d\'achat">🕘</button><button class="btn bh bxs" onclick="editPerso('+p.id+')">✏️</button><button class="btn bd bxs" onclick="delPerso('+p.id+')">🗑️</button></td>';
+    html+='<td class="ac"><button class="btn bs bxs" onclick="ouvrirAjoutQte('+p.id+',\'perso\')" title="Ajouter une quantité (s\'additionne au stock existant)">➕</button>'+(p.dernierAjoutQte>0?'<button class="btn bh bxs" onclick="annulerDernierAjout('+p.id+',\'perso\')" title="Annuler le dernier ajout (+'+p.dernierAjoutQte+')">↩️</button>':'')+'<button class="btn bh bxs" onclick="editPerso('+p.id+')">✏️</button><button class="btn bd bxs" onclick="delPerso('+p.id+')">🗑️</button></td>';
     html+='</tr>';
   });
   html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
@@ -6688,7 +6640,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v80'; // 08-09-2026 : AUDIT + CORRECTION — gestion des variations de prix d'achat pour un même produit (Stock Entreprise + Stock Perso). DIAGNOSTIC : un produit est retrouvé par nom normalisé et ne tenait qu'un seul prix "courant" ; un réassort à un prix différent via "+ Entrée stock" écrasait l'ancien prix (enrStock()), tandis qu'un apport personnel à un prix différent via la fusion Stock Perso→Entreprise (fusionnerDansStockEnt()) était au contraire ignoré si un prix existait déjà — dans les deux cas, l'ancien prix disparaissait sans laisser de trace. CORRECTIF : ajout d'un journal additif append-only (item.historiquePrix : prix, qté, date, fournisseur) sur chaque fiche Stock Entreprise/Stock Perso existante — aucune nouvelle table Supabase (le journal vit dans le blob JSON déjà synchronisé), aucun calcul existant modifié (le prix "courant" continue d'être mis à jour exactement comme avant, seul un enregistrement s'ajoute avant), aucune quantité modifiée pour une simple raison de prix (vérifié dans enrStock, enrPerso, enrAjoutQte, fusionnerDansStockEnt, retirerDeStockEnt). Ajout d'un champ Fournisseur optionnel par fiche et par entrée d'historique, et d'une consultation en lecture seule (bouton 🕘 → modale Historique des prix). Synchronisation multi-appareils et import/export déjà compatibles sans modification (mergeArraysById fusionne des objets entiers par id ; export/import déjà génériques sur D). Testé : cumul de quantités à prix différents, correction de prix sans effet sur la quantité, fournisseurs distincts conservés par lot.
+var APP_VERSION = 'v83'; // 10-09-2026 : CORRECTION URGENTE — "un nouveau produit Stock Perso affiche immédiatement Vendu>0/Reste<Initial sans aucune vente". Cause exacte : calcPersoVenduRestant() répartissait TOUTES les ventes déjà connues sur le produit fusionné (même celles survenues avant la création de cette fiche, ou dues à un autre produit/enregistrement du même nom) au prorata de cette seule fiche. Corrigé : chaque fiche Stock Perso neuve fige désormais, à sa création (_baseVendu/_basePoolQte, jamais retouché ensuite), l'état déjà vendu du produit fusionné à cet instant précis ; calcPersoVenduRestant() ne compte plus, pour cette fiche, que les ventes survenues APRÈS sa création. Fiches déjà existantes (sans ces deux champs) : comportement inchangé, aucune régression. Le tri par période reste un filtre d'affichage pur (inchangé). Stock Entreprise (stock physique unifié réel), capital, bilan, dettes, prix, quantités : aucun calcul modifié. Voir aussi APP_VERSION v82 juste au-dessus (fusion multi-appareils du journal des prix).
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
  * état purement d'AFFICHAGE — aucune donnée, aucun id, aucun calcul
@@ -9298,6 +9250,38 @@ function mergeAppData(cloudData, localData, cloudIsNewer, cloudDate, localDate) 
             item.qteRestante = Math.max(0, maxQte - (Number(item.qteVendue)||0));
           }
         }
+        /**
+         * CORRECTIF (10-09-2026 — audit multi-appareils : "un prix
+         * d'achat ajouté hors ligne sur un appareil peut disparaître du
+         * journal historiquePrix après synchronisation avec un autre
+         * appareil") — cause exacte trouvée : juste au-dessus, la
+         * protection anti-recul ne restaure que qteInitiale (et
+         * origPerso/qteRestante pour le Stock Entreprise) quand l'un des
+         * deux appareils a une quantité plus grande — mais
+         * item.historiquePrix, lui, reste celui du SEUL côté choisi par
+         * mergeArraysById() (l'union par id, objet entier) juste plus
+         * haut. Si deux appareils ajoutent, hors ligne, chacun un lot à
+         * un prix différent sur LE MÊME produit (même id), le journal du
+         * côté non retenu disparaît intégralement — alors même que la
+         * quantité totale, elle, reste correcte grâce au Math.max
+         * ci-dessus. Résultat : la somme des quantités du journal ne
+         * correspond plus à qteInitiale, et un prix pourtant bien saisi
+         * n'apparaît plus nulle part. Corrigé en fusionnant les deux
+         * journaux (union par contenu exact prix+qte+date+heure, pour
+         * ignorer un éventuel doublon strictement identique sans jamais
+         * en perdre un différent), plutôt que de garder un seul des deux
+         * en bloc. N'affecte que ce journal interne (aucun calcul
+         * existant, aucune quantité, aucun prix "courant" utilisé
+         * ailleurs n'est modifié par ce correctif).
+         */
+        var hpVus={}, hpFusionne=[];
+        [].concat(bItem.historiquePrix||[], pItem.historiquePrix||[], item.historiquePrix||[]).forEach(function(h){
+          if(!h) return;
+          var cle=(h.prix||0)+'|'+(h.qte||0)+'|'+(h.date||'')+'|'+(h.heure||'');
+          if(hpVus[cle]) return;
+          hpVus[cle]=true; hpFusionne.push(h);
+        });
+        if(hpFusionne.length) item.historiquePrix=hpFusionne;
       }
     });
   });
