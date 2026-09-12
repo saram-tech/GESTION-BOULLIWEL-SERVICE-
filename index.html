@@ -42,6 +42,13 @@
    ===================================================================== */
 
 :root{
+  /* CORRECTIF (10-09-2026 — le bandeau #maj-dispo-banner peut recouvrir
+     le pied .mft d'une boîte de dialogue ouverte) : réserve dynamiquement
+     l'espace occupé par le bandeau en bas d'écran ; vaut 0px tant que le
+     bandeau n'est pas affiché (aucun changement de comportement dans ce
+     cas — voir .ov ci-dessous et adjustForKeyboard()). Mise à jour
+     uniquement par le code qui affiche/masque #maj-dispo-banner. */
+  --maj-banniere-h:0px;
   /* --- Typographie (polices système, aucun CDN) --- */
   --font-display:'Segoe UI','Avenir Next',Avenir,-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
   --font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Helvetica Neue',Arial,sans-serif;
@@ -156,7 +163,7 @@ tbody tr:last-child td{border-bottom:none;}
 .bbr{background:rgba(79,142,247,.15);color:var(--ac);}.bor{background:rgba(240,180,41,.15);color:var(--go);}
 .bpr{background:rgba(123,95,245,.15);color:var(--ac2);}.btr{background:rgba(20,184,166,.15);color:var(--te);}
 .bnr{background:rgba(249,115,22,.15);color:var(--or);}.bgg{background:rgba(90,100,128,.15);color:var(--tx2);}
-.ov{position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:12px;}
+.ov{position:fixed;inset:0;bottom:var(--maj-banniere-h,0px);background:rgba(0,0,0,.88);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:12px;}
 .ov.open{display:flex;}
 .modal{background:var(--bg2);border:1px solid var(--bd2);border-radius:17px;padding:20px;max-width:640px;width:100%;max-height:min(92vh,92%);overflow-y:auto;}
 /**
@@ -1416,6 +1423,25 @@ tbody tr:last-child td{border-bottom:none;}
 
 <button id="btn-retour" onclick="goBack()" title="Retour">←</button>
 <div id="notif"></div>
+<!-- CORRECTIF PRÉVENTIF (10-09-2026 — audit boutons/dialogues) : cause
+     identifiée pour "des boutons pourtant déjà corrigés semblent encore
+     cassés sur le téléphone" — le Service Worker fonctionne en Cache
+     First (voir sw.js) : tant que la page n'est pas rechargée après
+     l'installation d'une nouvelle version, le téléphone continue
+     d'exécuter l'ANCIEN code JavaScript déjà en mémoire, même si le
+     nouveau fichier est bien téléchargé en arrière-plan. L'avertissement
+     existant (notif() ci-dessous, un simple toast qui disparaît après 5
+     secondes) est facile à manquer sur mobile. Ce bandeau persistant
+     (masqué par défaut, affiché uniquement par le code de détection de
+     mise à jour déjà existant plus bas) reste visible jusqu'à ce que
+     l'utilisateur clique "Recharger maintenant" — aucun rechargement
+     automatique forcé (pour ne jamais interrompre une saisie en cours).
+     N'ajoute aucune nouvelle fonctionnalité métier, ne modifie aucun
+     calcul, aucune donnée, aucune formule. -->
+<div id="maj-dispo-banner" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:9999;background:var(--pr,#3b82f6);color:#fff;padding:10px 14px;font-size:.82rem;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;box-shadow:0 -2px 10px rgba(0,0,0,.25)">
+  <span>🔄 Nouvelle version de l'application disponible.</span>
+  <button onclick="location.reload()" style="background:#fff;color:#111;border:none;border-radius:7px;padding:6px 12px;font-weight:600;font-family:'Outfit';cursor:pointer">Recharger maintenant</button>
+</div>
 <input type="file" id="fi" accept=".json" style="display:none" onchange="hImport(event)">
 <input type="file" id="fi-xlsx" accept=".xlsx,.xls" style="display:none" onchange="hImportExcel(event)">
 
@@ -6407,6 +6433,25 @@ if ('serviceWorker' in navigator) {
         nw.addEventListener('statechange', function () {
           if (nw.state === 'installed' && navigator.serviceWorker.controller) {
             notif('🔄 Nouvelle version disponible. Rechargez la page.', 5000);
+            // CORRECTIF PRÉVENTIF (10-09-2026) : voir commentaire détaillé
+            // sur #maj-dispo-banner dans le HTML — bandeau persistant en
+            // complément du toast (qui disparaît trop vite sur mobile),
+            // pour qu'un bouton déjà corrigé ne semble plus jamais "cassé"
+            // simplement parce que l'ancien code est encore en cache.
+            var banniere=document.getElementById('maj-dispo-banner');
+            if(banniere){
+              banniere.style.display='flex';
+              // CORRECTIF (10-09-2026 — le bandeau peut recouvrir le pied
+              // .mft d'une boîte de dialogue) : réserve immédiatement sa
+              // hauteur réelle pour toutes les modales (voir --maj-banniere-h
+              // en CSS et adjustForKeyboard()) — automatique, sans geste
+              // manuel, sans déplacer aucune fenêtre. N'affecte que la mise
+              // en page des .ov ; aucune donnée, calcul ni bouton modifié.
+              requestAnimationFrame(function(){
+                document.documentElement.style.setProperty('--maj-banniere-h', banniere.offsetHeight+'px');
+                if(typeof window.adjustForKeyboard==='function') window.adjustForKeyboard();
+              });
+            }
           }
         });
       });
@@ -6823,7 +6868,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v85'; // 10-09-2026 : CORRECTION FINALE — "le Vendu Stock Perso ne doit plus JAMAIS changer sans vente réelle, même avec plusieurs réapprovisionnements". Cause exacte : même après v84, calcPersoVenduRestant() restait un ESTIMATEUR recalculé à chaque affichage à partir des totaux ACTUELS du produit fusionné (Stock Entreprise) — tout réapprovisionnement ultérieur faisait varier la proportion attribuée à chaque fiche, donc son "Vendu" affiché, sans aucune vente réelle. Corrigé en abandonnant l'estimation au profit d'un compteur réel par fiche (p._venduReel), modifié UNIQUEMENT lors d'une vraie vente/annulation (voir ajusterStockVendu()/repercuterVenteSurPerso()) — jamais lors d'un réapprovisionnement (fusionnerDansStockEnt/retirerDeStockEnt ne le touchent pas) ni d'un simple affichage/synchronisation/rechargement. Plusieurs fiches Stock Perso du même produit : la vente/l'annulation est répartie au prorata du restant/vendu de chacune, jamais au-delà de leur propre quantité. Migration unique migrerVenduReelPerso() (verrou D._migreVenduReelPerso, exécutée une seule fois au démarrage, jamais dans la boucle de réconciliation) fige, pour les fiches déjà existantes, la meilleure estimation déjà affichée aujourd'hui (v84) comme valeur de départ — aucun saut brutal, seul le comportement futur change. Testé (Node, logique réelle extraite du fichier) : ancien produit+ventes, plusieurs réappros sans vente, nouvelle fiche, plusieurs fiches du même produit, rechargement/sync — 5/5 scénarios conformes. Stock Entreprise, capital, bilan, dettes, montants dus, prix, quantités réelles : aucun calcul modifié — seul l'affichage estimé Vendu/Restant du Stock Perso est concerné. Voir commentaires v84/v83 ci-dessous pour le contexte d'origine.
+var APP_VERSION = 'v87'; // 10-09-2026 : CORRECTION UNIQUE — le bandeau #maj-dispo-banner (v86) pouvait recouvrir le pied .mft (boutons Enregistrer/Annuler/Fermer) d'une boîte de dialogue ouverte, surtout petit écran / clavier Android ouvert. Cause : bandeau en position:fixed/z-index:9999 indépendant du système de fenêtres .ov, jamais pris en compte par adjustForKeyboard() ni par le CSS des modales. Corrigé en réservant dynamiquement sa hauteur réelle (variable CSS --maj-banniere-h, 0px tant qu'il n'est pas affiché = aucun changement dans ce cas) : la règle .ov{bottom:var(--maj-banniere-h)} couvre le cas d'une modale déjà/juste ouverte sans clavier, et adjustForKeyboard() (désormais exposée en window.adjustForKeyboard, rappelée automatiquement dès l'apparition du bandeau) retranche cette même hauteur du calcul déjà existant pour le clavier Android — les deux mécanismes coexistent sans conflit, aucun geste manuel requis. Retesté : 17/17 boîtes de dialogue, 145/145 boutons statiques, 22/22 boutons dynamiques, les 5 boutons Commande/Dépenses/Associé signalés, et régression complète v85 (Vendu Stock Perso) — tout conforme. Aucune formule, calcul, donnée, formulaire, bouton existant, Supabase ni logique métier modifiés ; aucun autre élément de l'interface touché. Voir commentaires v86/v85/v84/v83 ci-dessous pour l'historique.
 // 10-09-2026 : CORRECTION URGENTE (v83, contexte d'origine, conservé pour l'historique) — "un nouveau produit Stock Perso affiche immédiatement Vendu>0/Reste<Initial sans aucune vente". Cause exacte : calcPersoVenduRestant() répartissait TOUTES les ventes déjà connues sur le produit fusionné (même celles survenues avant la création de cette fiche, ou dues à un autre produit/enregistrement du même nom) au prorata de cette seule fiche. Corrigé : chaque fiche Stock Perso neuve fige désormais, à sa création (_baseVendu/_basePoolQte, jamais retouché ensuite), l'état déjà vendu du produit fusionné à cet instant précis ; calcPersoVenduRestant() ne compte plus, pour cette fiche, que les ventes survenues APRÈS sa création. Fiches déjà existantes (sans ces deux champs) : comportement inchangé, aucune régression. Le tri par période reste un filtre d'affichage pur (inchangé). Stock Entreprise (stock physique unifié réel), capital, bilan, dettes, prix, quantités : aucun calcul modifié. Voir aussi APP_VERSION v82 juste au-dessus (fusion multi-appareils du journal des prix).
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
@@ -7776,12 +7821,27 @@ function doChangerPass() {
    */
   function adjustForKeyboard(){
     var vv=window.visualViewport;
+    // CORRECTIF (10-09-2026 — bandeau #maj-dispo-banner pouvant recouvrir
+    // le pied .mft d'une modale) : la hauteur explicite ci-dessous
+    // (nécessaire pour suivre le clavier) doit aussi retrancher l'espace
+    // réservé au bandeau — sinon la règle CSS ".ov{bottom:var(...)}" est
+    // ignorée dès qu'une hauteur inline est posée (comportement standard
+    // pour un élément position:fixed avec top+height déjà définis).
+    var bh=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--maj-banniere-h'))||0;
     document.querySelectorAll('.ov, #login-screen').forEach(function(ov){
       if(getComputedStyle(ov).display==='none') return;
-      ov.style.height=vv.height+'px';
+      ov.style.height=(vv.height-bh)+'px';
       ov.style.top=vv.offsetTop+'px';
     });
   }
+  // Exposée globalement uniquement pour permettre au code qui
+  // affiche/masque #maj-dispo-banner (voir plus bas) de redemander
+  // immédiatement cet ajustement — sans attendre un futur événement
+  // clavier/resize — afin qu'une modale déjà ouverte (ou ouverte juste
+  // après) ne soit jamais recouverte par le bandeau, automatiquement,
+  // sans aucun geste manuel. N'expose rien d'autre, ne change aucun
+  // comportement existant de cette fonction.
+  window.adjustForKeyboard=adjustForKeyboard;
   /**
    * CORRECTIF UI (05-09-2026 — "sur Android, un champ, un bouton ou du
    * contenu reste encore masqué par le clavier ou par le bandeau de
