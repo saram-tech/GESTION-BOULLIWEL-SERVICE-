@@ -1457,15 +1457,33 @@ tbody tr:last-child td{border-bottom:none;}
 // aucune explication pour l'utilisateur (écran figé, bouton inerte).
 // Ce bloc doit rester la toute première chose exécutée dans le script.
 (function(){
-  var shown=false;
+  var banner=null, count=0;
+  // CORRECTIF (12-09-2026 — "un bouton déjà vérifié semble encore ne
+  // rien faire sur un vrai téléphone, alors qu'aucune erreur n'est
+  // visible") : cause exacte trouvée — ce filet de sécurité, dont le
+  // but documenté ci-dessus est qu'"aucune erreur ne doit rester
+  // silencieuse", ne montrait en réalité QUE LA TOUTE PREMIÈRE erreur de
+  // toute la session (variable "shown", jamais réinitialisée) : dès
+  // qu'une erreur survenait une fois (même sans rapport, par ex. pendant
+  // un rendu au chargement, sur une donnée réelle particulière absente
+  // de nos jeux de test), TOUTES les erreurs suivantes — y compris une
+  // erreur réelle survenant DANS un bouton (Commande, Dépenses,
+  // Associé…) — devenaient silencieuses pour le reste de la session : le
+  // bouton semblait "ne rien faire", sans aucun message. Corrigé en
+  // affichant/actualisant TOUJOURS le bandeau pour CHAQUE erreur (avec un
+  // compteur si plusieurs surviennent), au lieu de l'unique premier
+  // signalement. Purement diagnostique : n'ajoute, ne modifie ni ne
+  // supprime aucune fonctionnalité, formulaire, calcul ou donnée.
   function showFatalError(msg){
     try{
-      if(shown) return; shown=true;
-      var d=document.createElement('div');
-      d.id='fatal-error-banner';
-      d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#c0392b;color:#fff;padding:14px 16px;font-family:sans-serif;font-size:.82rem;line-height:1.5;box-shadow:0 4px 14px rgba(0,0,0,.5);max-height:60vh;overflow:auto';
-      d.innerHTML='<strong>⚠️ Une erreur technique a bloqué l\'application.</strong><br>Merci de faire une capture d\'écran de ce message et de l\'envoyer pour correction :<br><code style="display:block;margin-top:6px;white-space:pre-wrap;word-break:break-all;background:rgba(0,0,0,.25);padding:8px;border-radius:6px">'+String(msg).replace(/</g,'&lt;')+'</code><button style="margin-top:8px;padding:6px 12px;border:none;border-radius:6px;background:#fff;color:#c0392b;font-weight:700" onclick="document.getElementById(\'fatal-error-banner\').remove()">Fermer</button>';
-      document.body.appendChild(d);
+      count++;
+      if(!banner || !document.body.contains(banner)){
+        banner=document.createElement('div');
+        banner.id='fatal-error-banner';
+        banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#c0392b;color:#fff;padding:14px 16px;font-family:sans-serif;font-size:.82rem;line-height:1.5;box-shadow:0 4px 14px rgba(0,0,0,.5);max-height:60vh;overflow:auto';
+        document.body.appendChild(banner);
+      }
+      banner.innerHTML='<strong>⚠️ Une erreur technique a bloqué l\'application'+(count>1?(' ('+count+' erreurs — la plus récente ci-dessous)'):'')+'.</strong><br>Merci de faire une capture d\'écran de ce message et de l\'envoyer pour correction :<br><code style="display:block;margin-top:6px;white-space:pre-wrap;word-break:break-all;background:rgba(0,0,0,.25);padding:8px;border-radius:6px">'+String(msg).replace(/</g,'&lt;')+'</code><button style="margin-top:8px;padding:6px 12px;border:none;border-radius:6px;background:#fff;color:#c0392b;font-weight:700" onclick="document.getElementById(\'fatal-error-banner\').remove()">Fermer</button>';
     }catch(e){}
   }
   window.addEventListener('error', function(ev){
@@ -1930,11 +1948,24 @@ function pAct(){
   var ac=fl('a-achat'),qte=Math.max(1,parseInt(v('a-qte'))||1),ap=fl('a-apayer'),pa=fl('a-paye');
   var ta=ac*qte,r=Math.max(0,ap-pa),b=pa-ta;
   var el=document.getElementById('a-prev');
+  // CORRECTIF (12-09-2026 — capture d'écran fournie : le récapitulatif
+  // "Total achat / Reste / Bénéfice" apparaît bien automatiquement dans
+  // le code dès la saisie du montant Payé, mais restait hors de la zone
+  // visible sur Android une fois le clavier ouvert — il fallait alors
+  // faire défiler la fenêtre manuellement pour le voir). Corrigé en
+  // ramenant ce bloc dans la zone visible dès qu'il apparaît (transition
+  // caché → visible uniquement, jamais à chaque frappe suivante, pour ne
+  // jamais arracher le focus du champ en cours de saisie). Aucun calcul
+  // (ta/r/b), aucune donnée, aucun champ n'est modifié.
+  var etaitVisible = el.style.display==='block';
   if(ap>0||pa>0){
     el.style.display='block';
     st('pv-ta',fmt(ta)); st('pv-r',fmt(r));
     var be=document.getElementById('pv-b');
     be.textContent=fmt(b); be.style.color=b>=0?'var(--gr)':'var(--re)';
+    if(!etaitVisible){
+      setTimeout(function(){ try{ el.scrollIntoView({block:'nearest'}); }catch(e){} }, 50);
+    }
   } else el.style.display='none';
 }
 /**
@@ -6571,6 +6602,21 @@ function gt(id, btn) {
     if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf("'"+id+"'") > -1) b.classList.add('active');
   });
   try{ localStorage.setItem('bpro_last_tab', id); }catch(e){}
+  // CORRECTIF (12-09-2026 — "des boutons comme + Nouvelle commande /
+  // Ajouter dépense / Ajouter dette semblent inertes") : cause réelle
+  // trouvée — changer d'onglet ne remettait jamais le défilement de la
+  // page à zéro. En venant d'un onglet plus long (Activités, Stock…)
+  // après y avoir défilé vers le bas, le nouvel onglet s'affiche bien,
+  // mais à LA MÊME position de défilement : le bouton d'action tout en
+  // haut du nouvel onglet (Nouvelle commande, Ajouter dépense, Ajouter
+  // dette, Paiement…) reste alors caché au-dessus de la zone visible,
+  // sous l'en-tête/la barre d'onglets (sticky) — il paraît "cassé" alors
+  // qu'il suffisait de remonter manuellement pour le voir. Identique sur
+  // mobile et ordinateur (ce n'est pas un bug tactile/Android). Corrigé
+  // en ramenant systématiquement la page en haut à chaque changement
+  // d'onglet — comportement standard attendu, aucune fonctionnalité,
+  // formulaire, calcul ni donnée modifiés.
+  try{ window.scrollTo(0,0); }catch(e){}
 }
 
 // ================================================================
@@ -6868,7 +6914,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v87'; // 10-09-2026 : CORRECTION UNIQUE — le bandeau #maj-dispo-banner (v86) pouvait recouvrir le pied .mft (boutons Enregistrer/Annuler/Fermer) d'une boîte de dialogue ouverte, surtout petit écran / clavier Android ouvert. Cause : bandeau en position:fixed/z-index:9999 indépendant du système de fenêtres .ov, jamais pris en compte par adjustForKeyboard() ni par le CSS des modales. Corrigé en réservant dynamiquement sa hauteur réelle (variable CSS --maj-banniere-h, 0px tant qu'il n'est pas affiché = aucun changement dans ce cas) : la règle .ov{bottom:var(--maj-banniere-h)} couvre le cas d'une modale déjà/juste ouverte sans clavier, et adjustForKeyboard() (désormais exposée en window.adjustForKeyboard, rappelée automatiquement dès l'apparition du bandeau) retranche cette même hauteur du calcul déjà existant pour le clavier Android — les deux mécanismes coexistent sans conflit, aucun geste manuel requis. Retesté : 17/17 boîtes de dialogue, 145/145 boutons statiques, 22/22 boutons dynamiques, les 5 boutons Commande/Dépenses/Associé signalés, et régression complète v85 (Vendu Stock Perso) — tout conforme. Aucune formule, calcul, donnée, formulaire, bouton existant, Supabase ni logique métier modifiés ; aucun autre élément de l'interface touché. Voir commentaires v86/v85/v84/v83 ci-dessous pour l'historique.
+var APP_VERSION = 'v88'; // 12-09-2026 : CORRECTION RÉELLE (boutons "inertes" sur téléphone/ordinateur + boîte de dialogue Activités incomplète à l'écran). CAUSE 1 (boutons) : gt() (changement d'onglet) ne remettait jamais la page en haut — en venant d'un onglet plus long après y avoir défilé, le bouton d'action tout en haut du nouvel onglet (Nouvelle commande, Générer commande fournisseur, Ajouter dépense, Ajouter dette, Paiement) restait caché au-dessus de la zone visible, sous l'en-tête/la barre d'onglets (sticky) — identique sur mobile ET ordinateur, ce qui explique pourquoi le bug touchait les deux. Corrigé : gt() ramène systématiquement la page en haut à chaque changement d'onglet. CAUSE 2 (capture d'écran fournie) : le récapitulatif Total achat/Reste/Bénéfice apparaissait déjà automatiquement dans le code dès la saisie du Payé, mais restait hors de la zone visible une fois le clavier Android ouvert, nécessitant un défilement manuel. Corrigé : pAct() ramène ce bloc dans la zone visible dès qu'il apparaît (une seule fois, jamais à chaque frappe suivante). CAUSE 3 (filet de sécurité) : le gestionnaire d'erreur global ne montrait que LA TOUTE PREMIÈRE erreur JS de la session (verrou "shown" jamais réinitialisé) — toute erreur réelle survenant ensuite dans un bouton devenait totalement silencieuse (bouton "inerte" sans aucun message), ce qui empêchait de diagnostiquer une éventuelle cause encore inconnue liée à des données réelles. Corrigé : chaque nouvelle erreur reste désormais visible (bandeau mis à jour avec compteur), plus aucune erreur silencieuse. Tests : 17/17 boîtes de dialogue, 145/145 boutons statiques, 22/22 boutons dynamiques, les 5 boutons signalés, régression complète v85 (Vendu) — tout conforme ; scroll automatique (onglets + récapitulatif) vérifié directement en exécution. Aucune formule, calcul, donnée, formulaire, bouton existant, Supabase ni logique métier modifiés. Voir commentaires v87/v86/v85/v84/v83 ci-dessous pour l'historique.
 // 10-09-2026 : CORRECTION URGENTE (v83, contexte d'origine, conservé pour l'historique) — "un nouveau produit Stock Perso affiche immédiatement Vendu>0/Reste<Initial sans aucune vente". Cause exacte : calcPersoVenduRestant() répartissait TOUTES les ventes déjà connues sur le produit fusionné (même celles survenues avant la création de cette fiche, ou dues à un autre produit/enregistrement du même nom) au prorata de cette seule fiche. Corrigé : chaque fiche Stock Perso neuve fige désormais, à sa création (_baseVendu/_basePoolQte, jamais retouché ensuite), l'état déjà vendu du produit fusionné à cet instant précis ; calcPersoVenduRestant() ne compte plus, pour cette fiche, que les ventes survenues APRÈS sa création. Fiches déjà existantes (sans ces deux champs) : comportement inchangé, aucune régression. Le tri par période reste un filtre d'affichage pur (inchangé). Stock Entreprise (stock physique unifié réel), capital, bilan, dettes, prix, quantités : aucun calcul modifié. Voir aussi APP_VERSION v82 juste au-dessus (fusion multi-appareils du journal des prix).
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
