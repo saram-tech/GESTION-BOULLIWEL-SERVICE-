@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v155'; // 13-09-2026 : index.html v92 — (A) mise en page Associé (Dettes/Paiements) corrigée pour rester organisée et entièrement visible sur tout écran Android (classe scopée .g2-dettes, aucun autre .g2 de l'app touché). (B) boutons "Enregistrer/Confirmer" de toutes les boîtes de dialogue : le premier tap déclenche désormais toujours l'action (touchend + preventDefault, avant toute animation du clavier Android), vérifié avec un vrai Chromium (tap tactile réel, 360×740, exactement une exécution par bouton — aucune régression au clic souris desktop). Aucun calcul, donnée, Supabase ni logique métier modifiés. Voir commentaire APP_VERSION dans index.html.
+const CACHE_VERSION = 'v156'; // 13-09-2026 : index.html v93 — (A) balayage tactile gauche/droite pour changer d'onglet, actif uniquement dans une zone dédiée (moitié supérieure de l'écran, de la barre de recherche jusqu'au milieu de l'écran), implémentation 100% passive qui ne perturbe aucun bouton/champ/lien/tableau existant. (B) bouton retour (←) : fond transparent, ne masque plus le texte situé derrière lui. Aucun calcul, donnée, Supabase ni logique métier modifiés. Voir commentaire APP_VERSION dans index.html.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne

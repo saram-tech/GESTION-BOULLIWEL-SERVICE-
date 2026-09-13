@@ -251,9 +251,15 @@ tbody tr:last-child td{border-bottom:none;}
 .reset-info{background:var(--bg4);border:1px solid var(--bd);border-radius:9px;padding:12px;font-size:.79rem;color:var(--tx2);margin-bottom:14px;text-align:left;line-height:1.6;}
 .reset-info strong{color:var(--go);}
 
-/* ===== BOUTON RETOUR ===== */
-#btn-retour{position:fixed;bottom:70px;left:16px;z-index:400;width:44px;height:44px;border-radius:50%;background:var(--bg3);border:1px solid var(--bd2);color:var(--tx2);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.4);transition:all .2s;}
-#btn-retour:hover{background:var(--bg4);color:var(--ac);border-color:var(--ac);}
+/* ===== BOUTON RETOUR =====
+   CORRECTIF (13-09-2026 — v93) : le fond opaque (var(--bg3)) et l'ombre
+   portée du bouton masquaient du texte/écrit situé juste derrière ou à
+   proximité, en bas à gauche de l'écran. Fond rendu transparent et ombre
+   retirée ; le bouton reste parfaitement visible (contour + icône ←) et
+   cliquable, sans jamais recouvrir le contenu derrière lui. Position,
+   taille et fonction (goBack()) strictement inchangées. */
+#btn-retour{position:fixed;bottom:70px;left:16px;z-index:400;width:44px;height:44px;border-radius:50%;background:transparent;border:1px solid var(--bd2);color:var(--tx2);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+#btn-retour:hover{background:rgba(255,255,255,.08);color:var(--ac);border-color:var(--ac);}
 
   </style>
 </head>
@@ -6763,6 +6769,108 @@ document.addEventListener('keydown', function (e) {
   gt(TAB_ORDER[nextIdx], null);
 });
 
+// ================================================================
+// BALAYAGE TACTILE GAUCHE/DROITE — changement d'onglet (13-09-2026, v93)
+// ================================================================
+// DEMANDE : balayer gauche/droite pour passer à l'onglet précédent/
+// suivant, mais UNIQUEMENT dans une zone dédiée (moitié supérieure de
+// l'écran, à partir de la barre de recherche globale #gs-wrap jusqu'au
+// milieu de l'écran) — la moitié inférieure reste exclusivement dédiée
+// au défilement vertical des données.
+//
+// Implémentation volontairement 100% passive (aucun preventDefault
+// nulle part, aucun stopPropagation) : ces écouteurs ne font
+// qu'OBSERVER les gestes en parallèle, ils n'interceptent jamais un
+// événement tactile. Conséquence : le défilement vertical, le
+// défilement horizontal déjà existant (barre d'onglets .ni, barre de
+// boutons d'en-tête .hbts, tableaux .tw), ainsi que tous les clics,
+// formulaires et champs de saisie continuent de fonctionner EXACTEMENT
+// comme avant, sans aucune exception ni régression possible — le
+// changement d'onglet n'est déclenché qu'au relâchement du doigt
+// (touchend), et seulement si le geste mesuré est un vrai balayage
+// horizontal ample (≥60px, très majoritairement horizontal). Un simple
+// tap sur un bouton/champ/lien ne produit pas un tel déplacement et ne
+// peut donc jamais être requalifié en changement d'onglet.
+// Aucun calcul, donnée, Supabase ni logique métier modifiés — uniquement
+// une nouvelle façon (optionnelle, en plus des onglets/clavier existants)
+// de naviguer entre onglets.
+(function(){
+  var swipeX0 = null, swipeY0 = null, swipeConfirme = false;
+  var SWIPE_DIST_MIN = 60;     // distance horizontale minimale (px) pour valider le balayage
+  var SWIPE_RATIO_MAX = 0.6;   // le déplacement vertical doit rester nettement inférieur à l'horizontal
+
+  // Zone autorisée : de la barre de recherche globale (#gs-wrap) au
+  // milieu de l'écran. Si #gs-wrap n'est pas affichée (rôle Associé/
+  // Visiteur, ou page déjà défilée), on retombe simplement sur "moitié
+  // supérieure de la fenêtre visible" — jamais la moitié inférieure.
+  function zoneBalayageAutorisee(y){
+    if (document.querySelector('.ov.open')) return false; // une boîte de dialogue est ouverte : on ne touche à rien
+    var gs = document.getElementById('gs-wrap');
+    var limiteHaute = 0;
+    if (gs && gs.offsetParent !== null) {
+      var r = gs.getBoundingClientRect();
+      if (r.top > 0) limiteHaute = r.top;
+    }
+    var limiteBasse = window.innerHeight / 2;
+    return y >= limiteHaute && y <= limiteBasse;
+  }
+
+  // Ne jamais démarrer un balayage d'onglet sur un contrôle existant
+  // (bouton, champ, lien...) : on laisse ces éléments réagir normalement,
+  // qu'il s'agisse d'un tap ou d'un glissement (ex: défilement interne
+  // d'un tableau .tw, d'une barre .ni/.hbts, sélection de texte, etc.).
+  function surControleOuZoneDefilanteHorizontale(el){
+    while (el && el !== document.body) {
+      var tag = el.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON' || tag === 'A' || el.isContentEditable) return true;
+      if (el.scrollWidth > el.clientWidth + 1) {
+        var ov = window.getComputedStyle(el).overflowX;
+        if (ov === 'auto' || ov === 'scroll') return true;
+      }
+      el = el.parentElement;
+    }
+    return false;
+  }
+
+  document.addEventListener('touchstart', function(e){
+    if (e.touches.length !== 1) { swipeX0 = null; return; }
+    var t = e.touches[0];
+    if (!zoneBalayageAutorisee(t.clientY) || surControleOuZoneDefilanteHorizontale(e.target)) { swipeX0 = null; return; }
+    swipeX0 = t.clientX; swipeY0 = t.clientY; swipeConfirme = false;
+  }, {passive:true});
+
+  document.addEventListener('touchmove', function(e){
+    if (swipeX0 === null || swipeConfirme) return;
+    var t = e.touches[0];
+    var dx = t.clientX - swipeX0, dy = t.clientY - swipeY0;
+    // Un mouvement franchement vertical annule le balayage d'onglet pour
+    // ce geste (on laisse le défilement vertical se dérouler normalement).
+    if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx)) { swipeX0 = null; return; }
+    if (Math.abs(dx) > 14 && Math.abs(dy) <= Math.abs(dx) * SWIPE_RATIO_MAX) swipeConfirme = true;
+  }, {passive:true});
+
+  document.addEventListener('touchend', function(e){
+    if (swipeX0 === null) return;
+    var confirme = swipeConfirme; swipeConfirme = false;
+    var x0 = swipeX0, y0 = swipeY0; swipeX0 = null;
+    if (!confirme) return;
+    var t = (e.changedTouches && e.changedTouches[0]) || null;
+    if (!t) return;
+    var dx = t.clientX - x0, dy = t.clientY - y0;
+    if (Math.abs(dx) < SWIPE_DIST_MIN || Math.abs(dy) > Math.abs(dx) * SWIPE_RATIO_MAX) return;
+    if (typeof isAssocie === 'function' && isAssocie()) return; // gt() refuse déjà l'Associé — on évite juste l'appel inutile
+    var current = document.querySelector('.tab-panel.active');
+    if (!current) return;
+    var curId = current.id.replace('tab-', '');
+    var idx = TAB_ORDER.indexOf(curId);
+    if (idx === -1) return;
+    var nextIdx = dx < 0
+      ? (idx + 1) % TAB_ORDER.length                       // balayage vers la gauche → onglet suivant
+      : (idx - 1 + TAB_ORDER.length) % TAB_ORDER.length;    // balayage vers la droite → onglet précédent
+    gt(TAB_ORDER[nextIdx], null);
+  }, {passive:true});
+})();
+
 function goBack() {
   if (navHistory.length > 0) {
     var prev = navHistory.pop();
@@ -7031,7 +7139,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v92'; // 13-09-2026 : (A) Onglet Associé — "Dettes enregistrées"/"Paiements reçus" débordaient et se désorganisaient sur téléphone Android : ces 2 blocs partagent la classe .g2 (grille 2 colonnes) dont le point de bascule à 1 colonne était fixé à 380px, trop bas pour la plupart des Android réels (393/412/414px restaient à 2 colonnes) ; de plus, un élément de grille CSS ne rétrécit jamais sous la largeur intrinsèque de son contenu par défaut (min-width:auto), donc même repassé à 1 colonne le tableau à 6 colonnes forçait encore un débordement. Corrigé avec une classe scopée .g2-dettes (empile en 1 colonne jusqu'à 900px + min-width:0 sur les cartes) — aucun autre .g2 de l'app touché (vérifié à 412px et 1100px que les autres sections gardent leur mise en page d'origine). (B) Boutons "Enregistrer/Confirmer" de toutes les boîtes de dialogue : le premier tap pouvait ne fermer que le clavier Android sans exécuter l'action (click évalué après le redimensionnement de page dû à la fermeture du clavier). Corrigé pour les 13 boutons concernés (classe .js-tap-fast) en déclenchant l'action au touchend (avant toute animation du clavier) avec preventDefault() pour annuler le clic dupliqué qui suivrait normalement — un seul .click() réel exécute le même gestionnaire existant, sans logique dupliquée. Testé avec un vrai Chromium (Playwright), tap tactile réel à 360×740 : chaque bouton s'exécute exactement une fois au premier tap (Dette/Paiement/Dépense/Commande/Perso/Activité vérifiés individuellement) ; clic souris desktop toujours une seule exécution (aucune régression). Aucun calcul, donnée, Supabase, synchronisation ni logique métier modifiés — uniquement mise en page et timing du déclenchement au tap. Historique détaillé v91/v90/v89/v88/v87/v86/v85/v84/v83 : voir commentaires plus bas dans le fichier.
+var APP_VERSION = 'v93'; // 13-09-2026 : (A) Ajout du balayage tactile gauche/droite pour changer d'onglet précédent/suivant, actif UNIQUEMENT dans une zone dédiée (moitié supérieure de l'écran, de la barre de recherche globale jusqu'au milieu de l'écran) — la moitié inférieure reste réservée au défilement vertical des données. Implémentation purement passive (aucun preventDefault) : aucun bouton, champ, lien, tableau à défilement horizontal (.ni/.hbts/.tw) ni interaction existante n'est perturbé ; le changement d'onglet ne se déclenche qu'au relâchement du doigt, et seulement pour un vrai geste horizontal ample (≥60px). (B) Bouton de retour (←, bas gauche) : fond rendu transparent et ombre portée retirée, car il masquait du texte situé juste derrière lui ; reste parfaitement visible et cliquable, position et fonction inchangées. Aucun calcul, donnée, Supabase ni logique métier modifiés. Historique v92 (Associé Dettes/Paiements + boutons .js-tap-fast) et précédents : voir juste en dessous.
+var APP_VERSION_v92_HISTORIQUE = 'v92'; // 13-09-2026 : (A) Onglet Associé — "Dettes enregistrées"/"Paiements reçus" débordaient et se désorganisaient sur téléphone Android : ces 2 blocs partagent la classe .g2 (grille 2 colonnes) dont le point de bascule à 1 colonne était fixé à 380px, trop bas pour la plupart des Android réels (393/412/414px restaient à 2 colonnes) ; de plus, un élément de grille CSS ne rétrécit jamais sous la largeur intrinsèque de son contenu par défaut (min-width:auto), donc même repassé à 1 colonne le tableau à 6 colonnes forçait encore un débordement. Corrigé avec une classe scopée .g2-dettes (empile en 1 colonne jusqu'à 900px + min-width:0 sur les cartes) — aucun autre .g2 de l'app touché (vérifié à 412px et 1100px que les autres sections gardent leur mise en page d'origine). (B) Boutons "Enregistrer/Confirmer" de toutes les boîtes de dialogue : le premier tap pouvait ne fermer que le clavier Android sans exécuter l'action (click évalué après le redimensionnement de page dû à la fermeture du clavier). Corrigé pour les 13 boutons concernés (classe .js-tap-fast) en déclenchant l'action au touchend (avant toute animation du clavier) avec preventDefault() pour annuler le clic dupliqué qui suivrait normalement — un seul .click() réel exécute le même gestionnaire existant, sans logique dupliquée. Testé avec un vrai Chromium (Playwright), tap tactile réel à 360×740 : chaque bouton s'exécute exactement une fois au premier tap (Dette/Paiement/Dépense/Commande/Perso/Activité vérifiés individuellement) ; clic souris desktop toujours une seule exécution (aucune régression). Aucun calcul, donnée, Supabase, synchronisation ni logique métier modifiés — uniquement mise en page et timing du déclenchement au tap. Historique détaillé v91/v90/v89/v88/v87/v86/v85/v84/v83 : voir commentaires plus bas dans le fichier.
 // 10-09-2026 : CORRECTION URGENTE (v83, contexte d'origine, conservé pour l'historique) — "un nouveau produit Stock Perso affiche immédiatement Vendu>0/Reste<Initial sans aucune vente". Cause exacte : calcPersoVenduRestant() répartissait TOUTES les ventes déjà connues sur le produit fusionné (même celles survenues avant la création de cette fiche, ou dues à un autre produit/enregistrement du même nom) au prorata de cette seule fiche. Corrigé : chaque fiche Stock Perso neuve fige désormais, à sa création (_baseVendu/_basePoolQte, jamais retouché ensuite), l'état déjà vendu du produit fusionné à cet instant précis ; calcPersoVenduRestant() ne compte plus, pour cette fiche, que les ventes survenues APRÈS sa création. Fiches déjà existantes (sans ces deux champs) : comportement inchangé, aucune régression. Le tri par période reste un filtre d'affichage pur (inchangé). Stock Entreprise (stock physique unifié réel), capital, bilan, dettes, prix, quantités : aucun calcul modifié. Voir aussi APP_VERSION v82 juste au-dessus (fusion multi-appareils du journal des prix).
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
@@ -7056,7 +7165,8 @@ function toggleTriAZ(tbl){
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-09-05T03:00:00'; // CORRECTIF EXPRESS : "Reste actuel : undefined" corrigé côté Associé (v('va-reste') lisait .value sur un <div>). Simplifié : "En savoir plus" (Dettes et Dépenses) ne répète plus les montants déjà visibles sur l'écran principal, ne montre que le détail. Aucun calcul modifié.
+var APP_DERNIERE_MAJ = '2026-09-13T12:00:00'; // v93 : balayage tactile entre onglets (zone dédiée) + bouton retour transparent. Historique précédent :
+var APP_DERNIERE_MAJ_v92_HISTORIQUE = '2026-09-05T03:00:00'; // CORRECTIF EXPRESS : "Reste actuel : undefined" corrigé côté Associé (v('va-reste') lisait .value sur un <div>). Simplifié : "En savoir plus" (Dettes et Dépenses) ne répète plus les montants déjà visibles sur l'écran principal, ne montre que le détail. Aucun calcul modifié.
 var AUTH_KEY = 'bpro_auth_v1';
 
 var DEFAULT_LOGIN = 'admin';
