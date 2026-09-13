@@ -6720,10 +6720,32 @@ function gt(id, btn) {
   document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
   document.querySelectorAll('.nb').forEach(function(b){ b.classList.remove('active'); });
   document.getElementById('tab-'+id).classList.add('active');
-  if (btn) btn.classList.add('active');
+  var activeBtn = btn || null;
+  if (activeBtn) activeBtn.classList.add('active');
   else document.querySelectorAll('.nb').forEach(function(b){
-    if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf("'"+id+"'") > -1) b.classList.add('active');
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf("'"+id+"'") > -1) { b.classList.add('active'); activeBtn = b; }
   });
+  /**
+   * DEMANDE (13-09-2026, v94) : quel que soit le déclencheur du
+   * changement d'onglet (clic, balayage tactile v93, navigation
+   * clavier) — le balayage lui-même n'est pas touché ici, seul cet
+   * affichage l'est — la ligne d'onglets .ni (qui défile horizontalement,
+   * voir nav{overflow-x:auto}) doit se repositionner automatiquement
+   * pour que l'onglet désormais actif reste visible, sans geste manuel.
+   * scrollIntoView({inline:'nearest'}) ne déplace RIEN si le bouton est
+   * déjà entièrement visible ("si déjà visible, ne rien déplacer"), et
+   * le fait glisser en douceur jusqu'à devenir visible sinon.
+   * block:'nearest' évite tout défilement vertical parasite de la page
+   * (le seul défilement vertical déjà en place, window.scrollTo(0,0)
+   * juste plus bas, reste strictement inchangé). L'état actif visuel
+   * (.nb.active, déjà en place) reste la seule marque d'identification
+   * de l'onglet sélectionné — non modifié. Ajout pur : aucune ligne
+   * existante de gt() supprimée ni modifiée au-delà de la capture de
+   * activeBtn ci-dessus.
+   */
+  if (activeBtn && typeof activeBtn.scrollIntoView === 'function') {
+    activeBtn.scrollIntoView({behavior:'smooth', inline:'nearest', block:'nearest'});
+  }
   try{ localStorage.setItem('bpro_last_tab', id); }catch(e){}
   // CORRECTIF (12-09-2026 — "des boutons comme + Nouvelle commande /
   // Ajouter dépense / Ajouter dette semblent inertes") : cause réelle
@@ -7139,7 +7161,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v93'; // 13-09-2026 : (A) Ajout du balayage tactile gauche/droite pour changer d'onglet précédent/suivant, actif UNIQUEMENT dans une zone dédiée (moitié supérieure de l'écran, de la barre de recherche globale jusqu'au milieu de l'écran) — la moitié inférieure reste réservée au défilement vertical des données. Implémentation purement passive (aucun preventDefault) : aucun bouton, champ, lien, tableau à défilement horizontal (.ni/.hbts/.tw) ni interaction existante n'est perturbé ; le changement d'onglet ne se déclenche qu'au relâchement du doigt, et seulement pour un vrai geste horizontal ample (≥60px). (B) Bouton de retour (←, bas gauche) : fond rendu transparent et ombre portée retirée, car il masquait du texte situé juste derrière lui ; reste parfaitement visible et cliquable, position et fonction inchangées. Aucun calcul, donnée, Supabase ni logique métier modifiés. Historique v92 (Associé Dettes/Paiements + boutons .js-tap-fast) et précédents : voir juste en dessous.
+var APP_VERSION = 'v94'; // 13-09-2026 : Onglet actif (sélectionné par balayage, clic ou clavier) désormais toujours automatiquement ramené dans la zone visible de la ligne d'onglets .ni (scrollIntoView inline:'nearest', aucun déplacement si déjà visible, glissement fluide sinon, aucun défilement vertical parasite). Le balayage tactile v93 lui-même n'est pas modifié — uniquement gt() complétée pour repositionner la barre d'onglets. Aucun calcul, donnée, Supabase, bouton ni logique métier modifiés. Historique v93 (balayage tactile + bouton retour transparent) et précédents : voir juste en dessous.
+var APP_VERSION_v93_HISTORIQUE = 'v93'; // 13-09-2026 : (A) Ajout du balayage tactile gauche/droite pour changer d'onglet précédent/suivant, actif UNIQUEMENT dans une zone dédiée (moitié supérieure de l'écran, de la barre de recherche globale jusqu'au milieu de l'écran) — la moitié inférieure reste réservée au défilement vertical des données. Implémentation purement passive (aucun preventDefault) : aucun bouton, champ, lien, tableau à défilement horizontal (.ni/.hbts/.tw) ni interaction existante n'est perturbé ; le changement d'onglet ne se déclenche qu'au relâchement du doigt, et seulement pour un vrai geste horizontal ample (≥60px). (B) Bouton de retour (←, bas gauche) : fond rendu transparent et ombre portée retirée, car il masquait du texte situé juste derrière lui ; reste parfaitement visible et cliquable, position et fonction inchangées. Aucun calcul, donnée, Supabase ni logique métier modifiés. Historique v92 (Associé Dettes/Paiements + boutons .js-tap-fast) et précédents : voir juste en dessous.
 var APP_VERSION_v92_HISTORIQUE = 'v92'; // 13-09-2026 : (A) Onglet Associé — "Dettes enregistrées"/"Paiements reçus" débordaient et se désorganisaient sur téléphone Android : ces 2 blocs partagent la classe .g2 (grille 2 colonnes) dont le point de bascule à 1 colonne était fixé à 380px, trop bas pour la plupart des Android réels (393/412/414px restaient à 2 colonnes) ; de plus, un élément de grille CSS ne rétrécit jamais sous la largeur intrinsèque de son contenu par défaut (min-width:auto), donc même repassé à 1 colonne le tableau à 6 colonnes forçait encore un débordement. Corrigé avec une classe scopée .g2-dettes (empile en 1 colonne jusqu'à 900px + min-width:0 sur les cartes) — aucun autre .g2 de l'app touché (vérifié à 412px et 1100px que les autres sections gardent leur mise en page d'origine). (B) Boutons "Enregistrer/Confirmer" de toutes les boîtes de dialogue : le premier tap pouvait ne fermer que le clavier Android sans exécuter l'action (click évalué après le redimensionnement de page dû à la fermeture du clavier). Corrigé pour les 13 boutons concernés (classe .js-tap-fast) en déclenchant l'action au touchend (avant toute animation du clavier) avec preventDefault() pour annuler le clic dupliqué qui suivrait normalement — un seul .click() réel exécute le même gestionnaire existant, sans logique dupliquée. Testé avec un vrai Chromium (Playwright), tap tactile réel à 360×740 : chaque bouton s'exécute exactement une fois au premier tap (Dette/Paiement/Dépense/Commande/Perso/Activité vérifiés individuellement) ; clic souris desktop toujours une seule exécution (aucune régression). Aucun calcul, donnée, Supabase, synchronisation ni logique métier modifiés — uniquement mise en page et timing du déclenchement au tap. Historique détaillé v91/v90/v89/v88/v87/v86/v85/v84/v83 : voir commentaires plus bas dans le fichier.
 // 10-09-2026 : CORRECTION URGENTE (v83, contexte d'origine, conservé pour l'historique) — "un nouveau produit Stock Perso affiche immédiatement Vendu>0/Reste<Initial sans aucune vente". Cause exacte : calcPersoVenduRestant() répartissait TOUTES les ventes déjà connues sur le produit fusionné (même celles survenues avant la création de cette fiche, ou dues à un autre produit/enregistrement du même nom) au prorata de cette seule fiche. Corrigé : chaque fiche Stock Perso neuve fige désormais, à sa création (_baseVendu/_basePoolQte, jamais retouché ensuite), l'état déjà vendu du produit fusionné à cet instant précis ; calcPersoVenduRestant() ne compte plus, pour cette fiche, que les ventes survenues APRÈS sa création. Fiches déjà existantes (sans ces deux champs) : comportement inchangé, aucune régression. Le tri par période reste un filtre d'affichage pur (inchangé). Stock Entreprise (stock physique unifié réel), capital, bilan, dettes, prix, quantités : aucun calcul modifié. Voir aussi APP_VERSION v82 juste au-dessus (fusion multi-appareils du journal des prix).
 /**
@@ -7165,7 +7188,8 @@ function toggleTriAZ(tbl){
 // jour à la main à CHAQUE modification livrée, exactement comme les
 // entrées précédentes ci-dessous le montrent déjà. Elle n'avait
 // simplement pas été mise à jour lors des dernières corrections.
-var APP_DERNIERE_MAJ = '2026-09-13T12:00:00'; // v93 : balayage tactile entre onglets (zone dédiée) + bouton retour transparent. Historique précédent :
+var APP_DERNIERE_MAJ = '2026-09-13T14:00:00'; // v94 : onglet actif automatiquement ramené visible dans la barre d'onglets. Historique précédent :
+var APP_DERNIERE_MAJ_v93_HISTORIQUE = '2026-09-13T12:00:00'; // v93 : balayage tactile entre onglets (zone dédiée) + bouton retour transparent. Historique précédent :
 var APP_DERNIERE_MAJ_v92_HISTORIQUE = '2026-09-05T03:00:00'; // CORRECTIF EXPRESS : "Reste actuel : undefined" corrigé côté Associé (v('va-reste') lisait .value sur un <div>). Simplifié : "En savoir plus" (Dettes et Dépenses) ne répète plus les montants déjà visibles sur l'écran principal, ne montre que le détail. Aucun calcul modifié.
 var AUTH_KEY = 'bpro_auth_v1';
 

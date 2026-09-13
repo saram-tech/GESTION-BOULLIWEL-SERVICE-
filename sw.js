@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v156'; // 13-09-2026 : index.html v93 — (A) balayage tactile gauche/droite pour changer d'onglet, actif uniquement dans une zone dédiée (moitié supérieure de l'écran, de la barre de recherche jusqu'au milieu de l'écran), implémentation 100% passive qui ne perturbe aucun bouton/champ/lien/tableau existant. (B) bouton retour (←) : fond transparent, ne masque plus le texte situé derrière lui. Aucun calcul, donnée, Supabase ni logique métier modifiés. Voir commentaire APP_VERSION dans index.html.
+const CACHE_VERSION = 'v157'; // 13-09-2026 : index.html v94 — l'onglet actif (sélectionné par balayage, clic ou clavier) est désormais automatiquement ramené dans la zone visible de la barre d'onglets (scrollIntoView, aucun déplacement si déjà visible, glissement fluide sinon). Le balayage tactile v93 n'est pas modifié. Aucun calcul, donnée, Supabase ni logique métier modifiés. Voir commentaire APP_VERSION dans index.html.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
