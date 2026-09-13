@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v152'; // 13-09-2026 : index.html v90 — cause réelle trouvée pour les boutons +Perso/+Commande/Ajouter dette/Paiement/+Dépense signalés inertes : clavier Android qui se ferme pendant le geste tactile, sur des onglets contenant un champ de recherche, faisait parfois manquer la cible du clic (aucune erreur JS, viewport redimensionné en plein appui). Corrigé en fermant le clavier dès le touchstart, avant l'évaluation du clic. pAct() : délai du scrollIntoView porté à 350ms (+550ms) avec {block:'center'}. Voir commentaire APP_VERSION dans index.html.
+const CACHE_VERSION = 'v153-DIAG'; // 13-09-2026 : BUILD DE DIAGNOSTIC TEMPORAIRE (pas encore la correction finale). Clic confirmé reçu sur +Perso/+Commande/Ajouter dette/Paiement/+Dépense, mais aucune fenêtre ne s'affiche — cause non encore confirmée. Ajout d'un panneau de diagnostic visuel (bas d'écran) qui journalise chaque étape de om()/rPF()/rDF()/rDepF()/rCF() : entrée, élément trouvé, classe "open" ajoutée, fin sans erreur, puis état CSS réel (display/visibility/opacity/taille) 150ms après. À utiliser une fois sur le téléphone en reproduisant le problème sur chacun des 5 boutons, puis renvoyer ce qui s'affiche dans le panneau. Ce diagnostic sera retiré et remplacé par la correction définitive (avec un nouveau bump propre) dès la cause confirmée. Rien d'autre modifié.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
