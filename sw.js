@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v157'; // 13-09-2026 : index.html v94 — l'onglet actif (sélectionné par balayage, clic ou clavier) est désormais automatiquement ramené dans la zone visible de la barre d'onglets (scrollIntoView, aucun déplacement si déjà visible, glissement fluide sinon). Le balayage tactile v93 n'est pas modifié. Aucun calcul, donnée, Supabase ni logique métier modifiés. Voir commentaire APP_VERSION dans index.html.
+const CACHE_VERSION = 'v158'; // 13-09-2026 : index.html v95 — l'onglet actuellement sélectionné est désormais légèrement agrandi (police, gras, espacement) pour rester nettement plus visible sur téléphone comme sur ordinateur ; seule la règle .nb.active a changé, aucun chevauchement/débordement (barre d'onglets déjà en défilement horizontal). Défilement automatique de l'onglet actif (v94) et balayage tactile (v93) non modifiés. Aucun calcul, donnée, Supabase ni logique métier modifiés. Voir commentaire APP_VERSION dans index.html.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
