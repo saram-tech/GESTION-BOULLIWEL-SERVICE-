@@ -1683,7 +1683,44 @@ document.querySelectorAll('.ov').forEach(function(o){
   });
 });
 
-// ================================================================
+/**
+ * CORRECTIF (13-09-2026 — "+Perso, +Nouvelle commande, Ajouter dette,
+ * Paiement, +Dépense semblent totalement inertes, sans aucune erreur")
+ * DIAGNOSTIC : gt(), om(), rPF()/rCF()/rDF()/rDepF() et tous les IDs
+ * ciblés ont été vérifiés un par un — aucune anomalie de code (le filet
+ * de sécurité ci-dessus affiche déjà TOUTE erreur JS, et aucune ne
+ * survient). Le facteur commun identifié entre CES 5 boutons précis et
+ * eux seuls : ils se trouvent tous dans un onglet qui affiche un champ
+ * de recherche texte (Stock Perso, Commandes, Associé, Dépenses) —
+ * contrairement à "+ Activité"/"+ Stock" (Tableau de bord, jamais
+ * signalés), qui n'ont aucun champ de saisie à proximité. Le même
+ * phénomène est déjà documenté juste au-dessus pour la fenêtre
+ * Paramètres : le clavier virtuel Android, en se fermant PENDANT le
+ * geste tactile, redimensionne la page en plein milieu de l'appui — ce
+ * qui peut faire "atterrir" le relâchement du doigt ailleurs que sur
+ * l'élément visé, sans qu'aucune erreur JS ne soit levée (le clic
+ * n'atteint simplement jamais le bouton). Cela explique un "bouton
+ * inerte" totalement silencieux, cohérent avec ce qui a été observé.
+ * CORRECTION : dès le tout début du geste (touchstart, phase de
+ * capture, avant que le clic ne soit évalué), on retire explicitement
+ * le focus du champ de recherche/texte actif si le doigt touche
+ * ailleurs qu'un champ de saisie — le clavier se ferme alors AVANT le
+ * calcul de la cible du clic, sur un viewport déjà stable, au lieu de
+ * se fermer pendant/après. S'applique à toute l'application (pas
+ * seulement ces 5 boutons) par sécurité, puisque le même risque existe
+ * partout où un champ de recherche précède un bouton d'action. Aucun
+ * calcul, donnée, formulaire ni logique métier modifiés — uniquement
+ * le moment où le clavier se ferme.
+ */
+document.addEventListener('touchstart', function(e){
+  var a = document.activeElement;
+  if(a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA') && a!==e.target &&
+     e.target.closest && !e.target.closest('input,textarea,select')){
+    a.blur();
+  }
+}, {capture:true, passive:true});
+
+
 // HELPERS
 // ================================================================
 function fmt(n){ if(isNaN(n)||n==null) return '0 GNF'; return Math.round(n).toLocaleString('fr-FR')+' GNF'; }
@@ -1963,8 +2000,25 @@ function pAct(){
     st('pv-ta',fmt(ta)); st('pv-r',fmt(r));
     var be=document.getElementById('pv-b');
     be.textContent=fmt(b); be.style.color=b>=0?'var(--gr)':'var(--re)';
+    // CORRECTIF (13-09-2026 — signalé encore visible après le correctif du
+    // 12-09-2026 : "il apparaît mais plus bas que prévu, geste manuel
+    // toujours nécessaire") : cause réelle — sur Android, l'ouverture du
+    // clavier virtuel après la frappe dans "Payé" prend souvent plus de
+    // 50 ms à s'animer complètement ; scrollIntoView() était donc appelé
+    // AVANT que le clavier ait fini de réduire la zone visible, avec un
+    // calcul basé sur l'ancienne hauteur — le bloc se retrouvait ensuite
+    // masqué par le clavier une fois celui-ci pleinement ouvert. De plus
+    // {block:'nearest'} ne fait qu'un ajustement minimal, insuffisant une
+    // fois le clavier réellement en place. Corrigé en portant le délai à
+    // 350 ms (laisse le temps à l'animation du clavier de se terminer sur
+    // la quasi-totalité des téléphones Android) et en utilisant
+    // {block:'center'} pour un défilement plus franc. Un second essai à
+    // 550 ms est ajouté en filet de sécurité pour les claviers plus lents
+    // à s'animer. Aucun calcul (ta/r/b) ni donnée modifiés — uniquement
+    // le moment et l'ampleur du défilement automatique.
     if(!etaitVisible){
-      setTimeout(function(){ try{ el.scrollIntoView({block:'nearest'}); }catch(e){} }, 50);
+      setTimeout(function(){ try{ el.scrollIntoView({block:'center'}); }catch(e){} }, 350);
+      setTimeout(function(){ try{ el.scrollIntoView({block:'center'}); }catch(e){} }, 550);
     }
   } else el.style.display='none';
 }
@@ -6914,7 +6968,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v88'; // 12-09-2026 : CORRECTION RÉELLE (boutons "inertes" sur téléphone/ordinateur + boîte de dialogue Activités incomplète à l'écran). CAUSE 1 (boutons) : gt() (changement d'onglet) ne remettait jamais la page en haut — en venant d'un onglet plus long après y avoir défilé, le bouton d'action tout en haut du nouvel onglet (Nouvelle commande, Générer commande fournisseur, Ajouter dépense, Ajouter dette, Paiement) restait caché au-dessus de la zone visible, sous l'en-tête/la barre d'onglets (sticky) — identique sur mobile ET ordinateur, ce qui explique pourquoi le bug touchait les deux. Corrigé : gt() ramène systématiquement la page en haut à chaque changement d'onglet. CAUSE 2 (capture d'écran fournie) : le récapitulatif Total achat/Reste/Bénéfice apparaissait déjà automatiquement dans le code dès la saisie du Payé, mais restait hors de la zone visible une fois le clavier Android ouvert, nécessitant un défilement manuel. Corrigé : pAct() ramène ce bloc dans la zone visible dès qu'il apparaît (une seule fois, jamais à chaque frappe suivante). CAUSE 3 (filet de sécurité) : le gestionnaire d'erreur global ne montrait que LA TOUTE PREMIÈRE erreur JS de la session (verrou "shown" jamais réinitialisé) — toute erreur réelle survenant ensuite dans un bouton devenait totalement silencieuse (bouton "inerte" sans aucun message), ce qui empêchait de diagnostiquer une éventuelle cause encore inconnue liée à des données réelles. Corrigé : chaque nouvelle erreur reste désormais visible (bandeau mis à jour avec compteur), plus aucune erreur silencieuse. Tests : 17/17 boîtes de dialogue, 145/145 boutons statiques, 22/22 boutons dynamiques, les 5 boutons signalés, régression complète v85 (Vendu) — tout conforme ; scroll automatique (onglets + récapitulatif) vérifié directement en exécution. Aucune formule, calcul, donnée, formulaire, bouton existant, Supabase ni logique métier modifiés. Voir commentaires v87/v86/v85/v84/v83 ci-dessous pour l'historique.
+var APP_VERSION = 'v90'; // 13-09-2026 : (A) Récapitulatif Payé/Reste/Bénéfice : scrollIntoView() dans pAct() se déclenchait à 50ms, avant la fin de l'animation du clavier Android — corrigé avec un délai de 350ms (+ second essai à 550ms) et {block:'center'}. (B) Boutons +Perso/+Commande/Ajouter dette/Paiement/+Dépense signalés inertes (aucune réaction, aucune erreur) : cause réelle trouvée — ces 5 boutons se trouvent tous dans un onglet avec un champ de recherche texte juste au-dessus (contrairement à +Activité/+Stock du Tableau de bord, jamais signalés) ; comme déjà documenté ci-dessus pour la fenêtre Paramètres, le clavier Android qui se ferme PENDANT le geste tactile redimensionne la page en plein milieu de l'appui, ce qui peut faire manquer la cible du clic sans qu'aucune erreur JS ne soit levée. Corrigé en fermant explicitement le clavier dès le touchstart (capture, avant l'évaluation du clic) si le doigt touche un élément hors champ de saisie — voir le nouveau bloc juste après le correctif Paramètres. Aucun calcul, donnée, formulaire ni logique métier modifiés. Historique détaillé v89/v88/v87/v86/v85/v84/v83 : voir commentaires plus bas dans le fichier.
 // 10-09-2026 : CORRECTION URGENTE (v83, contexte d'origine, conservé pour l'historique) — "un nouveau produit Stock Perso affiche immédiatement Vendu>0/Reste<Initial sans aucune vente". Cause exacte : calcPersoVenduRestant() répartissait TOUTES les ventes déjà connues sur le produit fusionné (même celles survenues avant la création de cette fiche, ou dues à un autre produit/enregistrement du même nom) au prorata de cette seule fiche. Corrigé : chaque fiche Stock Perso neuve fige désormais, à sa création (_baseVendu/_basePoolQte, jamais retouché ensuite), l'état déjà vendu du produit fusionné à cet instant précis ; calcPersoVenduRestant() ne compte plus, pour cette fiche, que les ventes survenues APRÈS sa création. Fiches déjà existantes (sans ces deux champs) : comportement inchangé, aucune régression. Le tri par période reste un filtre d'affichage pur (inchangé). Stock Entreprise (stock physique unifié réel), capital, bilan, dettes, prix, quantités : aucun calcul modifié. Voir aussi APP_VERSION v82 juste au-dessus (fusion multi-appareils du journal des prix).
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :

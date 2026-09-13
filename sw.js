@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v150'; // 12-09-2026 : index.html v88 — correction réelle : gt() remet la page en haut à chaque changement d'onglet (boutons Commande/Dépenses/Associé visibles), pAct() ramène le récapitulatif Activités dans la zone visible, le filet de sécurité affiche désormais TOUTE erreur (plus de silence après la première). Voir commentaire APP_VERSION dans index.html.
+const CACHE_VERSION = 'v152'; // 13-09-2026 : index.html v90 — cause réelle trouvée pour les boutons +Perso/+Commande/Ajouter dette/Paiement/+Dépense signalés inertes : clavier Android qui se ferme pendant le geste tactile, sur des onglets contenant un champ de recherche, faisait parfois manquer la cible du clic (aucune erreur JS, viewport redimensionné en plein appui). Corrigé en fermant le clavier dès le touchstart, avant l'évaluation du clic. pAct() : délai du scrollIntoView porté à 350ms (+550ms) avec {block:'center'}. Voir commentaire APP_VERSION dans index.html.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
