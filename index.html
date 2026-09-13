@@ -1196,7 +1196,6 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="fg"><label>Seuil alerte stock faible</label><input type="number" id="s-seuil" placeholder="3" min="1" value="3"></div>
     </div>
     <div class="fr">
-    <div class="fr">
       <div class="fg"><label>Date</label><input type="date" id="s-date"></div>
     </div>
     <div class="al ali" style="font-size:.75rem">⚙️ Seuil : alerte déclenchée quand stock restant ≤ cette valeur. Ex: 3 → alerte si restant ≤ 3.</div>
@@ -1647,72 +1646,15 @@ function save(){
 // NAV & MODALS
 // ================================================================
 // gt() définie plus haut avec gestion historique navigation
-
-/* =====================================================================
-   >>> DIAGNOSTIC TEMPORAIRE (13-09-2026) <<<
-   Bloc ajouté UNIQUEMENT pour localiser précisément où s'arrête
-   l'exécution pour +Perso / +Commande / Ajouter dette / Paiement /
-   +Dépense (clic confirmé reçu, mais aucune fenêtre ne s'affiche).
-   Affiche un petit panneau vert en bas d'écran, avec une ligne
-   horodatée à chaque étape clé (handler → fonction → ouverture →
-   classe CSS → état final). À SUPPRIMER dès la cause confirmée et
-   corrigée — ne touche à aucun calcul, donnée ni logique métier,
-   uniquement de la journalisation en lecture seule.
-   ===================================================================== */
-function diagLog(msg){
-  try{
-    var p=document.getElementById('diag-panel');
-    if(!p){
-      p=document.createElement('div');
-      p.id='diag-panel';
-      p.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:999999;background:#0a0a0a;color:#3f3;font:11px/1.4 monospace;padding:6px 8px;max-height:38vh;overflow:auto;white-space:pre-wrap;border-top:2px solid #3f3;box-shadow:0 -2px 10px rgba(0,0,0,.6)';
-      var closeBtn=document.createElement('button');
-      closeBtn.textContent='✕ Fermer diagnostic';
-      closeBtn.style.cssText='display:block;margin-bottom:4px;background:#3f3;color:#000;border:none;border-radius:4px;padding:3px 8px;font:11px monospace;font-weight:700';
-      closeBtn.onclick=function(){ p.remove(); };
-      p.appendChild(closeBtn);
-      var log=document.createElement('div');
-      log.id='diag-panel-log';
-      p.appendChild(log);
-      document.body.appendChild(p);
-    }
-    var l=document.getElementById('diag-panel-log');
-    var d=new Date();
-    var hh=('0'+d.getHours()).slice(-2),mm=('0'+d.getMinutes()).slice(-2),ss=('0'+d.getSeconds()).slice(-2),ms=('00'+d.getMilliseconds()).slice(-3);
-    l.textContent += hh+':'+mm+':'+ss+'.'+ms+' — '+msg+'\n';
-    l.scrollTop=l.scrollHeight;
-  }catch(e){}
-}
-/* >>> FIN bloc diagnostic (suite plus bas dans om()) <<< */
-
 function om(id){
-  diagLog('① om("'+id+'") appelée'); // confirme que le handler a bien exécuté cette fonction
-  try{
-    var el=document.getElementById(id);
-    diagLog('② élément #'+id+' trouvé dans le DOM : '+(!!el));
-    if(!el){ diagLog('   ⛔ ARRÊT — aucun élément avec cet id, om() ne peut rien afficher.'); return; }
-    el.classList.add('open');
-    diagLog('③ classe "open" ajoutée — el.classList contient "open" : '+el.classList.contains('open'));
-    var t=td();
-    document.querySelectorAll('#'+id+' input[type=date]').forEach(function(i){ if(!i.value) i.value=t; });
-    if(id==='mpp') fillPP();
-    if(id==='ma'){ fillDL(); fillDLClients(); }
-    if(id==='mc'){ fillDL(); fillDLClients(); }
-    if(id==='ms') fillDL();
-    if(id==='mp') fillDL();
-    diagLog('④ om("'+id+'") terminée sans erreur');
-    setTimeout(function(){
-      try{
-        var cs=getComputedStyle(el);
-        diagLog('⑤ 150ms après : display='+cs.display+' | visibility='+cs.visibility+' | opacity='+cs.opacity+' | z-index='+cs.zIndex+' | classe open toujours présente : '+el.classList.contains('open'));
-        var r=el.getBoundingClientRect();
-        diagLog('   position réelle sur l\'écran : largeur='+Math.round(r.width)+'px hauteur='+Math.round(r.height)+'px (0×0 = invisible/replié)');
-      }catch(e2){ diagLog('   ⚠️ erreur pendant la vérification finale : '+e2.message); }
-    }, 150);
-  }catch(e){
-    diagLog('   ⛔ EXCEPTION dans om("'+id+'") : '+e.message);
-    throw e; // laisse aussi le filet de sécurité existant afficher la bannière rouge
-  }
+  document.getElementById(id).classList.add('open');
+  var t=td();
+  document.querySelectorAll('#'+id+' input[type=date]').forEach(function(i){ if(!i.value) i.value=t; });
+  if(id==='mpp') fillPP();
+  if(id==='ma'){ fillDL(); fillDLClients(); }
+  if(id==='mc'){ fillDL(); fillDLClients(); }
+  if(id==='ms') fillDL();
+  if(id==='mp') fillDL();
 }
 function cm(id){ document.getElementById(id).classList.remove('open'); }
 /**
@@ -3617,8 +3559,6 @@ function enrPerso(){
   save(); cm('mp'); rPF(); notif('✅ Produit perso ajouté au stock entreprise. L\'entreprise vous doit: '+fmt(totalDu));
 }
 function rPF(){
-  diagLog('rPF() démarrée'); // DIAGNOSTIC TEMPORAIRE
-  try{
   ['p-nom','p-qte','p-achat','p-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
   // CORRECTIF (même cause que Stock Entreprise, voir rSF()) : le champ
   // Date n'était jamais réinitialisé à l'ouverture de "+ Ajouter",
@@ -3628,8 +3568,6 @@ function rPF(){
   st('mp-t','🏷️ Produit Personnel');
   var b=document.getElementById('btn-sp'); b.textContent='✓ Enregistrer'; b.onclick=enrPerso;
   var h=document.getElementById('p-qte-hint'); if(h) h.style.display='none';
-  diagLog('rPF() terminée sans erreur'); // DIAGNOSTIC TEMPORAIRE
-  }catch(e){ diagLog('⛔ EXCEPTION dans rPF() : '+e.message); throw e; } // DIAGNOSTIC TEMPORAIRE
 }
 function editPerso(id){
   var p=D.perso.find(function(x){ return x.id===id; }); if(!p) return;
@@ -3705,13 +3643,9 @@ function enrDette(){
   save(); cm('mdet'); rDF(); notif('✅ Dette enregistrée: '+fmt(m));
 }
 function rDF(){
-  diagLog('rDF() démarrée'); // DIAGNOSTIC TEMPORAIRE
-  try{
   ['det-date','det-desc','det-montant','det-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
   sv('det-type','directe'); st('mdet-t','➕ Ajouter une dette');
   var b=document.getElementById('btn-sd'); b.textContent='💾 Enregistrer dette'; b.onclick=enrDette;
-  diagLog('rDF() terminée sans erreur'); // DIAGNOSTIC TEMPORAIRE
-  }catch(e){ diagLog('⛔ EXCEPTION dans rDF() : '+e.message); throw e; } // DIAGNOSTIC TEMPORAIRE
 }
 function editDette(id){
   if(D.detteVerrou){ notif('🔒 Dettes verrouillées'); return; }
@@ -3878,13 +3812,9 @@ function enrDep(){
   save(); cm('md'); rDepF(); notif('✅ Dépense enregistrée');
 }
 function rDepF(){
-  diagLog('rDepF() démarrée'); // DIAGNOSTIC TEMPORAIRE
-  try{
   ['dep-desc','dep-prix','dep-tot','dep-eid','dep-cat'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
   sv('dep-qte',1); st('md-t','💸 Nouvelle Dépense'); rCatList();
   var b=document.getElementById('btn-sdep'); b.textContent='✓ Enregistrer'; b.onclick=enrDep;
-  diagLog('rDepF() terminée sans erreur'); // DIAGNOSTIC TEMPORAIRE
-  }catch(e){ diagLog('⛔ EXCEPTION dans rDepF() : '+e.message); throw e; } // DIAGNOSTIC TEMPORAIRE
 }
 function editDep(id){
   var d=D.depenses.find(function(x){ return x.id===id; }); if(!d) return;
@@ -3966,13 +3896,9 @@ function enrCmd(){
   save(); cm('mc'); rCF(); notif('✅ Commande enregistrée');
 }
 function rCF(){
-  diagLog('rCF() démarrée'); // DIAGNOSTIC TEMPORAIRE
-  try{
   ['c-date','c-num','c-client','c-tel','c-adr','c-note','c-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
   sv('c-st','En attente'); cmdLignes=[]; rCL(); st('mc-t','📑 Nouvelle Commande');
   var b=document.getElementById('btn-sc'); b.textContent='✓ Enregistrer commande'; b.onclick=enrCmd;
-  diagLog('rCF() terminée sans erreur'); // DIAGNOSTIC TEMPORAIRE
-  }catch(e){ diagLog('⛔ EXCEPTION dans rCF() : '+e.message); throw e; } // DIAGNOSTIC TEMPORAIRE
 }
 function editCmd(id){
   var c=D.commandes.find(function(x){ return x.id===id; }); if(!c) return;
@@ -7041,7 +6967,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v90'; // 13-09-2026 : (A) Récapitulatif Payé/Reste/Bénéfice : scrollIntoView() dans pAct() se déclenchait à 50ms, avant la fin de l'animation du clavier Android — corrigé avec un délai de 350ms (+ second essai à 550ms) et {block:'center'}. (B) Boutons +Perso/+Commande/Ajouter dette/Paiement/+Dépense signalés inertes (aucune réaction, aucune erreur) : cause réelle trouvée — ces 5 boutons se trouvent tous dans un onglet avec un champ de recherche texte juste au-dessus (contrairement à +Activité/+Stock du Tableau de bord, jamais signalés) ; comme déjà documenté ci-dessus pour la fenêtre Paramètres, le clavier Android qui se ferme PENDANT le geste tactile redimensionne la page en plein milieu de l'appui, ce qui peut faire manquer la cible du clic sans qu'aucune erreur JS ne soit levée. Corrigé en fermant explicitement le clavier dès le touchstart (capture, avant l'évaluation du clic) si le doigt touche un élément hors champ de saisie — voir le nouveau bloc juste après le correctif Paramètres. Aucun calcul, donnée, formulaire ni logique métier modifiés. Historique détaillé v89/v88/v87/v86/v85/v84/v83 : voir commentaires plus bas dans le fichier.
+var APP_VERSION = 'v91'; // 13-09-2026 : CAUSE RÉELLE TROUVÉE ET CONFIRMÉE (grâce au diagnostic visuel temporaire) pour +Perso/+Commande/Ajouter dette/Paiement/+Dépense — le clic était bien reçu, la classe "open" bien ajoutée, mais rien ne s'affichait (taille réelle 0×0 malgré display:flex). Cause : dans la modale "Entrée Stock" (#ms), un <div class="fr"> était dupliqué par erreur (une ligne en trop), ce qui laissait la balise </div> de #ms sans le compte juste — #ms ne se refermait donc JAMAIS correctement dans le HTML. Résultat : TOUTES les modales suivantes dans le fichier (#mcr, #mp, #mdet, #mpaym, #md, #mcat, #mc, et les 3 modales de détail) se retrouvaient, à l'insu de tous, imbriquées EN TANT QU'ENFANTS CACHÉS de #ms au lieu d'être des fenêtres indépendantes — et comme #ms lui-même est masqué (display:none) tant qu'on ne l'ouvre pas, elles héritaient de ce masquage même quand on leur ajoutait "open" individuellement. Corrigé en supprimant l'unique <div class="fr"> en double (une seule ligne HTML) — vérifié : les 17 modales repartent toutes au même niveau d'imbrication, aucune plus "enfant" d'une autre. Diagnostic visuel temporaire entièrement retiré après confirmation. Aucun calcul, donnée, formulaire, Supabase ni logique métier modifiés — uniquement une balise HTML en trop supprimée. Historique détaillé v90/v89/v88/v87/v86/v85/v84/v83 : voir commentaires plus bas dans le fichier.
 // 10-09-2026 : CORRECTION URGENTE (v83, contexte d'origine, conservé pour l'historique) — "un nouveau produit Stock Perso affiche immédiatement Vendu>0/Reste<Initial sans aucune vente". Cause exacte : calcPersoVenduRestant() répartissait TOUTES les ventes déjà connues sur le produit fusionné (même celles survenues avant la création de cette fiche, ou dues à un autre produit/enregistrement du même nom) au prorata de cette seule fiche. Corrigé : chaque fiche Stock Perso neuve fige désormais, à sa création (_baseVendu/_basePoolQte, jamais retouché ensuite), l'état déjà vendu du produit fusionné à cet instant précis ; calcPersoVenduRestant() ne compte plus, pour cette fiche, que les ventes survenues APRÈS sa création. Fiches déjà existantes (sans ces deux champs) : comportement inchangé, aucune régression. Le tri par période reste un filtre d'affichage pur (inchangé). Stock Entreprise (stock physique unifié réel), capital, bilan, dettes, prix, quantités : aucun calcul modifié. Voir aussi APP_VERSION v82 juste au-dessus (fusion multi-appareils du journal des prix).
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :
