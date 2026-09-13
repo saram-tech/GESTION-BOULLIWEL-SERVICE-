@@ -121,6 +121,24 @@ main{padding:12px;max-width:1400px;margin:0 auto;position:relative;z-index:1;}
 @media(max-width:900px){.g5{grid-template-columns:repeat(3,1fr);}.g4{grid-template-columns:1fr 1fr;}}
 @media(max-width:600px){.g2,.g3,.g4,.g5{grid-template-columns:1fr 1fr;}}
 @media(max-width:380px){.g2,.g3,.g4,.g5{grid-template-columns:1fr;}}
+/* CORRECTIF (13-09-2026 — "Dettes enregistrées"/"Paiements reçus" débordent et
+   se désorganisent sur téléphone Android) : ces deux blocs contiennent chacun
+   un tableau à 6 colonnes (montants + boutons d'action) — trop large pour
+   tenir sur la moitié d'un écran de téléphone en 2 colonnes, contrairement
+   aux cartes KPI qui partagent la même classe .g2 ailleurs dans l'app (celles-
+   ci n'ont pas ce problème et ne sont donc pas touchées). Classe dédiée
+   .g2-dettes : empile ces deux blocs en 1 colonne sur tout écran de type
+   téléphone (jusqu'à 900px), pleine largeur, sans aucun geste manuel. Aucune
+   donnée ni calcul modifié — uniquement la mise en page. */
+@media(max-width:900px){.g2-dettes{grid-template-columns:1fr!important;}}
+/* Sans min-width:0, un élément de grille CSS ne rétrécit jamais en dessous de
+   la largeur intrinsèque de son contenu (ici : le tableau à 6 colonnes) —
+   même en 1 colonne, la carte restait donc plus large que l'écran malgré
+   .tw{overflow-x:auto}. Corrigé en autorisant explicitement la carte à
+   rétrécir ; le défilement horizontal interne du tableau (.tw) reste le
+   filet de sécurité si le contenu est encore trop large sur un très petit
+   écran. Portée limitée à .g2-dettes, aucun autre .g2 touché. */
+.g2-dettes>.card{min-width:0;}
 .kpi{background:var(--bg3);border:1px solid var(--bd);border-radius:11px;padding:11px 13px;transition:transform .2s;}
 .kpi:hover{transform:translateY(-2px);}
 .kl{font-size:.64rem;color:var(--tx2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;}
@@ -712,7 +730,7 @@ tbody tr:last-child td{border-bottom:none;}
     💳 <strong>Paiement type :</strong> Dette directe de l'associé OU Dette de sa femme uniquement.<br>
     📊 Dans le bilan : Dettes nettes = Total dettes − Total paiements reçus.
   </div>
-  <div class="g2">
+  <div class="g2 g2-dettes">
     <div class="card">
       <div class="ch"><span class="dot" style="background:var(--re)"></span>Dettes enregistrées <span id="lkb" style="display:none" class="lkb">🔒 Verrouillé</span></div>
       <div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">
@@ -915,7 +933,7 @@ tbody tr:last-child td{border-bottom:none;}
     <input type="hidden" id="pt-eid">
     <div style="display:flex;gap:7px;justify-content:flex-end">
       <button class="btn bh" id="btn-pt-annuler" style="display:none" onclick="rPF_patrimoine()">Annuler la modification</button>
-      <button class="btn bs" id="btn-pt-enr" onclick="enrPatrimoine()">✓ Enregistrer le bien</button>
+      <button class="btn bs js-tap-fast" id="btn-pt-enr" onclick="enrPatrimoine()">✓ Enregistrer le bien</button>
     </div>
   </div>
   <div class="card">
@@ -984,7 +1002,7 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="mft">
       <button class="btn bh" onclick="cm('ma');rAF()">Annuler</button>
-      <button class="btn bp" id="btn-sa" onclick="enrAct()">✓ Enregistrer</button>
+      <button class="btn bp js-tap-fast" id="btn-sa" onclick="enrAct()">✓ Enregistrer</button>
     </div>
   </div>
 </div>
@@ -1001,7 +1019,7 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mpp')">Annuler</button>
-      <button class="btn bs" onclick="enrPP()">✓ Enregistrer</button>
+      <button class="btn bs js-tap-fast" onclick="enrPP()">✓ Enregistrer</button>
     </div>
   </div>
 </div>
@@ -1016,7 +1034,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="al ali" style="font-size:.74rem">Cette quantité s'additionne automatiquement à la quantité déjà existante du produit.</div>
     <div class="mft">
       <button class="btn bh" onclick="cm('maq')">Annuler</button>
-      <button class="btn bs" onclick="enrAjoutQte()">✓ Ajouter</button>
+      <button class="btn bs js-tap-fast" onclick="enrAjoutQte()">✓ Ajouter</button>
     </div>
   </div>
 </div>
@@ -1090,7 +1108,7 @@ tbody tr:last-child td{border-bottom:none;}
 
     <div style="display:flex;gap:7px;justify-content:flex-end;margin-bottom:14px">
       <button class="btn bh" onclick="cm('mparams')">Annuler</button>
-      <button class="btn bs" onclick="enrParametres()">✓ Enregistrer</button>
+      <button class="btn bs js-tap-fast" onclick="enrParametres()">✓ Enregistrer</button>
     </div>
 
     <hr class="sep">
@@ -1162,7 +1180,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div id="sec-err" style="color:var(--re);font-size:.78rem;min-height:1.2em;margin-bottom:6px"></div>
     <div class="mft">
       <button class="btn bh" onclick="cm('msecure')">Annuler</button>
-      <button class="btn bd" onclick="validerActionSecurisee()">✓ Confirmer et exécuter</button>
+      <button class="btn bd js-tap-fast" onclick="validerActionSecurisee()">✓ Confirmer et exécuter</button>
     </div>
   </div>
 </div>
@@ -1201,7 +1219,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="al ali" style="font-size:.75rem">⚙️ Seuil : alerte déclenchée quand stock restant ≤ cette valeur. Ex: 3 → alerte si restant ≤ 3.</div>
     <div class="mft">
       <button class="btn bh" onclick="cm('ms');rSF()">Annuler</button>
-      <button class="btn bp" id="btn-ss" onclick="enrStock()">✓ Enregistrer</button>
+      <button class="btn bp js-tap-fast" id="btn-ss" onclick="enrStock()">✓ Enregistrer</button>
     </div>
   </div>
 </div>
@@ -1222,7 +1240,7 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mcr')">Annuler</button>
-      <button class="btn bd" onclick="enrReductionCapital()">✓ Confirmer la réduction</button>
+      <button class="btn bd js-tap-fast" onclick="enrReductionCapital()">✓ Confirmer la réduction</button>
     </div>
     <div style="margin-top:12px;border-top:1px solid var(--bd);padding-top:10px">
       <div style="font-size:.78rem;color:var(--tx2);margin-bottom:6px">Historique des réductions</div>
@@ -1255,7 +1273,7 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mp');rPF()">Annuler</button>
-      <button class="btn bg" id="btn-sp" onclick="enrPerso()">✓ Enregistrer</button>
+      <button class="btn bg js-tap-fast" id="btn-sp" onclick="enrPerso()">✓ Enregistrer</button>
     </div>
   </div>
 </div>
@@ -1275,7 +1293,7 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mdet');rDF()">Annuler</button>
-      <button class="btn bd" id="btn-sd" onclick="enrDette()">💾 Enregistrer dette</button>
+      <button class="btn bd js-tap-fast" id="btn-sd" onclick="enrDette()">💾 Enregistrer dette</button>
     </div>
   </div>
 </div>
@@ -1300,7 +1318,7 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mpaym');rPAF()">Annuler</button>
-      <button class="btn bs" id="btn-spaym" onclick="enrPaym()">✓ Enregistrer</button>
+      <button class="btn bs js-tap-fast" id="btn-spaym" onclick="enrPaym()">✓ Enregistrer</button>
     </div>
   </div>
 </div>
@@ -1322,7 +1340,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="fr"><div class="fg"><label>Date</label><input type="date" id="dep-date"></div></div>
     <div class="mft">
       <button class="btn bh" onclick="cm('md');rDepF()">Annuler</button>
-      <button class="btn bp" id="btn-sdep" onclick="enrDep()">✓ Enregistrer</button>
+      <button class="btn bp js-tap-fast" id="btn-sdep" onclick="enrDep()">✓ Enregistrer</button>
     </div>
   </div>
 </div>
@@ -1374,7 +1392,7 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mc');rCF()">Annuler</button>
-      <button class="btn bo" id="btn-sc" onclick="enrCmd()">✓ Enregistrer commande</button>
+      <button class="btn bo js-tap-fast" id="btn-sc" onclick="enrCmd()">✓ Enregistrer commande</button>
     </div>
   </div>
 </div>
@@ -1718,6 +1736,52 @@ document.addEventListener('touchstart', function(e){
     a.blur();
   }
 }, {capture:true, passive:true});
+
+/**
+ * CORRECTIF (13-09-2026 — "premier tap sur Enregistrer ferme seulement le
+ * clavier, n'exécute rien, dans toutes les boîtes de dialogue") :
+ * CAUSE RÉELLE : sur Android, quand un champ de saisie a encore le focus au
+ * moment du tap, le clic "click" normal du navigateur peut être capturé
+ * APRÈS que le clavier virtuel ait commencé à se fermer et à redimensionner
+ * la page — le point de calcul de la cible du clic peut alors ne plus
+ * correspondre au bouton visé, et le tap ne fait que fermer le clavier sans
+ * exécuter l'action. Le correctif touchstart ci-dessus (fermeture du clavier
+ * dès l'appui) réduit déjà ce risque pour l'app en général, mais pour les
+ * boutons d'enregistrement — où le premier tap DOIT toujours fonctionner,
+ * sans exception — on déclenche directement l'action au relâchement du
+ * doigt (touchend), qui capture la cible AVANT toute animation du clavier,
+ * au lieu d'attendre le "click" émulé plus tardif du navigateur.
+ * Portée : uniquement les boutons "Enregistrer/Confirmer" de chaque boîte de
+ * dialogue (classe .js-tap-fast, ajoutée uniquement sur ces 13 boutons :
+ * Activité, Stock Entreprise, Stock Perso, Dette, Paiement, Dépense,
+ * Commande, Patrimoine, Paiement partiel, Ajout quantité, Paramètres,
+ * Action sécurisée, Réduction capital). Anti double-exécution : preventDefault()
+ * sur touchend annule le clic émulé qui suivrait normalement (comportement
+ * standard des navigateurs), puis un seul clic réel est déclenché via
+ * .click() — qui exécute exactement le même gestionnaire onclick existant,
+ * sans aucune logique dupliquée ni nouvelle. Un contrôle de position au
+ * relâchement évite tout déclenchement si le doigt a glissé/scrollé ailleurs
+ * entre-temps. Sans effet sur souris/clavier d'ordinateur (écoute uniquement
+ * les événements tactiles). Aucun calcul, donnée, Supabase ni logique
+ * métier modifiés — uniquement le moment où l'action se déclenche au tap.
+ */
+(function(){
+  var dernierBoutonDeclenche = null;
+  document.addEventListener('touchend', function(e){
+    var btn = e.target.closest && e.target.closest('.js-tap-fast');
+    if(!btn || btn.disabled) return;
+    var t = e.changedTouches && e.changedTouches[0];
+    if(t){
+      var elAuRelachement = document.elementFromPoint(t.clientX, t.clientY);
+      if(!elAuRelachement || !btn.contains(elAuRelachement)) return;
+    }
+    e.preventDefault();
+    if(dernierBoutonDeclenche===btn) return;
+    dernierBoutonDeclenche = btn;
+    setTimeout(function(){ if(dernierBoutonDeclenche===btn) dernierBoutonDeclenche=null; }, 400);
+    btn.click();
+  }, {capture:true, passive:false});
+})();
 
 
 // HELPERS
@@ -6967,7 +7031,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v91'; // 13-09-2026 : CAUSE RÉELLE TROUVÉE ET CONFIRMÉE (grâce au diagnostic visuel temporaire) pour +Perso/+Commande/Ajouter dette/Paiement/+Dépense — le clic était bien reçu, la classe "open" bien ajoutée, mais rien ne s'affichait (taille réelle 0×0 malgré display:flex). Cause : dans la modale "Entrée Stock" (#ms), un <div class="fr"> était dupliqué par erreur (une ligne en trop), ce qui laissait la balise </div> de #ms sans le compte juste — #ms ne se refermait donc JAMAIS correctement dans le HTML. Résultat : TOUTES les modales suivantes dans le fichier (#mcr, #mp, #mdet, #mpaym, #md, #mcat, #mc, et les 3 modales de détail) se retrouvaient, à l'insu de tous, imbriquées EN TANT QU'ENFANTS CACHÉS de #ms au lieu d'être des fenêtres indépendantes — et comme #ms lui-même est masqué (display:none) tant qu'on ne l'ouvre pas, elles héritaient de ce masquage même quand on leur ajoutait "open" individuellement. Corrigé en supprimant l'unique <div class="fr"> en double (une seule ligne HTML) — vérifié : les 17 modales repartent toutes au même niveau d'imbrication, aucune plus "enfant" d'une autre. Diagnostic visuel temporaire entièrement retiré après confirmation. Aucun calcul, donnée, formulaire, Supabase ni logique métier modifiés — uniquement une balise HTML en trop supprimée. Historique détaillé v90/v89/v88/v87/v86/v85/v84/v83 : voir commentaires plus bas dans le fichier.
+var APP_VERSION = 'v92'; // 13-09-2026 : (A) Onglet Associé — "Dettes enregistrées"/"Paiements reçus" débordaient et se désorganisaient sur téléphone Android : ces 2 blocs partagent la classe .g2 (grille 2 colonnes) dont le point de bascule à 1 colonne était fixé à 380px, trop bas pour la plupart des Android réels (393/412/414px restaient à 2 colonnes) ; de plus, un élément de grille CSS ne rétrécit jamais sous la largeur intrinsèque de son contenu par défaut (min-width:auto), donc même repassé à 1 colonne le tableau à 6 colonnes forçait encore un débordement. Corrigé avec une classe scopée .g2-dettes (empile en 1 colonne jusqu'à 900px + min-width:0 sur les cartes) — aucun autre .g2 de l'app touché (vérifié à 412px et 1100px que les autres sections gardent leur mise en page d'origine). (B) Boutons "Enregistrer/Confirmer" de toutes les boîtes de dialogue : le premier tap pouvait ne fermer que le clavier Android sans exécuter l'action (click évalué après le redimensionnement de page dû à la fermeture du clavier). Corrigé pour les 13 boutons concernés (classe .js-tap-fast) en déclenchant l'action au touchend (avant toute animation du clavier) avec preventDefault() pour annuler le clic dupliqué qui suivrait normalement — un seul .click() réel exécute le même gestionnaire existant, sans logique dupliquée. Testé avec un vrai Chromium (Playwright), tap tactile réel à 360×740 : chaque bouton s'exécute exactement une fois au premier tap (Dette/Paiement/Dépense/Commande/Perso/Activité vérifiés individuellement) ; clic souris desktop toujours une seule exécution (aucune régression). Aucun calcul, donnée, Supabase, synchronisation ni logique métier modifiés — uniquement mise en page et timing du déclenchement au tap. Historique détaillé v91/v90/v89/v88/v87/v86/v85/v84/v83 : voir commentaires plus bas dans le fichier.
 // 10-09-2026 : CORRECTION URGENTE (v83, contexte d'origine, conservé pour l'historique) — "un nouveau produit Stock Perso affiche immédiatement Vendu>0/Reste<Initial sans aucune vente". Cause exacte : calcPersoVenduRestant() répartissait TOUTES les ventes déjà connues sur le produit fusionné (même celles survenues avant la création de cette fiche, ou dues à un autre produit/enregistrement du même nom) au prorata de cette seule fiche. Corrigé : chaque fiche Stock Perso neuve fige désormais, à sa création (_baseVendu/_basePoolQte, jamais retouché ensuite), l'état déjà vendu du produit fusionné à cet instant précis ; calcPersoVenduRestant() ne compte plus, pour cette fiche, que les ventes survenues APRÈS sa création. Fiches déjà existantes (sans ces deux champs) : comportement inchangé, aucune régression. Le tri par période reste un filtre d'affichage pur (inchangé). Stock Entreprise (stock physique unifié réel), capital, bilan, dettes, prix, quantités : aucun calcul modifié. Voir aussi APP_VERSION v82 juste au-dessus (fusion multi-appareils du journal des prix).
 /**
  * DEMANDE ("numéro d'ordre automatique + tri A-Z par produit/nom") :

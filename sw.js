@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v154'; // 13-09-2026 : index.html v91 — CAUSE RÉELLE CONFIRMÉE (via diagnostic sur téléphone réel) pour +Perso/+Commande/Ajouter dette/Paiement/+Dépense : un <div class="fr"> dupliqué par erreur dans la modale "Entrée Stock" (#ms) empêchait cette dernière de se refermer correctement dans le HTML, ce qui plaçait TOUTES les modales suivantes (#mcr/#mp/#mdet/#mpaym/#md/#mcat/#mc + 3 modales de détail) comme enfants cachés de #ms au lieu de fenêtres indépendantes — d'où "classe open ajoutée mais taille 0×0" sans aucune erreur JS. Corrigé en supprimant l'unique ligne HTML en double. Diagnostic temporaire retiré. Aucun calcul, donnée ni logique métier modifiés. Voir commentaire APP_VERSION dans index.html.
+const CACHE_VERSION = 'v155'; // 13-09-2026 : index.html v92 — (A) mise en page Associé (Dettes/Paiements) corrigée pour rester organisée et entièrement visible sur tout écran Android (classe scopée .g2-dettes, aucun autre .g2 de l'app touché). (B) boutons "Enregistrer/Confirmer" de toutes les boîtes de dialogue : le premier tap déclenche désormais toujours l'action (touchend + preventDefault, avant toute animation du clavier Android), vérifié avec un vrai Chromium (tap tactile réel, 360×740, exactement une exécution par bouton — aucune régression au clic souris desktop). Aucun calcul, donnée, Supabase ni logique métier modifiés. Voir commentaire APP_VERSION dans index.html.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
