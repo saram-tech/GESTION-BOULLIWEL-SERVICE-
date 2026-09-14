@@ -181,6 +181,28 @@ main{padding:12px;max-width:1400px;margin:0 auto;position:relative;z-index:1;}
 .bo{background:rgba(249,115,22,.15);border:1px solid rgba(249,115,22,.3);color:var(--or);}.bo:hover{background:rgba(249,115,22,.25);}
 .bsm{padding:5px 10px;font-size:.74rem;border-radius:7px;}
 .bxs{padding:3px 8px;font-size:.69rem;border-radius:5px;}
+/* AJOUT (14-09-2026 — CORRECTION STRICTE, BOUTON (+)) : rend le bouton
+   (+) d'ajout de chaque onglet concerné accessible en permanence
+   pendant le défilement vertical (haut/bas), sans agrandir ni modifier
+   son apparence (même taille, mêmes couleurs, même icône/texte) — seule
+   sa position devient fixe à l'écran au lieu de défiler avec le
+   contenu. Placé en bas-droite pour ne jamais recouvrir les données ni
+   les autres contrôles ; décalé au-dessus du bandeau de mise à jour
+   #maj-dispo-banner s'il est affiché (var(--maj-banniere-h), déjà
+   utilisée ailleurs dans l'app) pour ne jamais être masqué par lui.
+   z-index sous l'en-tête (200) et la barre d'onglets (190) et sous les
+   fenêtres modales (.ov, 500) : ne recouvre jamais rien de plus
+   prioritaire. Seul CE bouton (+) est concerné — aucun autre bouton ni
+   élément de l'interface n'est modifié. */
+.btn-add-fixed{position:fixed;right:14px;bottom:calc(14px + var(--maj-banniere-h,0px));z-index:150;box-shadow:0 4px 14px rgba(0,0,0,.35);}
+/* AJOUT (14-09-2026 — VÉRIFICATION STRICTE, BOUTON (+) UNIQUEMENT) :
+   réserve un espace vide en bas des SEULS onglets contenant le bouton
+   (+) fixe, pour que ce dernier ne recouvre jamais la dernière ligne
+   de données/le dernier contrôle visible en bas de page lors d'un
+   défilement jusqu'en bas (vérifié sur 360×740 et sur écran large).
+   N'affecte que ces 6 onglets ; aucun autre onglet, ni l'apparence du
+   bouton lui-même, n'est modifié. */
+#tab-activites,#tab-stock,#tab-perso,#tab-associe,#tab-depenses,#tab-commandes{padding-bottom:64px;}
 .tw{overflow-x:auto;overflow-y:auto;max-height:min(64vh,620px);border-radius:9px;}
 table{width:100%;border-collapse:collapse;font-size:.77rem;}
 thead th{background:var(--bg4);color:var(--tx2);padding:8px 10px;text-align:left;font-weight:600;font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--bd);white-space:nowrap;position:sticky;top:0;z-index:6;}
@@ -572,7 +594,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st">Activités</div><div class="ss">Ventes · Réparations · Services</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bp bsm" onclick="rAF();om('ma')">+ Nouvelle</button>
+      <button class="btn bp bsm btn-add-fixed" onclick="rAF();om('ma')">+ Nouvelle</button>
       <button class="btn bh bsm" onclick="om('mpp')">💳 Paiement partiel</button>
       <button class="btn bd bsm" onclick="viderActivites()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
       <button class="btn bd bsm" onclick="viderActivitesAssocie()" title="🔒 Mot de passe requis — supprime uniquement les activités créées par l'Associé">🗑️ Vider Associé</button>
@@ -619,7 +641,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st">Stock Entreprise</div><div class="ss">Marchandises communes — seuil d'alerte par produit</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bp bsm" onclick="rSF();om('ms')">+ Entrée stock</button>
+      <button class="btn bp bsm btn-add-fixed" onclick="rSF();om('ms')">+ Entrée stock</button>
       <button class="btn bh bsm" onclick="ouvrirReductionCapital()" title="Réduire manuellement le capital (montant + motif)">➖ Réduire le capital</button>
       <button class="btn bh bsm" onclick="toggleTriAZ('stock')" id="btn-az-stock" title="Trier les produits par ordre alphabétique">🔤 A-Z</button>
       <button class="btn bd bsm" onclick="viderStock()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
@@ -664,7 +686,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st">Stock Personnel</div><div class="ss">Suivi comptable — vos produits sont fusionnés au Stock Entreprise</div></div>
     <div style="display:flex;gap:6px">
-      <button class="btn bg bsm" onclick="rPF();om('mp')">+ Ajouter</button>
+      <button class="btn bg bsm btn-add-fixed" onclick="rPF();om('mp')">+ Ajouter</button>
       <button class="btn bh bsm" onclick="toggleTriAZ('perso')" id="btn-az-perso" title="Trier les produits par ordre alphabétique">🔤 A-Z</button>
       <button class="btn bd bsm" onclick="viderPerso()" title="🔒 Mot de passe requis">🗑️ Vider</button>
     </div>
@@ -751,7 +773,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st">Associé & Dettes</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bd bsm" id="btn-add-dette" onclick="rDF();om('mdet')">➕ Ajouter dette</button>
+      <button class="btn bd bsm btn-add-fixed" id="btn-add-dette" onclick="rDF();om('mdet')">➕ Ajouter dette</button>
       <button class="btn bs bsm" onclick="om('mpaym')">💳 Paiement</button>
       <button class="btn bd bsm" onclick="viderDettes()" title="🔒 Mot de passe requis">🗑️ Dettes</button>
       <button class="btn bd bsm" onclick="viderPaiements()" title="🔒 Mot de passe requis">🗑️ Paiements</button>
@@ -817,7 +839,7 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- DÉPENSES -->
 <div id="tab-depenses" class="tab-panel">
   <div class="sh"><div><div class="st">Dépenses</div></div><div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bp bsm" onclick="rDepF();om('md')">+ Ajouter</button>
+      <button class="btn bp bsm btn-add-fixed" onclick="rDepF();om('md')">+ Ajouter</button>
       <button class="btn bd bsm" onclick="viderDep()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
       <button class="btn bh bsm no-print" onclick="imprimerSection('tab-depenses','Dépenses')" title="Imprimer">🖨️</button>
     </div></div>
@@ -853,7 +875,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st">Commandes</div><div class="ss">Clients + Alertes stock faible → Fournisseurs</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bo bsm" onclick="rCF();om('mc')">+ Nouvelle commande</button>
+      <button class="btn bo bsm btn-add-fixed" onclick="rCF();om('mc')">+ Nouvelle commande</button>
       <button class="btn bh bsm" onclick="toggleTriAZ('cmd')" id="btn-az-cmd" title="Trier les commandes par nom de client, par ordre alphabétique">🔤 A-Z</button>
       <button class="btn bg bsm" onclick="genererCmdFournisseurAuto()" title="Génère (ou met à jour) automatiquement une commande fournisseur à partir des produits en stock faible, groupée par catégorie, modifiable avant envoi">📦 Générer commande fournisseur</button>
       <button class="btn bd bsm" onclick="viderCommandes()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
@@ -7228,8 +7250,10 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.04'; // 14-09-2026 : CORRECTION STRICTE — HEURE DE MISE À JOUR. L'heure/date affichée par versionAffichee() ne doit plus changer à chaque actualisation/rechargement de l'application ; elle doit rester figée sur l'instant exact de la dernière mise à jour réellement publiée. Ajout de la constante APP_VERSION_DATE (juste en dessous), qui remplace new Date() dans versionAffichee(). À CHAQUE future mise à jour du code : incrémenter APP_VERSION (V0.04→V0.05...), mettre à jour APP_VERSION_DATE avec la date/heure exacte de cette nouvelle mise à jour, ET incrémenter CACHE_VERSION dans sw.js. Aucune fonctionnalité, donnée, calcul, Supabase, synchronisation ni logique métier modifiés. Historique interne (v83→V0.03) conservé ci-dessous à titre de journal, sans effet sur le fonctionnement.
-var APP_VERSION_DATE = '2026-09-14T01:47:21'; // Date/heure exacte de la mise à jour V0.04 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.06'; // 14-09-2026 : VÉRIFICATION STRICTE — BOUTON (+) UNIQUEMENT. Position du bouton (+) confirmée à 14px du bas/droite (dans la plage 12-16px demandée) sur 360×740 et écran large. Ajout d'un espace réservé en bas des 6 onglets concernés (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) pour que le bouton (+) ne recouvre jamais la dernière ligne de données/le dernier contrôle en fin de défilement. Aucun autre onglet, bouton, modal, bandeau, ni l'apparence du bouton lui-même, n'est modifié. Aucune fonctionnalité, donnée, calcul, Supabase, synchronisation ni logique métier modifiés. Historique interne (v83→V0.05) conservé ci-dessous à titre de journal, sans effet sur le fonctionnement.
+var APP_VERSION_DATE = '2026-09-14T09:43:06'; // Date/heure exacte de la mise à jour V0.06 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION_V0_05_HISTORIQUE = 'V0.05'; // 14-09-2026 : ajout du bouton (+) fixe en bas-droite dans Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes.
+var APP_VERSION_V0_04_HISTORIQUE = 'V0.04'; // 14-09-2026 : l'heure/date affichée par versionAffichee() a été figée sur APP_VERSION_DATE (au lieu de new Date()), pour ne plus changer à chaque actualisation.
 var APP_VERSION_V0_03_HISTORIQUE = 'V0.03'; // 14-09-2026 : suppression complète de l'ancien affichage "MAJ JJ-MM-AA à HH:MM" en doublon avec la version.
 var APP_VERSION_V0_02_HISTORIQUE = 'V0.02'; // 14-09-2026 : l'incrémentation d'APP_VERSION à chaque mise à jour (V0.01→V0.02→...) a été rétablie, en plus de la date/heure exacte générée automatiquement à l'affichage.
 var APP_VERSION_V0_01_HISTORIQUE = 'V0.01'; // 14-09-2026 : unification du numéro de version interne avec le préfixe affiché à l'écran — valeur figée temporairement (sans incrémentation), corrigé juste au-dessus.
