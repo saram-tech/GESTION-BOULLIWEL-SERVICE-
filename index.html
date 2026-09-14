@@ -395,7 +395,7 @@ tbody tr:last-child td{border-bottom:none;}
 </div>
 
 <header>
-  <div class="logo">GESTION-BOULLIWEL-SERVICE.app <small>Gestion Intégrée <span id="hdr-version" onclick="ouvrirAPropos()" style="cursor:pointer;text-decoration:underline dotted" title="Voir les détails de la dernière mise à jour">v—</span> · <span id="hdr-maj" onclick="ouvrirAPropos()" style="cursor:pointer;text-decoration:underline dotted" title="Voir les détails de la dernière mise à jour">MAJ —</span></small></div>
+  <div class="logo">GESTION-BOULLIWEL-SERVICE.app <small>Gestion Intégrée <span id="hdr-version" onclick="ouvrirAPropos()" style="cursor:pointer;text-decoration:underline dotted" title="Voir les détails de la dernière mise à jour">v—</span></small></div>
   <div id="sync-status" class="sync-badge sync-offline" title="Statut de synchronisation — Toucher pour voir le diagnostic détaillé" onclick="diagnosticConnexion()" style="cursor:pointer">⚪ Vérification…</div>
   <div id="hbts-admin" class="hbts">
     <button id="btn-refresh-admin" class="btn-refresh" onclick="rafraichirDonnees()" title="Rafraîchir les données affichées">⟳</button>
@@ -1193,7 +1193,6 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div style="background:var(--bg4);border-radius:9px;padding:12px;font-size:.83rem;line-height:1.9">
       <div style="display:flex;justify-content:space-between"><span style="color:var(--tx2)">Version</span><strong id="ap-version">—</strong></div>
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--tx2)">Dernière mise à jour</span><strong id="ap-maj">—</strong></div>
       <div style="display:flex;justify-content:space-between"><span style="color:var(--tx2)">Développé pour</span><strong>Boulliwel Service</strong></div>
     </div>
     <div class="al alw" style="font-size:.74rem;margin-top:10px">Dernière mise à jour majeure : fusion Stock Perso ↔ Stock Entreprise, majuscules automatiques, suggestions de produits, paramètres réglables, envoi WhatsApp fournisseur.</div>
@@ -2247,10 +2246,6 @@ function getParams(){
 }
 function ouvrirAPropos(){
   st('ap-version',versionAffichee());
-  var d=new Date(APP_DERNIERE_MAJ);
-  var jour=fmtDateJour(APP_DERNIERE_MAJ.slice(0,10));
-  var heure=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
-  st('ap-maj',jour+' à '+heure);
   om('mabout');
 }
 /**
@@ -7226,7 +7221,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.02'; // 14-09-2026 : DEMANDE — l'incrémentation à chaque mise à jour (V0.01→V0.02→V0.03...) est rétablie : APP_VERSION doit encore avancer d'une correction à l'autre, EN PLUS de la date/heure exacte générée automatiquement à l'affichage. versionAffichee() combine désormais APP_VERSION + '.' + date/heure du moment (ex: V0.02.14-09-2026-01:20:05), au lieu du préfixe figé 'V0.01' codé en dur. À chaque future mise à jour du code : incrémenter cette constante (V0.02→V0.03...) ET CACHE_VERSION dans sw.js. Cette valeur reste aussi utilisée telle quelle dans les exports JSON (_meta.version). Aucune fonctionnalité, donnée, calcul, Supabase, synchronisation ni logique métier modifiés. Historique interne (v83→V0.01) conservé ci-dessous à titre de journal, sans effet sur le fonctionnement.
+var APP_VERSION = 'V0.03'; // 14-09-2026 : CORRECTION STRICTE, VERSION UNIQUE — suppression complète de l'ancien affichage "MAJ JJ-MM-AA à HH:MM" (en-tête #hdr-maj + écran "À propos" #ap-maj), qui formait un deuxième format de date/heure en doublon avec la version. Seul le format unique V0.01.JJ-MM-AAAA-HH:MM:SS (via versionAffichee(), qui utilise cette constante APP_VERSION comme préfixe) reste affiché, partout. Aucune fonctionnalité, donnée, calcul, Supabase, synchronisation ni logique métier modifiés. Historique interne (v83→V0.02) conservé ci-dessous à titre de journal, sans effet sur le fonctionnement.
+var APP_VERSION_V0_02_HISTORIQUE = 'V0.02'; // 14-09-2026 : l'incrémentation d'APP_VERSION à chaque mise à jour (V0.01→V0.02→...) a été rétablie, en plus de la date/heure exacte générée automatiquement à l'affichage.
 var APP_VERSION_V0_01_HISTORIQUE = 'V0.01'; // 14-09-2026 : unification du numéro de version interne avec le préfixe affiché à l'écran — valeur figée temporairement (sans incrémentation), corrigé juste au-dessus.
 var APP_VERSION_v97_HISTORIQUE = 'v97'; // 14-09-2026 : CORRECTION STRICTE — VERSION UNIQUEMENT. L'affichage de la version (en-tête + écran "À propos") a été remplacé par un format généré automatiquement à partir de la date/heure exacte du moment : V0.01.JJ-MM-AAAA-HH:MM:SS (ex: V0.01.14-09-2026-00:41:32), via la fonction versionAffichee().
 var APP_VERSION_v96_HISTORIQUE = 'v96'; // 14-09-2026 : CORRECTION STRICTE v95→v96 (3 points, rien d'autre modifié) : (1) Onglet actif — la règle .nb.active est doublée par rapport à v95 (police .9rem→1.8rem, padding 8px 15px→16px 30px, gras conservé) ; les autres onglets (.nb) sont inchangés, la barre reste en défilement horizontal, aucun chevauchement possible. (2) Formules/informations techniques masquées par défaut dans Activités, Stock Entreprise, Stock Perso, Bilan, Associé, Dépenses, Commandes, Historique et Corbeille : chaque bloc concerné est désormais caché (style.display) derrière un bouton "🔍 En savoir plus" (fonction générique toggleInfoTech(), aucun contenu supprimé, juste masqué/affiché). (3) Barre supérieure — les boutons "🔗 Lien partage" et "🔌 Test Cloud" sont masqués (style="display:none") uniquement dans l'en-tête ; les mêmes actions restent disponibles dans Paramètres > Données.
@@ -8254,15 +8250,11 @@ document.addEventListener('DOMContentLoaded',function(){
   migrerBaseVenduPerso();
   migrerVenduReelPerso();
   cmdLignes=[]; rCL(); renderAll();
-  // Heure de la dernière mise à jour de l'application, affichée dans l'en-tête
-  (function(){
-    var el=document.getElementById('hdr-maj'); if(!el) return;
-    var d=new Date(APP_DERNIERE_MAJ);
-    if(isNaN(d.getTime())){ el.textContent='MAJ —'; return; }
-    var jj=('0'+d.getDate()).slice(-2), mm=('0'+(d.getMonth()+1)).slice(-2), aa=d.getFullYear();
-    var hh=('0'+d.getHours()).slice(-2), mn=('0'+d.getMinutes()).slice(-2);
-    el.textContent='MAJ '+jj+'-'+mm+'-'+aa+' à '+hh+':'+mn;
-  })();
+  // CORRECTION STRICTE — VERSION UNIQUE (14-09-2026) : l'ancien affichage
+  // "MAJ JJ-MM-AA à HH:MM" (élément #hdr-maj) est supprimé — il créait un
+  // deuxième format de date/heure en doublon avec la version. Seul le
+  // format unique V0.01.JJ-MM-AAAA-HH:MM:SS (voir versionAffichee()),
+  // ci-dessous, reste affiché dans l'en-tête.
   // Numéro de version, affiché dans l'en-tête au format demandé
   // V0.01.JJ-MM-AAAA-HH:MM:SS (voir versionAffichee()) — CORRECTION
   // STRICTE, VERSION UNIQUEMENT : la constante APP_VERSION continue
