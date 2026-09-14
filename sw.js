@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v160'; // 14-09-2026 : index.html v97 — CORRECTION STRICTE, VERSION UNIQUEMENT : l'affichage de la version (en-tête + écran "À propos") est désormais généré automatiquement au format V0.01.JJ-MM-AAAA-HH:MM:SS (date/heure exacte du moment), via versionAffichee(). La constante APP_VERSION continue d'être utilisée telle quelle dans les exports JSON. Aucune fonctionnalité, donnée, calcul, Supabase, synchronisation ni logique métier modifiés. Voir commentaire APP_VERSION dans index.html.
+const CACHE_VERSION = 'v162'; // 14-09-2026 : index.html V0.02 — DEMANDE : l'incrémentation d'APP_VERSION à chaque mise à jour (V0.01→V0.02→...) est rétablie, EN PLUS de la date/heure exacte générée automatiquement à l'affichage (versionAffichee() = APP_VERSION + date/heure du moment). Aucune fonctionnalité, donnée, calcul, Supabase, synchronisation ni logique métier modifiés. Voir commentaire APP_VERSION dans index.html.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
