@@ -1724,7 +1724,14 @@ function cm(id){ document.getElementById(id).classList.remove('open'); }
  * ailleurs dans le code) — uniquement le texte visible à l'écran.
  */
 function versionAffichee(){
-  var d=new Date();
+  // CORRECTION STRICTE (14-09-2026) — l'heure/date affichée doit être
+  // FIGÉE sur le moment exact de la dernière mise à jour publiée, PAS
+  // sur l'instant présent : new Date() a été remplacé par la constante
+  // APP_VERSION_DATE (déclarée plus bas avec APP_VERSION), afin qu'une
+  // actualisation/fermeture/réouverture de l'application ne change plus
+  // jamais cette heure. Seule une nouvelle mise à jour du code (avec un
+  // nouvel APP_VERSION_DATE) doit la faire avancer.
+  var d=new Date(APP_VERSION_DATE);
   var jj=('0'+d.getDate()).slice(-2), mm=('0'+(d.getMonth()+1)).slice(-2), aaaa=d.getFullYear();
   var hh=('0'+d.getHours()).slice(-2), mn=('0'+d.getMinutes()).slice(-2), ss=('0'+d.getSeconds()).slice(-2);
   return APP_VERSION+'.'+jj+'-'+mm+'-'+aaaa+'-'+hh+':'+mn+':'+ss;
@@ -7221,7 +7228,9 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.03'; // 14-09-2026 : CORRECTION STRICTE, VERSION UNIQUE — suppression complète de l'ancien affichage "MAJ JJ-MM-AA à HH:MM" (en-tête #hdr-maj + écran "À propos" #ap-maj), qui formait un deuxième format de date/heure en doublon avec la version. Seul le format unique V0.01.JJ-MM-AAAA-HH:MM:SS (via versionAffichee(), qui utilise cette constante APP_VERSION comme préfixe) reste affiché, partout. Aucune fonctionnalité, donnée, calcul, Supabase, synchronisation ni logique métier modifiés. Historique interne (v83→V0.02) conservé ci-dessous à titre de journal, sans effet sur le fonctionnement.
+var APP_VERSION = 'V0.04'; // 14-09-2026 : CORRECTION STRICTE — HEURE DE MISE À JOUR. L'heure/date affichée par versionAffichee() ne doit plus changer à chaque actualisation/rechargement de l'application ; elle doit rester figée sur l'instant exact de la dernière mise à jour réellement publiée. Ajout de la constante APP_VERSION_DATE (juste en dessous), qui remplace new Date() dans versionAffichee(). À CHAQUE future mise à jour du code : incrémenter APP_VERSION (V0.04→V0.05...), mettre à jour APP_VERSION_DATE avec la date/heure exacte de cette nouvelle mise à jour, ET incrémenter CACHE_VERSION dans sw.js. Aucune fonctionnalité, donnée, calcul, Supabase, synchronisation ni logique métier modifiés. Historique interne (v83→V0.03) conservé ci-dessous à titre de journal, sans effet sur le fonctionnement.
+var APP_VERSION_DATE = '2026-09-14T01:47:21'; // Date/heure exacte de la mise à jour V0.04 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION_V0_03_HISTORIQUE = 'V0.03'; // 14-09-2026 : suppression complète de l'ancien affichage "MAJ JJ-MM-AA à HH:MM" en doublon avec la version.
 var APP_VERSION_V0_02_HISTORIQUE = 'V0.02'; // 14-09-2026 : l'incrémentation d'APP_VERSION à chaque mise à jour (V0.01→V0.02→...) a été rétablie, en plus de la date/heure exacte générée automatiquement à l'affichage.
 var APP_VERSION_V0_01_HISTORIQUE = 'V0.01'; // 14-09-2026 : unification du numéro de version interne avec le préfixe affiché à l'écran — valeur figée temporairement (sans incrémentation), corrigé juste au-dessus.
 var APP_VERSION_v97_HISTORIQUE = 'v97'; // 14-09-2026 : CORRECTION STRICTE — VERSION UNIQUEMENT. L'affichage de la version (en-tête + écran "À propos") a été remplacé par un format généré automatiquement à partir de la date/heure exacte du moment : V0.01.JJ-MM-AAAA-HH:MM:SS (ex: V0.01.14-09-2026-00:41:32), via la fonction versionAffichee().

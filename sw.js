@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v163'; // 14-09-2026 : index.html — CORRECTION STRICTE, VERSION UNIQUE : suppression complète de l'ancien affichage "MAJ JJ-MM-AA à HH:MM" (en-tête #hdr-maj + écran "À propos" #ap-maj), qui formait un deuxième format de date/heure en doublon. Seul le format unique V0.01.JJ-MM-AAAA-HH:MM:SS (versionAffichee()) reste affiché, partout. Aucune fonctionnalité, donnée, calcul, Supabase, synchronisation ni logique métier modifiés. Voir commentaire APP_VERSION dans index.html.
+const CACHE_VERSION = 'v164'; // 14-09-2026 : index.html V0.04 — CORRECTION STRICTE, HEURE DE MISE À JOUR : versionAffichee() n'utilise plus new Date() (qui changeait à chaque actualisation) mais la nouvelle constante figée APP_VERSION_DATE, mise à jour manuellement uniquement lors d'une vraie nouvelle mise à jour du code. Format inchangé : V0.0X.JJ-MM-AAAA-HH:MM:SS. Aucune fonctionnalité, donnée, calcul, Supabase, synchronisation ni logique métier modifiés. Voir commentaire APP_VERSION dans index.html.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
