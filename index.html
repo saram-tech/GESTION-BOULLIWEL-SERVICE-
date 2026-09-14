@@ -7250,8 +7250,9 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.06'; // 14-09-2026 : VÉRIFICATION STRICTE — BOUTON (+) UNIQUEMENT. Position du bouton (+) confirmée à 14px du bas/droite (dans la plage 12-16px demandée) sur 360×740 et écran large. Ajout d'un espace réservé en bas des 6 onglets concernés (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) pour que le bouton (+) ne recouvre jamais la dernière ligne de données/le dernier contrôle en fin de défilement. Aucun autre onglet, bouton, modal, bandeau, ni l'apparence du bouton lui-même, n'est modifié. Aucune fonctionnalité, donnée, calcul, Supabase, synchronisation ni logique métier modifiés. Historique interne (v83→V0.05) conservé ci-dessous à titre de journal, sans effet sur le fonctionnement.
-var APP_VERSION_DATE = '2026-09-14T09:43:06'; // Date/heure exacte de la mise à jour V0.06 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.07'; // 14-09-2026 : CORRECTION CRITIQUE — STOCK PERSO. Cause exacte trouvée et corrigée dans mergeAppData() (fusion cloud/local, ~/20s) : le garde-fou anti-résurrection d'une fiche Stock Perso vidée par clôture (_videParCloture) forçait le vidage dès que L'UN OU L'AUTRE côté (cloud ou local) portait encore ce marqueur, SANS comparer les horodatages — écrasant ainsi un réapprovisionnement pourtant plus récent si le cloud n'avait pas encore reçu cette mise à jour au moment de la synchro suivante. Corrigé en ne forçant le vidage que si aucun côté "réactivé" n'est horodaté plus récemment que le dernier vidage connu (_localTouchedAt) ; sinon, la réactivation authentique l'emporte. Comportement de clôture/migration légitime entièrement préservé (testé). Aucun calcul, formule, donnée historique ni logique Supabase modifiés au-delà de cette comparaison d'horodatage. Historique interne (v83→V0.06) conservé ci-dessous à titre de journal, sans effet sur le fonctionnement.
+var APP_VERSION_DATE = '2026-09-14T18:45:22'; // Date/heure exacte de la mise à jour V0.07 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION_V0_06_HISTORIQUE = 'V0.06'; // 14-09-2026 : bouton (+) — position confirmée 14px bas/droite, espace réservé en bas des 6 onglets concernés.
 var APP_VERSION_V0_05_HISTORIQUE = 'V0.05'; // 14-09-2026 : ajout du bouton (+) fixe en bas-droite dans Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes.
 var APP_VERSION_V0_04_HISTORIQUE = 'V0.04'; // 14-09-2026 : l'heure/date affichée par versionAffichee() a été figée sur APP_VERSION_DATE (au lieu de new Date()), pour ne plus changer à chaque actualisation.
 var APP_VERSION_V0_03_HISTORIQUE = 'V0.03'; // 14-09-2026 : suppression complète de l'ancien affichage "MAJ JJ-MM-AA à HH:MM" en doublon avec la version.
@@ -9873,13 +9874,62 @@ function mergeAppData(cloudData, localData, cloudIsNewer, cloudDate, localDate) 
        * arrivant plus tard, sur cet appareil comme sur un autre.
        */
       if(f==='perso'){
-        var dejaVideAilleurs = (bItem && bItem._videParCloture) || (pItem && pItem._videParCloture) || item._videParCloture;
+        /**
+         * CORRECTIF CRITIQUE (14-09-2026 — "un produit/quantité ajouté au
+         * Stock Perso après une clôture est revidé automatiquement AVANT
+         * la clôture suivante") — CAUSE EXACTE TROUVÉE : ce garde-fou (voir
+         * les deux correctifs ci-dessus, 01-09-2026) force le vidage dès
+         * que L'UN OU L'AUTRE côté (bItem/pItem) porte encore
+         * _videParCloture pour cet id — SANS jamais comparer les
+         * horodatages. Or enrPerso() retire déjà correctement ce marqueur
+         * dès qu'une fiche vidée reçoit un VRAI réapprovisionnement
+         * (_videParCloture=false, _localTouchedAt=Date.now(), voir plus
+         * haut dans ce fichier) : ce réapprovisionnement est donc, à ce
+         * moment-là, la modification la plus récente pour cette fiche. Le
+         * cycle de synchronisation automatique (~20s, voir
+         * demarrerAutoSyncAppData()) relit alors le cloud AVANT que cet
+         * appareil n'ait eu le temps de lui envoyer ce réapprovisionnement
+         * : le cloud renvoie encore l'ANCIENNE fiche, toujours marquée
+         * _videParCloture=true depuis la clôture précédente. Ce garde-fou,
+         * en voyant ce marqueur d'UN SEUL des deux côtés, écrasait alors
+         * sans condition le réapprovisionnement pourtant plus récent —
+         * AVANT toute nouvelle clôture réelle, exactement le symptôme
+         * signalé.
+         * CORRIGÉ en ne forçant le vidage QUE si aucun des deux côtés non
+         * vidés n'est horodaté (_localTouchedAt) plus récemment que le
+         * côté vidé le plus récent : un réapprovisionnement authentique,
+         * horodaté après le dernier vidage connu, l'emporte désormais
+         * toujours — le résultat adopte alors son contenu exact, et le
+         * traitement continue normalement ci-dessous (protection anti-recul
+         * de quantité, fusion de l'historique des prix). Si l'horodatage
+         * manque d'un côté ou de l'autre (anciennes données jamais
+         * touchées par ces correctifs), le comportement de prudence
+         * précédent (vidage forcé) reste appliqué à l'identique — aucune
+         * régression pour les cas déjà couverts (clôture/migration
+         * légitimement vidée, aucune réactivation en cours).
+         */
+        var candidatVide=null, candidatActif=null;
+        [bItem,pItem].forEach(function(x){
+          if(!x) return;
+          if(x._videParCloture){ if(!candidatVide || (x._localTouchedAt||0)>(candidatVide._localTouchedAt||0)) candidatVide=x; }
+          else { if(!candidatActif || (x._localTouchedAt||0)>(candidatActif._localTouchedAt||0)) candidatActif=x; }
+        });
+        var dejaVideAilleurs = !!candidatVide || !!item._videParCloture;
         if(dejaVideAilleurs){
-          item.qteInitiale=0; item.achat=0; item.vente=0; item.prixRevient=0; item.commission=0;
-          item.totalDu=0; item.rembourse=0;
-          item.dernierAjoutQte=0; item.dernierAjoutDate=null; item.dernierAjoutRevient=0; item.dernierAjoutCommission=0;
-          item._videParCloture=true;
-          return;
+          var reactivationPlusRecente = candidatActif && candidatVide &&
+            candidatActif._localTouchedAt && candidatVide._localTouchedAt &&
+            candidatActif._localTouchedAt > candidatVide._localTouchedAt;
+          if(!reactivationPlusRecente){
+            item.qteInitiale=0; item.achat=0; item.vente=0; item.prixRevient=0; item.commission=0;
+            item.totalDu=0; item.rembourse=0;
+            item.dernierAjoutQte=0; item.dernierAjoutDate=null; item.dernierAjoutRevient=0; item.dernierAjoutCommission=0;
+            item._videParCloture=true;
+            return;
+          }
+          ['qteInitiale','achat','vente','prixRevient','commission','totalDu','rembourse',
+           'dernierAjoutQte','dernierAjoutDate','dernierAjoutRevient','dernierAjoutCommission',
+           'derniereModifDate','_localTouchedAt'].forEach(function(champ){ item[champ]=candidatActif[champ]; });
+          item._videParCloture=false;
         }
       }
       if(bItem && pItem){

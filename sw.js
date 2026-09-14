@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v166'; // 14-09-2026 : index.html V0.06 — VÉRIFICATION STRICTE, BOUTON (+) UNIQUEMENT : position confirmée (14px bas/droite), ajout d'un espace réservé en bas des 6 onglets concernés pour qu'il ne recouvre jamais la dernière donnée/contrôle en fin de défilement. Rien d'autre modifié. Voir commentaire APP_VERSION dans index.html.
+const CACHE_VERSION = 'v167'; // 14-09-2026 : index.html V0.07 — CORRECTION CRITIQUE STOCK PERSO : mergeAppData() ne revide plus de force une fiche Stock Perso réapprovisionnée après clôture quand le cloud renvoie encore, temporairement, l'ancienne version vidée (comparaison d'horodatage ajoutée). Vérification globale effectuée (Activités/Stock/Perso/Dépenses/Commandes/Dettes/Bilan/Dashboard + clôture réelle) sans erreur. Aucun calcul, donnée historique ni logique métier modifiés au-delà de cette comparaison. Voir commentaire APP_VERSION dans index.html.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
