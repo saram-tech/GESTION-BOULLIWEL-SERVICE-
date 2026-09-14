@@ -77,26 +77,25 @@ header{position:sticky;top:0;z-index:200;background:rgba(7,11,20,.97);backdrop-f
 nav{background:var(--bg2);border-bottom:1px solid var(--bd);position:sticky;top:54px;z-index:190;overflow-x:auto;}
 .ni{display:flex;gap:2px;padding:7px 12px 0;min-width:max-content;}
 .nb{padding:6px 12px;border-radius:7px 7px 0 0;background:transparent;border:1px solid transparent;border-bottom:none;color:var(--tx2);cursor:pointer;font-family:var(--font-body);font-size:.77rem;font-weight:500;white-space:nowrap;transition:all .2s;}
-/* CORRECTIF (13-09-2026 — v95) : DEMANDE — l'onglet actuellement
-   sélectionné doit être nettement plus visible/identifiable, sur
-   téléphone comme sur ordinateur, via un agrandissement "remarquable
-   mais raisonnable". Seule la règle .nb.active est modifiée (taille de
-   police et espacement internes légèrement augmentés, + gras) ; la
-   règle .nb (tous les autres onglets) n'est pas touchée. .ni reste en
-   display:flex à l'intérieur de nav{overflow-x:auto} (déjà en place) :
-   l'onglet actif prenant un peu plus de place, flexbox redistribue
-   naturellement l'espace des onglets suivants sans jamais les faire
-   chevaucher, et tout dépassement horizontal éventuel est déjà géré
-   par le défilement propre à la barre d'onglets — comme pour n'importe
-   quel autre onglet plus large que la moyenne. La transition déjà
-   présente sur .nb (transition:all .2s) anime ce changement de taille
-   en douceur. Le défilement automatique de la barre d'onglets vers
-   l'onglet actif (v94, scrollIntoView dans gt()) n'est pas modifié et
-   continue de fonctionner à l'identique avec ce nouveau gabarit. Le
-   balayage tactile (v93) n'est pas touché. Aucun calcul, donnée,
-   Supabase, bouton ni logique métier modifiés — uniquement l'apparence
-   visuelle de l'onglet sélectionné. */
-.nb.active{background:var(--bg3);border-color:var(--bd2);color:var(--ac);font-size:.9rem;font-weight:700;padding:8px 15px;}
+/* CORRECTIF (13-09-2026 — v96, remplace v95) : DEMANDE — l'onglet
+   actuellement sélectionné doit être 2× plus grand que la taille v95
+   (police .9rem→1.8rem, padding 8px 15px→16px 30px, gras conservé).
+   Seule la règle .nb.active est modifiée ; la règle .nb (tous les
+   autres onglets) n'est pas touchée. .ni reste en display:flex à
+   l'intérieur de nav{overflow-x:auto} (déjà en place) : l'onglet actif
+   prenant plus de place, flexbox redistribue naturellement l'espace
+   des onglets suivants sans jamais les faire chevaucher, et tout
+   dépassement horizontal éventuel est déjà géré par le défilement
+   propre à la barre d'onglets (nav n'a pas de hauteur fixe, elle
+   s'agrandit verticalement sans chevaucher le contenu qui suit). La
+   transition déjà présente sur .nb (transition:all .2s) anime ce
+   changement de taille en douceur. Le défilement automatique de la
+   barre d'onglets vers l'onglet actif (v94, scrollIntoView dans gt())
+   n'est pas modifié et continue de fonctionner à l'identique avec ce
+   nouveau gabarit. Le balayage tactile (v93) n'est pas touché. Aucun
+   calcul, donnée, Supabase, bouton ni logique métier modifiés —
+   uniquement l'apparence visuelle de l'onglet sélectionné. */
+.nb.active{background:var(--bg3);border-color:var(--bd2);color:var(--ac);font-size:1.8rem;font-weight:700;padding:16px 30px;}
 .nb:hover:not(.active){color:var(--tx);}
 main{padding:12px;max-width:1400px;margin:0 auto;position:relative;z-index:1;}
 .tab-panel{display:none;animation:fi .2s ease;}.tab-panel.active{display:block;}
@@ -405,8 +404,12 @@ tbody tr:last-child td{border-bottom:none;}
     <button class="btn bh bsm" onclick="exportData()" title="Télécharger une sauvegarde complète des données (.json)">💾 Export</button>
     <button class="btn bh bsm" onclick="exportExcel()" title="Exporter toutes les données en fichier Excel (.xlsx)">📊 Excel</button>
     <button class="btn bh bsm" onclick="importData()" title="Restaurer les données depuis un fichier de sauvegarde (.json)">📂 Import</button>
-    <button class="btn bg bsm" onclick="saveCloud()" title="Génère un lien de partage manuel (différent de la synchronisation cloud automatique)">🔗 Lien partage</button>
-    <button class="btn bg bsm" onclick="testSupabaseConnection()" title="Vérifier la connexion Supabase">🔌 Test Cloud</button>
+    <!-- v96 : boutons masqués sur DEMANDE (barre supérieure uniquement)
+         — style="display:none" seulement, onclick/fonction intacts,
+         aucun autre élément de la barre supérieure modifié. Les mêmes
+         actions restent disponibles dans Paramètres > Données. -->
+    <button class="btn bg bsm" onclick="saveCloud()" title="Génère un lien de partage manuel (différent de la synchronisation cloud automatique)" style="display:none">🔗 Lien partage</button>
+    <button class="btn bg bsm" onclick="testSupabaseConnection()" title="Vérifier la connexion Supabase" style="display:none">🔌 Test Cloud</button>
     <button class="btn bd bsm" onclick="cloturer()" title="Clôturer la période : archive dettes/activités, remet les compteurs à zéro (mot de passe requis)">🔄 Clôture</button>
     <button class="btn bd bsm" onclick="viderTout()" title="Supprimer TOUT — remise à zéro complète de l'application (mot de passe requis)">🗑️ Tout</button>
     <button id="btn-install" class="btn bs bsm" style="display:none">📲 Installer</button>
@@ -576,7 +579,8 @@ tbody tr:last-child td{border-bottom:none;}
       <button class="btn bh bsm no-print" onclick="imprimerSection('tab-activites','Activités')" title="Imprimer">🖨️</button>
     </div>
   </div>
-  <div class="al ali" style="font-size:.77rem">
+  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-activites',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
+  <div class="al ali" id="fm-activites" style="font-size:.77rem;display:none">
     💡 <strong>Bénéfice = Montant PAYÉ − (Prix achat × Qté).</strong> Les restes à payer sont exclus du calcul.<br>
     📋 Colonnes : Date | N° ordre | Ticket (manuel) | Type | Désignation | Panne | Prix achat×Qté | À Payer | Payé | Reste | Client | Bénéfice
   </div>
@@ -622,7 +626,8 @@ tbody tr:last-child td{border-bottom:none;}
       <button class="btn bh bsm no-print" onclick="imprimerSection('tab-stock','Stock Entreprise')" title="Imprimer">🖨️</button>
     </div>
   </div>
-  <div class="al ali" style="font-size:.77rem">
+  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-stock',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
+  <div class="al ali" id="fm-stock" style="font-size:.77rem;display:none">
     📦 <strong>Stock Restant = Initial − Vendu</strong> (mis à jour automatiquement à chaque vente).<br>
     🔴 Quand Stock Restant ≤ Seuil → alerte + fiche commande fournisseur dans l'onglet <strong>Commandes</strong>.
   </div>
@@ -664,7 +669,8 @@ tbody tr:last-child td{border-bottom:none;}
       <button class="btn bd bsm" onclick="viderPerso()" title="🔒 Mot de passe requis">🗑️ Vider</button>
     </div>
   </div>
-  <div class="al alw" style="font-size:.77rem">
+  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-perso',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
+  <div class="al alw" id="fm-perso" style="font-size:.77rem;display:none">
     🔗 <strong>Ce n'est plus un stock séparé.</strong> Chaque produit ajouté ici est automatiquement fusionné dans le Stock Entreprise (stock physique unique) — cette page ne sert qu'à suivre ce que l'entreprise vous doit.<br>
     🏷️ <strong>Créance = (Prix achat × Qté) × 1.15</strong> — L'entreprise vous doit le prix de revient + 15%.<br>
     Exemple : 5 unités à 100 000 GNF = revient 500 000 GNF → entreprise vous doit <strong>575 000 GNF</strong>.<br>
@@ -699,13 +705,15 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- BILAN -->
 <div id="tab-bilan" class="tab-panel">
   <div class="sh"><div><div class="st">Bilan & Répartition</div></div><button class="btn bg bsm" onclick="calculerBilan()">🔄 Calculer</button></div>
-  <div class="al als" style="font-size:.77rem">✅ Bénéfice calculé uniquement sur montants <strong>ENCAISSÉS (PAYÉS)</strong>. Aucune saisie manuelle.</div>
+  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-bilan-note',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
+  <div class="al als" id="fm-bilan-note" style="font-size:.77rem;display:none">✅ Bénéfice calculé uniquement sur montants <strong>ENCAISSÉS (PAYÉS)</strong>. Aucune saisie manuelle.</div>
   <!-- Tableau des formules : masqué par défaut à l'écran (réglage
        Paramètres > Bilan > "Afficher le tableau des formules"), mais
        jamais supprimé du HTML — les calculs (calculerBilanData(),
        calculerBilan()...) ne dépendent en rien de cet affichage et
        continuent normalement, que ce bloc soit visible ou non. Voir
        appliquerVisibiliteFormulesBilan(). -->
+  <button class="btn bh bxs no-print" onclick="toggleInfoTech('card-formules-bilan',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
   <div class="card" id="card-formules-bilan" style="border-color:rgba(79,142,247,.25);margin-bottom:12px">
     <div class="ch"><span class="dot" style="background:var(--ac2)"></span>📐 Formules de calcul</div>
     <div class="g3">
@@ -750,7 +758,8 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
   </div>
   <div id="al-clot" class="al ald" style="display:none">🔒 Anomalie détectée : les dettes sont restées verrouillées d'une ancienne clôture. <button class="btn bh bxs" onclick="deverrouillerDettes()" style="margin-left:6px">🔓 Déverrouiller</button></div>
-  <div class="al ali" style="font-size:.77rem">
+  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-associe',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
+  <div class="al ali" id="fm-associe" style="font-size:.77rem;display:none">
     🤝 <strong>Dettes actives</strong> = cette période (modifiables) | <strong>Cumulé clôtures</strong> = périodes précédentes (verrouillées).<br>
     💳 <strong>Paiement type :</strong> Dette directe de l'associé OU Dette de sa femme uniquement.<br>
     📊 Dans le bilan : Dettes nettes = Total dettes − Total paiements reçus.
@@ -812,7 +821,8 @@ tbody tr:last-child td{border-bottom:none;}
       <button class="btn bd bsm" onclick="viderDep()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
       <button class="btn bh bsm no-print" onclick="imprimerSection('tab-depenses','Dépenses')" title="Imprimer">🖨️</button>
     </div></div>
-  <div class="al ali" style="font-size:.77rem">
+  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-depenses',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
+  <div class="al ali" id="fm-depenses" style="font-size:.77rem;display:none">
     💸 <strong>Total = Quantité × Prix unitaire</strong> (calculé automatiquement).<br>
     Les dépenses sont déduites du bénéfice net <strong>après</strong> le 20% de réinvestissement.
   </div>
@@ -849,7 +859,8 @@ tbody tr:last-child td{border-bottom:none;}
       <button class="btn bd bsm" onclick="viderCommandes()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
     </div>
   </div>
-  <div class="al alw" style="font-size:.77rem">
+  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-commandes',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
+  <div class="al alw" id="fm-commandes" style="font-size:.77rem;display:none">
     📑 <strong>Commandes clients</strong> avec numéro de téléphone — appel direct depuis l'app quand la commande est prête.<br>
     🔴 <strong>Alertes stock faible</strong> ci-dessous : fiches commande fournisseur générées automatiquement.
   </div>
@@ -894,6 +905,10 @@ tbody tr:last-child td{border-bottom:none;}
       </span>
       <button class="btn bd bsm" onclick="vHisto()" title="🔒 Mot de passe requis">🗑️ Vider</button>
     </div>
+  </div>
+  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-historique',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
+  <div class="al ali" id="fm-historique" style="font-size:.77rem;display:none">
+    📋 <strong>Journal automatique</strong> : chaque opération (activité, stock, dépense, paiement, dette, commande) y est enregistrée avec sa date, son heure et son montant, dès qu'elle est effectuée.
   </div>
   <div class="card"><div class="tw"><table>
     <thead><tr><th>#</th><th>Date</th><th>Type</th><th>Description</th><th>Montant</th></tr></thead>
@@ -979,7 +994,8 @@ tbody tr:last-child td{border-bottom:none;}
     <div><div class="st">Corbeille</div><div class="ss">Éléments supprimés — récupérables</div></div>
     <button class="btn bd bsm" onclick="vCorbeille()" title="🔒 Mot de passe requis">❌ Vider définitivement</button>
   </div>
-  <div class="al alw" style="font-size:.77rem">♻️ Restaurez ou supprimez définitivement. Les éléments supprimés de la corbeille sont irrécupérables.</div>
+  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-corbeille',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
+  <div class="al alw" id="fm-corbeille" style="font-size:.77rem;display:none">♻️ Restaurez ou supprimez définitivement. Les éléments supprimés de la corbeille sont irrécupérables.</div>
   <div class="card">
     <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
       <input type="text" id="f-search-corbeille" placeholder="🔍 Rechercher..." oninput="deb('corbeille',rCorbeille)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
@@ -1701,6 +1717,36 @@ function om(id){
 }
 function cm(id){ document.getElementById(id).classList.remove('open'); }
 /**
+ * AJOUT (v97) — CORRECTION STRICTE, VERSION UNIQUEMENT : génère le texte
+ * de version affiché (en-tête + écran "À propos"), au format demandé
+ * V0.01.JJ-MM-AAAA-HH:MM:SS, avec la date/heure exacte au moment de
+ * l'affichage. Ne remplace PAS la constante APP_VERSION elle-même (qui
+ * reste utilisée telle quelle dans les exports JSON/_meta et partout
+ * ailleurs dans le code) — uniquement le texte visible à l'écran.
+ */
+function versionAffichee(){
+  var d=new Date();
+  var jj=('0'+d.getDate()).slice(-2), mm=('0'+(d.getMonth()+1)).slice(-2), aaaa=d.getFullYear();
+  var hh=('0'+d.getHours()).slice(-2), mn=('0'+d.getMinutes()).slice(-2), ss=('0'+d.getSeconds()).slice(-2);
+  return 'V0.01.'+jj+'-'+mm+'-'+aaaa+'-'+hh+':'+mn+':'+ss;
+}
+/**
+ * AJOUT (v96) — bouton générique "🔍 En savoir plus" utilisé dans
+ * Activités, Stock Entreprise, Stock Perso, Bilan, Associé, Dépenses,
+ * Commandes, Historique et Corbeille pour masquer par défaut les
+ * formules/informations techniques et les afficher à la demande.
+ * Purement visuel (style.display) : ne touche à AUCUN calcul, AUCUNE
+ * donnée, ni Supabase/synchronisation. Le contenu masqué reste présent
+ * dans le HTML et continue d'exister normalement, juste caché à l'oeil.
+ */
+function toggleInfoTech(id,btn){
+  var el=document.getElementById(id);
+  if(!el) return;
+  var masque = (el.style.display==='none');
+  el.style.display = masque ? '' : 'none';
+  if(btn) btn.textContent = masque ? '🔽 Masquer' : '🔍 En savoir plus';
+}
+/**
  * CORRECTIF (Paramètres — la fenêtre se ferme/revient en arrière toute
  * seule) : cause réelle identifiée — la fermeture au clic sur le fond
  * (backdrop) ne testait que la cible du "click", sans vérifier où le
@@ -2200,7 +2246,7 @@ function getParams(){
   return D.params;
 }
 function ouvrirAPropos(){
-  st('ap-version',APP_VERSION);
+  st('ap-version',versionAffichee());
   var d=new Date(APP_DERNIERE_MAJ);
   var jour=fmtDateJour(APP_DERNIERE_MAJ.slice(0,10));
   var heure=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
@@ -7180,7 +7226,9 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'v95'; // 13-09-2026 : L'onglet actuellement sélectionné est désormais légèrement agrandi (taille de police .77rem→.9rem, gras, espacement interne un peu plus large) pour rester nettement plus visible/identifiable sur téléphone comme sur ordinateur — augmentation volontairement modérée et sans impact sur la mise en page : seule la règle .nb.active a été modifiée, les autres onglets (.nb) sont strictement inchangés, la barre d'onglets reste en défilement horizontal (aucun chevauchement ni débordement possible). Le défilement automatique de l'onglet actif (v94) et le balayage tactile (v93) ne sont pas modifiés. Aucun calcul, donnée, Supabase, bouton ni logique métier modifiés. Historique v94 (défilement automatique de l'onglet actif) et précédents : voir juste en dessous.
+var APP_VERSION = 'v97'; // 14-09-2026 : CORRECTION STRICTE — VERSION UNIQUEMENT. L'affichage de la version (en-tête + écran "À propos") est remplacé par un format généré automatiquement à partir de la date/heure exacte du moment : V0.01.JJ-MM-AAAA-HH:MM:SS (ex: V0.01.14-09-2026-00:41:32), via la nouvelle fonction versionAffichee(). La constante APP_VERSION elle-même n'est pas supprimée : elle continue d'être utilisée telle quelle dans les exports JSON (_meta.version) et partout ailleurs dans le code, seul son AFFICHAGE à l'écran change. Aucune fonctionnalité, donnée, calcul, Supabase, synchronisation, Service Worker, cache ni logique métier modifiés au-delà de ce texte affiché. Historique v96 (masquage formules/infos techniques + boutons barre supérieure + agrandissement onglet actif) et précédents : voir juste en dessous.
+var APP_VERSION_v96_HISTORIQUE = 'v96'; // 14-09-2026 : CORRECTION STRICTE v95→v96 (3 points, rien d'autre modifié) : (1) Onglet actif — la règle .nb.active est doublée par rapport à v95 (police .9rem→1.8rem, padding 8px 15px→16px 30px, gras conservé) ; les autres onglets (.nb) sont inchangés, la barre reste en défilement horizontal, aucun chevauchement possible. (2) Formules/informations techniques masquées par défaut dans Activités, Stock Entreprise, Stock Perso, Bilan, Associé, Dépenses, Commandes, Historique et Corbeille : chaque bloc concerné est désormais caché (style.display) derrière un bouton "🔍 En savoir plus" (fonction générique toggleInfoTech(), aucun contenu supprimé, juste masqué/affiché). (3) Barre supérieure — les boutons "🔗 Lien partage" et "🔌 Test Cloud" sont masqués (style="display:none") uniquement dans l'en-tête ; les mêmes actions restent disponibles dans Paramètres > Données.
+var APP_VERSION_v95_HISTORIQUE = 'v95'; // 13-09-2026 : L'onglet actuellement sélectionné est désormais légèrement agrandi (taille de police .77rem→.9rem, gras, espacement interne un peu plus large) pour rester nettement plus visible/identifiable sur téléphone comme sur ordinateur — augmentation volontairement modérée et sans impact sur la mise en page : seule la règle .nb.active a été modifiée, les autres onglets (.nb) sont strictement inchangés, la barre d'onglets reste en défilement horizontal (aucun chevauchement ni débordement possible). Le défilement automatique de l'onglet actif (v94) et le balayage tactile (v93) ne sont pas modifiés. Aucun calcul, donnée, Supabase, bouton ni logique métier modifiés.
 var APP_VERSION_v94_HISTORIQUE = 'v94'; // 13-09-2026 : Onglet actif (sélectionné par balayage, clic ou clavier) désormais toujours automatiquement ramené dans la zone visible de la ligne d'onglets .ni (scrollIntoView inline:'nearest', aucun déplacement si déjà visible, glissement fluide sinon, aucun défilement vertical parasite). Le balayage tactile v93 lui-même n'est pas modifié — uniquement gt() complétée pour repositionner la barre d'onglets. Aucun calcul, donnée, Supabase, bouton ni logique métier modifiés. Historique v93 (balayage tactile + bouton retour transparent) et précédents : voir juste en dessous.
 var APP_VERSION_v93_HISTORIQUE = 'v93'; // 13-09-2026 : (A) Ajout du balayage tactile gauche/droite pour changer d'onglet précédent/suivant, actif UNIQUEMENT dans une zone dédiée (moitié supérieure de l'écran, de la barre de recherche globale jusqu'au milieu de l'écran) — la moitié inférieure reste réservée au défilement vertical des données. Implémentation purement passive (aucun preventDefault) : aucun bouton, champ, lien, tableau à défilement horizontal (.ni/.hbts/.tw) ni interaction existante n'est perturbé ; le changement d'onglet ne se déclenche qu'au relâchement du doigt, et seulement pour un vrai geste horizontal ample (≥60px). (B) Bouton de retour (←, bas gauche) : fond rendu transparent et ombre portée retirée, car il masquait du texte situé juste derrière lui ; reste parfaitement visible et cliquable, position et fonction inchangées. Aucun calcul, donnée, Supabase ni logique métier modifiés. Historique v92 (Associé Dettes/Paiements + boutons .js-tap-fast) et précédents : voir juste en dessous.
 var APP_VERSION_v92_HISTORIQUE = 'v92'; // 13-09-2026 : (A) Onglet Associé — "Dettes enregistrées"/"Paiements reçus" débordaient et se désorganisaient sur téléphone Android : ces 2 blocs partagent la classe .g2 (grille 2 colonnes) dont le point de bascule à 1 colonne était fixé à 380px, trop bas pour la plupart des Android réels (393/412/414px restaient à 2 colonnes) ; de plus, un élément de grille CSS ne rétrécit jamais sous la largeur intrinsèque de son contenu par défaut (min-width:auto), donc même repassé à 1 colonne le tableau à 6 colonnes forçait encore un débordement. Corrigé avec une classe scopée .g2-dettes (empile en 1 colonne jusqu'à 900px + min-width:0 sur les cartes) — aucun autre .g2 de l'app touché (vérifié à 412px et 1100px que les autres sections gardent leur mise en page d'origine). (B) Boutons "Enregistrer/Confirmer" de toutes les boîtes de dialogue : le premier tap pouvait ne fermer que le clavier Android sans exécuter l'action (click évalué après le redimensionnement de page dû à la fermeture du clavier). Corrigé pour les 13 boutons concernés (classe .js-tap-fast) en déclenchant l'action au touchend (avant toute animation du clavier) avec preventDefault() pour annuler le clic dupliqué qui suivrait normalement — un seul .click() réel exécute le même gestionnaire existant, sans logique dupliquée. Testé avec un vrai Chromium (Playwright), tap tactile réel à 360×740 : chaque bouton s'exécute exactement une fois au premier tap (Dette/Paiement/Dépense/Commande/Perso/Activité vérifiés individuellement) ; clic souris desktop toujours une seule exécution (aucune régression). Aucun calcul, donnée, Supabase, synchronisation ni logique métier modifiés — uniquement mise en page et timing du déclenchement au tap. Historique détaillé v91/v90/v89/v88/v87/v86/v85/v84/v83 : voir commentaires plus bas dans le fichier.
@@ -8213,12 +8261,14 @@ document.addEventListener('DOMContentLoaded',function(){
     var hh=('0'+d.getHours()).slice(-2), mn=('0'+d.getMinutes()).slice(-2);
     el.textContent='MAJ '+jj+'-'+mm+'-'+aa+' à '+hh+':'+mn;
   })();
-  // Numéro de version, affiché dans l'en-tête (même constante APP_VERSION
-  // que celle déjà utilisée dans l'écran "À propos" et les exports JSON —
-  // une seule source, jamais deux numéros différents affichés ailleurs).
+  // Numéro de version, affiché dans l'en-tête au format demandé
+  // V0.01.JJ-MM-AAAA-HH:MM:SS (voir versionAffichee()) — CORRECTION
+  // STRICTE, VERSION UNIQUEMENT : la constante APP_VERSION continue
+  // d'être utilisée telle quelle ailleurs (exports JSON/_meta, écran
+  // "À propos" y affiche désormais le même format via versionAffichee()).
   (function(){
     var el=document.getElementById('hdr-version'); if(!el) return;
-    el.textContent = (typeof APP_VERSION !== 'undefined' && APP_VERSION) ? APP_VERSION : 'v—';
+    el.textContent = versionAffichee();
   })();
   // Restaurer l'onglet actif avant l'actualisation, au lieu de toujours
   // revenir au tableau de bord (Administrateur uniquement — la vue

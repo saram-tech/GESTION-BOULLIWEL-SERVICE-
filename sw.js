@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v158'; // 13-09-2026 : index.html v95 — l'onglet actuellement sélectionné est désormais légèrement agrandi (police, gras, espacement) pour rester nettement plus visible sur téléphone comme sur ordinateur ; seule la règle .nb.active a changé, aucun chevauchement/débordement (barre d'onglets déjà en défilement horizontal). Défilement automatique de l'onglet actif (v94) et balayage tactile (v93) non modifiés. Aucun calcul, donnée, Supabase ni logique métier modifiés. Voir commentaire APP_VERSION dans index.html.
+const CACHE_VERSION = 'v160'; // 14-09-2026 : index.html v97 — CORRECTION STRICTE, VERSION UNIQUEMENT : l'affichage de la version (en-tête + écran "À propos") est désormais généré automatiquement au format V0.01.JJ-MM-AAAA-HH:MM:SS (date/heure exacte du moment), via versionAffichee(). La constante APP_VERSION continue d'être utilisée telle quelle dans les exports JSON. Aucune fonctionnalité, donnée, calcul, Supabase, synchronisation ni logique métier modifiés. Voir commentaire APP_VERSION dans index.html.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
