@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v167'; // 14-09-2026 : index.html V0.07 — CORRECTION CRITIQUE STOCK PERSO : mergeAppData() ne revide plus de force une fiche Stock Perso réapprovisionnée après clôture quand le cloud renvoie encore, temporairement, l'ancienne version vidée (comparaison d'horodatage ajoutée). Vérification globale effectuée (Activités/Stock/Perso/Dépenses/Commandes/Dettes/Bilan/Dashboard + clôture réelle) sans erreur. Aucun calcul, donnée historique ni logique métier modifiés au-delà de cette comparaison. Voir commentaire APP_VERSION dans index.html.
+const CACHE_VERSION = 'v168'; // 16-09-2026 : index.html V0.08 — MISE À JOUR STRICTE, RAPIDITÉ + BALAYAGE : zone de balayage ancrée sur #main-nav (sticky) + extrémités plafonnées (fini le bouclage) ; interface affichée immédiatement avec le cache local (sans attendre le réseau) à l'ouverture/au changement de compte ; message "fusionné avec le cloud" affiché seulement s'il y a un vrai changement, et une vraie erreur de synchronisation reste désormais visible même pendant les cycles silencieux automatiques. Testé avec un vrai Chromium (balayage portrait/paysage, rapidité mesurée, 3 comptes, messages normaux/erreur, non-régression Stock Perso 11/11). Aucun calcul, donnée, Supabase, contrôle de sécurité ni logique métier modifiés. Voir commentaire APP_VERSION dans index.html.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne

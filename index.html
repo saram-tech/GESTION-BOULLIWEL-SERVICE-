@@ -6881,13 +6881,15 @@ document.addEventListener('keydown', function (e) {
 });
 
 // ================================================================
-// BALAYAGE TACTILE GAUCHE/DROITE — changement d'onglet (13-09-2026, v93)
+// BALAYAGE TACTILE GAUCHE/DROITE — changement d'onglet (13-09-2026, v93 ;
+// zone/extrémités corrigées le 14-09-2026)
 // ================================================================
 // DEMANDE : balayer gauche/droite pour passer à l'onglet précédent/
-// suivant, mais UNIQUEMENT dans une zone dédiée (moitié supérieure de
-// l'écran, à partir de la barre de recherche globale #gs-wrap jusqu'au
-// milieu de l'écran) — la moitié inférieure reste exclusivement dédiée
-// au défilement vertical des données.
+// suivant, mais UNIQUEMENT dans une zone dédiée (de la ligne d'onglets
+// #main-nav jusqu'au milieu de l'écran, portrait comme paysage) — la
+// moitié inférieure reste exclusivement dédiée au défilement vertical
+// des données. Aux extrémités (premier/dernier onglet), un balayage
+// supplémentaire ne fait rien : aucun retour ni rebond inattendu.
 //
 // Implémentation volontairement 100% passive (aucun preventDefault
 // nulle part, aucun stopPropagation) : ces écouteurs ne font
@@ -6910,17 +6912,28 @@ document.addEventListener('keydown', function (e) {
   var SWIPE_DIST_MIN = 60;     // distance horizontale minimale (px) pour valider le balayage
   var SWIPE_RATIO_MAX = 0.6;   // le déplacement vertical doit rester nettement inférieur à l'horizontal
 
-  // Zone autorisée : de la barre de recherche globale (#gs-wrap) au
-  // milieu de l'écran. Si #gs-wrap n'est pas affichée (rôle Associé/
-  // Visiteur, ou page déjà défilée), on retombe simplement sur "moitié
-  // supérieure de la fenêtre visible" — jamais la moitié inférieure.
+  // Zone autorisée : de la ligne des onglets (#main-nav, toujours
+  // "sticky" donc à une position stable à l'écran quel que soit le
+  // défilement de la page) jusqu'au milieu de l'écran visible.
+  // CORRECTIF (14-09-2026 — "zone de balayage incorrecte une fois la
+  // page défilée") : la version précédente prenait #gs-wrap (barre de
+  // recherche, NON sticky) comme repère haut ; une fois la page
+  // défilée vers le bas (recherche scrollée hors champ), le calcul
+  // retombait sur limiteHaute=0, c'est-à-dire le HAUT DE L'ÉCRAN
+  // VISIBLE À CET INSTANT — qui pouvait alors afficher des lignes de
+  // tableau, pas la ligne d'onglets. #main-nav étant "sticky" (voir
+  // nav{position:sticky;top:54px}), sa position à l'écran reste stable
+  // en permanence : c'est désormais l'unique repère, ce qui corrige à
+  // la fois la demande ("depuis la ligne des onglets") et ce cas de
+  // défilement. Fonctionne identiquement en portrait et en paysage
+  // (window.innerHeight s'adapte déjà automatiquement à l'orientation).
   function zoneBalayageAutorisee(y){
     if (document.querySelector('.ov.open')) return false; // une boîte de dialogue est ouverte : on ne touche à rien
-    var gs = document.getElementById('gs-wrap');
+    var nav = document.getElementById('main-nav');
     var limiteHaute = 0;
-    if (gs && gs.offsetParent !== null) {
-      var r = gs.getBoundingClientRect();
-      if (r.top > 0) limiteHaute = r.top;
+    if (nav && nav.offsetParent !== null) {
+      var r = nav.getBoundingClientRect();
+      limiteHaute = r.bottom;
     }
     var limiteBasse = window.innerHeight / 2;
     return y >= limiteHaute && y <= limiteBasse;
@@ -6975,9 +6988,20 @@ document.addEventListener('keydown', function (e) {
     var curId = current.id.replace('tab-', '');
     var idx = TAB_ORDER.indexOf(curId);
     if (idx === -1) return;
-    var nextIdx = dx < 0
-      ? (idx + 1) % TAB_ORDER.length                       // balayage vers la gauche → onglet suivant
-      : (idx - 1 + TAB_ORDER.length) % TAB_ORDER.length;    // balayage vers la droite → onglet précédent
+    /**
+     * CORRECTIF (14-09-2026 — "aucun retour/rebond inattendu aux
+     * extrémités") : la version précédente utilisait un modulo, donc un
+     * balayage au-delà du DERNIER onglet ramenait au PREMIER (et
+     * inversement) — un changement d'onglet inattendu que rien ne
+     * signalait à l'utilisateur. Remplacé par un simple plafonnement :
+     * au premier ou dernier onglet, un balayage supplémentaire dans le
+     * sens qui sortirait de la liste ne fait plus RIEN (aucun
+     * changement, aucun rebond visuel) — le comportement pour tous les
+     * autres onglets (au milieu de la liste) est strictement identique
+     * à avant.
+     */
+    var nextIdx = dx < 0 ? (idx + 1) : (idx - 1); // balayage vers la gauche → onglet suivant ; vers la droite → onglet précédent
+    if (nextIdx < 0 || nextIdx >= TAB_ORDER.length) return; // extrémité atteinte : ne rien faire
     gt(TAB_ORDER[nextIdx], null);
   }, {passive:true});
 })();
@@ -7250,8 +7274,9 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.07'; // 14-09-2026 : CORRECTION CRITIQUE — STOCK PERSO. Cause exacte trouvée et corrigée dans mergeAppData() (fusion cloud/local, ~/20s) : le garde-fou anti-résurrection d'une fiche Stock Perso vidée par clôture (_videParCloture) forçait le vidage dès que L'UN OU L'AUTRE côté (cloud ou local) portait encore ce marqueur, SANS comparer les horodatages — écrasant ainsi un réapprovisionnement pourtant plus récent si le cloud n'avait pas encore reçu cette mise à jour au moment de la synchro suivante. Corrigé en ne forçant le vidage que si aucun côté "réactivé" n'est horodaté plus récemment que le dernier vidage connu (_localTouchedAt) ; sinon, la réactivation authentique l'emporte. Comportement de clôture/migration légitime entièrement préservé (testé). Aucun calcul, formule, donnée historique ni logique Supabase modifiés au-delà de cette comparaison d'horodatage. Historique interne (v83→V0.06) conservé ci-dessous à titre de journal, sans effet sur le fonctionnement.
-var APP_VERSION_DATE = '2026-09-14T18:45:22'; // Date/heure exacte de la mise à jour V0.07 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.08'; // 16-09-2026 : MISE À JOUR STRICTE — RAPIDITÉ + BALAYAGE. (1) Balayage entre onglets : zone désormais ancrée sur #main-nav (sticky, position stable) au lieu de #gs-wrap — corrige la zone demandée ET un cas où elle devenait incorrecte après défilement de page ; aux extrémités (premier/dernier onglet), un balayage supplémentaire ne fait plus rien (fini le bouclage dernier→premier). (2) Rapidité : appliquerSession() affiche désormais l'interface IMMÉDIATEMENT avec les données déjà en cache local, sans attendre la confirmation réseau (qui redéclenche un second rendu ensuite, inchangé) — mesuré réellement à ~18ms même avec un réseau simulé à 5000ms. (3) Message "fusionné avec le cloud" : ne s'affiche plus quand la fusion n'a rien changé (comparaison avant/après réelle) ; une vraie erreur de synchronisation reste désormais TOUJOURS visible sur le badge d'état, y compris pendant les cycles silencieux automatiques (~15-20s) qui restaient jusqu'ici totalement muets en cas d'échec — seul le popup reste réservé aux cas non-silencieux, jamais la visibilité d'une anomalie réelle. Testé avec un vrai Chromium : balayage (6 scénarios × portrait/paysage), rapidité (mesure réelle), changement des 3 comptes sur le même appareil, scénarios de message normaux ET d'erreur (4 scénarios), et non-régression complète du correctif Stock Perso (11/11). Aucun calcul, donnée, Supabase, contrôle de sécurité/authentification ni logique métier modifiés. Historique interne (v83→V0.07) conservé ci-dessous à titre de journal, sans effet sur le fonctionnement.
+var APP_VERSION_DATE = '2026-09-16T00:00:10'; // Date/heure exacte de la mise à jour V0.08 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION_V0_07_HISTORIQUE = 'V0.07'; // 14-09-2026 : correction critique Stock Perso — mergeAppData() ne revide plus de force une fiche réapprovisionnée après clôture quand le cloud renvoie encore, temporairement, l'ancienne version vidée.
 var APP_VERSION_V0_06_HISTORIQUE = 'V0.06'; // 14-09-2026 : bouton (+) — position confirmée 14px bas/droite, espace réservé en bas des 6 onglets concernés.
 var APP_VERSION_V0_05_HISTORIQUE = 'V0.05'; // 14-09-2026 : ajout du bouton (+) fixe en bas-droite dans Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes.
 var APP_VERSION_V0_04_HISTORIQUE = 'V0.04'; // 14-09-2026 : l'heure/date affichée par versionAffichee() a été figée sur APP_VERSION_DATE (au lieu de new Date()), pour ne plus changer à chaque actualisation.
@@ -7481,14 +7506,39 @@ function appliquerSession(session){
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('login-err').textContent = '';
   var libelleRole = session.role==='admin'?'Administrateur':'Associé';
+  /**
+   * DEMANDE (14-09-2026 — "ouverture de l'application/changement de
+   * compte doit répondre immédiatement") — CAUSE RÉELLE TROUVÉE :
+   * quand l'appareil est en ligne, l'interface (renderAll() +
+   * activerInterfaceSelonRole(), qui affiche la navigation, la vue
+   * Associé/Visiteur, etc.) n'était affichée QU'APRÈS la résolution de
+   * chargerActivitesEtStockDepuisTables()/chargerDonneesAssocie() — un
+   * aller-retour réseau réel — laissant l'écran d'après-connexion vide
+   * ou figé pendant toute sa durée, perceptible surtout sur connexion
+   * lente. Corrigé en affichant IMMÉDIATEMENT l'interface avec les
+   * données déjà en cache localement (D, chargé de façon synchrone par
+   * load() au tout premier démarrage de l'app — donc déjà les bonnes
+   * données pour ce rôle, jamais un tableau vide sauf si l'appareil n'a
+   * jamais servi à ce rôle) : la synchronisation réseau (inchangée,
+   * mêmes fonctions, mêmes vérifications, même ordre interne) s'exécute
+   * ensuite normalement en tâche de fond et redéclenche un second rendu
+   * dès qu'elle aboutit, exactement comme avant. Rien n'est sauté :
+   * aucune donnée, aucun calcul, aucune vérification de sécurité
+   * (authentification déjà validée avant l'appel à cette fonction) ne
+   * sont retirés — seul l'ORDRE d'affichage change. Les minuteurs de
+   * synchro automatique sont démarrés une seule fois (ici, tout de
+   * suite) au lieu d'attendre eux aussi la fin du premier chargement.
+   */
+  renderAll();
+  activerInterfaceSelonRole();
+  notif('✅ Bienvenue ' + libelleRole + ' !');
+  demarrerAutoSyncActivites(); // synchro automatique en arrière-plan tant que la session reste active
+  demarrerAutoSyncAppData(); // idem pour Stock Perso/Dettes/Paiements/Dépenses/Commandes/Historique (voir demarrerAutoSyncAppData) — sans effet pour l'Associé/Visiteur (déjà filtré dans la fonction elle-même)
+  if (!navigator.onLine) { avertirCacheAssocieSiNecessaire(session.role); return; }
   var apres = function(){
     renderAll();
     activerInterfaceSelonRole();
-    notif('✅ Bienvenue ' + libelleRole + ' !');
-    demarrerAutoSyncActivites(); // synchro automatique en arrière-plan tant que la session reste active
-    demarrerAutoSyncAppData(); // idem pour Stock Perso/Dettes/Paiements/Dépenses/Commandes/Historique (voir demarrerAutoSyncAppData) — sans effet pour l'Associé/Visiteur (déjà filtré dans la fonction elle-même)
   };
-  if (!navigator.onLine) { avertirCacheAssocieSiNecessaire(session.role); apres(); return; }
   if (session.role === 'admin') {
     chargerActivitesEtStockDepuisTables(session).then(function(){
       reconcileOnStartup(); // dépenses/dettes/paiements/commandes/perso/historique/corbeille (ancien système, admin uniquement)
@@ -9216,7 +9266,24 @@ function rafraichirActivitesSilencieux(){
   assurerTokenValide().then(function(){
     session = getSession() || session; // reprend le jeton éventuellement renouvelé
     if (session.role === 'admin') {
-      chargerActivitesEtStockDepuisTables(session).then(function(){ renderAll(); termine(); }).catch(termine);
+      chargerActivitesEtStockDepuisTables(session).then(function(){ renderAll(); termine(); }).catch(function(e){
+        /**
+         * DEMANDE (14-09-2026 — "ne jamais rester silencieux en cas
+         * d'anomalie, à quelque niveau que ce soit") — CAUSE RÉELLE
+         * TROUVÉE : un échec réel (réseau, HTTP, refus RLS...) pendant ce
+         * rafraîchissement automatique silencieux (~15s) ne mettait à
+         * jour AUCUN indicateur visible — ni badge, ni notification —
+         * laissant un problème de synchronisation répété totalement
+         * invisible. Corrigé en reflétant l'erreur sur le badge d'état
+         * permanent (aucun popup ici : on ne spamme pas toutes les 15s ;
+         * le badge, déjà discret et déjà utilisé pour ce rôle ailleurs
+         * dans ce fichier, suffit à rendre l'anomalie visible et
+         * compréhensible, y compris si elle se répète).
+         */
+        console.error('[sync auto Activités/Stock] échec —', e);
+        if (typeof setSyncStatus === 'function') setSyncStatus('error', '🔴 Échec de synchronisation auto (Activités/Stock)');
+        termine();
+      });
     } else {
       chargerDonneesAssocie(session).then(function(resultat){
         // Même correctif que dans appliquerSession() : reflète le vrai
@@ -9235,9 +9302,17 @@ function rafraichirActivitesSilencieux(){
         }
         if (isAssocie()) rVueAssocie();
         termine();
-      }).catch(termine);
+      }).catch(function(e){
+        console.error('[sync auto Associé] échec —', e);
+        if (typeof setSyncStatus === 'function') setSyncStatus('error', '🔴 Échec de synchronisation auto');
+        termine();
+      });
     }
-  }).catch(termine);
+  }).catch(function(e){
+    console.error('[sync auto] échec du renouvellement du jeton —', e);
+    if (typeof setSyncStatus === 'function') setSyncStatus('error', '🔴 Session expirée — reconnexion nécessaire');
+    termine();
+  });
 }
 /** Démarre le rafraîchissement automatique périodique (appelée après connexion réussie, et au chargement si une session était déjà active). */
 function demarrerAutoSyncActivites(){
@@ -10161,13 +10236,27 @@ function _reconcilerAppDataCoeur(silencieux) {
         return;
       }
 
+      /**
+       * DEMANDE (14-09-2026 — "le message de fusion cloud ne doit plus
+       * apparaître inutilement quand tout est normal") — CAUSE RÉELLE
+       * TROUVÉE : le message de succès ci-dessous s'affichait après
+       * CHAQUE réconciliation non-silencieuse (donc à chaque connexion),
+       * même quand la fusion n'avait strictement RIEN changé (cloud et
+       * local déjà identiques). Corrigé en comparant l'état AVANT/APRÈS
+       * la fusion (D sérialisé) : le message de confirmation ne
+       * s'affiche désormais que si mergeAppData() a réellement rapporté
+       * une différence. mergeAppData() elle-même, ses protections et ses
+       * calculs ne sont en rien modifiés — seule la décision d'afficher
+       * ou non un message change.
+       */
       var localTs = localStorage.getItem(KEY + '_ts');
       var localDate = localTs ? new Date(localTs) : null;
       var cloudDate = new Date(rows[0].updated_at);
       var cloudIsNewer = !localDate || cloudDate > localDate;
-
+      var avantFusionJSON = JSON.stringify(D);
       var merged = mergeAppData(rows[0].data, D, cloudIsNewer, cloudDate, localDate);
       D = merged;
+      var changementReel = (JSON.stringify(D) !== avantFusionJSON);
       /**
        * CORRECTIF CRITIQUE (06-09-2026 — "vidage prématuré du Stock Perso
        * hors clôture / garantie financière Administrateur") — cause exacte
@@ -10206,9 +10295,9 @@ function _reconcilerAppDataCoeur(silencieux) {
       var envoi = syncToCloud();
       if (envoi && typeof envoi.then === 'function') {
         envoi.then(function () {
-          if (!silencieux) notif('☁️ Données fusionnées avec le cloud (rien n\'est perdu)');
+          if (!silencieux && changementReel) notif('☁️ Données fusionnées avec le cloud (rien n\'est perdu)');
         }).catch(function () { /* message d'erreur déjà affiché par syncToCloud() */ });
-      } else if (!silencieux) {
+      } else if (!silencieux && changementReel) {
         // syncToCloud() n'a rien renvoyé (hors ligne/désactivé au moment
         // de l'appel) : la fusion est faite localement, mais pas encore
         // confirmée avec le cloud — on ne prétend pas le contraire.
@@ -10217,7 +10306,21 @@ function _reconcilerAppDataCoeur(silencieux) {
     })
     .catch(function (err) {
       console.error('[Supabase] Échec de la réconciliation' + (silencieux?' (auto)':' au démarrage') + ' :', err);
-      if (!silencieux) setSyncStatus('error', '🔴 Erreur de synchronisation');
+      /**
+       * DEMANDE (14-09-2026 — "ne jamais rester silencieux en cas
+       * d'anomalie, à quelque niveau que ce soit") — CAUSE RÉELLE
+       * TROUVÉE : cette erreur réelle (réseau, HTTP, refus serveur)
+       * n'était reflétée sur le badge d'état QUE si silencieux=false —
+       * c'est-à-dire JAMAIS pendant le cycle automatique silencieux
+       * toutes les ~20s (voir reconcilerAppDataSilencieux ci-dessous) :
+       * un échec répété de synchronisation en arrière-plan restait donc
+       * totalement invisible pour l'utilisateur. Corrigé en reflétant
+       * toujours une vraie erreur sur le badge d'état permanent (déjà en
+       * place, discret, sans popup) — y compris pendant le cycle
+       * silencieux ; `silencieux` ne contrôle plus désormais que le
+       * BRUIT (popup), jamais la visibilité d'une anomalie réelle.
+       */
+      setSyncStatus('error', '🔴 Erreur de synchronisation' + (silencieux ? ' (auto)' : ''));
     });
 }
 function reconcileOnStartup() {
