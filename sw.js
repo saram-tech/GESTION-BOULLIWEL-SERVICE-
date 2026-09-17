@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v168'; // 16-09-2026 : index.html V0.08 — MISE À JOUR STRICTE, RAPIDITÉ + BALAYAGE : zone de balayage ancrée sur #main-nav (sticky) + extrémités plafonnées (fini le bouclage) ; interface affichée immédiatement avec le cache local (sans attendre le réseau) à l'ouverture/au changement de compte ; message "fusionné avec le cloud" affiché seulement s'il y a un vrai changement, et une vraie erreur de synchronisation reste désormais visible même pendant les cycles silencieux automatiques. Testé avec un vrai Chromium (balayage portrait/paysage, rapidité mesurée, 3 comptes, messages normaux/erreur, non-régression Stock Perso 11/11). Aucun calcul, donnée, Supabase, contrôle de sécurité ni logique métier modifiés. Voir commentaire APP_VERSION dans index.html.
+const CACHE_VERSION = 'v169'; // 17-09-2026 : index.html V0.09 — CORRECTION CIBLÉE, SWIPE DES ONGLETS : le balayage démarré directement sur un bouton d'onglet ou dans la barre de recherche fonctionne désormais (exemption ciblée + zone verticale étendue à la ligne d'onglets elle-même). Clic normal, saisie recherche, tableaux (.tw), TAB_ORDER et plafonnement aux extrémités inchangés. Testé avec un vrai Chromium (geste tactile natif), portrait et paysage. Aucun calcul, donnée, Supabase, compte, droit ni autre fonctionnalité modifiés. Voir commentaire APP_VERSION dans index.html.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne

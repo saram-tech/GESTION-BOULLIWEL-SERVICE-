@@ -6933,7 +6933,20 @@ document.addEventListener('keydown', function (e) {
     var limiteHaute = 0;
     if (nav && nav.offsetParent !== null) {
       var r = nav.getBoundingClientRect();
-      limiteHaute = r.bottom;
+      /**
+       * CORRECTION CIBLÉE (16-09-2026 — SWIPE DES ONGLETS, complément) :
+       * la limite haute utilisait r.bottom (bas de la ligne d'onglets),
+       * ce qui excluait la ligne d'onglets ELLE-MÊME de la zone
+       * verticale autorisée — un balayage démarré pile sur un bouton
+       * d'onglet était donc rejeté ici, avant même d'atteindre
+       * l'exemption ajoutée dans surControleOuZoneDefilanteHorizontale()
+       * ci-dessous. Remplacé par r.top pour inclure toute la hauteur de
+       * la ligne d'onglets dans la zone active, exactement comme demandé
+       * ("depuis la ligne des onglets"). N'affecte que le point de
+       * départ de la zone : la limite basse (milieu de l'écran) et tout
+       * le reste ne changent pas.
+       */
+      limiteHaute = r.top;
     }
     var limiteBasse = window.innerHeight / 2;
     return y >= limiteHaute && y <= limiteBasse;
@@ -6944,6 +6957,27 @@ document.addEventListener('keydown', function (e) {
   // qu'il s'agisse d'un tap ou d'un glissement (ex: défilement interne
   // d'un tableau .tw, d'une barre .ni/.hbts, sélection de texte, etc.).
   function surControleOuZoneDefilanteHorizontale(el){
+    /**
+     * CORRECTION CIBLÉE (16-09-2026 — SWIPE DES ONGLETS) : audit réel
+     * confirmé — un balayage démarré directement sur un bouton d'onglet
+     * (#main-nav) ou dans le champ de recherche globale (#gs-wrap) ne
+     * déclenchait jamais de changement d'onglet, à cause de l'exclusion
+     * générale des <button>/<input> ci-dessous (prévue pour ne jamais
+     * gêner un clic ou une saisie ailleurs dans l'application, ce qui
+     * reste totalement inchangé partout ailleurs). Ces deux zones
+     * précises — et seulement elles — sont désormais vérifiées AVANT la
+     * boucle d'exclusion habituelle, et en sortent immédiatement
+     * autorisées. Le clic normal sur un onglet et la saisie normale dans
+     * la recherche ne sont pas affectés : ces écouteurs restent 100%
+     * passifs (aucun preventDefault nulle part, voir plus bas), donc un
+     * simple tap ou une frappe clavier ne produisent jamais le
+     * déplacement horizontal ample (≥60px, voir SWIPE_DIST_MIN) requis
+     * pour qu'un balayage soit confirmé et déclenche gt(). Les tableaux
+     * (.tw) et tout autre bouton/champ ailleurs dans l'application ne
+     * sont pas concernés par ce changement et restent exclus exactement
+     * comme avant (boucle et conditions inchangées en dessous).
+     */
+    if (el && (el.closest('#main-nav') || el.closest('#gs-wrap'))) return false;
     while (el && el !== document.body) {
       var tag = el.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON' || tag === 'A' || el.isContentEditable) return true;
@@ -7274,7 +7308,9 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.08'; // 16-09-2026 : MISE À JOUR STRICTE — RAPIDITÉ + BALAYAGE. (1) Balayage entre onglets : zone désormais ancrée sur #main-nav (sticky, position stable) au lieu de #gs-wrap — corrige la zone demandée ET un cas où elle devenait incorrecte après défilement de page ; aux extrémités (premier/dernier onglet), un balayage supplémentaire ne fait plus rien (fini le bouclage dernier→premier). (2) Rapidité : appliquerSession() affiche désormais l'interface IMMÉDIATEMENT avec les données déjà en cache local, sans attendre la confirmation réseau (qui redéclenche un second rendu ensuite, inchangé) — mesuré réellement à ~18ms même avec un réseau simulé à 5000ms. (3) Message "fusionné avec le cloud" : ne s'affiche plus quand la fusion n'a rien changé (comparaison avant/après réelle) ; une vraie erreur de synchronisation reste désormais TOUJOURS visible sur le badge d'état, y compris pendant les cycles silencieux automatiques (~15-20s) qui restaient jusqu'ici totalement muets en cas d'échec — seul le popup reste réservé aux cas non-silencieux, jamais la visibilité d'une anomalie réelle. Testé avec un vrai Chromium : balayage (6 scénarios × portrait/paysage), rapidité (mesure réelle), changement des 3 comptes sur le même appareil, scénarios de message normaux ET d'erreur (4 scénarios), et non-régression complète du correctif Stock Perso (11/11). Aucun calcul, donnée, Supabase, contrôle de sécurité/authentification ni logique métier modifiés. Historique interne (v83→V0.07) conservé ci-dessous à titre de journal, sans effet sur le fonctionnement.
+var APP_VERSION = 'V0.09'; // 17-09-2026 : CORRECTION CIBLÉE — SWIPE DES ONGLETS. L'audit réel V0.08 avait confirmé 2 anomalies : un balayage démarré directement sur un bouton d'onglet, ou directement dans la barre de recherche, ne déclenchait jamais de changement d'onglet. Cause : (a) l'exclusion générale des <button>/<input> bloquait ces deux zones précises ; (b) la zone verticale autorisée démarrait au BAS de la ligne d'onglets (r.bottom), excluant la ligne elle-même. Corrigé par 2 ajustements ciblés dans le même mécanisme de balayage : une exemption pour tout geste commençant dans #main-nav ou #gs-wrap (avant l'exclusion générale, qui reste inchangée partout ailleurs), et la zone déplacée à r.top pour inclure toute la hauteur de la ligne d'onglets. Le clic normal sur un onglet et la saisie normale dans la recherche restent inchangés (écouteurs 100% passifs, aucun preventDefault). TAB_ORDER, le plafonnement aux extrémités, l'exclusion des tableaux (.tw) et tout le reste ne sont pas modifiés. Testé avec un vrai Chromium (geste tactile natif via CDP), portrait et paysage : swipe depuis un bouton d'onglet ✅, depuis la barre de recherche ✅, entre recherche et milieu ✅, aucun changement sous le milieu ✅, tableau ne change jamais d'onglet ✅ (mouvement de défilement natif confirmé en portrait ; non concluant en paysage avec cet outil de test synthétique, sans lien avec ce correctif — un chevauchement visuel préexistant entre la barre sticky et le tableau après un fort défilement de page a été identifié pendant le diagnostic, non lié à ce correctif, non modifié), clic normal ✅, saisie clavier ✅, premier/dernier onglet sans bouclage ✅. Non-régression Stock Perso/clôture revérifiée. Aucun calcul, donnée, Supabase, compte, droit, rapport ou paramètre modifié. Historique interne (v83→V0.08) conservé ci-dessous à titre de journal, sans effet sur le fonctionnement.
+var APP_VERSION_DATE = '2026-09-17T10:02:45'; // Date/heure exacte de la mise à jour V0.09 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION_V0_08_HISTORIQUE = 'V0.08'; // 16-09-2026 : MISE À JOUR STRICTE — RAPIDITÉ + BALAYAGE (zone/extrémités du balayage, affichage immédiat à l'ouverture/au changement de compte, message de fusion cloud uniquement si changement réel, visibilité des erreurs de synchro silencieuses).
 var APP_VERSION_DATE = '2026-09-16T00:00:10'; // Date/heure exacte de la mise à jour V0.08 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 var APP_VERSION_V0_07_HISTORIQUE = 'V0.07'; // 14-09-2026 : correction critique Stock Perso — mergeAppData() ne revide plus de force une fiche réapprovisionnée après clôture quand le cloud renvoie encore, temporairement, l'ancienne version vidée.
 var APP_VERSION_V0_06_HISTORIQUE = 'V0.06'; // 14-09-2026 : bouton (+) — position confirmée 14px bas/droite, espace réservé en bas des 6 onglets concernés.
