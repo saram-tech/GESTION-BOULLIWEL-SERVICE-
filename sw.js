@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v169'; // 17-09-2026 : index.html V0.09 — CORRECTION CIBLÉE, SWIPE DES ONGLETS : le balayage démarré directement sur un bouton d'onglet ou dans la barre de recherche fonctionne désormais (exemption ciblée + zone verticale étendue à la ligne d'onglets elle-même). Clic normal, saisie recherche, tableaux (.tw), TAB_ORDER et plafonnement aux extrémités inchangés. Testé avec un vrai Chromium (geste tactile natif), portrait et paysage. Aucun calcul, donnée, Supabase, compte, droit ni autre fonctionnalité modifiés. Voir commentaire APP_VERSION dans index.html.
+const CACHE_VERSION = 'v171'; // 19-09-2026 : index.html V0.11 — CORRECTIF capital non actualisé chez Associé/Visiteur après réduction du capital Administrateur. L'Administrateur pousse désormais sa valeur authentique (capital_total_admin) vers Supabase ("parametres"), et Associé/Visiteur la préfèrent à leur ancien calcul indépendant, avec repli automatique si le serveur ne la renvoie pas encore. ⚠️ Nécessite aussi une mise à jour des fonctions Supabase bilan_confidentiel()/acceder_patrimoine_visiteur() pour lire ce nouveau champ (hors de portée d'un fichier seul). Testé avec un vrai Chromium : poussée serveur confirmée, préférence de la valeur Admin confirmée, repli rétrocompatible confirmé. Aucun calcul, donnée, colonne ni autre fonctionnalité modifiés. Voir commentaire APP_VERSION dans index.html.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne

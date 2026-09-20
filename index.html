@@ -181,28 +181,15 @@ main{padding:12px;max-width:1400px;margin:0 auto;position:relative;z-index:1;}
 .bo{background:rgba(249,115,22,.15);border:1px solid rgba(249,115,22,.3);color:var(--or);}.bo:hover{background:rgba(249,115,22,.25);}
 .bsm{padding:5px 10px;font-size:.74rem;border-radius:7px;}
 .bxs{padding:3px 8px;font-size:.69rem;border-radius:5px;}
-/* AJOUT (14-09-2026 — CORRECTION STRICTE, BOUTON (+)) : rend le bouton
-   (+) d'ajout de chaque onglet concerné accessible en permanence
-   pendant le défilement vertical (haut/bas), sans agrandir ni modifier
-   son apparence (même taille, mêmes couleurs, même icône/texte) — seule
-   sa position devient fixe à l'écran au lieu de défiler avec le
-   contenu. Placé en bas-droite pour ne jamais recouvrir les données ni
-   les autres contrôles ; décalé au-dessus du bandeau de mise à jour
-   #maj-dispo-banner s'il est affiché (var(--maj-banniere-h), déjà
-   utilisée ailleurs dans l'app) pour ne jamais être masqué par lui.
-   z-index sous l'en-tête (200) et la barre d'onglets (190) et sous les
-   fenêtres modales (.ov, 500) : ne recouvre jamais rien de plus
-   prioritaire. Seul CE bouton (+) est concerné — aucun autre bouton ni
-   élément de l'interface n'est modifié. */
-.btn-add-fixed{position:fixed;right:14px;bottom:calc(14px + var(--maj-banniere-h,0px));z-index:150;box-shadow:0 4px 14px rgba(0,0,0,.35);}
-/* AJOUT (14-09-2026 — VÉRIFICATION STRICTE, BOUTON (+) UNIQUEMENT) :
-   réserve un espace vide en bas des SEULS onglets contenant le bouton
-   (+) fixe, pour que ce dernier ne recouvre jamais la dernière ligne
-   de données/le dernier contrôle visible en bas de page lors d'un
-   défilement jusqu'en bas (vérifié sur 360×740 et sur écran large).
-   N'affecte que ces 6 onglets ; aucun autre onglet, ni l'apparence du
-   bouton lui-même, n'est modifié. */
-#tab-activites,#tab-stock,#tab-perso,#tab-associe,#tab-depenses,#tab-commandes{padding-bottom:64px;}
+/* RETRAIT (17-09-2026 — DEMANDE : boutons d'ajout replacés en ligne,
+   à droite de la barre de recherche/filtre de chaque tableau, comme
+   dans l'onglet Activités) : la classe .btn-add-fixed (bouton flottant
+   en bas-droite, ajoutée le 14-09-2026) et l'espace réservé en bas des
+   6 onglets concernés qui l'accompagnait ne sont plus utilisés par
+   aucun bouton — chaque bouton "+ ..." est redevenu un élément normal
+   du flux de la page, positionné dans sa ligne de filtre. Supprimés
+   ensemble pour ne pas laisser un espace vide inutile en bas de ces
+   onglets. Aucun autre style, aucune fonction, aucune donnée modifiés. */
 .tw{overflow-x:auto;overflow-y:auto;max-height:min(64vh,620px);border-radius:9px;}
 table{width:100%;border-collapse:collapse;font-size:.77rem;}
 thead th{background:var(--bg4);color:var(--tx2);padding:8px 10px;text-align:left;font-weight:600;font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--bd);white-space:nowrap;position:sticky;top:0;z-index:6;}
@@ -594,7 +581,6 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st">Activités</div><div class="ss">Ventes · Réparations · Services</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bp bsm btn-add-fixed" onclick="rAF();om('ma')">+ Nouvelle</button>
       <button class="btn bh bsm" onclick="om('mpp')">💳 Paiement partiel</button>
       <button class="btn bd bsm" onclick="viderActivites()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
       <button class="btn bd bsm" onclick="viderActivitesAssocie()" title="🔒 Mot de passe requis — supprime uniquement les activités créées par l'Associé">🗑️ Vider Associé</button>
@@ -623,6 +609,7 @@ tbody tr:last-child td{border-bottom:none;}
         <input type="date" id="f-periode-act-end" onchange="rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
       </span>
       <input type="text" id="f-search" placeholder="🔍 Rechercher..." oninput="deb('act',rAct)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:100px;outline:none">
+      <button class="btn bp bsm" onclick="rAF();om('ma')">+ Nouvelle</button>
     </div>
     <div class="tw"><table>
       <thead><tr><th>Date</th><th>#</th><th>Ticket</th><th>Type</th><th>Désignation</th><th>Panne</th><th>P.Achat×Qté</th><th>À Payer</th><th>Payé</th><th>Reste</th><th>Client</th><th>Bénéfice</th><th>Actions</th></tr></thead>
@@ -641,7 +628,6 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st">Stock Entreprise</div><div class="ss">Marchandises communes — seuil d'alerte par produit</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bp bsm btn-add-fixed" onclick="rSF();om('ms')">+ Entrée stock</button>
       <button class="btn bh bsm" onclick="ouvrirReductionCapital()" title="Réduire manuellement le capital (montant + motif)">➖ Réduire le capital</button>
       <button class="btn bh bsm" onclick="toggleTriAZ('stock')" id="btn-az-stock" title="Trier les produits par ordre alphabétique">🔤 A-Z</button>
       <button class="btn bd bsm" onclick="viderStock()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
@@ -674,6 +660,7 @@ tbody tr:last-child td{border-bottom:none;}
         <option value="entreprise">Stock Entreprise</option>
         <option value="perso">Stock Perso</option>
       </select>
+      <button class="btn bp bsm" onclick="rSF();om('ms')">+ Entrée stock</button>
     </div>
     <div class="tw"><table>
     <thead><tr><th>#</th><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>Niveau</th><th>Seuil</th><th>Prix Unitaire</th><th>P.Vente</th><th>Valeur</th><th>Date</th><th>Actions</th></tr></thead>
@@ -686,7 +673,6 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st">Stock Personnel</div><div class="ss">Suivi comptable — vos produits sont fusionnés au Stock Entreprise</div></div>
     <div style="display:flex;gap:6px">
-      <button class="btn bg bsm btn-add-fixed" onclick="rPF();om('mp')">+ Ajouter</button>
       <button class="btn bh bsm" onclick="toggleTriAZ('perso')" id="btn-az-perso" title="Trier les produits par ordre alphabétique">🔤 A-Z</button>
       <button class="btn bd bsm" onclick="viderPerso()" title="🔒 Mot de passe requis">🗑️ Vider</button>
     </div>
@@ -709,6 +695,7 @@ tbody tr:last-child td{border-bottom:none;}
         <span style="color:var(--tx3);font-size:.7rem">→</span>
         <input type="date" id="f-periode-perso-end" onchange="rPerso()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
       </span>
+      <button class="btn bg bsm" onclick="rPF();om('mp')">+ Ajouter</button>
     </div>
     <div class="tw"><table>
     <thead><tr><th>#</th><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>Prix Unitaire</th><th>Prix Revient</th><th>+15%</th><th>Total Dû</th><th>Statut</th><th>Dernière modif</th><th>Actions</th></tr></thead>
@@ -773,7 +760,6 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st">Associé & Dettes</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bd bsm btn-add-fixed" id="btn-add-dette" onclick="rDF();om('mdet')">➕ Ajouter dette</button>
       <button class="btn bs bsm" onclick="om('mpaym')">💳 Paiement</button>
       <button class="btn bd bsm" onclick="viderDettes()" title="🔒 Mot de passe requis">🗑️ Dettes</button>
       <button class="btn bd bsm" onclick="viderPaiements()" title="🔒 Mot de passe requis">🗑️ Paiements</button>
@@ -799,6 +785,7 @@ tbody tr:last-child td{border-bottom:none;}
           <span style="color:var(--tx3);font-size:.68rem">→</span>
           <input type="date" id="f-periode-dettes-end" onchange="rDettes()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.7rem;flex:1">
         </span>
+        <button class="btn bd bsm" id="btn-add-dette" onclick="rDF();om('mdet')">➕ Ajouter dette</button>
       </div>
       <div class="tw"><table>
         <thead><tr><th>#</th><th>Date</th><th>Description</th><th>Type</th><th>Montant</th><th>Actions</th></tr></thead>
@@ -839,7 +826,6 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- DÉPENSES -->
 <div id="tab-depenses" class="tab-panel">
   <div class="sh"><div><div class="st">Dépenses</div></div><div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bp bsm btn-add-fixed" onclick="rDepF();om('md')">+ Ajouter</button>
       <button class="btn bd bsm" onclick="viderDep()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
       <button class="btn bh bsm no-print" onclick="imprimerSection('tab-depenses','Dépenses')" title="Imprimer">🖨️</button>
     </div></div>
@@ -863,6 +849,7 @@ tbody tr:last-child td{border-bottom:none;}
         <span style="color:var(--tx3);font-size:.7rem">→</span>
         <input type="date" id="f-periode-dep-end" onchange="rDep()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
       </span>
+      <button class="btn bp bsm" onclick="rDepF();om('md')">+ Ajouter</button>
     </div>
     <div class="tw"><table>
     <thead><tr><th>#</th><th>Date</th><th>Catégorie</th><th>Description</th><th>Qté</th><th>Prix Unit.</th><th>Total</th><th>Actions</th></tr></thead>
@@ -875,7 +862,6 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st">Commandes</div><div class="ss">Clients + Alertes stock faible → Fournisseurs</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bo bsm btn-add-fixed" onclick="rCF();om('mc')">+ Nouvelle commande</button>
       <button class="btn bh bsm" onclick="toggleTriAZ('cmd')" id="btn-az-cmd" title="Trier les commandes par nom de client, par ordre alphabétique">🔤 A-Z</button>
       <button class="btn bg bsm" onclick="genererCmdFournisseurAuto()" title="Génère (ou met à jour) automatiquement une commande fournisseur à partir des produits en stock faible, groupée par catégorie, modifiable avant envoi">📦 Générer commande fournisseur</button>
       <button class="btn bd bsm" onclick="viderCommandes()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
@@ -902,6 +888,7 @@ tbody tr:last-child td{border-bottom:none;}
         <span style="color:var(--tx3);font-size:.7rem">→</span>
         <input type="date" id="f-periode-cmd-end" onchange="rCmd()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
       </span>
+      <button class="btn bo bsm" onclick="rCF();om('mc')">+ Nouvelle commande</button>
     </div>
     <div class="tw"><table>
     <thead><tr><th>#</th><th>Date</th><th>N° Cmd</th><th>Client</th><th>Téléphone</th><th>Produits</th><th>Total</th><th>Statut</th><th>Actions</th></tr></thead>
@@ -2491,10 +2478,73 @@ function syncPartAssocieAuServeur(valeurInteret, valeurResteAPayer){
   clearTimeout(_timerSyncPartAssocie);
   _timerSyncPartAssocie=setTimeout(envoyerPartAssocieMaintenant, 1500);
 }
+/**
+ * CORRECTIF (17-19-09-2026 — "réduction du capital non reflétée chez
+ * Associé/Visiteur") — CAUSE EXACTE TROUVÉE : le capital affiché côté
+ * Administrateur (calculerCapitalTotalEntreprise(), source unique :
+ * D.stock + D.capitalStockSupprime − D.capitalReductions) N'EST PAS la
+ * même valeur que celle renvoyée aux comptes Associé et Visiteur — ces
+ * deux comptes reçoivent chacun un capital recalculé INDÉPENDAMMENT,
+ * côté serveur, par les fonctions Supabase bilan_confidentiel()
+ * (champ capital_associe) et acceder_patrimoine_visiteur() (champ
+ * capital_admin) — deux calculs SQL séparés qui n'ont aucune
+ * connaissance des réductions manuelles de capital (D.capitalReductions,
+ * voir enrReductionCapital()), puisque cette donnée n'existe que côté
+ * appareil/app_data, jamais transmise à ces fonctions serveur. D'où
+ * l'incohérence : Administrateur = valeur réduite, Associé/Visiteur =
+ * ancienne valeur (ou une valeur recalculée sans la réduction).
+ * CORRIGÉ en appliquant EXACTEMENT le même principe déjà en place pour
+ * "Il reçoit (net)"/"Reste à payer" ci-dessus (syncPartAssocieAuServeur) :
+ * l'Administrateur pousse désormais la valeur AUTHENTIQUE et UNIQUE
+ * (calculerCapitalTotalEntreprise(), la même que celle affichée dans
+ * son propre Bilan/Tableau de bord) vers la table "parametres"
+ * (capital_total_admin), et bilan_confidentiel() / chargerBilanConfidentiel()
+ * ci-dessous utilisent cette valeur en priorité dès qu'elle est présente
+ * dans la réponse serveur — sinon (fonction serveur pas encore mise à
+ * jour pour la relire), l'ancien calcul continue d'être utilisé sans
+ * aucun changement de comportement, exactement comme pour
+ * part_interet_admin/reste_a_payer_admin.
+ * ⚠️ IMPORTANT : côté Supabase, bilan_confidentiel() et
+ * acceder_patrimoine_visiteur() doivent lire parametres.capital_total_admin
+ * et le renvoyer respectivement sous capital_associe (= valeur/2) et
+ * capital_admin (= valeur), en priorité sur leur propre calcul SQL —
+ * même principe que ce qui a déjà été fait pour part_interet_admin/
+ * reste_a_payer_admin. Tant que ce n'est pas fait côté serveur, ce
+ * correctif prépare la donnée mais ne peut pas, à lui seul, changer ce
+ * que renvoie la base de données.
+ */
+var _dernierCapitalAdminEnvoye = null;
+var _timerSyncCapitalAdmin = null;
+var _enAttenteCapitalAdmin = null;
+function envoyerCapitalAdminMaintenant(){
+  if(_enAttenteCapitalAdmin===null) return;
+  if(!SUPABASE_CONFIG.enabled || !navigator.onLine) return;
+  var session=getSession();
+  if(!session || !session.access_token || session.role!=='admin') return;
+  var valeurCapital=_enAttenteCapitalAdmin;
+  if(_dernierCapitalAdminEnvoye===valeurCapital) return;
+  clearTimeout(_timerSyncCapitalAdmin); _timerSyncCapitalAdmin=null;
+  _dernierCapitalAdminEnvoye=valeurCapital;
+  supabaseTable('/rest/v1/parametres', {
+    method:'POST',
+    headers:{ 'Prefer':'resolution=merge-duplicates' },
+    body: JSON.stringify({ id:1, capital_total_admin: valeurCapital })
+  }, session.access_token).catch(function(e){ console.error('[syncCapitalAdmin]', e); });
+}
+function syncCapitalAuServeur(valeurCapital){
+  if(!SUPABASE_CONFIG.enabled || !navigator.onLine) return;
+  var session=getSession();
+  if(!session || !session.access_token || session.role!=='admin') return;
+  _enAttenteCapitalAdmin=valeurCapital;
+  if(_dernierCapitalAdminEnvoye===valeurCapital) return;
+  clearTimeout(_timerSyncCapitalAdmin);
+  _timerSyncCapitalAdmin=setTimeout(envoyerCapitalAdminMaintenant, 1500);
+}
 /** Purge immédiate des deux compteurs ci-dessus (n'envoie que s'il y a réellement quelque chose en attente). */
 function purgerSyncsBilanEnAttente(){
   envoyerEntDoitStockPersoMaintenant();
   envoyerPartAssocieMaintenant();
+  envoyerCapitalAdminMaintenant();
 }
 document.addEventListener('visibilitychange', function(){
   if(document.visibilityState==='hidden') purgerSyncsBilanEnAttente();
@@ -4314,7 +4364,16 @@ function chargerBilanConfidentiel(){
       // continue d'être utilisé sans aucun changement de comportement.
       var interetAffiche = (b.part_interet_admin!==undefined && b.part_interet_admin!==null) ? b.part_interet_admin : b.part_interet;
       var resteAffiche = (b.reste_a_payer_admin!==undefined && b.reste_a_payer_admin!==null) ? b.reste_a_payer_admin : b.reste_associe_doit;
-      st('va-capital', fmt(Number(b.capital_associe)||0));
+      // CORRECTIF (cohérence capital Administrateur ⇄ Associé, même
+      // principe que interetAffiche/resteAffiche ci-dessus) : préfère la
+      // valeur poussée par l'Administrateur (capital_total_admin, voir
+      // syncCapitalAuServeur()) — divisée par 2, comme calculerCapitalAssocie()
+      // le fait déjà côté Administrateur — sur l'ancien calcul indépendant
+      // capital_associe, tant que la fonction serveur bilan_confidentiel()
+      // n'a pas été mise à jour pour la relire, capital_associe reste
+      // utilisé sans aucun changement de comportement.
+      var capitalAssocieAffiche = (b.capital_total_admin!==undefined && b.capital_total_admin!==null) ? (Number(b.capital_total_admin)/2) : b.capital_associe;
+      st('va-capital', fmt(Number(capitalAssocieAffiche)||0));
       st('va-interet', fmt(Number(interetAffiche)||0));
       st('va-reste', fmt(Number(resteAffiche)||0));
       st('va-depenses', fmt(Number(b.total_depenses)||0));
@@ -5941,6 +6000,13 @@ function updateKPIs(){
   st('k-stock-valeur',fmt(valeurStock));
   st('k-stock-rupture',nbRupture); st('k-stock-faible',nbFaible);
   st('k-capital-total',fmt(calculerCapitalTotalEntreprise()));
+  // CORRECTIF (cohérence Administrateur ⇄ Associé/Visiteur, capital) :
+  // pousse la valeur AUTHENTIQUE du capital (celle affichée juste
+  // au-dessus) vers le serveur à chaque recalcul du tableau de bord —
+  // voir syncCapitalAuServeur() pour le détail complet du problème et
+  // du principe de correction (même mécanisme que part_interet_admin/
+  // reste_a_payer_admin, déjà en place juste en dessous).
+  syncCapitalAuServeur(calculerCapitalTotalEntreprise());
   // Total des avoirs de l'Administrateur = Capital (même formule que
   // pour l'Associé, ÷2 puisque le capital est partagé 50/50) + montant
   // que l'entreprise doit personnellement à l'Administrateur au titre
@@ -7308,7 +7374,11 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.09'; // 17-09-2026 : CORRECTION CIBLÉE — SWIPE DES ONGLETS. L'audit réel V0.08 avait confirmé 2 anomalies : un balayage démarré directement sur un bouton d'onglet, ou directement dans la barre de recherche, ne déclenchait jamais de changement d'onglet. Cause : (a) l'exclusion générale des <button>/<input> bloquait ces deux zones précises ; (b) la zone verticale autorisée démarrait au BAS de la ligne d'onglets (r.bottom), excluant la ligne elle-même. Corrigé par 2 ajustements ciblés dans le même mécanisme de balayage : une exemption pour tout geste commençant dans #main-nav ou #gs-wrap (avant l'exclusion générale, qui reste inchangée partout ailleurs), et la zone déplacée à r.top pour inclure toute la hauteur de la ligne d'onglets. Le clic normal sur un onglet et la saisie normale dans la recherche restent inchangés (écouteurs 100% passifs, aucun preventDefault). TAB_ORDER, le plafonnement aux extrémités, l'exclusion des tableaux (.tw) et tout le reste ne sont pas modifiés. Testé avec un vrai Chromium (geste tactile natif via CDP), portrait et paysage : swipe depuis un bouton d'onglet ✅, depuis la barre de recherche ✅, entre recherche et milieu ✅, aucun changement sous le milieu ✅, tableau ne change jamais d'onglet ✅ (mouvement de défilement natif confirmé en portrait ; non concluant en paysage avec cet outil de test synthétique, sans lien avec ce correctif — un chevauchement visuel préexistant entre la barre sticky et le tableau après un fort défilement de page a été identifié pendant le diagnostic, non lié à ce correctif, non modifié), clic normal ✅, saisie clavier ✅, premier/dernier onglet sans bouclage ✅. Non-régression Stock Perso/clôture revérifiée. Aucun calcul, donnée, Supabase, compte, droit, rapport ou paramètre modifié. Historique interne (v83→V0.08) conservé ci-dessous à titre de journal, sans effet sur le fonctionnement.
+var APP_VERSION = 'V0.11'; // 19-09-2026 : CORRECTIF — CAPITAL NON ACTUALISÉ CHEZ ASSOCIÉ/VISITEUR. Cause exacte trouvée : le capital de l'Administrateur (calculerCapitalTotalEntreprise(), source unique — stock + capitalStockSupprime − capitalReductions) était recalculé de façon INDÉPENDANTE côté serveur par 2 fonctions Supabase distinctes (bilan_confidentiel() pour l'Associé, acceder_patrimoine_visiteur() pour le Visiteur), sans aucune connaissance des réductions manuelles de capital (D.capitalReductions), qui n'existent que côté appareil/app_data. D'où l'incohérence signalée. Corrigé selon le même principe déjà en place pour "Il reçoit (net)"/"Reste à payer" (syncPartAssocieAuServeur) : l'Administrateur pousse désormais sa valeur authentique vers la table Supabase "parametres" (nouveau champ capital_total_admin, à chaque recalcul du tableau de bord) ; l'Associé et le Visiteur utilisent cette valeur en priorité dès qu'elle est présente dans la réponse serveur, avec repli automatique sur l'ancien calcul si absente (rétrocompatibilité testée). ⚠️ Pour un effet complet, les fonctions Supabase bilan_confidentiel() et acceder_patrimoine_visiteur() doivent aussi être mises à jour pour lire parametres.capital_total_admin — hors de portée d'une modification de fichier seul. Testé avec un vrai Chromium : réduction de capital → poussée serveur confirmée (700000 envoyé) ; Associé et Visiteur affichent bien la valeur Admin quand le serveur la renvoie ; repli correct sur l'ancien calcul sinon. Non-régression Stock Perso/clôture revérifiée. Aucun calcul existant, donnée, colonne de tableau ni autre fonctionnalité modifiés. Historique interne (v83→V0.10) conservé ci-dessous à titre de journal, sans effet sur le fonctionnement.
+var APP_VERSION_DATE = '2026-09-19T23:55:13'; // Date/heure exacte de la mise à jour V0.11 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION_V0_10_HISTORIQUE = 'V0.10'; // 19-09-2026 : repositionnement des 6 boutons d'ajout, de la position fixe flottante vers la ligne de filtre de leur tableau.
+var APP_VERSION_DATE = '2026-09-19T17:59:33'; // Date/heure exacte de la mise à jour V0.10 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION_V0_09_HISTORIQUE = 'V0.09'; // 17-09-2026 : correction ciblée du balayage des onglets (exemption bouton/recherche + zone verticale étendue à la ligne d'onglets).
 var APP_VERSION_DATE = '2026-09-17T10:02:45'; // Date/heure exacte de la mise à jour V0.09 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 var APP_VERSION_V0_08_HISTORIQUE = 'V0.08'; // 16-09-2026 : MISE À JOUR STRICTE — RAPIDITÉ + BALAYAGE (zone/extrémités du balayage, affichage immédiat à l'ouverture/au changement de compte, message de fusion cloud uniquement si changement réel, visibilité des erreurs de synchro silencieuses).
 var APP_VERSION_DATE = '2026-09-16T00:00:10'; // Date/heure exacte de la mise à jour V0.08 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
@@ -7851,7 +7921,13 @@ function entrerVueVisiteur(rows, code){
   sessionStorage.setItem('bpro_role','visiteur');
   sessionStorage.setItem('bpro_visiteur_code', code); // pour le rafraîchissement pendant la session uniquement
   document.getElementById('login-screen').classList.add('hidden');
-  afficherVueVisiteur(biens, Number(premiere.capital_admin)||0, Number(premiere.montant_du_admin)||0, Number(premiere.entreprise_doit_stock_perso)||0, Number(premiere.total_avoirs_admin)||0);
+  // CORRECTIF (cohérence capital Administrateur ⇄ Visiteur) : préfère la
+  // valeur poussée par l'Administrateur (capital_total_admin, voir
+  // syncCapitalAuServeur()) sur l'ancien calcul indépendant capital_admin,
+  // tant que acceder_patrimoine_visiteur() n'a pas été mise à jour pour
+  // la relire — même principe que pour l'Associé (chargerBilanConfidentiel()).
+  var capitalVisiteurAffiche = (premiere.capital_total_admin!==undefined && premiere.capital_total_admin!==null) ? premiere.capital_total_admin : premiere.capital_admin;
+  afficherVueVisiteur(biens, Number(capitalVisiteurAffiche)||0, Number(premiere.montant_du_admin)||0, Number(premiere.entreprise_doit_stock_perso)||0, Number(premiere.total_avoirs_admin)||0);
   activerInterfaceSelonRole();
 }
 /** Rafraîchit la vue Visiteur (bouton ⟳) en rappelant la même fonction serveur avec le code déjà validé pour cette session. */
@@ -7870,7 +7946,8 @@ function rafraichirVisiteur(){
         etat:r.bien_etat, description:r.bien_description, utilisation:r.bien_utilisation };
     });
     var premiere = rows[0]||{};
-    afficherVueVisiteur(biens, Number(premiere.capital_admin)||0, Number(premiere.montant_du_admin)||0, Number(premiere.entreprise_doit_stock_perso)||0, Number(premiere.total_avoirs_admin)||0);
+    var capitalVisiteurAffiche = (premiere.capital_total_admin!==undefined && premiere.capital_total_admin!==null) ? premiere.capital_total_admin : premiere.capital_admin;
+    afficherVueVisiteur(biens, Number(capitalVisiteurAffiche)||0, Number(premiere.montant_du_admin)||0, Number(premiere.entreprise_doit_stock_perso)||0, Number(premiere.total_avoirs_admin)||0);
     try{ localStorage.setItem('bpro_visiteur_cache', JSON.stringify({code:code, rows:rows, ts:Date.now()})); }catch(e){}
     notif('✅ Données actualisées');
     if (typeof setSyncStatus === 'function') setSyncStatus('online', '🟢 Visiteur connecté');
