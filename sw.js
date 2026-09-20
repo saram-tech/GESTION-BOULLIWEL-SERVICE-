@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v171'; // 19-09-2026 : index.html V0.11 — CORRECTIF capital non actualisé chez Associé/Visiteur après réduction du capital Administrateur. L'Administrateur pousse désormais sa valeur authentique (capital_total_admin) vers Supabase ("parametres"), et Associé/Visiteur la préfèrent à leur ancien calcul indépendant, avec repli automatique si le serveur ne la renvoie pas encore. ⚠️ Nécessite aussi une mise à jour des fonctions Supabase bilan_confidentiel()/acceder_patrimoine_visiteur() pour lire ce nouveau champ (hors de portée d'un fichier seul). Testé avec un vrai Chromium : poussée serveur confirmée, préférence de la valeur Admin confirmée, repli rétrocompatible confirmé. Aucun calcul, donnée, colonne ni autre fonctionnalité modifiés. Voir commentaire APP_VERSION dans index.html.
+const CACHE_VERSION = 'v172'; // 20-09-2026 : index.html V0.12 — CORRECTIF "Capital de BAH Ousmane" (Visiteur) affichait le capital TOTAL au lieu de sa part à 50% (doit toujours être identique à "Votre capital actuel" côté Associé). Division par 2 ajoutée côté Visiteur (entrerVueVisiteur/rafraichirVisiteur). Testé avec un vrai Chromium : réduction capital → nouvelle connexion Associé + Visiteur → 350 000 GNF identique des deux côtés (sur capital total 700 000), bouton actualiser et repli rétrocompatible revérifiés. Aucun calcul existant, donnée, colonne ni autre fonctionnalité modifiés. Voir commentaire APP_VERSION dans index.html.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne
