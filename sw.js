@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v172'; // 20-09-2026 : index.html V0.12 — CORRECTIF "Capital de BAH Ousmane" (Visiteur) affichait le capital TOTAL au lieu de sa part à 50% (doit toujours être identique à "Votre capital actuel" côté Associé). Division par 2 ajoutée côté Visiteur (entrerVueVisiteur/rafraichirVisiteur). Testé avec un vrai Chromium : réduction capital → nouvelle connexion Associé + Visiteur → 350 000 GNF identique des deux côtés (sur capital total 700 000), bouton actualiser et repli rétrocompatible revérifiés. Aucun calcul existant, donnée, colonne ni autre fonctionnalité modifiés. Voir commentaire APP_VERSION dans index.html.
+const CACHE_VERSION = 'v174'; // 21-09-2026 : index.html — les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical ; affichage uniquement. Précédemment v173 — 20-09-2026 : index.html V0.13 — (1) Visiteur : "Total des avoirs (argent) de BAH Ousmane" recalculé à partir des trois montants affichés (capital + part de bénéfice + Stock Perso dû) ; (2) Administrateur : nouvelle action "Augmenter le capital total de l'entreprise" (historique D.capitalAugmentations, intégré à calculerCapitalTotalEntreprise()) ; (3) actualisation automatique du compte Visiteur et envoi fiabilisé du capital/bénéfice/Stock Perso vers le serveur. Voir commentaire APP_VERSION dans index.html.
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne

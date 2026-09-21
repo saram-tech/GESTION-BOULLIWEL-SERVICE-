@@ -122,6 +122,7 @@ main{padding:12px;max-width:1400px;margin:0 auto;position:relative;z-index:1;}
   body.printing-mode tfoot{display:table-footer-group;}
   body.printing-mode tr{page-break-inside:avoid;}
   body.printing-mode .tw{max-height:none !important;overflow:visible !important;border:none !important;}
+  body.printing-mode .barre-add-sticky{position:static !important;}
   body.printing-mode .kpi{border:1px solid #999;page-break-inside:avoid;}
   @page{margin:14mm;}
 }
@@ -191,6 +192,27 @@ main{padding:12px;max-width:1400px;margin:0 auto;position:relative;z-index:1;}
    ensemble pour ne pas laisser un espace vide inutile en bas de ces
    onglets. Aucun autre style, aucune fonction, aucune donnée modifiés. */
 .tw{overflow-x:auto;overflow-y:auto;max-height:min(64vh,620px);border-radius:9px;}
+/* CORRECTIF (21-09-2026 — "les boutons + Nouvelle / + Entrée stock / + Ajouter /
+   ➕ Ajouter dette / + Ajouter / + Nouvelle commande ne restent pas visibles
+   pendant le défilement vertical") : ces 6 boutons sont dans la barre de
+   filtres située juste au-dessus de leur tableau. Un élément "sticky" ne
+   peut jamais sortir de la boîte de son parent : posé sur le bouton seul, son
+   parent (la barre, une ligne de haut) ne lui laissait aucune marge, et le
+   bouton défilait avec la page. C'est donc la barre elle-même (dont
+   l'emplacement ne change pas) qui est rendue sticky : son parent est la
+   carte entière (filtres + tableau + totaux), donc elle reste collée sous
+   l'en-tête et la barre d'onglets tant que la carte est à l'écran, puis
+   repart avec elle en bas. Pour ne garder à l'écran QUE la ligne du bouton
+   (le bouton est toujours dans la dernière ligne de la barre), son "top" est
+   volontairement négatif : les lignes de filtres situées au-dessus glissent
+   sous la barre d'onglets (z-index supérieur) ; --barre-add-decal (mesuré
+   par majBarresAddSticky()) = hauteur de ces lignes. Fond opaque = les lignes
+   du tableau passent SOUS la barre, jamais par-dessus ; les 2 ombres pleines
+   de 6px (0 flou) masquent seulement l'interstice sans modifier la mise en
+   page. La barre est en dehors de .tw : le défilement horizontal et interne
+   du tableau restent inchangés. --barre-add-top = bas de la barre d'onglets
+   + 6px (sa hauteur varie : onglet actif agrandi, polices). */
+.barre-add-sticky{position:sticky;top:calc(var(--barre-add-top,136px) - var(--barre-add-decal,0px));z-index:20;background:var(--bg2);box-shadow:0 -6px 0 var(--bg2),0 6px 0 var(--bg2);}
 table{width:100%;border-collapse:collapse;font-size:.77rem;}
 thead th{background:var(--bg4);color:var(--tx2);padding:8px 10px;text-align:left;font-weight:600;font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--bd);white-space:nowrap;position:sticky;top:0;z-index:6;}
 tbody td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle;}
@@ -509,7 +531,7 @@ tbody tr:last-child td{border-bottom:none;}
      ================================================================ -->
 <div id="vue-visiteur" style="display:none">
   <div class="g4" style="margin-bottom:14px">
-    <div class="kpi" data-vk="vi-capital"><div class="kl">Capital de BAH Ousmane dans l'entreprise</div><div class="kv g" id="vv-capital">0 GNF</div><div class="ks">Sa part du capital total de l'entreprise (produits saisis directement, hors Stock Perso)</div></div>
+    <div class="kpi" data-vk="vi-capital"><div class="kl">Capital de BAH Ousmane dans l'entreprise</div><div class="kv g" id="vv-capital">0 GNF</div><div class="ks">Sa part du capital total de l'entreprise (produits saisis directement + augmentations de capital, hors Stock Perso)</div></div>
     <div class="kpi" data-vk="vi-part"><div class="kl">Part de bénéfice actuelle de BAH Ousmane dans l'entreprise</div><div class="kv" id="vv-doit">0 GNF</div><div class="ks">Sa part de bénéfice (50%) dans l'entreprise, sur la période en cours</div></div>
     <div class="kpi" data-vk="vi-stockperso"><div class="kl">Ce que l'entreprise me doit en stock personnel</div><div class="kv" id="vv-stockperso">0 GNF</div><div class="ks">Valeur due pour les produits qu'il a apportés personnellement (même montant que côté Administrateur)</div></div>
     <div class="kpi" data-vk="vi-total" style="border-color:rgba(59,130,246,.35)"><div class="kl">Total des avoirs (argent) de BAH Ousmane dans l'entreprise</div><div class="kv b" id="vv-total" style="font-size:1.7rem;font-weight:800">0 GNF</div><div class="ks">Capital + Part de bénéfice + Stock personnel dû (chaque montant compté une seule fois)</div></div>
@@ -547,14 +569,14 @@ tbody tr:last-child td{border-bottom:none;}
   </div>
   <div class="ch" style="margin:4px 0 8px"><span class="dot" style="background:var(--go)"></span>💼 Total des avoirs de l'Administrateur</div>
   <div class="g4" style="margin-bottom:12px">
-    <div class="kpi" data-vk="db-admin-capital"><div class="kl">Mon capital dans l'entreprise</div><div class="kv" id="k-admin-capital">0 GNF</div><div class="ks">Produits saisis directement, hors Stock Perso</div></div>
+    <div class="kpi" data-vk="db-admin-capital"><div class="kl">Mon capital dans l'entreprise</div><div class="kv" id="k-admin-capital">0 GNF</div><div class="ks">Produits saisis directement + augmentations de capital, hors Stock Perso</div></div>
     <div class="kpi" data-vk="db-admin-doit"><div class="kl">Entreprise me doit en Stock perso</div><div class="kv" id="k-admin-doit">0 GNF</div><div class="ks">Valeur due au titre du Stock Perso</div></div>
     <div class="kpi" data-vk="db-admin-total"><div class="kl">Total des avoirs</div><div class="kv b" id="k-admin-total">0 GNF</div><div class="ks">Capital + Ce que l'entreprise me doit</div></div>
     <div class="kpi" data-vk="db-admin-benefice"><div class="kl">Mon bénéfice actuel dans l'entreprise</div><div class="kv g" id="k-admin-benefice">0 GNF</div><div class="ks">Affiché séparément, non inclus ci-dessus</div></div>
   </div>
   <div class="ch" style="margin:4px 0 8px"><span class="dot" style="background:var(--go)"></span>📦 Vue d'ensemble du Stock</div>
   <div class="g5" style="margin-bottom:12px">
-    <div class="kpi" data-vk="db-capital-total"><div class="kl">Capital total de l'entreprise</div><div class="kv b" id="k-capital-total">0 GNF</div><div class="ks">Produits saisis directement, hors Stock Perso</div></div>
+    <div class="kpi" data-vk="db-capital-total"><div class="kl">Capital total de l'entreprise</div><div class="kv b" id="k-capital-total">0 GNF</div><div class="ks">Produits saisis directement + augmentations de capital, hors Stock Perso</div></div>
     <div class="kpi" data-vk="db-stock-valeur"><div class="kl">Valeur du Stock</div><div class="kv g" id="k-stock-valeur">0 GNF</div><div class="ks">Restant × Prix achat</div></div>
     <div class="kpi" data-vk="db-stock-rupture"><div class="kl">Produits en Rupture</div><div class="kv r" id="k-stock-rupture">0</div></div>
     <div class="kpi" data-vk="db-stock-faible"><div class="kl">Stock Faible</div><div class="kv gold" id="k-stock-faible">0</div></div>
@@ -593,7 +615,7 @@ tbody tr:last-child td{border-bottom:none;}
     📋 Colonnes : Date | N° ordre | Ticket (manuel) | Type | Désignation | Panne | Prix achat×Qté | À Payer | Payé | Reste | Client | Bénéfice
   </div>
   <div class="card">
-    <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
+    <div class="barre-add-sticky" style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
       <select id="f-type" onchange="rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
         <option value="">Tous</option><option value="Vente">Ventes</option><option value="Réparation">Réparations</option><option value="Service">Services</option>
       </select>
@@ -628,6 +650,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st">Stock Entreprise</div><div class="ss">Marchandises communes — seuil d'alerte par produit</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn bh bsm" onclick="ouvrirAugmentationCapital()" title="Augmenter le capital total de l'entreprise (montant ajouté)">➕ Augmenter le capital</button>
       <button class="btn bh bsm" onclick="ouvrirReductionCapital()" title="Réduire manuellement le capital (montant + motif)">➖ Réduire le capital</button>
       <button class="btn bh bsm" onclick="toggleTriAZ('stock')" id="btn-az-stock" title="Trier les produits par ordre alphabétique">🔤 A-Z</button>
       <button class="btn bd bsm" onclick="viderStock()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
@@ -640,7 +663,7 @@ tbody tr:last-child td{border-bottom:none;}
     🔴 Quand Stock Restant ≤ Seuil → alerte + fiche commande fournisseur dans l'onglet <strong>Commandes</strong>.
   </div>
   <div class="card">
-    <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
+    <div class="barre-add-sticky" style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
       <input type="text" id="f-search-stock" placeholder="🔍 Rechercher un produit..." oninput="deb('stock',rStock)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
       <select id="f-periode-stock" onchange="togglePeriodeCustom('f-periode-stock');rStock()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
         <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
@@ -685,7 +708,7 @@ tbody tr:last-child td{border-bottom:none;}
     Le bénéfice de vente est partagé 50/50 avec l'associé.
   </div>
   <div class="card">
-    <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
+    <div class="barre-add-sticky" style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
       <input type="text" id="f-search-perso" placeholder="🔍 Rechercher un produit..." oninput="deb('perso',rPerso)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
       <select id="f-periode-perso" onchange="togglePeriodeCustom('f-periode-perso');rPerso()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
         <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
@@ -775,7 +798,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="g2 g2-dettes">
     <div class="card">
       <div class="ch"><span class="dot" style="background:var(--re)"></span>Dettes enregistrées <span id="lkb" style="display:none" class="lkb">🔒 Verrouillé</span></div>
-      <div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">
+      <div class="barre-add-sticky" style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">
         <input type="text" id="f-search-dettes" placeholder="🔍 Rechercher..." oninput="deb('dettes',rDettes)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 8px;color:var(--tx);font-size:.72rem;flex:1;min-width:90px;outline:none">
         <select id="f-periode-dettes" onchange="togglePeriodeCustom('f-periode-dettes');rDettes()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.7rem">
           <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Semaine</option><option value="mois">Mois</option><option value="annee">Année</option><option value="custom">Personnalisé</option>
@@ -839,7 +862,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="kpi"><div class="kl">Ce mois</div><div class="kv r" id="k-dm">0 GNF</div></div>
   </div>
   <div class="card">
-    <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
+    <div class="barre-add-sticky" style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
       <input type="text" id="f-search-dep" placeholder="🔍 Rechercher (catégorie, description)..." oninput="deb('dep',rDep)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
       <select id="f-periode-dep" onchange="togglePeriodeCustom('f-periode-dep');rDep()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
         <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
@@ -878,7 +901,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div id="alertes-cmd-dispo"></div>
   <!-- COMMANDES CLIENTS -->
   <div class="card">
-    <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
+    <div class="barre-add-sticky" style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
       <input type="text" id="f-search-cmd" placeholder="🔍 Rechercher (client, n° cmd, produit)..." oninput="deb('cmd',rCmd)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
       <select id="f-periode-cmd" onchange="togglePeriodeCustom('f-periode-cmd');rCmd()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
         <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
@@ -1273,6 +1296,33 @@ tbody tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
+<!-- AUGMENTATION DU CAPITAL TOTAL DE L'ENTREPRISE (Stock Entreprise, compte Administrateur) -->
+<div class="ov" id="mca">
+  <div class="modal">
+    <div class="mhd"><span>➕ Augmenter le capital total de l'entreprise</span><button class="mcl" onclick="cm('mca')">✕</button></div>
+    <div class="al ali" style="font-size:.75rem">
+      Cette opération ajoute un montant au capital total de l'entreprise (partagé 50/50 entre BAH Ousmane et l'Associé). Elle ne modifie ni le stock, ni les ventes, ni les dépenses, ni les dettes, ni le Stock Perso. Chaque augmentation est conservée dans l'historique.
+    </div>
+    <div style="font-size:.8rem;color:var(--tx2);margin:6px 0">Capital total actuel : <strong id="ca-capital-actuel">0 GNF</strong></div>
+    <div class="fr">
+      <div class="fg"><label>Montant ajouté (GNF) *</label><input type="number" id="ca-montant" placeholder="0" min="0" oninput="majApercuAugmentationCapital()"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Motif / note (facultatif)</label><input type="text" id="ca-motif" placeholder="Ex: Apport de fonds, nouvel investissement..."></div>
+    </div>
+    <div style="font-size:.8rem;color:var(--tx2);margin:6px 0">Nouveau capital total après ajout : <strong id="ca-capital-nouveau" style="color:var(--gr)">—</strong></div>
+    <div style="font-size:.8rem;color:var(--tx2);margin:6px 0">Part de chaque associé (50 %) : <strong id="ca-part-associe">0 GNF</strong></div>
+    <div class="mft">
+      <button class="btn bh" onclick="cm('mca')">Fermer</button>
+      <button class="btn bp js-tap-fast" id="btn-ca-valider" onclick="enrAugmentationCapital()">✓ Valider l'augmentation</button>
+    </div>
+    <div style="margin-top:12px;border-top:1px solid var(--bd);padding-top:10px">
+      <div style="font-size:.78rem;color:var(--tx2);margin-bottom:6px">Historique des augmentations — total : <strong id="ca-total-augmentations">0 GNF</strong></div>
+      <div id="ca-historique" style="max-height:180px;overflow-y:auto;font-size:.76rem"></div>
+    </div>
+  </div>
+</div>
+
 <!-- RÉDUCTION MANUELLE DU CAPITAL (Stock Entreprise, compte Administrateur) -->
 <div class="ov" id="mcr">
   <div class="modal">
@@ -1597,7 +1647,7 @@ let D = {
 function load(){
   try{
     const s=localStorage.getItem(KEY);
-    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}},d); if(!D._del) D._del={}; }
+    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],capitalAugmentations:[],historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}},d); if(!D._del) D._del={}; }
   }catch(e){}
   migrerEntDoitBaseStockPerso();
 }
@@ -2414,11 +2464,19 @@ function envoyerEntDoitStockPersoMaintenant(){
   clearTimeout(_timerSyncEntDoitStockPerso); _timerSyncEntDoitStockPerso=null;
   _dernierEntDoitStockPersoEnvoye=valeurStockPerso;
   _dernierBeneficeAdminEnvoye=valeurBenefice;
+  var echecStockPerso=function(e){
+    // V0.13 : même principe que envoyerCapitalAdminMaintenant() — un envoi non abouti ne doit pas
+    // être mémorisé comme "déjà envoyé" (ces deux montants alimentent le Total des avoirs Visiteur).
+    console.error('[syncEntDoitStockPerso]', e);
+    if(_dernierEntDoitStockPersoEnvoye===valeurStockPerso && _dernierBeneficeAdminEnvoye===valeurBenefice){
+      _dernierEntDoitStockPersoEnvoye=null; _dernierBeneficeAdminEnvoye=null;
+    }
+  };
   supabaseTable('/rest/v1/parametres', {
     method:'POST',
     headers:{ 'Prefer':'resolution=merge-duplicates' },
     body: JSON.stringify({ id:1, ent_doit_stock_perso: valeurStockPerso, mon_benefice_admin: valeurBenefice })
-  }, session.access_token).catch(function(e){ console.error('[syncEntDoitStockPerso]', e); });
+  }, session.access_token).then(function(r){ if(!r || !r.ok) echecStockPerso(new Error('HTTP '+(r?r.status:'?'))); }).catch(echecStockPerso);
 }
 function syncEntDoitStockPersoAuServeur(valeurStockPerso, valeurBenefice){
   if(!SUPABASE_CONFIG.enabled || !navigator.onLine) return;
@@ -2527,11 +2585,18 @@ function envoyerCapitalAdminMaintenant(){
   if(_dernierCapitalAdminEnvoye===valeurCapital) return;
   clearTimeout(_timerSyncCapitalAdmin); _timerSyncCapitalAdmin=null;
   _dernierCapitalAdminEnvoye=valeurCapital;
+  var echecCapital=function(e){
+    // V0.13 : envoi non abouti (réseau coupé, refus serveur…) → on n'enregistre PAS cette valeur
+    // comme "déjà envoyée" : elle sera renvoyée au prochain recalcul (toutes les ~15s), au lieu de
+    // rester périmée côté serveur (donc côté Associé/Visiteur) jusqu'à un prochain changement.
+    console.error('[syncCapitalAdmin]', e);
+    if(_dernierCapitalAdminEnvoye===valeurCapital) _dernierCapitalAdminEnvoye=null;
+  };
   supabaseTable('/rest/v1/parametres', {
     method:'POST',
     headers:{ 'Prefer':'resolution=merge-duplicates' },
     body: JSON.stringify({ id:1, capital_total_admin: valeurCapital })
-  }, session.access_token).catch(function(e){ console.error('[syncCapitalAdmin]', e); });
+  }, session.access_token).then(function(r){ if(!r || !r.ok) echecCapital(new Error('HTTP '+(r?r.status:'?'))); }).catch(echecCapital);
 }
 function syncCapitalAuServeur(valeurCapital){
   if(!SUPABASE_CONFIG.enabled || !navigator.onLine) return;
@@ -3626,6 +3691,80 @@ function enrReductionCapital(){
   cm('mcr');
 }
 
+/**
+ * AJOUT (V0.13 — demande explicite : "Augmenter le capital total de l'entreprise",
+ * compte Administrateur). Miroir exact de la réduction manuelle (ci-dessus) : mêmes
+ * mécanismes, aucun système parallèle. Ouvre la fenêtre dédiée avec le capital actuel,
+ * l'aperçu du nouveau capital et l'historique des augmentations déjà enregistrées.
+ */
+function ouvrirAugmentationCapital(){
+  if(!exigerAdmin()) return;
+  sv('ca-montant',''); sv('ca-motif','');
+  majApercuAugmentationCapital();
+  rHistoriqueAugmentationsCapital();
+  om('mca');
+}
+/** Recalcule l'aperçu (capital actuel, nouveau capital, part de chaque associé) — même formule que le capital réel. */
+function majApercuAugmentationCapital(){
+  var capitalActuel = calculerCapitalTotalEntreprise();
+  var montant = fl('ca-montant');
+  st('ca-capital-actuel', fmt(capitalActuel));
+  if(montant>0){
+    var nouveau = calculerCapitalTotalEntreprise(montant);
+    st('ca-capital-nouveau', fmt(nouveau));
+    st('ca-part-associe', fmt(nouveau/2));
+  } else {
+    st('ca-capital-nouveau', '—');
+    st('ca-part-associe', fmt(capitalActuel/2));
+  }
+}
+function rHistoriqueAugmentationsCapital(){
+  var el=document.getElementById('ca-historique'); if(!el) return;
+  var liste=(D.capitalAugmentations||[]).slice().sort(function(a,b){ return (b.id||0)-(a.id||0); });
+  var total=liste.reduce(function(s,r){ return s+(Number(r.montant)||0); }, 0);
+  st('ca-total-augmentations', fmt(total));
+  if(!liste.length){ el.innerHTML='<span style="color:var(--tx3)">Aucune augmentation enregistrée.</span>'; return; }
+  el.innerHTML = liste.map(function(r){
+    return '<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid var(--bd)">'+
+      '<span>'+fmtDateHeure(r.date,r.heure)+(r.motif?' — '+echap(r.motif):'')+'</span>'+
+      '<strong style="color:var(--gr)">+ '+fmt(r.montant)+'</strong></div>';
+  }).join('');
+}
+/**
+ * AJOUT (V0.13) : enregistre une augmentation du capital total. Saisie du montant (+ note
+ * facultative) → confirmation → l'opération (date, heure, montant, motif) est ajoutée à
+ * l'historique dédié D.capitalAugmentations (fusionné/synchronisé comme D.capitalReductions,
+ * voir MERGEABLE_ARRAYS — donc retrouvé après reconnexion/synchronisation, sur tous les
+ * appareils de l'Administrateur). Rien d'autre n'est écrit : ni D.stock, ni D.activites, ni
+ * D.perso, ni bénéfices, ni clôtures. Le nouveau capital est affiché immédiatement
+ * (renderAll() via save()) et poussé sans attendre vers le serveur (envoyerCapitalAdminMaintenant),
+ * d'où il est lu par le compte Associé et le compte Visiteur.
+ */
+function enrAugmentationCapital(){
+  if(!exigerAdmin()) return;
+  var montant=fl('ca-montant'), motif=(v('ca-motif')||'').trim();
+  if(!(montant>0) || !isFinite(montant)){ notif('⚠️ Montant invalide.'); return; }
+  var capitalAvant = calculerCapitalTotalEntreprise();
+  var capitalApres = calculerCapitalTotalEntreprise(montant);
+  if(!confirm('Augmenter le capital total de '+fmt(montant)+' ?\n\nCapital actuel : '+fmt(capitalAvant)+'\nNouveau capital : '+fmt(capitalApres)+'\nPart de chaque associé (50 %) : '+fmt(capitalApres/2))) return;
+  D.capitalAugmentations=(D.capitalAugmentations||[]);
+  var idAug=Date.now();
+  while(D.capitalAugmentations.some(function(a){ return a.id===idAug; })) idAug++;
+  D.capitalAugmentations.push({ id:idAug, date:td(), heure:nowHM(), montant:montant, motif:motif, _localTouchedAt:Date.now() });
+  save();
+  if(typeof envoyerCapitalAdminMaintenant==='function') envoyerCapitalAdminMaintenant();
+  var capitalNouveau = calculerCapitalTotalEntreprise();
+  var effectif = Math.round(capitalNouveau - capitalAvant);
+  if(effectif !== Math.round(montant)){
+    notif('⚠️ Capital augmenté de '+fmt(effectif)+' seulement (sur '+fmt(montant)+' saisis) : le capital ne peut jamais être négatif, des réductions antérieures en absorbent une partie. Nouveau capital : '+fmt(capitalNouveau)+'.', 9000);
+  } else {
+    notif('✅ Capital augmenté de '+fmt(montant)+' — nouveau capital : '+fmt(capitalNouveau));
+  }
+  sv('ca-montant',''); sv('ca-motif','');
+  majApercuAugmentationCapital();
+  rHistoriqueAugmentationsCapital();
+}
+
 // ================================================================
 // STOCK PERSO
 // ================================================================
@@ -4316,13 +4455,24 @@ function envoyerCmdFournisseurWhatsApp(commandeId){
  * jamais devenir négatif, quelle que soit la combinaison de réductions.
  * Aucun autre terme de ce calcul n'est modifié.
  */
-function calculerCapitalTotalEntreprise(){
+function calculerCapitalTotalEntreprise(ajoutHypothetique){
   var capitalStock = D.stock.reduce(function(s,p){
     var qteDirecte = Math.max(0, (p.qteInitiale||0) - (p.origPerso||0));
     return s + qteDirecte*(p.achat||0);
   }, 0);
   var totalReductions = (D.capitalReductions||[]).reduce(function(s,r){ return s+(r.montant||0); }, 0);
-  return Math.max(0, capitalStock + (D.capitalStockSupprime||0) - totalReductions);
+  /**
+   * AJOUT (V0.13 — augmentation du capital total, compte Administrateur) : somme des
+   * augmentations enregistrées (D.capitalAugmentations, voir enrAugmentationCapital()) —
+   * MÊME fonction, MÊME source unique que pour les réductions : aucun second système de
+   * capital. Tout ce qui dépend du capital (tableau de bord, part de chaque associé = ÷2,
+   * capital poussé vers Associé/Visiteur par syncCapitalAuServeur()) en bénéficie donc
+   * automatiquement. Le paramètre optionnel ajoutHypothetique (jamais fourni par les appels
+   * existants) ne sert qu'à l'aperçu « nouveau capital » avant validation : il applique
+   * exactement la même formule (plancher à 0 compris), sans rien enregistrer.
+   */
+  var totalAugmentations = (D.capitalAugmentations||[]).reduce(function(s,r){ return s+(Number(r.montant)||0); }, 0);
+  return Math.max(0, capitalStock + (D.capitalStockSupprime||0) + totalAugmentations + (Number(ajoutHypothetique)||0) - totalReductions);
 }
 /** Capital de l'Associé = sa part (50%) du capital total de l'entreprise. */
 function calculerCapitalAssocie(){
@@ -6721,7 +6871,7 @@ function saveCloud(){
 function loadFromHash(){
   var h=window.location.hash;
   if(h&&h.startsWith('#data=')){
-    try{ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}},JSON.parse(decodeURIComponent(atob(h.slice(6))))); persist(); notif('✅ Données restaurées !'); return true; }catch(e){}
+    try{ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],capitalAugmentations:[],historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}},JSON.parse(decodeURIComponent(atob(h.slice(6))))); persist(); notif('✅ Données restaurées !'); return true; }catch(e){}
   } return false;
 }
 
@@ -7190,6 +7340,10 @@ function viderTout() {
     D.capitalStockSupprime = 0;
     (D.capitalReductions||[]).forEach(function(r){ markDeleted('capitalReductions', r.id); });
     D.capitalReductions = [];
+    // V0.13 : même traitement pour les augmentations de capital (remise à zéro COMPLÈTE demandée
+    // explicitement par l'Administrateur via "Tout" — sans cela le capital ne reviendrait pas à 0).
+    (D.capitalAugmentations||[]).forEach(function(r){ markDeleted('capitalAugmentations', r.id); });
+    D.capitalAugmentations = [];
     /**
      * CORRECTIF CRITIQUE (05-09-2026 — audit intégrité des données, point
      * 3) : dettesClot/entDejaDeduit sont protégés dans mergeAppData() par
@@ -7376,16 +7530,18 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.12'; // 20-09-2026 : CORRECTIF — "Capital de BAH Ousmane" (Visiteur) affichait le capital TOTAL au lieu de sa PART. Suite à V0.11, la valeur poussée par l'Administrateur (capital_total_admin) était utilisée telle quelle côté Visiteur (ex: 700 000) au lieu d'être divisée par 2 comme le fait déjà calculerCapitalAssocie() côté Associé — "Capital de BAH Ousmane dans l'entreprise" et "Votre capital actuel" (Associé) représentent la MÊME donnée (sa part à 50%) et doivent toujours afficher un montant strictement identique. Corrigé en divisant par 2 également côté Visiteur (entrerVueVisiteur() et rafraichirVisiteur()). Testé avec un vrai Chromium, scénario complet : réduction du capital Admin (1 000 000 → 700 000) → poussée serveur confirmée → nouvelle connexion Associé ET nouvelle connexion Visiteur (sessions séparées) → les deux affichent exactement 350 000 GNF, identiques ; bouton actualiser Visiteur revérifié ; repli rétrocompatible (sans le nouveau champ) revérifié. Non-régression Stock Perso/clôture revérifiée. Aucun calcul existant, donnée, colonne ni autre fonctionnalité modifiés. Historique interne (v83→V0.11) conservé ci-dessous à titre de journal, sans effet sur le fonctionnement.
-var APP_VERSION_DATE = '2026-09-20T09:25:08'; // Date/heure exacte de la mise à jour V0.12 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.13'; // 20-09-2026 : (1) Compte Visiteur — "Total des avoirs (argent) de BAH Ousmane" recalculé à partir des trois montants réellement affichés (capital + part de bénéfice + Stock Perso dû, chacun compté une fois) au lieu du total_avoirs_admin calculé séparément côté serveur ; (2) Compte Administrateur — nouvelle action "Augmenter le capital total de l'entreprise" (Stock Entreprise), historique D.capitalAugmentations intégré à calculerCapitalTotalEntreprise() (aucun second système de capital), fusionné/synchronisé comme D.capitalReductions ; (3) actualisation automatique du compte Visiteur (minuteur, retour au premier plan, retour en ligne) et fiabilisation de l'envoi capital/bénéfice/Stock Perso vers le serveur (valeur mémorisée comme envoyée seulement si l'envoi a réussi) ; (4) une seule date de version effective (les anciennes lignes APP_VERSION_DATE écrasaient la date de V0.13). Aucun calcul de Stock Perso, bénéfice, clôture ni aucune donnée existante modifié.
+var APP_VERSION_DATE = '2026-09-20T23:55:00'; // Date/heure exacte de la mise à jour V0.13 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION_V0_12_HISTORIQUE = 'V0.12'; // 20-09-2026 : CORRECTIF — "Capital de BAH Ousmane" (Visiteur) affichait le capital TOTAL au lieu de sa PART. Suite à V0.11, la valeur poussée par l'Administrateur (capital_total_admin) était utilisée telle quelle côté Visiteur (ex: 700 000) au lieu d'être divisée par 2 comme le fait déjà calculerCapitalAssocie() côté Associé — "Capital de BAH Ousmane dans l'entreprise" et "Votre capital actuel" (Associé) représentent la MÊME donnée (sa part à 50%) et doivent toujours afficher un montant strictement identique. Corrigé en divisant par 2 également côté Visiteur (entrerVueVisiteur() et rafraichirVisiteur()). Testé avec un vrai Chromium, scénario complet : réduction du capital Admin (1 000 000 → 700 000) → poussée serveur confirmée → nouvelle connexion Associé ET nouvelle connexion Visiteur (sessions séparées) → les deux affichent exactement 350 000 GNF, identiques ; bouton actualiser Visiteur revérifié ; repli rétrocompatible (sans le nouveau champ) revérifié. Non-régression Stock Perso/clôture revérifiée. Aucun calcul existant, donnée, colonne ni autre fonctionnalité modifiés. Historique interne (v83→V0.11) conservé ci-dessous à titre de journal, sans effet sur le fonctionnement.
+var APP_VERSION_V0_12_DATE = '2026-09-20T09:25:08'; // Date/heure exacte de la mise à jour V0.12 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 var APP_VERSION_V0_11_HISTORIQUE = 'V0.11'; // 19-09-2026 : l'Administrateur pousse son capital authentique vers Supabase (parametres.capital_total_admin) ; Associé/Visiteur le préfèrent à leur ancien calcul indépendant.
-var APP_VERSION_DATE = '2026-09-19T23:55:13'; // Date/heure exacte de la mise à jour V0.11 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION_V0_11_DATE = '2026-09-19T23:55:13'; // Date/heure exacte de la mise à jour V0.11 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 var APP_VERSION_V0_10_HISTORIQUE = 'V0.10'; // 19-09-2026 : repositionnement des 6 boutons d'ajout, de la position fixe flottante vers la ligne de filtre de leur tableau.
-var APP_VERSION_DATE = '2026-09-19T17:59:33'; // Date/heure exacte de la mise à jour V0.10 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION_V0_10_DATE = '2026-09-19T17:59:33'; // Date/heure exacte de la mise à jour V0.10 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 var APP_VERSION_V0_09_HISTORIQUE = 'V0.09'; // 17-09-2026 : correction ciblée du balayage des onglets (exemption bouton/recherche + zone verticale étendue à la ligne d'onglets).
-var APP_VERSION_DATE = '2026-09-17T10:02:45'; // Date/heure exacte de la mise à jour V0.09 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION_V0_09_DATE = '2026-09-17T10:02:45'; // Date/heure exacte de la mise à jour V0.09 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 var APP_VERSION_V0_08_HISTORIQUE = 'V0.08'; // 16-09-2026 : MISE À JOUR STRICTE — RAPIDITÉ + BALAYAGE (zone/extrémités du balayage, affichage immédiat à l'ouverture/au changement de compte, message de fusion cloud uniquement si changement réel, visibilité des erreurs de synchro silencieuses).
-var APP_VERSION_DATE = '2026-09-16T00:00:10'; // Date/heure exacte de la mise à jour V0.08 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION_V0_08_DATE = '2026-09-16T00:00:10'; // Date/heure exacte de la mise à jour V0.08 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 var APP_VERSION_V0_07_HISTORIQUE = 'V0.07'; // 14-09-2026 : correction critique Stock Perso — mergeAppData() ne revide plus de force une fiche réapprovisionnée après clôture quand le cloud renvoie encore, temporairement, l'ancienne version vidée.
 var APP_VERSION_V0_06_HISTORIQUE = 'V0.06'; // 14-09-2026 : bouton (+) — position confirmée 14px bas/droite, espace réservé en bas des 6 onglets concernés.
 var APP_VERSION_V0_05_HISTORIQUE = 'V0.05'; // 14-09-2026 : ajout du bouton (+) fixe en bas-droite dans Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes.
@@ -7707,7 +7863,7 @@ function activerInterfaceSelonRole(){
   if(elHbtsAssocie) elHbtsAssocie.style.display = associe?'flex':'none';
   if(elHbtsVisiteur) elHbtsVisiteur.style.display = visiteur?'flex':'none';
   if(associe) rVueAssocie();
-  if(visiteur) rafraichirVisiteur();
+  if(visiteur){ demarrerAutoRefreshVisiteur(); rafraichirVisiteur(); }
 }
 
 function doLogout() {
@@ -7944,15 +8100,31 @@ function entrerVueVisiteur(rows, code){
   afficherVueVisiteur(biens, Number(capitalVisiteurAffiche)||0, Number(premiere.montant_du_admin)||0, Number(premiere.entreprise_doit_stock_perso)||0, Number(premiere.total_avoirs_admin)||0);
   activerInterfaceSelonRole();
 }
-/** Rafraîchit la vue Visiteur (bouton ⟳) en rappelant la même fonction serveur avec le code déjà validé pour cette session. */
-function rafraichirVisiteur(){
+/**
+ * Rafraîchit la vue Visiteur en rappelant la même fonction serveur avec le code déjà validé pour cette
+ * session. Appelée par le bouton ⟳ (silencieux absent : notification de confirmation, comme avant) ET,
+ * depuis V0.13, automatiquement (silencieux=true : minuteur, retour au premier plan, retour en ligne —
+ * aucune notification, et un échec serveur/réseau ne remplace JAMAIS les montants déjà affichés par des 0).
+ */
+var _seqRafraichissementVisiteur = 0;
+var _rafraichissementVisiteurEnCours = false;
+function rafraichirVisiteur(silencieux){
+  silencieux = (silencieux===true);
   var code=sessionStorage.getItem('bpro_visiteur_code');
   if(!code || !navigator.onLine) return;
+  if(silencieux && _rafraichissementVisiteurEnCours) return; // pas deux appels automatiques simultanés
+  var seq = ++_seqRafraichissementVisiteur; // une réponse plus ancienne ne doit jamais écraser une plus récente
+  _rafraichissementVisiteurEnCours = true;
   fetchAvecDelai(SUPABASE_CONFIG.url+'/rest/v1/rpc/acceder_patrimoine_visiteur', {
     method:'POST',
     headers:{ 'apikey':SUPABASE_CONFIG.anonKey, 'Content-Type':'application/json' },
     body: JSON.stringify({ code: code })
-  }, 8000).then(function(r){ return r.ok?r.json():[]; }).then(function(rows){
+  }, 8000).then(function(r){
+    if(!r.ok && silencieux) throw new Error('http');
+    return r.ok?r.json():[];
+  }).then(function(rows){
+    _rafraichissementVisiteurEnCours = false;
+    if(seq !== _seqRafraichissementVisiteur) return; // réponse périmée
     rows = rows || [];
     var biens = rows.filter(function(r){ return r.bien_id!=null; }).map(function(r){
       return { id:r.bien_id, nom:r.bien_nom, categorie:r.bien_categorie, quantite:r.bien_quantite,
@@ -7963,9 +8135,51 @@ function rafraichirVisiteur(){
     var capitalVisiteurAffiche = (premiere.capital_total_admin!==undefined && premiere.capital_total_admin!==null) ? (Number(premiere.capital_total_admin)/2) : premiere.capital_admin;
     afficherVueVisiteur(biens, Number(capitalVisiteurAffiche)||0, Number(premiere.montant_du_admin)||0, Number(premiere.entreprise_doit_stock_perso)||0, Number(premiere.total_avoirs_admin)||0);
     try{ localStorage.setItem('bpro_visiteur_cache', JSON.stringify({code:code, rows:rows, ts:Date.now()})); }catch(e){}
-    notif('✅ Données actualisées');
+    if(!silencieux) notif('✅ Données actualisées');
     if (typeof setSyncStatus === 'function') setSyncStatus('online', '🟢 Visiteur connecté');
-  }).catch(function(){ notif('❌ Impossible d\'actualiser (déconnecté ou accès verrouillé)'); if (typeof setSyncStatus === 'function') setSyncStatus('offline', '⚪ Mode Visiteur (hors ligne)'); });
+  }).catch(function(){
+    _rafraichissementVisiteurEnCours = false;
+    if(seq !== _seqRafraichissementVisiteur) return;
+    if(!silencieux) notif('❌ Impossible d\'actualiser (déconnecté ou accès verrouillé)');
+    if (typeof setSyncStatus === 'function') setSyncStatus('offline', '⚪ Mode Visiteur (hors ligne)');
+  });
+}
+/**
+ * AJOUT (V0.13 — "le compte Visiteur doit être actualisé", "aucune ancienne valeur ne doit rester
+ * affichée") : jusqu'ici le Visiteur n'était jamais actualisé tout seul (rafraichirActivitesSilencieux()
+ * l'exclut volontairement) — ses montants restaient figés jusqu'à un appui manuel sur ⟳ ou un rechargement.
+ * Même cadence que l'Admin/l'Associé (AUTO_SYNC_INTERVAL_MS), plus retour au premier plan et retour en
+ * ligne. S'arrête tout seul dès que la session n'est plus une session Visiteur.
+ */
+var _timerAutoVisiteur = null;
+function demarrerAutoRefreshVisiteur(){
+  if(_timerAutoVisiteur) return;
+  _timerAutoVisiteur = setInterval(function(){
+    if(!isLoggedIn() || !isVisiteur()){ clearInterval(_timerAutoVisiteur); _timerAutoVisiteur=null; return; }
+    if(typeof document!=='undefined' && document.visibilityState==='hidden') return;
+    rafraichirVisiteur(true);
+  }, AUTO_SYNC_INTERVAL_MS);
+}
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState==='visible' && isLoggedIn() && isVisiteur()) rafraichirVisiteur(true);
+});
+window.addEventListener('online', function(){
+  if(isLoggedIn() && isVisiteur()) rafraichirVisiteur(true);
+});
+/**
+ * TOTAL DES AVOIRS (argent) DE BAH OUSMANE — Visiteur. CAUSE du montant "pas toujours à jour" :
+ * ce total était lu tel quel dans la réponse serveur (total_avoirs_admin), un calcul SQL séparé qui
+ * ne connaît NI les réductions/augmentations manuelles du capital NI les montants poussés par
+ * l'Administrateur — donc parfois différent des trois cartes affichées juste à côté. Il est désormais
+ * calculé ICI à partir des trois montants réellement affichés, chacun compté UNE seule fois :
+ *   capital de BAH Ousmane (sa part 50 %, capital_total_admin ÷ 2)
+ * + sa part de bénéfice (mon_benefice_admin)
+ * + ce que l'entreprise lui doit en Stock Perso (ent_doit_stock_perso).
+ * (Le capital ne contient aucun produit Stock Perso — voir calculerCapitalTotalEntreprise() : la
+ * quantité issue du Stock Perso, origPerso, en est exclue — donc aucun recoupement possible.)
+ */
+function calculerTotalAvoirsVisiteur(capital, partBenefice, stockPersoDu){
+  return (Number(capital)||0) + (Number(partBenefice)||0) + (Number(stockPersoDu)||0);
 }
 /** Affiche le patrimoine reçu du serveur dans #vue-visiteur (jamais mis en cache localStorage). */
 function afficherVueVisiteur(biens, capitalAdmin, montantDu, stockPersoDu, totalAvoirs){
@@ -7973,7 +8187,9 @@ function afficherVueVisiteur(biens, capitalAdmin, montantDu, stockPersoDu, total
   st('vv-capital', fmt(capitalAdmin));
   st('vv-doit', fmt(montantDu));
   st('vv-stockperso', fmt(stockPersoDu));
-  st('vv-total', fmt(totalAvoirs));
+  // V0.13 : total recalculé à partir des trois montants ci-dessus (le paramètre totalAvoirs, issu du
+  // calcul SQL séparé total_avoirs_admin, n'est plus utilisé — conservé dans la signature par compatibilité).
+  st('vv-total', fmt(calculerTotalAvoirsVisiteur(capitalAdmin, montantDu, stockPersoDu)));
   var tb=document.getElementById('tbl-vue-visiteur');
   if(!biens.length){ tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--tx2);padding:20px">Aucun bien enregistré pour le moment.</td></tr>'; return; }
   // DEMANDE ("Visiteur : numéro d'ordre + tri A-Z par défaut") : tri
@@ -9725,7 +9941,7 @@ function syncFromCloud() {
     .then(function (res) { return res.json(); })
     .then(function (rows) {
       if (rows && rows.length && rows[0].data) {
-        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}}, rows[0].data);
+        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],capitalAugmentations:[],historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}}, rows[0].data);
         persist(); renderAll();
         notif('✅ Données restaurées depuis le cloud');
         return true;
@@ -9759,8 +9975,8 @@ function syncFromCloud() {
 // au lieu de le fusionner par id comme tout le reste. Voir aussi le
 // tombstone désormais posé dans delPatrimoine() et la fusion appliquée
 // dans chargerPatrimoine().
-var MERGEABLE_ARRAYS = ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille','patrimoine','capitalReductions'];
-var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],resetCodes:[],patrimoine:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}};
+var MERGEABLE_ARRAYS = ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille','patrimoine','capitalReductions','capitalAugmentations'];
+var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],resetCodes:[],patrimoine:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],capitalAugmentations:[],historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}};
 
 /**
  * Fusionne deux tableaux d'éléments par leur "id" (union), sans perte,
@@ -10001,7 +10217,7 @@ function mergeAppData(cloudData, localData, cloudIsNewer, cloudDate, localDate) 
    * l'élément ainsi choisi — elle continue de fonctionner à l'identique,
    * en plus de cette résolution fine, sans aucun conflit entre les deux.
    */
-  ['dettes','paiements','depenses','commandes','patrimoine','perso','capitalReductions'].forEach(function(f){
+  ['dettes','paiements','depenses','commandes','patrimoine','perso','capitalReductions','capitalAugmentations'].forEach(function(f){
     var baseById={}, prioById={};
     (base[f]||[]).forEach(function(x){ if(x&&x.id!=null) baseById[x.id]=x; });
     (priorite[f]||[]).forEach(function(x){ if(x&&x.id!=null) prioById[x.id]=x; });
@@ -10534,6 +10750,64 @@ function testSupabaseConnection() {
       notif('❌ Impossible de joindre Supabase (réseau/CORS). Vérifie ta connexion internet et l\'URL du projet. Détail : ' + err.message, 8000);
     });
 }
+
+// ================================================================
+// BOUTONS "+ ..." STICKY (21-09-2026) — voir .barre-add-sticky (CSS)
+// ================================================================
+// Mesure deux valeurs purement visuelles :
+//  - --barre-add-top (sur <html>) : bas de la barre d'onglets
+//    (#main-nav, sticky à top:54px) + 6px ;
+//  - --barre-add-decal (sur chaque barre) : hauteur des lignes de
+//    filtres situées AU-DESSUS de la ligne du bouton (0 si la barre
+//    tient sur une seule ligne), pour que seule la ligne du bouton
+//    reste collée sous les onglets. Le bouton étant le dernier
+//    élément de la barre, il est toujours dans sa dernière ligne.
+// Les hauteurs ne sont pas fixes (onglet actif agrandi, police du
+// système, retour à la ligne des filtres selon la largeur : portrait/
+// paysage, choix de période "Personnalisé"…) : tout est mesuré, puis
+// re-mesuré à chaque changement de taille (ResizeObserver) et à la
+// rotation. Affichage uniquement : aucune donnée, aucun calcul, aucune
+// synchronisation, aucune navigation, aucun gestionnaire de clic n'est
+// touché.
+(function(){
+  function majBarresAddSticky(){
+    try{
+      var n=document.getElementById('main-nav');
+      if(n){
+        var topNav=parseFloat(window.getComputedStyle(n).top)||0;
+        var bas=Math.ceil(topNav+n.getBoundingClientRect().height);
+        document.documentElement.style.setProperty('--barre-add-top',(bas+6)+'px');
+      }
+      var barres=document.querySelectorAll('.barre-add-sticky');
+      for(var i=0;i<barres.length;i++){
+        var bar=barres[i], btn=bar.querySelector(':scope > button:last-child');
+        var d=0;
+        if(btn && bar.offsetParent!==null){
+          d=Math.round(btn.getBoundingClientRect().top-bar.getBoundingClientRect().top);
+          if(d<2) d=0;
+          else{
+            // l'espace entre 2 lignes (gap) doit rester caché sous la barre d'onglets
+            var gap=parseFloat(window.getComputedStyle(bar).rowGap)||0;
+            d+=Math.max(0,7-gap);
+          }
+        }
+        bar.style.setProperty('--barre-add-decal',d+'px');
+      }
+    }catch(e){}
+  }
+  majBarresAddSticky();
+  window.addEventListener('load',majBarresAddSticky);
+  window.addEventListener('resize',majBarresAddSticky);
+  window.addEventListener('orientationchange',majBarresAddSticky);
+  try{
+    if(typeof ResizeObserver==='function'){
+      var ro=new ResizeObserver(majBarresAddSticky);
+      var nav=document.getElementById('main-nav');
+      if(nav) ro.observe(nav);
+      document.querySelectorAll('.barre-add-sticky').forEach(function(b){ ro.observe(b); });
+    }
+  }catch(e){}
+})();
 
   </script>
 
