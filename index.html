@@ -951,6 +951,16 @@ tbody tr:last-child td{border-bottom:none;}
 <div id="tab-rapport" class="tab-panel">
   <div class="sh"><div class="st">📈 Rapport des activités</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <!-- AJOUT (21-09-2026) : sélection de la période à afficher — la
+           période active (comportement inchangé, D.activites en direct)
+           ou l'une des 2 dernières périodes CLÔTURÉES (données figées par
+           enregistrerDetailPeriodeCloturee(), voir executerCloture()).
+           Options remplies par rRemplirSelecteurPeriodesRapport(),
+           appelée par renderAll()/rRapport() — jamais codées en dur, pour
+           refléter exactement D.periodesCloturees à tout moment. -->
+      <select id="f-rapport-periode-cloturee" onchange="rRapport()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;font-weight:600">
+        <option value="">🟢 Période active (en cours)</option>
+      </select>
       <input type="text" id="f-search-rapport" placeholder="🔍 Produit, client, montant, statut..." oninput="deb('rapport',rRapport)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;min-width:160px;outline:none">
       <select id="f-rapport-auteur" onchange="rRapport()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
         <option value="">Tous les auteurs</option>
@@ -977,6 +987,13 @@ tbody tr:last-child td{border-bottom:none;}
     <thead><tr><th>Date</th><th>Heure</th><th>Auteur</th><th>Type</th><th>Produit</th><th>Qté</th><th>Client</th><th>Montant Payé</th><th>Statut</th></tr></thead>
     <tbody id="tbl-rapport"><tr><td colspan="9" style="text-align:center;color:var(--tx2);padding:20px">Aucune activité</td></tr></tbody>
   </table></div></div>
+  <!-- AJOUT (21-09-2026) : Dettes/Paiements/Dépenses de la période
+       CLÔTURÉE sélectionnée ci-dessus (voir rRapportDetailPeriode()).
+       Vide et masqué pour la période active — ces 3 catégories ont déjà
+       leurs propres onglets (Associé, Dépenses) pour la période en
+       cours ; ce bloc ne sert qu'à retrouver les données d'une période
+       déjà refermée. -->
+  <div id="rapport-detail-periode-cloturee"></div>
 </div>
 </div>
 
@@ -1641,13 +1658,13 @@ let D = {
   activites:[],stock:[],perso:[],depenses:[],
   dettes:[],dettesClot:0,detteVerrou:false,
   paiements:[],commandes:[],histo:[],corbeille:[],
-  _o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}
+  _o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,historiqueClotures:[],periodesCloturees:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}
 };
 
 function load(){
   try{
     const s=localStorage.getItem(KEY);
-    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],capitalAugmentations:[],historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}},d); if(!D._del) D._del={}; }
+    if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],capitalAugmentations:[],historiqueClotures:[],periodesCloturees:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}},d); if(!D._del) D._del={}; }
   }catch(e){}
   migrerEntDoitBaseStockPerso();
 }
@@ -5297,8 +5314,47 @@ function enregistrerSnapshotClotureRapport(){
   var snap={ date: td(), capitalEnt:capitalEnt, valEnt:valEnt, valPerso:bd.entDoit, restePerso:bd.resteEnt };
   D.historiqueClotures=(D.historiqueClotures||[]).concat([snap]).slice(-2);
 }
+/**
+ * CORRECTIF (21-09-2026 — "l'onglet Rapport reste vide après une
+ * clôture, alors qu'il doit afficher les données de la période
+ * clôturée") : cause exacte trouvée — rRapport() (onglet Rapport) lit
+ * TOUJOURS D.activites en direct, jamais une copie figée. Or
+ * executerCloture() vide entièrement D.activites (ainsi que
+ * D.dettes/D.paiements/D.depenses) pour ouvrir la période suivante :
+ * l'onglet Rapport n'avait donc plus rien à afficher dès la clôture
+ * suivante, quelle que soit la période demandée dans ses filtres.
+ * Seul enregistrerSnapshotClotureRapport() (ci-dessus, inchangée)
+ * figeait déjà quelque chose, mais uniquement 5 chiffres agrégés
+ * (Capital Ent/Val. Ent/Val. Perso/Reste Perso) — aucun détail
+ * (activités, dettes, paiements, dépenses une par une).
+ * Corrigé en figeant ici, juste avant le vidage (appelée depuis
+ * executerCloture() au même endroit, avant toute suppression), une
+ * COPIE INDÉPENDANTE (JSON.parse(JSON.stringify(...)), donc plus aucun
+ * lien avec les tableaux vidés juste après) des 4 tableaux concernés.
+ * Conservées seulement les 2 dernières clôtures — même limite, pour la
+ * même raison (taille de stockage local), que D.historiqueClotures
+ * juste au-dessus, avec laquelle cette liste reste synchronisée (une
+ * entrée ajoutée à chaque clôture, dans le même ordre). L'onglet
+ * Rapport (voir rRapport()) peut ensuite choisir d'afficher soit la
+ * période active (D.activites, comportement inchangé), soit l'une de
+ * ces 2 périodes closes, via un nouveau sélecteur — sans qu'aucun
+ * calcul, filtre ou colonne existants ne soient modifiés pour la
+ * période active. Ne modifie aucune donnée existante, ne touche à
+ * aucun autre calcul de l'application.
+ */
+function enregistrerDetailPeriodeCloturee(){
+  var detail={
+    date: td(), dateHeure: new Date().toISOString(),
+    activites: JSON.parse(JSON.stringify(D.activites||[])),
+    dettes: JSON.parse(JSON.stringify(D.dettes||[])),
+    paiements: JSON.parse(JSON.stringify(D.paiements||[])),
+    depenses: JSON.parse(JSON.stringify(D.depenses||[]))
+  };
+  D.periodesCloturees=(D.periodesCloturees||[]).concat([detail]).slice(-2);
+}
 function executerCloture(){
   enregistrerSnapshotClotureRapport();
+  enregistrerDetailPeriodeCloturee();
   /**
    * CORRECTIF CRITIQUE (05-09-2026 — retour en arrière, demande explicite
    * de l'utilisateur) : un correctif précédent avait remplacé
@@ -5443,6 +5499,31 @@ function executerCloture(){
   D.histo.forEach(function(h){ markDeleted('histo',h.id); });
   D.dettes=[]; D.paiements=[];
   D.activites=[]; D.depenses=[]; D.histo=[]; D._o=1;
+  /**
+   * CORRECTIF (21-09-2026 — "la Corbeille n'est pas vidée par la
+   * clôture") : cause exacte trouvée — executerCloture() ne touchait
+   * jamais D.corbeille. Or la Corbeille peut contenir, mélangées, des
+   * dettes/paiements/dépenses/activités supprimées individuellement
+   * AVANT la clôture (via 🗑️, voir rb()) ET des produits
+   * Stock/Stock Perso/Commandes/Patrimoine supprimés de la même façon.
+   * Ces deux catégories n'ont pas le même sort à la clôture : Stock,
+   * Stock Perso, Commandes et Patrimoine sont explicitement CONSERVÉS
+   * INTÉGRALEMENT par la clôture (voir le message de confirmation
+   * ci-dessus) — les vider de la Corbeille supprimerait leur seul
+   * moyen de récupération, pour des éléments qui n'ont pourtant aucun
+   * rapport avec la période qui se termine. Corrigé en ne retirant de
+   * la Corbeille QUE les entrées des 4 catégories réellement vidées
+   * par cette clôture (dette, paiement, depense, activite) — jamais
+   * stock/perso/commande/patrimoine, qui restent récupérables comme
+   * avant. Même mécanisme de suppression que vCorbeille() (tombstone
+   * D._del.corbeille avant retrait, pour que la suppression se
+   * propage correctement lors de la prochaine synchronisation).
+   */
+  var TYPES_CORBEILLE_VIDES_PAR_CLOTURE=['dette','paiement','depense','activite'];
+  D.corbeille.forEach(function(c){
+    if(TYPES_CORBEILLE_VIDES_PAR_CLOTURE.indexOf(c.type)>-1) markDeleted('corbeille',c.id);
+  });
+  D.corbeille=D.corbeille.filter(function(c){ return TYPES_CORBEILLE_VIDES_PAR_CLOTURE.indexOf(c.type)===-1; });
   // IMPORTANT : le cumul "dettesClot" est déjà figé (aucune interface ne
   // permet de le modifier) — on NE verrouille PAS la nouvelle liste de
   // dettes, sinon il devient impossible d'en saisir pour la période
@@ -5979,13 +6060,86 @@ function rHistoriqueClotures(){
   html+='</tbody></table></div></div>';
   el.innerHTML=html;
 }
+/**
+ * Remplit le sélecteur "période à afficher" de l'onglet Rapport à
+ * partir de D.periodesCloturees (voir enregistrerDetailPeriodeCloturee()
+ * dans executerCloture()) — jamais codé en dur, donc toujours à jour
+ * après une nouvelle clôture. Conserve la sélection en cours si elle
+ * correspond encore à une période présente dans la liste, sinon revient
+ * à "Période active" (ex: après suppression d'anciennes clôtures par
+ * la limite des 2 dernières).
+ */
+function rRemplirSelecteurPeriodesRapport(){
+  var sel=document.getElementById('f-rapport-periode-cloturee');
+  if(!sel) return;
+  var val=sel.value;
+  var options='<option value="">🟢 Période active (en cours)</option>';
+  (D.periodesCloturees||[]).slice().reverse().forEach(function(pc){
+    options+='<option value="'+pc.dateHeure+'">🔒 Période clôturée le '+fmtDateJour(pc.date)+'</option>';
+  });
+  sel.innerHTML=options;
+  var existeEncore=[].slice.call(sel.options).some(function(o){ return o.value===val; });
+  sel.value=existeEncore?val:'';
+}
+/**
+ * Affiche, sous le tableau des activités de l'onglet Rapport, les
+ * Dettes/Paiements/Dépenses FIGÉS de la période close sélectionnée
+ * (periodeCloture = une entrée de D.periodesCloturees, ou null pour la
+ * période active). Lecture seule (aucun bouton modifier/supprimer :
+ * ces lignes n'existent plus dans D.dettes/D.paiements/D.depenses,
+ * seulement dans cette copie figée) — cohérent avec le reste de
+ * l'onglet Rapport, qui n'a jamais été un lieu de saisie.
+ */
+function rRapportDetailPeriode(periodeCloture){
+  var el=document.getElementById('rapport-detail-periode-cloturee');
+  if(!el) return;
+  if(!periodeCloture){ el.innerHTML=''; return; }
+  function bloc(titre, items, cols, totalLabel){
+    var html='<div class="card" style="margin-bottom:12px"><div class="ch"><span class="dot" style="background:var(--bd2)"></span>'+titre+' ('+items.length+')</div>';
+    if(!items.length){ html+='<div style="color:var(--tx2);font-size:.8rem;padding:4px 0 2px">Aucun(e) élément enregistré durant cette période.</div></div>'; return html; }
+    html+='<div class="tw"><table><thead><tr>';
+    cols.forEach(function(c){ html+='<th>'+c[0]+'</th>'; });
+    html+='</tr></thead><tbody>';
+    var total=0;
+    items.forEach(function(it){
+      total+=it.montant||0;
+      html+='<tr>'; cols.forEach(function(c){ html+='<td>'+c[1](it)+'</td>'; }); html+='</tr>';
+    });
+    html+='</tbody></table></div><div style="text-align:right;font-weight:700;margin-top:8px">'+totalLabel+' : '+fmt(total)+'</div></div>';
+    return html;
+  }
+  var html='<div class="al ali" style="font-size:.77rem;margin-bottom:10px">🔒 Ci-dessous, les Dettes, Paiements et Dépenses tels qu\'ils existaient au moment de la clôture du '+fmtDateJour(periodeCloture.date)+' — figés, non modifiables (ils ont déjà été retirés de leurs onglets habituels par cette clôture).</div>';
+  html+=bloc('💳 Dettes', periodeCloture.dettes.slice().reverse(), [
+    ['Date', function(d){ return fmtDateHeure(d.date,d.heure); }],
+    ['Type', function(d){ return d.type; }],
+    ['Description', function(d){ return echap(d.desc); }],
+    ['Montant', function(d){ return fmt(d.montant); }]
+  ], 'TOTAL dettes de la période');
+  html+=bloc('💰 Paiements', periodeCloture.paiements.slice().reverse(), [
+    ['Date', function(p){ return fmtDateHeure(p.date,p.heure); }],
+    ['Type', function(p){ return p.type; }],
+    ['Note', function(p){ return echap(p.note||'—'); }],
+    ['Montant', function(p){ return fmt(p.montant); }]
+  ], 'TOTAL paiements de la période');
+  html+=bloc('🧾 Dépenses', periodeCloture.depenses.slice().reverse(), [
+    ['Date', function(d){ return fmtDateHeure(d.date,d.heure); }],
+    ['Catégorie', function(d){ return d.cat; }],
+    ['Description', function(d){ return echap(d.desc||'—'); }],
+    ['Montant', function(d){ return fmt(d.montant); }]
+  ], 'TOTAL dépenses de la période');
+  el.innerHTML=html;
+}
 function rRapport(){
   var tb=document.getElementById('tbl-rapport');
   if(!tb) return;
   rHistoriqueClotures();
+  rRemplirSelecteurPeriodesRapport();
+  var periodeClotureeVal=v('f-rapport-periode-cloturee');
+  var periodeCloture=periodeClotureeVal?(D.periodesCloturees||[]).find(function(pc){ return pc.dateHeure===periodeClotureeVal; }):null;
+  rRapportDetailPeriode(periodeCloture);
   var q=normSearch(v('f-search-rapport'));
   var auteurFiltre=v('f-rapport-auteur');
-  var items=D.activites.slice().reverse();
+  var items=(periodeCloture?periodeCloture.activites:D.activites).slice().reverse();
   if(auteurFiltre) items=items.filter(function(a){ return (a.auteur||'Administrateur')===auteurFiltre; });
   items=items.filter(function(a){ return matchPeriodeFull(a.date,'f-periode-rapport'); });
   if(q){
@@ -6871,7 +7025,7 @@ function saveCloud(){
 function loadFromHash(){
   var h=window.location.hash;
   if(h&&h.startsWith('#data=')){
-    try{ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],capitalAugmentations:[],historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}},JSON.parse(decodeURIComponent(atob(h.slice(6))))); persist(); notif('✅ Données restaurées !'); return true; }catch(e){}
+    try{ D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],capitalAugmentations:[],historiqueClotures:[],periodesCloturees:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}},JSON.parse(decodeURIComponent(atob(h.slice(6))))); persist(); notif('✅ Données restaurées !'); return true; }catch(e){}
   } return false;
 }
 
@@ -9941,7 +10095,7 @@ function syncFromCloud() {
     .then(function (res) { return res.json(); })
     .then(function (rows) {
       if (rows && rows.length && rows[0].data) {
-        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],capitalAugmentations:[],historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}}, rows[0].data);
+        D = Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],capitalAugmentations:[],historiqueClotures:[],periodesCloturees:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}}, rows[0].data);
         persist(); renderAll();
         notif('✅ Données restaurées depuis le cloud');
         return true;
@@ -9976,7 +10130,7 @@ function syncFromCloud() {
 // tombstone désormais posé dans delPatrimoine() et la fusion appliquée
 // dans chargerPatrimoine().
 var MERGEABLE_ARRAYS = ['activites','stock','perso','depenses','dettes','paiements','commandes','histo','corbeille','patrimoine','capitalReductions','capitalAugmentations'];
-var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],resetCodes:[],patrimoine:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],capitalAugmentations:[],historiqueClotures:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}};
+var DEFAULT_SHAPE = {activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],resetCodes:[],patrimoine:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],capitalAugmentations:[],historiqueClotures:[],periodesCloturees:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}};
 
 /**
  * Fusionne deux tableaux d'éléments par leur "id" (union), sans perte,
@@ -10541,6 +10695,19 @@ function mergeAppData(cloudData, localData, cloudIsNewer, cloudDate, localDate) 
   var clotParDate={};
   clotBase.concat(clotPrio).forEach(function(s){ if(s&&s.date) clotParDate[s.date]=s; });
   merged.historiqueClotures=Object.keys(clotParDate).sort().map(function(d){ return clotParDate[d]; }).slice(-2);
+  /**
+   * Même protection, pour la même raison exacte (voir le correctif
+   * juste au-dessus pour historiqueClotures), appliquée à
+   * D.periodesCloturees (détail figé Activités/Dettes/Paiements/
+   * Dépenses par clôture — voir enregistrerDetailPeriodeCloturee()) :
+   * union par dateHeure (plus précis que "date" seul, en cas de
+   * plusieurs clôtures le même jour), jamais un remplacement en bloc,
+   * puis les 2 plus récentes conservées — même limite que ci-dessus.
+   */
+  var detBase=(base.periodesCloturees||[]), detPrio=(priorite.periodesCloturees||[]);
+  var detParCle={};
+  detBase.concat(detPrio).forEach(function(s){ if(s&&s.dateHeure) detParCle[s.dateHeure]=s; });
+  merged.periodesCloturees=Object.keys(detParCle).sort().map(function(k){ return detParCle[k]; }).slice(-2);
   return merged;
 }
 
