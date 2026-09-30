@@ -1195,10 +1195,12 @@ tbody tr:last-child td{border-bottom:none;}
     <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 10px" data-i18n="affichage.theme.titre">🎨 Thème</div>
     <div id="theme-boutons" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px"></div>
 
+    <div id="bloc-langue" style="display:none">
     <hr class="sep">
-    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 10px" data-i18n="affichage.langue.titre">🌐 Langue / Language / ꞌEttugol</div>
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 10px" data-i18n="affichage.langue.titre">🌐 Langue / Language</div>
     <div id="langue-boutons" style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px"></div>
     <div style="font-size:.68rem;color:var(--tx3);margin-top:8px" data-i18n="affichage.langue.note">ℹ️ La traduction s'applique à l'interface (menus, boutons, titres). Les données que vous saisissez (noms, descriptions...) ne sont jamais traduites.</div>
+    </div>
   </div>
 </div>
 
@@ -2437,15 +2439,19 @@ function getParams(){
  * non contrôlée. Les DONNÉES saisies par l'utilisateur (noms de
  * produits, descriptions, clients...) ne sont jamais traduites — ce
  * sont des données, pas de l'interface.
- * ⚠️ La traduction Adlam (peul/fulfulde) est une PREMIÈRE VERSION,
- * réalisée sans relecture par un locuteur natif — à faire vérifier
- * avant diffusion large, en particulier le vocabulaire financier.
+ * LANGUES DISPONIBLES : uniquement Français et English (US). Seul le
+ * compte Administrateur peut choisir entre les deux (choix mémorisé
+ * sur l'appareil, jamais synchronisé) ; les comptes Associé et
+ * Visiteur, ainsi que l'écran de connexion, restent TOUJOURS en
+ * Français, quelle que soit la valeur mémorisée sur l'appareil.
+ * Taille du texte et thème : strictement locaux à chaque appareil
+ * (localStorage uniquement — jamais dans D, jamais envoyés au serveur).
  */
 var TRADUCTIONS={
   fr:{
     'affichage.titre':'🎨 Affichage','affichage.taille.titre':'🔠 Taille du texte',
     'affichage.taille.exemple':'Aa — Exemple de texte','affichage.taille.reinit':'↺ Taille normale (100%)',
-    'affichage.theme.titre':'🎨 Thème','affichage.langue.titre':'🌐 Langue / Language / ꞌEttugol',
+    'affichage.theme.titre':'🎨 Thème','affichage.langue.titre':'🌐 Langue / Language',
     'affichage.langue.note':"ℹ️ La traduction s'applique à l'interface (menus, boutons, titres). Les données que vous saisissez (noms, descriptions...) ne sont jamais traduites.",
     'btn.affichage':'🎨 Affichage','btn.ajouter':'+ Ajouter','btn.ajouter.dette':'➕ Ajouter dette',
     'btn.calculer':'🔄 Calculer','btn.cloture':'🔄 Clôture','btn.deconnexion.icone':'🚪',
@@ -2466,7 +2472,7 @@ var TRADUCTIONS={
   en:{
     'affichage.titre':'🎨 Display','affichage.taille.titre':'🔠 Text size',
     'affichage.taille.exemple':'Aa — Sample text','affichage.taille.reinit':'↺ Normal size (100%)',
-    'affichage.theme.titre':'🎨 Theme','affichage.langue.titre':'🌐 Language / Langue / ꞌEttugol',
+    'affichage.theme.titre':'🎨 Theme','affichage.langue.titre':'🌐 Language / Langue',
     'affichage.langue.note':'ℹ️ Translation applies to the interface (menus, buttons, titles). Data you enter (names, descriptions...) is never translated.',
     'btn.affichage':'🎨 Display','btn.ajouter':'+ Add','btn.ajouter.dette':'➕ Add debt',
     'btn.calculer':'🔄 Calculate','btn.cloture':'🔄 Close period','btn.deconnexion.icone':'🚪',
@@ -2483,27 +2489,6 @@ var TRADUCTIONS={
     'titre.activites':'Activities','titre.associe':'Partner & Debts','titre.bilan':'Balance & Split',
     'titre.commandes':'Orders','titre.corbeille':'Trash','titre.depenses':'Expenses','titre.historique':'History',
     'titre.perso':'Personal Stock','titre.rapport':'📈 Activity report','titre.stock':'Company Stock'
-  },
-  ff:{
-    'affichage.titre':'🎨 ꞌJuulol','affichage.taille.titre':'🔠 Manngu binndi',
-    'affichage.taille.exemple':'Aa — Misal binndi','affichage.taille.reinit':'↺ Manngu normal (100%)',
-    'affichage.theme.titre':'🎨 ꞌTuma','affichage.langue.titre':'🌐 ꞌEttugol / Langue / Language',
-    'affichage.langue.note':'ℹ️ Firo ngol ina huuwa e ꞌjuulol (menuuji, coppi, tiitoonji). Ko winndaɗaa (innde, ɓataake...) firotaake.',
-    'btn.affichage':'🎨 ꞌJuulol','btn.ajouter':'+ ꞌBeydu','btn.ajouter.dette':'➕ ꞌBeydu ñamaande',
-    'btn.calculer':'🔄 Limu','btn.cloture':'🔄 ꞌUddude tuma','btn.deconnexion.icone':'🚪',
-    'btn.entree.stock':'+ Naatal jawdi','btn.excel':'📊 Excel','btn.export':'💾 Yaltingol','btn.import':'📂 Naatingol',
-    'btn.monmdp':'🔑 Konngol am','btn.nouvelle.activite':'+ Kesa','btn.nouvelle.commande':'+ Yamiroore kesa',
-    'btn.parametres':'⚙️ Toɓɓe','btn.tout':'🗑️ Fuu',
-    'login.connecter':'🔐 Naatu','login.identifiant':'Innde naatirteende','login.soustitre':'Nagge Fewndugol Renndaangu',
-    'nav.activites':'📋 Golle','nav.associe':'🤝 Gooto','nav.bilan':'💰 Limoore','nav.commandes':'📑 Yamirooje',
-    'nav.corbeille':'🗑️ Faabuuji','nav.depenses':'💸 Nafqaaji','nav.historique':'📋 Taariika',
-    'nav.patrimoine':'🏛️ Jawdi','nav.perso':'🏷️ Jawdi Am','nav.rapport':'📈 ꞌSeedantaagal','nav.stock':'📦 Jawdi Renndaangu',
-    'soustitre.activites':'Njeyngu · Cellal kaɓirɗe · Golle', 'soustitre.commandes':'Kiliyaaɓe + Wullaango jawdi → Njeyɓe',
-    'soustitre.corbeille':'Kuutorɗe momtaaɗe — hattaneede fii heɓde', 'soustitre.perso':'Ndenndal limoore — jawdi maa fiɓɓaama e jawdi renndaangu',
-    'soustitre.stock':'Jawdi renndaangu — kabuuru ƴeewndaari kala kuutoorde',
-    'titre.activites':'Golle','titre.associe':'Gooto e Ñamaale','titre.bilan':'Limoore e Senndugol',
-    'titre.commandes':'Yamirooje','titre.corbeille':'Faabuuji','titre.depenses':'Nafqaaji','titre.historique':'Taariika',
-    'titre.perso':'Jawdi Am','titre.rapport':'📈 ꞌSeedantaagal golle','titre.stock':'Jawdi Renndaangu'
   }
 };
 var THEME_DEFS=[
@@ -2514,15 +2499,17 @@ var THEME_DEFS=[
 ];
 var LANGUE_DEFS=[
   {id:'fr',label:'🇫🇷 Français'},
-  {id:'en',label:'🇺🇸 English (US)'},
-  {id:'ff',label:'𞤀𞤣𞤤𞤢𞤥 — Pular/Fulfulde'}
+  {id:'en',label:'🇺🇸 English (US)'}
 ];
 function ouvrirAffichage(){
   var slider=document.getElementById('rg-taille-police');
   var pct=parseInt(localStorage.getItem('bpro_taille_police')||'100',10);
   if(slider) slider.value=pct;
   st('lbl-taille-police',pct+'%');
-  rThemeBoutons(); rLangueBoutons();
+  rThemeBoutons();
+  var blocLangue=document.getElementById('bloc-langue');
+  if(blocLangue) blocLangue.style.display=langueAutorisee()?'':'none';
+  if(langueAutorisee()) rLangueBoutons();
   om('maffichage');
 }
 function changerTaillePolice(delta){
@@ -2551,41 +2538,55 @@ function appliquerTheme(nom){
   try{ localStorage.setItem('bpro_theme',nom); }catch(e){}
   rThemeBoutons();
 }
+/** Langue : seul l'Administrateur connecté peut la choisir. Tous les autres
+ * cas (écran de connexion, Associé, Visiteur) sont forcés en Français,
+ * quelle que soit la valeur mémorisée sur l'appareil. */
+function langueAutorisee(){
+  try{ return isLoggedIn() && getRole()==='admin'; }catch(e){ return false; }
+}
+function langueStockee(){
+  var l='fr';
+  try{ l=localStorage.getItem('bpro_langue')||'fr'; }catch(e){}
+  return l==='en'?'en':'fr';
+}
+function langueActive(){ return langueAutorisee()?langueStockee():'fr'; }
 function rLangueBoutons(){
   var zone=document.getElementById('langue-boutons'); if(!zone) return;
-  var actuel=localStorage.getItem('bpro_langue')||'fr';
+  var actuel=langueStockee();
   zone.innerHTML=LANGUE_DEFS.map(function(l){
     var actif=l.id===actuel;
     return '<button type="button" class="btn '+(actif?'bp':'bh')+' bsm" onclick="appliquerLangue(\''+l.id+'\')" style="text-align:left">'+echap(l.label)+(actif?' ✓':'')+'</button>';
   }).join('');
 }
 function appliquerLangue(code){
-  if(!TRADUCTIONS[code]) code='fr';
+  if(!langueAutorisee()) return; // Associé / Visiteur / non connecté : Français uniquement
+  code=(code==='en')?'en':'fr';
   try{ localStorage.setItem('bpro_langue',code); }catch(e){}
-  document.documentElement.setAttribute('lang',code==='ff'?'ff':code);
   traduireInterface();
   rLangueBoutons();
 }
 function traduireInterface(){
-  var code=localStorage.getItem('bpro_langue')||'fr';
+  var code=langueActive();
   var dict=TRADUCTIONS[code]||TRADUCTIONS.fr;
+  document.documentElement.setAttribute('lang',code);
   document.querySelectorAll('[data-i18n]').forEach(function(el){
     var cle=el.getAttribute('data-i18n');
     var texte=dict[cle]!==undefined?dict[cle]:TRADUCTIONS.fr[cle];
     if(texte!==undefined) el.textContent=texte;
   });
 }
-/** Applique taille/thème/langue mémorisés — appelé une seule fois, au
- * tout début du chargement (voir DOMContentLoaded), avant même la
- * connexion, pour que la préférence soit déjà active dès l'écran de
- * connexion. */
+/** Applique taille/thème/langue mémorisés — appelé au tout début du
+ * chargement (voir DOMContentLoaded), avant même la connexion. La langue
+ * est ensuite réévaluée selon le rôle à chaque connexion/déconnexion
+ * (activerInterfaceSelonRole, doLogout). Taille et thème : locaux à
+ * l'appareil, jamais synchronisés. */
 function appliquerPreferencesAffichage(){
   var pct=parseInt(localStorage.getItem('bpro_taille_police')||'100',10);
   document.documentElement.style.fontSize=(isNaN(pct)?100:Math.max(80,Math.min(150,pct)))+'%';
   var theme=localStorage.getItem('bpro_theme')||'sombre';
   if(theme!=='sombre') document.documentElement.setAttribute('data-theme',theme);
-  var langue=localStorage.getItem('bpro_langue')||'fr';
-  document.documentElement.setAttribute('lang',langue==='ff'?'ff':langue);
+  // Nettoyage : toute ancienne langue mémorisée autre que fr/en (ex. ancienne option retirée) revient au Français.
+  try{ var l=localStorage.getItem('bpro_langue'); if(l!==null && l!=='fr' && l!=='en') localStorage.setItem('bpro_langue','fr'); }catch(e){}
   traduireInterface();
 }
 function ouvrirAPropos(){
@@ -7945,8 +7946,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.15'; // 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 3 langues — Français (défaut), English (US), Adlam/Pular-Fulfulde — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les 3 réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. ⚠️ Traduction Adlam/Fulfulde non relue par un locuteur natif. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
-var APP_VERSION_DATE = '2026-09-22T11:08:14'; // Date/heure exacte de la mise à jour V0.15 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.16'; // 30-09-2026 : Affichage — suppression de la langue peule ; langues limitées à Français et English (US), choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
+var APP_VERSION_DATE = '2026-09-30T12:00:00'; // Date/heure exacte de la mise à jour V0.16 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
 var APP_VERSION_V0_14_DATE = '2026-09-22T05:07:43'; // Date/heure exacte de la mise à jour V0.14 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 var APP_VERSION_V0_13_HISTORIQUE = 'V0.13'; // 20-09-2026 : (1) Compte Visiteur — "Total des avoirs (argent) de BAH Ousmane" recalculé à partir des trois montants réellement affichés (capital + part de bénéfice + Stock Perso dû, chacun compté une fois) au lieu du total_avoirs_admin calculé séparément côté serveur ; (2) Compte Administrateur — nouvelle action "Augmenter le capital total de l'entreprise" (Stock Entreprise), historique D.capitalAugmentations intégré à calculerCapitalTotalEntreprise() (aucun second système de capital), fusionné/synchronisé comme D.capitalReductions ; (3) actualisation automatique du compte Visiteur (minuteur, retour au premier plan, retour en ligne) et fiabilisation de l'envoi capital/bénéfice/Stock Perso vers le serveur (valeur mémorisée comme envoyée seulement si l'envoi a réussi) ; (4) une seule date de version effective (les anciennes lignes APP_VERSION_DATE écrasaient la date de V0.13). Aucun calcul de Stock Perso, bénéfice, clôture ni aucune donnée existante modifié.
@@ -8283,6 +8284,7 @@ function activerInterfaceSelonRole(){
   if(elHbtsVisiteur) elHbtsVisiteur.style.display = visiteur?'flex':'none';
   if(associe) rVueAssocie();
   if(visiteur){ demarrerAutoRefreshVisiteur(); rafraichirVisiteur(); }
+  traduireInterface(); // langue selon le rôle : Administrateur = choix mémorisé, Associé/Visiteur = Français
 }
 
 function doLogout() {
@@ -8326,6 +8328,7 @@ function doLogout() {
   document.getElementById('inp-pass').value = '';
   document.getElementById('login-err').textContent = '';
   showLogin();
+  traduireInterface(); // écran de connexion : toujours en Français
   notif('Déconnecté — vos données locales sont conservées et seront synchronisées à la prochaine connexion.');
 }
 
