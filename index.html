@@ -317,6 +317,54 @@ tbody tr:last-child td{border-bottom:none;}
 .ac{display:flex;gap:3px;}
 .ci{padding:8px 11px;background:var(--bg4);border-radius:8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;font-size:.79rem;}
 .fi-box{background:var(--bg4);border-radius:10px;padding:13px;border-left:4px solid var(--re);margin-bottom:10px;}
+/* V0.20 — Alertes Stock Faible (Commandes) : affichage compact, limité à #alertes-stock */
+#alertes-stock .al{padding:6px 10px;margin-bottom:8px;line-height:1.3;}
+#alertes-stock .fi-box{padding:6px 10px;margin-bottom:5px;}
+#alertes-stock .ast-h{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px 8px;margin-bottom:4px;}
+#alertes-stock .g4,#alertes-stock .g4{grid-template-columns:repeat(4,1fr);gap:5px;}
+#alertes-stock .ast-b{background:var(--bg5);padding:3px 2px;border-radius:6px;text-align:center;line-height:1.2;}
+#alertes-stock .ast-b>div:first-child{color:var(--tx2);font-size:.6rem;}
+#alertes-stock .ast-b>div:last-child{font-weight:700;font-size:.85rem;}
+#alertes-stock .ast-f{margin-top:4px;padding:4px 8px;background:var(--bg3);border-radius:6px;font-size:.74rem;line-height:1.3;}
+#alertes-stock .btn.bxs{padding:5px 8px;}
+/* V0.22 — Z1 : bloc titre + boutons d'onglet compacté (espacements verticaux uniquement) */
+.tab-panel > .sh{margin-bottom:6px;gap:4px 7px;}
+.tab-panel > .sh > div[style*="display:flex"]{row-gap:4px !important;}
+.tab-panel > button[onclick^="toggleInfoTech"]{margin-bottom:4px !important;}
+/* /Z1 */
+/* V0.22 — Z3 : carte des filtres au-dessus des tableaux (padding vertical + espace sous la barre ; gap des rangées inchangé pour la barre sticky) */
+.card:has(> .barre-add-sticky){padding-top:10px;padding-bottom:12px;}
+.card > .barre-add-sticky{margin-bottom:6px !important;}
+/* /Z3 */
+/* V0.22 — Z4 : modales — padding/espaces verticaux (le pied collant .mft est recalé sur le nouveau padding bas) */
+.modal{padding:14px 20px;}
+.modal .mhd{margin-bottom:10px;}
+.modal .fr{margin-bottom:6px;}
+.mft{bottom:-14px;margin:10px -20px -14px;padding:10px 20px calc(10px + env(safe-area-inset-bottom,0px));}
+/* /Z4 */
+/* V0.22 — Z5 : tableau de bord — espaces verticaux des KPI, titres de sections et cartes (tailles de texte et boutons inchangées) */
+#tab-dashboard .kpi{padding:8px 11px;}
+#tab-dashboard .kpi .kl{margin-bottom:2px;}
+#tab-dashboard .kpi .ks{margin-top:1px;}
+#tab-dashboard > .g5,#tab-dashboard > .g4{margin-bottom:8px !important;row-gap:6px;}
+#tab-dashboard > .ch{margin:2px 0 6px !important;}
+#tab-dashboard > div[style*="justify-content:flex-end"]{margin-bottom:4px !important;}
+#tab-dashboard .card{padding:12px 16px;margin-bottom:8px;}
+#tab-dashboard .card .ch{margin-bottom:8px;}
+/* /Z5 */
+/* V0.22 — Z6 : barre de recherche globale — padding vertical et espace sous la barre (texte inchangé) */
+#gs-wrap{margin-bottom:8px !important;}
+#gs-input{padding-top:8px !important;padding-bottom:8px !important;}
+/* /Z6 */
+/* V0.22 — Z7 : Bilan (résultat) — cartes, blocs .rb, séparateurs et blocs internes (espaces verticaux uniquement ; aucun calcul touché) */
+#bilan-result .card{padding:12px 16px;margin-bottom:8px;}
+#bilan-result .card .ch{margin-bottom:8px;}
+#bilan-result .rb{padding:8px 12px;margin-bottom:5px;}
+#bilan-result .g2,#bilan-result .g3,#bilan-result .g4,#bilan-result .g5{row-gap:6px;}
+#bilan-result .dv{margin:7px 0;}
+#bilan-result .card > div[style*="margin-bottom:11px"]{margin-bottom:7px !important;}
+#bilan-result .card > div[style*="padding:12px"]{padding-top:9px !important;padding-bottom:9px !important;}
+/* /Z7 */
 
 /* ===== LOGIN ===== */
 #login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -8087,17 +8135,17 @@ function rAlertesStock(){
     var niv=niveauStock(restant,seuil);
     var qteCmd=Math.max(seuil*3,10);
     html+='<div class="fi-box">';
-    html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">';
+    html+='<div class="ast-h">';
     html+='<div><strong style="font-size:.88rem">'+echap(s.nom)+'</strong> <span class="badge bdr" style="margin-left:6px">'+niv.label+' ('+restant+')</span></div>';
     html+='<button class="btn bo bxs" onclick="genererCmdFournisseurAuto()">📦 Ajouter à la commande fournisseur</button>';
     html+='</div>';
-    html+='<div class="g4" style="font-size:.78rem">';
-    html+='<div style="background:var(--bg5);padding:8px;border-radius:7px;text-align:center"><div style="color:var(--tx2);font-size:.65rem">RESTANT</div><div style="font-weight:700;color:'+niv.color+'">'+restant+'</div></div>';
-    html+='<div style="background:var(--bg5);padding:8px;border-radius:7px;text-align:center"><div style="color:var(--tx2);font-size:.65rem">SEUIL</div><div style="font-weight:700">'+seuil+'</div></div>';
-    html+='<div style="background:var(--bg5);padding:8px;border-radius:7px;text-align:center"><div style="color:var(--tx2);font-size:.65rem">INITIAL</div><div style="font-weight:700">'+s.qteInitiale+'</div></div>';
-    html+='<div style="background:var(--bg5);padding:8px;border-radius:7px;text-align:center"><div style="color:var(--tx2);font-size:.65rem">VENDU</div><div style="font-weight:700;color:var(--or)">'+(s.qteVendue||0)+'</div></div>';
+    html+='<div class="g4">';
+    html+='<div class="ast-b"><div>RESTANT</div><div style="color:'+niv.color+'">'+restant+'</div></div>';
+    html+='<div class="ast-b"><div>SEUIL</div><div>'+seuil+'</div></div>';
+    html+='<div class="ast-b"><div>INITIAL</div><div>'+s.qteInitiale+'</div></div>';
+    html+='<div class="ast-b"><div>VENDU</div><div style="color:var(--or)">'+(s.qteVendue||0)+'</div></div>';
     html+='</div>';
-    html+='<div style="margin-top:9px;padding:8px;background:var(--bg3);border-radius:7px;font-size:.77rem">';
+    html+='<div class="ast-f">';
     html+='<strong style="color:var(--te)">📋 Fiche commande fournisseur :</strong> ';
     html+='Produit: <strong>'+echap(s.nom)+'</strong> | Qté suggérée: <strong style="color:var(--go)">'+qteCmd+'</strong> | Dernier P.Achat: <strong>'+fmt(s.achat)+'</strong>';
     html+='</div></div>';
@@ -10821,8 +10869,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.19'; // 04-10-2026 : Affichage — nouveau réglage « Taille des onglets » (− / curseur / +, 80–140 %, indépendant de la taille du texte, mémorisé). Précédemment V0.18 03-10-2026 : English (US) complété — 1 227 phrases ajoutées au dictionnaire I18N centralisé (I18N.phrases.en), aucune modification de la logique métier. Précédemment V0.17 : Affichage — ajout du Pular/Fulfulde de Guinée (Conakry) en véritable écriture Adlam Unicode (tous les textes statiques et dynamiques, placeholders, infobulles, boîtes de dialogue, impression), police Adlam embarquée ; Français et English (US) inchangés, règles par rôle inchangées. Précédemment V0.16 — choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
-var APP_VERSION_DATE = '2026-10-04T21:46:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.22'; // 05-10-2026 : compactage vertical global (Z1 titres/boutons d'onglet, Z3 filtres, Z4 modales, Z5 tableau de bord, Z6 recherche globale, Z7 bilan) — CSS d'affichage uniquement. Précédemment V0.21 05-10-2026 : Alertes Stock Faible — 2e passe de compactage (marges/paddings résiduels, affichage uniquement). Précédemment V0.20 05-10-2026 : Commandes › Alertes Stock Faible — affichage compact (cartes, espacements, 4 compteurs sur une ligne, fiche fournisseur resserrée), CSS/markup d'affichage uniquement, aucune logique ni donnée modifiée. Précédemment V0.19 04-10-2026 : Affichage — nouveau réglage « Taille des onglets » (− / curseur / +, 80–140 %, indépendant de la taille du texte, mémorisé). Précédemment V0.18 03-10-2026 : English (US) complété — 1 227 phrases ajoutées au dictionnaire I18N centralisé (I18N.phrases.en), aucune modification de la logique métier. Précédemment V0.17 : Affichage — ajout du Pular/Fulfulde de Guinée (Conakry) en véritable écriture Adlam Unicode (tous les textes statiques et dynamiques, placeholders, infobulles, boîtes de dialogue, impression), police Adlam embarquée ; Français et English (US) inchangés, règles par rôle inchangées. Précédemment V0.16 — choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
+var APP_VERSION_DATE = '2026-10-05T16:00:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
