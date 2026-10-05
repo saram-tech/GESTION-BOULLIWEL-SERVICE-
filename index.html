@@ -111,7 +111,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(7,11,20,.97);backdrop-f
 .input-error{border-color:#ef4444 !important;box-shadow:0 0 0 2px rgba(239,68,68,.25);}
 nav{background:var(--bg2);border-bottom:1px solid var(--bd);position:sticky;top:54px;z-index:190;overflow-x:auto;}
 .ni{display:flex;gap:2px;padding:7px 12px 0;min-width:max-content;}
-.nb{padding:6px 12px;border-radius:7px 7px 0 0;background:transparent;border:1px solid transparent;border-bottom:none;color:var(--tx2);cursor:pointer;font-family:var(--font-body);font-size:.77rem;font-weight:500;white-space:nowrap;transition:all .2s;}
+.nb{padding:calc(6px*var(--nav-z,1)) calc(12px*var(--nav-z,1));border-radius:7px 7px 0 0;background:transparent;border:1px solid transparent;border-bottom:none;color:var(--tx2);cursor:pointer;font-family:var(--font-body);font-size:calc(.77rem*var(--nav-z,1));font-weight:500;white-space:nowrap;transition:all .2s;}
 /* CORRECTIF (13-09-2026 — v96, remplace v95) : DEMANDE — l'onglet
    actuellement sélectionné doit être 2× plus grand que la taille v95
    (police .9rem→1.8rem, padding 8px 15px→16px 30px, gras conservé).
@@ -130,7 +130,7 @@ nav{background:var(--bg2);border-bottom:1px solid var(--bd);position:sticky;top:
    nouveau gabarit. Le balayage tactile (v93) n'est pas touché. Aucun
    calcul, donnée, Supabase, bouton ni logique métier modifiés —
    uniquement l'apparence visuelle de l'onglet sélectionné. */
-.nb.active{background:var(--bg3);border-color:var(--bd2);color:var(--ac);font-size:1.8rem;font-weight:700;padding:16px 30px;}
+.nb.active{background:var(--bg3);border-color:var(--bd2);color:var(--ac);font-size:calc(1.8rem*var(--nav-z,1));font-weight:700;padding:calc(16px*var(--nav-z,1)) calc(30px*var(--nav-z,1));}
 .nb:hover:not(.active){color:var(--tx);}
 main{padding:12px;max-width:1400px;margin:0 auto;position:relative;z-index:1;}
 .tab-panel{display:none;animation:fi .2s ease;}.tab-panel.active{display:block;}
@@ -321,22 +321,23 @@ tbody tr:last-child td{border-bottom:none;}
 /* ===== LOGIN ===== */
 #login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;}
 #login-screen.hidden{display:none;}
-.login-box{background:var(--bg2);border:1px solid var(--bd2);border-radius:20px;padding:36px 32px;max-width:420px;width:100%;text-align:center;max-height:min(92vh,92%);overflow-y:auto;}
-.login-logo{font-family:var(--font-display);font-size:1.4rem;font-weight:800;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;}
-.login-sub{font-size:.8rem;color:var(--tx2);margin-bottom:28px;}
-.login-box .fg{text-align:left;margin-bottom:14px;}
-.login-box .fg label{font-size:.72rem;color:var(--tx2);font-weight:500;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px;}
-.login-box .fg input{background:var(--bg4);border:1px solid var(--bd);border-radius:9px;padding:11px 14px;color:var(--tx);font-family:var(--font-body);font-size:.9rem;outline:none;width:100%;transition:border-color .2s;}
+.login-box{background:var(--bg2);border:1px solid var(--bd2);border-radius:18px;padding:16px 18px;max-width:420px;width:100%;text-align:center;max-height:min(92vh,92%);overflow-y:auto;}
+.login-logo{font-family:var(--font-display);font-size:1.1rem;font-weight:800;line-height:1.2;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:2px;}
+.login-sub{font-size:.76rem;color:var(--tx2);margin-bottom:8px;}
+.login-box .fg{text-align:left;margin-bottom:8px;}
+.login-box .fg label{font-size:.72rem;color:var(--tx2);font-weight:500;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px;}
+.login-box .fg input{background:var(--bg4);border:1px solid var(--bd);border-radius:9px;padding:9px 12px;color:var(--tx);font-family:var(--font-body);font-size:.9rem;outline:none;width:100%;transition:border-color .2s;}
 .login-box .fg input:focus{border-color:var(--ac);}
-.login-err{color:var(--re);font-size:.8rem;margin-bottom:12px;min-height:20px;}
-.login-btn{width:100%;padding:12px;border-radius:9px;font-family:var(--font-body);font-size:.9rem;font-weight:700;cursor:pointer;border:none;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;transition:opacity .2s;margin-bottom:10px;}
+.login-err{color:var(--re);font-size:.8rem;margin-bottom:0;min-height:0;}
+.login-err:not(:empty){margin-bottom:8px;}
+.login-btn{width:100%;padding:10px;border-radius:9px;font-family:var(--font-body);font-size:.9rem;font-weight:700;cursor:pointer;border:none;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;transition:opacity .2s;margin-bottom:10px;}
 .login-btn:hover{opacity:.88;}
 .login-link{font-size:.78rem;color:var(--tx2);cursor:pointer;text-decoration:underline;}
 .login-link:hover{color:var(--ac);}
 .login-tab{display:none;}.login-tab.active{display:block;}
-.login-divider{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--tx3);font-size:.72rem;}
+.login-divider{display:flex;align-items:center;gap:10px;margin:8px 0;color:var(--tx3);font-size:.72rem;}
 .login-divider::before,.login-divider::after{content:'';flex:1;height:1px;background:var(--bd);}
-.reset-info{background:var(--bg4);border:1px solid var(--bd);border-radius:9px;padding:12px;font-size:.79rem;color:var(--tx2);margin-bottom:14px;text-align:left;line-height:1.6;}
+.reset-info{background:var(--bg4);border:1px solid var(--bd);border-radius:9px;padding:8px 10px;font-size:.76rem;color:var(--tx2);margin-bottom:8px;text-align:left;line-height:1.4;}
 .reset-info strong{color:var(--go);}
 
 /* ===== BOUTON RETOUR =====
@@ -365,7 +366,8 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="login-box">
     <div class="login-logo">GESTION-BOULLIWEL-SERVICE.app</div>
     <div class="login-sub" data-i18n="login.soustitre">Système de Gestion Intégrée</div>
-    <div style="text-align:center;margin-bottom:6px">
+    <div class="login-sub" id="loginVersion" style="text-align:center;margin-top:-6px;margin-bottom:6px;font-size:.7rem"></div>
+    <div style="text-align:center;margin-bottom:4px">
       <button type="button" class="btn bh bsm" onclick="ouvrirAffichage()" style="font-size:.72rem" data-i18n="btn.affichage">🎨 Affichage (taille, thème, langue)</button>
     </div>
 
@@ -1191,6 +1193,18 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div style="text-align:center;margin-bottom:6px">
       <button type="button" class="btn bh bsm" onclick="appliquerTaillePolice(100)" style="font-size:.72rem" data-i18n="affichage.taille.reinit">↺ Taille normale (100%)</button>
+    </div>
+
+    <hr class="sep">
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 10px" data-i18n="affichage.onglets.titre">📑 Taille des onglets</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <button type="button" class="btn bh bsm" onclick="changerTailleOnglets(-10)" style="min-width:42px" aria-label="Réduire les onglets">−</button>
+      <input type="range" id="rg-taille-onglets" min="80" max="140" step="5" value="100" oninput="appliquerTailleOnglets(parseInt(this.value,10))" style="flex:1;accent-color:var(--ac)">
+      <button type="button" class="btn bh bsm" onclick="changerTailleOnglets(10)" style="min-width:42px" aria-label="Agrandir les onglets">+</button>
+    </div>
+    <div style="text-align:center;font-size:.78rem;color:var(--tx2);margin-bottom:6px"><span id="lbl-taille-onglets">100%</span></div>
+    <div style="text-align:center;margin-bottom:6px">
+      <button type="button" class="btn bh bsm" onclick="appliquerTailleOnglets(100)" style="font-size:.72rem" data-i18n="affichage.onglets.reinit">↺ Onglets normaux (100%)</button>
     </div>
 
     <hr class="sep">
@@ -2467,6 +2481,8 @@ var I18N={
     "affichage.taille.titre":"🔠 Taille du texte",
     "affichage.taille.exemple":"Aa — Exemple de texte",
     "affichage.taille.reinit":"↺ Taille normale (100%)",
+    "affichage.onglets.titre":"📑 Taille des onglets",
+    "affichage.onglets.reinit":"↺ Onglets normaux (100%)",
     "affichage.theme.titre":"🎨 Thème",
     "affichage.langue.titre":"🌐 Langue / Language",
     "affichage.langue.note":"ℹ️ La traduction s'applique à l'interface (menus, boutons, titres). Les données que vous saisissez (noms, descriptions...) ne sont jamais traduites.",
@@ -2520,6 +2536,8 @@ var I18N={
     "affichage.taille.titre":"🔠 Text size",
     "affichage.taille.exemple":"Aa — Sample text",
     "affichage.taille.reinit":"↺ Normal size (100%)",
+    "affichage.onglets.titre":"📑 Tab size",
+    "affichage.onglets.reinit":"↺ Normal tabs (100%)",
     "affichage.theme.titre":"🎨 Theme",
     "affichage.langue.titre":"🌐 Language / Langue",
     "affichage.langue.note":"ℹ️ Translation applies to the interface (menus, buttons, titles). Data you enter (names, descriptions...) is never translated.",
@@ -5198,11 +5216,24 @@ function ouvrirAffichage(){
   var pct=parseInt(localStorage.getItem('bpro_taille_police')||'100',10);
   if(slider) slider.value=pct;
   st('lbl-taille-police',pct+'%');
+  var sgo=document.getElementById('rg-taille-onglets'); if(sgo) sgo.value=lireTailleOnglets();
+  st('lbl-taille-onglets',lireTailleOnglets()+'%');
   rThemeBoutons();
   var blocLangue=document.getElementById('bloc-langue');
   if(blocLangue) blocLangue.style.display=langueAutorisee()?'':'none';
   if(langueAutorisee()) rLangueBoutons();
   om('maffichage');
+}
+/** Taille visuelle des onglets (barre de navigation), indépendante de la taille du texte : variable CSS --nav-z (1 = 100%). Préférence locale à l'appareil (bpro_taille_onglets). */
+function lireTailleOnglets(){ var v=parseInt(localStorage.getItem('bpro_taille_onglets')||'100',10); return isNaN(v)?100:Math.max(80,Math.min(140,v)); }
+function changerTailleOnglets(delta){ appliquerTailleOnglets(lireTailleOnglets()+delta); }
+function appliquerTailleOnglets(pct){
+  pct=Math.max(80,Math.min(140,parseInt(pct,10)||100));
+  document.documentElement.style.setProperty('--nav-z',String(pct/100));
+  try{ localStorage.setItem('bpro_taille_onglets',String(pct)); }catch(e){}
+  var sl=document.getElementById('rg-taille-onglets'); if(sl) sl.value=pct;
+  st('lbl-taille-onglets',pct+'%');
+  var act=document.querySelector('#main-nav .nb.active'); if(act&&act.scrollIntoView){ try{ act.scrollIntoView({block:'nearest',inline:'nearest'}); }catch(e){} }
 }
 function changerTaillePolice(delta){
   var pct=parseInt(localStorage.getItem('bpro_taille_police')||'100',10);
@@ -5423,6 +5454,7 @@ function traduireInterface(){
  * (activerInterfaceSelonRole, doLogout). Taille et thème : locaux à
  * l'appareil, jamais synchronisés. */
 function appliquerPreferencesAffichage(){
+  document.documentElement.style.setProperty('--nav-z',String(lireTailleOnglets()/100));
   var pct=parseInt(localStorage.getItem('bpro_taille_police')||'100',10);
   document.documentElement.style.fontSize=(isNaN(pct)?100:Math.max(80,Math.min(150,pct)))+'%';
   var theme=localStorage.getItem('bpro_theme')||'sombre';
@@ -10789,8 +10821,10 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.18'; // 30-09-2026 : English (US) complété — 1 227 phrases ajoutées au dictionnaire I18N centralisé (I18N.phrases.en), aucune modification de la logique métier. Précédemment V0.17 : Affichage — ajout du Pular/Fulfulde de Guinée (Conakry) en véritable écriture Adlam Unicode (tous les textes statiques et dynamiques, placeholders, infobulles, boîtes de dialogue, impression), police Adlam embarquée ; Français et English (US) inchangés, règles par rôle inchangées. Précédemment V0.16 — choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
-var APP_VERSION_DATE = '2026-09-30T22:40:00'; // Date/heure exacte de la mise à jour V0.18 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.19'; // 04-10-2026 : Affichage — nouveau réglage « Taille des onglets » (− / curseur / +, 80–140 %, indépendant de la taille du texte, mémorisé). Précédemment V0.18 03-10-2026 : English (US) complété — 1 227 phrases ajoutées au dictionnaire I18N centralisé (I18N.phrases.en), aucune modification de la logique métier. Précédemment V0.17 : Affichage — ajout du Pular/Fulfulde de Guinée (Conakry) en véritable écriture Adlam Unicode (tous les textes statiques et dynamiques, placeholders, infobulles, boîtes de dialogue, impression), police Adlam embarquée ; Français et English (US) inchangés, règles par rôle inchangées. Précédemment V0.16 — choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
+var APP_VERSION_DATE = '2026-10-04T21:46:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+// Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
+(function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
 var APP_VERSION_V0_14_DATE = '2026-09-22T05:07:43'; // Date/heure exacte de la mise à jour V0.14 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 var APP_VERSION_V0_13_HISTORIQUE = 'V0.13'; // 20-09-2026 : (1) Compte Visiteur — "Total des avoirs (argent) de BAH Ousmane" recalculé à partir des trois montants réellement affichés (capital + part de bénéfice + Stock Perso dû, chacun compté une fois) au lieu du total_avoirs_admin calculé séparément côté serveur ; (2) Compte Administrateur — nouvelle action "Augmenter le capital total de l'entreprise" (Stock Entreprise), historique D.capitalAugmentations intégré à calculerCapitalTotalEntreprise() (aucun second système de capital), fusionné/synchronisé comme D.capitalReductions ; (3) actualisation automatique du compte Visiteur (minuteur, retour au premier plan, retour en ligne) et fiabilisation de l'envoi capital/bénéfice/Stock Perso vers le serveur (valeur mémorisée comme envoyée seulement si l'envoi a réussi) ; (4) une seule date de version effective (les anciennes lignes APP_VERSION_DATE écrasaient la date de V0.13). Aucun calcul de Stock Perso, bénéfice, clôture ni aucune donnée existante modifié.
