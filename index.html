@@ -510,6 +510,58 @@ div[style*="padding"][style*="border-radius:12px"],
 div[style*="padding"][style*="border-radius:13px"]{border-radius:var(--r-card) !important;}
 /* /V0.26 */
 
+/* =====================================================================
+   V0.27 — Boutons plus courts à l'horizontale (AFFICHAGE UNIQUEMENT)
+   Objectif : plus de boutons sur une même ligne, sur mobile comme sur
+   ordinateur. On réduit seulement les marges intérieures horizontales,
+   les espaces entre boutons et la largeur inutile (min-width, menus,
+   marges latérales de tableaux/fenêtres). Tailles de texte, libellés,
+   hauteurs, balisage, fonctions et données : inchangés. Les libellés ne
+   passent jamais à la ligne ni ne sont coupés (white-space:nowrap) ; si
+   une rangée ne peut pas tout contenir, elle passe proprement à la ligne
+   suivante (flex-wrap) au lieu de déborder. Bloc autonome : le supprimer
+   rétablit exactement l'affichage V0.26.
+   ===================================================================== */
+/* ---- Boutons : marge intérieure horizontale réduite, libellé jamais coupé ---- */
+.btn{padding-left:9px;padding-right:9px;gap:4px;white-space:nowrap;}
+.btn.bsm{padding-left:8px;padding-right:8px;}
+.btn.bxs{padding-left:6px;padding-right:6px;gap:3px;}
+.btn.mm-t{min-width:30px;letter-spacing:.5px;}
+button.btn[style*="min-width:42px"]{min-width:32px !important;}
+button.btn[style*="padding:8px 10px"]{padding:8px 8px !important;}
+.btn-refresh{width:30px;height:30px;}
+/* ---- Rangées de boutons : espaces réduits, retour à la ligne propre si besoin ---- */
+.fr{gap:6px;}
+.fg{min-width:92px;}
+.ac{gap:2px;}
+.sh{gap:5px;}
+.mft{gap:5px;}
+:is(div,span,td,th,p,label):has(> .btn){column-gap:5px !important;}
+:is(div,span,td,th,p,label):has(> .btn.bxs){column-gap:3px !important;}
+/* ---- Barre supérieure (déjà défilante) : plus de boutons visibles d'un coup ---- */
+header{padding-left:8px;padding-right:8px;}
+.hbts{gap:3px !important;}
+.sync-badge{padding-left:8px;padding-right:8px;}
+header .btn[style*="margin-left:4px"]{margin-left:2px !important;}
+/* ---- Onglets de navigation : marges latérales réduites (tailles de police et hauteurs inchangées) ---- */
+.ni{padding-left:8px;padding-right:8px;gap:1px;}
+.nb{padding-left:calc(8px*var(--nav-z,1));padding-right:calc(8px*var(--nav-z,1));}
+.nb.active{padding-left:calc(18px*var(--nav-z,1));padding-right:calc(18px*var(--nav-z,1));}
+/* ---- Menu ⋯ : largeur ajustée au libellé le plus long ---- */
+.mm-p{min-width:0;width:max-content;max-width:calc(100vw - 16px);}
+.mm-p .btn{padding-left:10px;padding-right:10px;}
+/* ---- Tableaux : marges latérales des cellules réduites (plus de place pour les boutons d'action) ---- */
+thead th{padding-left:6px;padding-right:6px;}
+tbody td{padding-left:6px;padding-right:6px;}
+/* ---- Fenêtres (modales) : marges latérales réduites ; le pied collant .mft reste calé sur ces marges ---- */
+.ov{padding-left:8px;padding-right:8px;}
+.modal{padding-left:14px;padding-right:14px;}
+.mft{margin-left:-14px;margin-right:-14px;padding-left:14px;padding-right:14px;}
+/* ---- Cartes : marges latérales réduites ---- */
+.card{padding-left:12px;padding-right:12px;}
+#tab-dashboard .card,#bilan-result .card{padding-left:12px;padding-right:12px;}
+/* /V0.27 */
+
   </style>
 </head>
 <body>
@@ -11263,8 +11315,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.26'; // 06-10-2026 : simplification 5 — harmonisation visuelle (3 niveaux de boutons : principal .bp/.bg, secondaire .bh/.bs/.bt/.bo, danger .bd ; 2 niveaux de cartes : .card et blocs internes .kpi/.rb/.ci/.fi-box/.reset-info ; 4 tailles de texte : .7/.8/.9/1.05rem), bloc CSS autonome « V0.26 » en fin de feuille de style, affichage uniquement, aucun balisage/donnée/calcul/synchro/droit modifié. Précédemment V0.25 : simplification emojis — retrait des emojis décoratifs (boutons, titres, titres de modales, lignes, libellés) ; conservés : onglets, statuts (✅ ❌ ⚠️ ⏳ 🟢🟠🔴⚪ 🔒), icônes seules (✏️ 🗑️ ➕ ✕ 🖨️ 👁) ; dictionnaire FR/EN/FF aligné, affichage uniquement. Précédemment V0.24 05-10-2026 : menu ⋯ pour les actions secondaires des en-têtes (Commandes, Activités, Stock, Perso, Dépenses, Historique, Corbeille), boutons et fonctions inchangés. Précédemment V0.23 05-10-2026 : Commandes — alertes stock simplifiées (1 cadre, 2 lignes par produit, nom non répété) et titre en double masqué, rendu seul. Précédemment V0.22 05-10-2026 : compactage vertical global (Z1 titres/boutons d'onglet, Z3 filtres, Z4 modales, Z5 tableau de bord, Z6 recherche globale, Z7 bilan) — CSS d'affichage uniquement. Précédemment V0.21 05-10-2026 : Alertes Stock Faible — 2e passe de compactage (marges/paddings résiduels, affichage uniquement). Précédemment V0.20 05-10-2026 : Commandes › Alertes Stock Faible — affichage compact (cartes, espacements, 4 compteurs sur une ligne, fiche fournisseur resserrée), CSS/markup d'affichage uniquement, aucune logique ni donnée modifiée. Précédemment V0.19 04-10-2026 : Affichage — nouveau réglage « Taille des onglets » (− / curseur / +, 80–140 %, indépendant de la taille du texte, mémorisé). Précédemment V0.18 03-10-2026 : English (US) complété — 1 227 phrases ajoutées au dictionnaire I18N centralisé (I18N.phrases.en), aucune modification de la logique métier. Précédemment V0.17 : Affichage — ajout du Pular/Fulfulde de Guinée (Conakry) en véritable écriture Adlam Unicode (tous les textes statiques et dynamiques, placeholders, infobulles, boîtes de dialogue, impression), police Adlam embarquée ; Français et English (US) inchangés, règles par rôle inchangées. Précédemment V0.16 — choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
-var APP_VERSION_DATE = '2026-10-06T08:45:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.27'; // 06-10-2026 09:40 : boutons plus courts à l'horizontale (CSS d'affichage uniquement, bloc V0.27 de la feuille de style). Précédemment V0.26 — 06-10-2026 : simplification 5 — harmonisation visuelle (3 niveaux de boutons : principal .bp/.bg, secondaire .bh/.bs/.bt/.bo, danger .bd ; 2 niveaux de cartes : .card et blocs internes .kpi/.rb/.ci/.fi-box/.reset-info ; 4 tailles de texte : .7/.8/.9/1.05rem), bloc CSS autonome « V0.26 » en fin de feuille de style, affichage uniquement, aucun balisage/donnée/calcul/synchro/droit modifié. Précédemment V0.25 : simplification emojis — retrait des emojis décoratifs (boutons, titres, titres de modales, lignes, libellés) ; conservés : onglets, statuts (✅ ❌ ⚠️ ⏳ 🟢🟠🔴⚪ 🔒), icônes seules (✏️ 🗑️ ➕ ✕ 🖨️ 👁) ; dictionnaire FR/EN/FF aligné, affichage uniquement. Précédemment V0.24 05-10-2026 : menu ⋯ pour les actions secondaires des en-têtes (Commandes, Activités, Stock, Perso, Dépenses, Historique, Corbeille), boutons et fonctions inchangés. Précédemment V0.23 05-10-2026 : Commandes — alertes stock simplifiées (1 cadre, 2 lignes par produit, nom non répété) et titre en double masqué, rendu seul. Précédemment V0.22 05-10-2026 : compactage vertical global (Z1 titres/boutons d'onglet, Z3 filtres, Z4 modales, Z5 tableau de bord, Z6 recherche globale, Z7 bilan) — CSS d'affichage uniquement. Précédemment V0.21 05-10-2026 : Alertes Stock Faible — 2e passe de compactage (marges/paddings résiduels, affichage uniquement). Précédemment V0.20 05-10-2026 : Commandes › Alertes Stock Faible — affichage compact (cartes, espacements, 4 compteurs sur une ligne, fiche fournisseur resserrée), CSS/markup d'affichage uniquement, aucune logique ni donnée modifiée. Précédemment V0.19 04-10-2026 : Affichage — nouveau réglage « Taille des onglets » (− / curseur / +, 80–140 %, indépendant de la taille du texte, mémorisé). Précédemment V0.18 03-10-2026 : English (US) complété — 1 227 phrases ajoutées au dictionnaire I18N centralisé (I18N.phrases.en), aucune modification de la logique métier. Précédemment V0.17 : Affichage — ajout du Pular/Fulfulde de Guinée (Conakry) en véritable écriture Adlam Unicode (tous les textes statiques et dynamiques, placeholders, infobulles, boîtes de dialogue, impression), police Adlam embarquée ; Français et English (US) inchangés, règles par rôle inchangées. Précédemment V0.16 — choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
+var APP_VERSION_DATE = '2026-10-06T09:40:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
