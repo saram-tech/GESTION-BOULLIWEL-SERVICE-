@@ -577,10 +577,26 @@ header{gap:4px;}
 .logo small{font-size:.56rem;}
 .sync-badge{font-size:.63rem;padding:3px 6px;}
 .barre-add-sticky > select{min-width:0;padding-left:6px !important;padding-right:6px !important;text-overflow:ellipsis;}
-#f-tri-stock{flex:1 1 0;min-width:105px;}
-#f-source-stock{flex:2 1 0;min-width:150px;}
 .barre-add-sticky > .btn{flex-shrink:0;}
 /* /V0.28 */
+
+/* =====================================================================
+   V0.29 — Barres de filtres harmonisées sur toutes les vues (AFFICHAGE)
+   Recherche en premier, puis les listes (Période, Tri, Stock…) ajustées
+   à leur contenu : tout sur une seule ligne quand la largeur le permet,
+   sinon retour à la ligne propre. Les choix, valeurs et fonctions des
+   filtres sont inchangés (seuls les libellés par défaut sont abrégés).
+   Bloc autonome : le supprimer rétablit la mise en page V0.28.
+   ===================================================================== */
+input[id^="f-search"]{order:-1;flex:1 1 90px !important;min-width:90px !important;}
+select[id^="f-"]{flex:0 1 auto !important;width:auto;min-width:0 !important;max-width:46%;text-overflow:ellipsis;padding-left:6px !important;padding-right:4px !important;}
+@supports (field-sizing:content){select[id^="f-"]{field-sizing:content;}}
+@supports not (field-sizing:content){
+  select[id^="f-periode"],select[id^="f-rapport-periode"]{width:84px;}
+  #f-tri-stock{width:64px;}
+  #f-source-stock{width:74px;}
+}
+/* /V0.29 */
 
   </style>
 </head>
@@ -788,7 +804,7 @@ header{gap:4px;}
     </div>
     <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
       <select id="va-periode" onchange="rVueAssocie()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option>
+        <option value="">Période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option>
       </select>
       <input type="text" id="va-search" placeholder="🔍 Rechercher..." oninput="deb('va',rVueAssocie)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
     </div>
@@ -895,7 +911,7 @@ header{gap:4px;}
         <option value="">Tous les auteurs</option><option value="Administrateur">Administrateur seul</option><option value="Associé">Associé seul</option><option value="masquer_associe">Masquer l'Associé</option>
       </select>
       <select id="f-periode-act" onchange="togglePeriodeCustom('f-periode-act');rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
+        <option value="">Période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
       </select>
       <span id="f-periode-act-range" style="display:none;gap:5px;align-items:center">
         <input type="date" id="f-periode-act-start" onchange="rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
@@ -933,7 +949,7 @@ header{gap:4px;}
     <div class="barre-add-sticky" style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
       <input type="text" id="f-search-stock" placeholder="🔍 Rechercher un produit..." oninput="deb('stock',rStock)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
       <select id="f-periode-stock" onchange="togglePeriodeCustom('f-periode-stock');rStock()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
+        <option value="">Période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
       </select>
       <span id="f-periode-stock-range" style="display:none;gap:5px;align-items:center">
         <input type="date" id="f-periode-stock-start" onchange="rStock()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
@@ -941,12 +957,12 @@ header{gap:4px;}
         <input type="date" id="f-periode-stock-end" onchange="rStock()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
       </span>
       <select id="f-tri-stock" onchange="rStock()" title="Trier par quantité de stock — affichage uniquement, aucune donnée modifiée" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Tri par défaut</option>
+        <option value="">Tri</option>
         <option value="qte_desc">Quantité ↓ (plus grand d'abord)</option>
         <option value="qte_asc">Quantité ↑ (plus petit d'abord)</option>
       </select>
       <select id="f-source-stock" onchange="rStock()" title="Afficher Stock Entreprise, Stock Perso, ou les deux — affichage uniquement, aucune donnée modifiée" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Stock Entreprise + Stock Perso</option>
+        <option value="">Stock</option>
         <option value="entreprise">Stock Entreprise</option>
         <option value="perso">Stock Perso</option>
       </select>
@@ -976,7 +992,7 @@ header{gap:4px;}
     <div class="barre-add-sticky" style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
       <input type="text" id="f-search-perso" placeholder="🔍 Rechercher un produit..." oninput="deb('perso',rPerso)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
       <select id="f-periode-perso" onchange="togglePeriodeCustom('f-periode-perso');rPerso()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
+        <option value="">Période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
       </select>
       <span id="f-periode-perso-range" style="display:none;gap:5px;align-items:center">
         <input type="date" id="f-periode-perso-start" onchange="rPerso()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
@@ -1065,7 +1081,7 @@ header{gap:4px;}
       <div class="barre-add-sticky" style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">
         <input type="text" id="f-search-dettes" placeholder="🔍 Rechercher..." oninput="deb('dettes',rDettes)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 8px;color:var(--tx);font-size:.72rem;flex:1;min-width:90px;outline:none">
         <select id="f-periode-dettes" onchange="togglePeriodeCustom('f-periode-dettes');rDettes()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.7rem">
-          <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Semaine</option><option value="mois">Mois</option><option value="annee">Année</option><option value="custom">Personnalisé</option>
+          <option value="">Période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Semaine</option><option value="mois">Mois</option><option value="annee">Année</option><option value="custom">Personnalisé</option>
         </select>
         <span id="f-periode-dettes-range" style="display:none;gap:4px;align-items:center;width:100%">
           <input type="date" id="f-periode-dettes-start" onchange="rDettes()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.7rem;flex:1">
@@ -1091,7 +1107,7 @@ header{gap:4px;}
       <div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">
         <input type="text" id="f-search-paiements" placeholder="🔍 Rechercher..." oninput="deb('paiements',rDettes)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 8px;color:var(--tx);font-size:.72rem;flex:1;min-width:90px;outline:none">
         <select id="f-periode-paiements" onchange="togglePeriodeCustom('f-periode-paiements');rDettes()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.7rem">
-          <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Semaine</option><option value="mois">Mois</option><option value="annee">Année</option><option value="custom">Personnalisé</option>
+          <option value="">Période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Semaine</option><option value="mois">Mois</option><option value="annee">Année</option><option value="custom">Personnalisé</option>
         </select>
         <span id="f-periode-paiements-range" style="display:none;gap:4px;align-items:center;width:100%">
           <input type="date" id="f-periode-paiements-start" onchange="rDettes()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.7rem;flex:1">
@@ -1125,9 +1141,9 @@ header{gap:4px;}
   </div>
   <div class="card">
     <div class="barre-add-sticky" style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
-      <input type="text" id="f-search-dep" placeholder="🔍 Rechercher (catégorie, description)..." oninput="deb('dep',rDep)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
+      <input type="text" id="f-search-dep" placeholder="🔍 Rechercher..." oninput="deb('dep',rDep)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
       <select id="f-periode-dep" onchange="togglePeriodeCustom('f-periode-dep');rDep()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
+        <option value="">Période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
       </select>
       <span id="f-periode-dep-range" style="display:none;gap:5px;align-items:center">
         <input type="date" id="f-periode-dep-start" onchange="rDep()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
@@ -1161,9 +1177,9 @@ header{gap:4px;}
   <!-- COMMANDES CLIENTS -->
   <div class="card">
     <div class="barre-add-sticky" style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
-      <input type="text" id="f-search-cmd" placeholder="🔍 Rechercher (client, n° cmd, produit)..." oninput="deb('cmd',rCmd)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
+      <input type="text" id="f-search-cmd" placeholder="🔍 Rechercher..." oninput="deb('cmd',rCmd)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
       <select id="f-periode-cmd" onchange="togglePeriodeCustom('f-periode-cmd');rCmd()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
+        <option value="">Période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
       </select>
       <span id="f-periode-cmd-range" style="display:none;gap:5px;align-items:center">
         <input type="date" id="f-periode-cmd-start" onchange="rCmd()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
@@ -1187,7 +1203,7 @@ header{gap:4px;}
         <option value="">Tout</option><option value="activite">Activités</option><option value="stock">Stock</option><option value="depense">Dépenses</option><option value="paiement">Paiements</option><option value="dette">Dettes</option><option value="commande">Commandes</option>
       </select>
       <select id="f-periode-histo" onchange="togglePeriodeCustom('f-periode-histo');rHisto()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
+        <option value="">Période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
       </select>
       <span id="f-periode-histo-range" style="display:none;gap:5px;align-items:center">
         <input type="date" id="f-periode-histo-start" onchange="rHisto()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
@@ -1219,14 +1235,14 @@ header{gap:4px;}
       <select id="f-rapport-periode-cloturee" onchange="rRapport()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;font-weight:600">
         <option value="">🟢 Période active (en cours)</option>
       </select>
-      <input type="text" id="f-search-rapport" placeholder="🔍 Produit, client, montant, statut..." oninput="deb('rapport',rRapport)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;min-width:160px;outline:none">
+      <input type="text" id="f-search-rapport" placeholder="🔍 Rechercher..." oninput="deb('rapport',rRapport)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;min-width:160px;outline:none">
       <select id="f-rapport-auteur" onchange="rRapport()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
         <option value="">Tous les auteurs</option>
         <option value="Administrateur">Administrateur uniquement</option>
         <option value="Associé">Associé uniquement</option>
       </select>
       <select id="f-periode-rapport" onchange="togglePeriodeCustom('f-periode-rapport');rRapport()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
+        <option value="">Période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
       </select>
       <span id="f-periode-rapport-range" style="display:none;gap:5px;align-items:center">
         <input type="date" id="f-periode-rapport-start" onchange="rRapport()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
@@ -3521,6 +3537,7 @@ var I18N={
     "Toute période":"Any period",
     "Transport":"Transport",
     "Tri par défaut":"Default sort",
+    "Tri":"Sort",
     "Trier les commandes par nom de client, par ordre alphabétique":"Sort orders alphabetically by customer name",
     "Trier les produits par ordre alphabétique":"Sort products alphabetically",
     "Trier par quantité de stock — affichage uniquement, aucune donnée modifiée":"Sort by stock quantity — display only, no data modified",
@@ -4893,6 +4910,7 @@ var I18N={
     "Toute période":"𞤐𞤣𞤫𞥅𞤲𞤳𞤢 𞤬𞤵𞥅",
     "Transport":"𞤒𞤢𞥄𞤣𞤵𞤺𞤮𞤤",
     "Tri par défaut":"𞤅𞤵𞤩𞤼𞤵𞤺𞤮𞤤 𞤢𞤣𞤭𞥅",
+    "Tri":"𞤅𞤵𞤩𞤼𞤵𞤺𞤮𞤤",
     "Trier les commandes par nom de client, par ordre alphabétique":"𞤅𞤵𞤩𞤵 𞤴𞤢𞤥𞤭𞤪𞤮𞥅𞤶𞤫 𞤫 𞤭𞤲𞥆𞤣𞤫 𞤳𞤭𞤤𞤭𞤴𞤢𞥄𞤲, 𞤫 𞤼𞤫𞥅𞤽𞤼𞤵𞤺𞤮𞤤 𞤢𞤤𞤬𞤢𞤦𞤫",
     "Trier les produits par ordre alphabétique":"𞤅𞤵𞤩𞤵 𞤶𞤢𞤱𞤣𞤭 𞤫 𞤼𞤫𞥅𞤽𞤼𞤵𞤺𞤮𞤤 𞤢𞤤𞤬𞤢𞤦𞤫",
     "Trier par quantité de stock — affichage uniquement, aucune donnée modifiée":"𞤅𞤵𞤩𞤵 𞤫 𞤤𞤭𞤥𞤮𞥅𞤪𞤫 𞤶𞤢𞤱𞤣𞤭 — 𞤸𞤮𞤤𞥆𞤵𞤺𞤮𞤤 𞤼𞤢𞤲, 𞤳𞤫𞤩𞤢𞤤 𞤬𞤵𞥅 𞤧𞤢𞤲𞤶𞤢𞥄𞤳𞤢",
@@ -11335,8 +11353,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.28'; // 06-10-2026 10:15 : logo/badge raccourcis et filtres plus compacts (CSS d'affichage uniquement). Précédemment V0.27 — 06-10-2026 09:40 : boutons plus courts à l'horizontale (CSS d'affichage uniquement, bloc V0.27 de la feuille de style). Précédemment V0.26 — 06-10-2026 : simplification 5 — harmonisation visuelle (3 niveaux de boutons : principal .bp/.bg, secondaire .bh/.bs/.bt/.bo, danger .bd ; 2 niveaux de cartes : .card et blocs internes .kpi/.rb/.ci/.fi-box/.reset-info ; 4 tailles de texte : .7/.8/.9/1.05rem), bloc CSS autonome « V0.26 » en fin de feuille de style, affichage uniquement, aucun balisage/donnée/calcul/synchro/droit modifié. Précédemment V0.25 : simplification emojis — retrait des emojis décoratifs (boutons, titres, titres de modales, lignes, libellés) ; conservés : onglets, statuts (✅ ❌ ⚠️ ⏳ 🟢🟠🔴⚪ 🔒), icônes seules (✏️ 🗑️ ➕ ✕ 🖨️ 👁) ; dictionnaire FR/EN/FF aligné, affichage uniquement. Précédemment V0.24 05-10-2026 : menu ⋯ pour les actions secondaires des en-têtes (Commandes, Activités, Stock, Perso, Dépenses, Historique, Corbeille), boutons et fonctions inchangés. Précédemment V0.23 05-10-2026 : Commandes — alertes stock simplifiées (1 cadre, 2 lignes par produit, nom non répété) et titre en double masqué, rendu seul. Précédemment V0.22 05-10-2026 : compactage vertical global (Z1 titres/boutons d'onglet, Z3 filtres, Z4 modales, Z5 tableau de bord, Z6 recherche globale, Z7 bilan) — CSS d'affichage uniquement. Précédemment V0.21 05-10-2026 : Alertes Stock Faible — 2e passe de compactage (marges/paddings résiduels, affichage uniquement). Précédemment V0.20 05-10-2026 : Commandes › Alertes Stock Faible — affichage compact (cartes, espacements, 4 compteurs sur une ligne, fiche fournisseur resserrée), CSS/markup d'affichage uniquement, aucune logique ni donnée modifiée. Précédemment V0.19 04-10-2026 : Affichage — nouveau réglage « Taille des onglets » (− / curseur / +, 80–140 %, indépendant de la taille du texte, mémorisé). Précédemment V0.18 03-10-2026 : English (US) complété — 1 227 phrases ajoutées au dictionnaire I18N centralisé (I18N.phrases.en), aucune modification de la logique métier. Précédemment V0.17 : Affichage — ajout du Pular/Fulfulde de Guinée (Conakry) en véritable écriture Adlam Unicode (tous les textes statiques et dynamiques, placeholders, infobulles, boîtes de dialogue, impression), police Adlam embarquée ; Français et English (US) inchangés, règles par rôle inchangées. Précédemment V0.16 — choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
-var APP_VERSION_DATE = '2026-10-06T10:15:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.29'; // 06-10-2026 13:10 : barres de filtres harmonisées sur toutes les vues (CSS/libellés d'affichage uniquement). Précédemment V0.28 — 06-10-2026 10:15 : logo/badge raccourcis et filtres plus compacts (CSS d'affichage uniquement). Précédemment V0.27 — 06-10-2026 09:40 : boutons plus courts à l'horizontale (CSS d'affichage uniquement, bloc V0.27 de la feuille de style). Précédemment V0.26 — 06-10-2026 : simplification 5 — harmonisation visuelle (3 niveaux de boutons : principal .bp/.bg, secondaire .bh/.bs/.bt/.bo, danger .bd ; 2 niveaux de cartes : .card et blocs internes .kpi/.rb/.ci/.fi-box/.reset-info ; 4 tailles de texte : .7/.8/.9/1.05rem), bloc CSS autonome « V0.26 » en fin de feuille de style, affichage uniquement, aucun balisage/donnée/calcul/synchro/droit modifié. Précédemment V0.25 : simplification emojis — retrait des emojis décoratifs (boutons, titres, titres de modales, lignes, libellés) ; conservés : onglets, statuts (✅ ❌ ⚠️ ⏳ 🟢🟠🔴⚪ 🔒), icônes seules (✏️ 🗑️ ➕ ✕ 🖨️ 👁) ; dictionnaire FR/EN/FF aligné, affichage uniquement. Précédemment V0.24 05-10-2026 : menu ⋯ pour les actions secondaires des en-têtes (Commandes, Activités, Stock, Perso, Dépenses, Historique, Corbeille), boutons et fonctions inchangés. Précédemment V0.23 05-10-2026 : Commandes — alertes stock simplifiées (1 cadre, 2 lignes par produit, nom non répété) et titre en double masqué, rendu seul. Précédemment V0.22 05-10-2026 : compactage vertical global (Z1 titres/boutons d'onglet, Z3 filtres, Z4 modales, Z5 tableau de bord, Z6 recherche globale, Z7 bilan) — CSS d'affichage uniquement. Précédemment V0.21 05-10-2026 : Alertes Stock Faible — 2e passe de compactage (marges/paddings résiduels, affichage uniquement). Précédemment V0.20 05-10-2026 : Commandes › Alertes Stock Faible — affichage compact (cartes, espacements, 4 compteurs sur une ligne, fiche fournisseur resserrée), CSS/markup d'affichage uniquement, aucune logique ni donnée modifiée. Précédemment V0.19 04-10-2026 : Affichage — nouveau réglage « Taille des onglets » (− / curseur / +, 80–140 %, indépendant de la taille du texte, mémorisé). Précédemment V0.18 03-10-2026 : English (US) complété — 1 227 phrases ajoutées au dictionnaire I18N centralisé (I18N.phrases.en), aucune modification de la logique métier. Précédemment V0.17 : Affichage — ajout du Pular/Fulfulde de Guinée (Conakry) en véritable écriture Adlam Unicode (tous les textes statiques et dynamiques, placeholders, infobulles, boîtes de dialogue, impression), police Adlam embarquée ; Français et English (US) inchangés, règles par rôle inchangées. Précédemment V0.16 — choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
+var APP_VERSION_DATE = '2026-10-06T13:10:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
