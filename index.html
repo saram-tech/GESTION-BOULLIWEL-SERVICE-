@@ -588,8 +588,8 @@ header{gap:4px;}
    filtres sont inchangés (seuls les libellés par défaut sont abrégés).
    Bloc autonome : le supprimer rétablit la mise en page V0.28.
    ===================================================================== */
-input[id^="f-search"]{order:-1;flex:1 1 90px !important;min-width:90px !important;}
-select[id^="f-"]{flex:0 1 auto !important;width:auto;min-width:0 !important;max-width:46%;text-overflow:ellipsis;padding-left:6px !important;padding-right:4px !important;}
+input[id^="f-search"]{order:-1;flex:1 1 40px !important;min-width:40px !important;padding-left:7px !important;padding-right:5px !important;}
+select[id^="f-"]{flex:0 1 auto !important;width:auto;min-width:46px !important;max-width:46%;text-overflow:ellipsis;padding-left:6px !important;padding-right:4px !important;}
 @supports (field-sizing:content){select[id^="f-"]{field-sizing:content;}}
 @supports not (field-sizing:content){
   select[id^="f-periode"],select[id^="f-rapport-periode"]{width:84px;}
@@ -597,6 +597,61 @@ select[id^="f-"]{flex:0 1 auto !important;width:auto;min-width:0 !important;max-
   #f-source-stock{width:74px;}
 }
 /* /V0.29 */
+
+/* =====================================================================
+   V0.30 — Tous les boutons d'un onglet sur UNE SEULE ligne (AFFICHAGE)
+   - En-têtes d'onglet : le menu ⋯ (et « Paiement partiel ») reste à droite
+     du titre, sur la même ligne, même si le sous-titre passe à la ligne.
+   - Barres de filtres : recherche + listes + bouton d'ajout sur une seule
+     ligne ; les éléments se rétrécissent automatiquement selon la largeur
+     (le champ de recherche prend la place restante). Si l'écran est trop
+     étroit, les listes raccourcissent leur texte (…) au lieu de passer à
+     la ligne. Seule exception : la saisie de dates personnalisées.
+   - Rangées de boutons (Actions rapides, Associé, Bilan…) : une seule
+     ligne, largeurs adaptées automatiquement.
+   Aucune logique, donnée, synchronisation ni permission modifiée.
+   Bloc autonome : le supprimer rétablit la mise en page V0.29.
+   ===================================================================== */
+/* ---- En-têtes d'onglet : titre à gauche, ⋯ à droite sur la même ligne ---- */
+.sh:has(> div > .mm):not(:has(input)),.sh:has(> .mm):not(:has(input)){flex-wrap:nowrap;}
+.sh:has(> div > .mm):not(:has(input)) > div:first-child,.sh:has(> .mm):not(:has(input)) > div:first-child{flex:1 1 0;min-width:0;}
+.sh:has(> div > .mm) > div[style*="display:flex"],.sh > .mm{flex:0 0 auto;}
+.sh > div[style*="display:flex"]{flex-wrap:nowrap !important;min-width:0;}
+/* ---- En-têtes avec filtres (Historique, Rapport) : titre + ⋯ sur une ligne, filtres sur la ligne suivante ---- */
+.sh:has(input[id^="f-search"]){flex-wrap:wrap;}
+.sh:has(input[id^="f-search"]) > .st{flex:1 1 0;min-width:0;}
+.sh:has(input[id^="f-search"]) > .mm{order:1;flex:0 0 auto;}
+.sh:has(input[id^="f-search"]) > div[style*="display:flex"]{order:2;flex:1 1 100%;}
+/* ---- Rapport : la liste des périodes clôturées (quand elle existe) prend sa propre ligne lisible ---- */
+@media(max-width:600px){
+  .sh > div:has(> #f-rapport-periode-cloturee){flex-wrap:wrap !important;}
+  #f-rapport-periode-cloturee{order:-2;flex:1 1 100% !important;max-width:100% !important;}
+}
+/* ---- Barres de filtres : une seule ligne, largeurs automatiques ---- */
+.barre-add-sticky{flex-wrap:nowrap !important;}
+.barre-add-sticky:has(> [id$="-range"][style*="inline-flex"]),.sh > div:has(> [id$="-range"][style*="inline-flex"]){flex-wrap:wrap !important;}
+.barre-add-sticky > select,.barre-add-sticky > input,.sh > div > select,.sh > div > input[id^="f-search"]{font-size:.72rem !important;}
+.barre-add-sticky > .btn,.sh > div > .btn{flex:0 0 auto;}
+div.barre-add-sticky{column-gap:4px !important;}
+div.barre-add-sticky > .btn{padding-left:7px;padding-right:7px;}
+/* ---- Listes compactes : la flèche native est remplacée par un petit chevron (gain de largeur, texte lisible) ---- */
+select[id^="f-"]{-webkit-appearance:none !important;appearance:none !important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%238b95a9'/%3E%3C/svg%3E") !important;background-repeat:no-repeat !important;background-position:right 5px center !important;background-size:8px 5px !important;padding-left:6px !important;padding-right:15px !important;min-width:34px !important;}
+/* ---- Actions rapides (tableau de bord) : une ligne, police adaptée à la largeur ---- */
+#tab-dashboard .card > div[style*="flex-wrap:wrap"]:has(> .btn){flex-wrap:nowrap !important;gap:4px !important;}
+#tab-dashboard .card > div[style*="flex-wrap:wrap"] > .btn{flex:1 1 auto;min-width:0;padding-left:4px;padding-right:4px;font-size:min(.78rem,3vw);}
+/* /V0.30 */
+
+/* =====================================================================
+   V0.31 — Champ de recherche : s'agrandit quand on le sélectionne (AFFICHAGE)
+   Au repos il reste compact ; au toucher il prend toute la largeur de sa
+   barre (les autres éléments passent provisoirement à la ligne suivante) et
+   le texte est un peu plus grand pour une saisie lisible. Retour automatique
+   à l'affichage compact dès que le champ perd le focus. Rien d'autre modifié.
+   Bloc autonome : le supprimer rétablit exactement la V0.30.
+   ===================================================================== */
+.barre-add-sticky:has(> input[id^="f-search"]:focus),.sh > div:has(> input[id^="f-search"]:focus){flex-wrap:wrap !important;}
+input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;font-size:.88rem !important;}
+/* /V0.31 */
 
   </style>
 </head>
@@ -876,11 +931,11 @@ select[id^="f-"]{flex:0 1 auto !important;width:auto;min-width:0 !important;max-
   <div class="g2">
     <div class="card"><div class="ch"><span class="dot"></span>Actions rapides</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px">
-        <button class="btn bp bsm" onclick="gt('activites',null);rAF();om('ma')">+ Activité</button>
+        <button class="btn bp bsm" onclick="gt('activites',null);rAF();om('ma')">+ Activ.</button>
         <button class="btn bg bsm" onclick="gt('stock',null);rSF();om('ms')">+ Stock</button>
         <button class="btn bh bsm" onclick="gt('depenses',null);rDepF();om('md')">+ Dépense</button>
         <button class="btn bt bsm" onclick="gt('perso',null);rPF();om('mp')">+ Perso</button>
-        <button class="btn bo bsm" onclick="gt('commandes',null);rCF();om('mc')">+ Commande</button>
+        <button class="btn bo bsm" onclick="gt('commandes',null);rCF();om('mc')">+ Cmd</button>
         <button class="btn bh bsm" onclick="gt('bilan',null);calculerBilan()">Bilan</button>
       </div>
     </div>
@@ -905,10 +960,10 @@ select[id^="f-"]{flex:0 1 auto !important;width:auto;min-width:0 !important;max-
   <div class="card">
     <div class="barre-add-sticky" style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
       <select id="f-type" onchange="rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Tous</option><option value="Vente">Ventes</option><option value="Réparation">Réparations</option><option value="Service">Services</option>
+        <option value="">Type</option><option value="Vente">Ventes</option><option value="Réparation">Réparations</option><option value="Service">Services</option>
       </select>
       <select id="f-auteur" onchange="rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem" title="Filtrer / masquer par auteur">
-        <option value="">Tous les auteurs</option><option value="Administrateur">Administrateur seul</option><option value="Associé">Associé seul</option><option value="masquer_associe">Masquer l'Associé</option>
+        <option value="">Auteur</option><option value="Administrateur">Administrateur seul</option><option value="Associé">Associé seul</option><option value="masquer_associe">Masquer l'Associé</option>
       </select>
       <select id="f-periode-act" onchange="togglePeriodeCustom('f-periode-act');rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
         <option value="">Période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
@@ -919,7 +974,7 @@ select[id^="f-"]{flex:0 1 auto !important;width:auto;min-width:0 !important;max-
         <input type="date" id="f-periode-act-end" onchange="rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
       </span>
       <input type="text" id="f-search" placeholder="🔍 Rechercher..." oninput="deb('act',rAct)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:100px;outline:none">
-      <button class="btn bp bsm" onclick="rAF();om('ma')" data-i18n="btn.nouvelle.activite">+ Nouvelle</button>
+      <button class="btn bp bsm" onclick="rAF();om('ma')" data-i18n="btn.nouvelle.activite">+ Nouv.</button>
     </div>
     <div class="tw"><table>
       <thead><tr><th>Date</th><th>#</th><th>Ticket</th><th>Type</th><th>Désignation</th><th>Panne</th><th>P.Achat×Qté</th><th>À Payer</th><th>Payé</th><th>Reste</th><th>Client</th><th>Bénéfice</th><th>Actions</th></tr></thead>
@@ -966,7 +1021,7 @@ select[id^="f-"]{flex:0 1 auto !important;width:auto;min-width:0 !important;max-
         <option value="entreprise">Stock Entreprise</option>
         <option value="perso">Stock Perso</option>
       </select>
-      <button class="btn bp bsm" onclick="rSF();om('ms')" data-i18n="btn.entree.stock">+ Entrée stock</button>
+      <button class="btn bp bsm" onclick="rSF();om('ms')" data-i18n="btn.entree.stock">+ Entrée</button>
     </div>
     <div class="tw"><table>
     <thead><tr><th>#</th><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>Niveau</th><th>Seuil</th><th>Prix Unitaire</th><th>P.Vente</th><th>Valeur</th><th>Date</th><th>Actions</th></tr></thead>
@@ -1017,8 +1072,7 @@ select[id^="f-"]{flex:0 1 auto !important;width:auto;min-width:0 !important;max-
 
 <!-- BILAN -->
 <div id="tab-bilan" class="tab-panel">
-  <div class="sh"><div><div class="st" data-i18n="titre.bilan">Bilan & Répartition</div></div><button class="btn bg bsm" onclick="calculerBilan()" data-i18n="btn.calculer">Calculer</button></div>
-  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-bilan-note',this)" style="margin-bottom:8px">En savoir plus</button>
+  <div class="sh"><div><div class="st" data-i18n="titre.bilan">Bilan & Répartition</div></div><div style="display:flex;gap:6px"><button class="btn bg bsm" onclick="calculerBilan()" data-i18n="btn.calculer">Calculer</button><button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-bilan-note',this)">En savoir plus</button></div></div>
   <div class="al als" id="fm-bilan-note" style="font-size:.77rem;display:none">✅ Bénéfice calculé uniquement sur montants <strong>ENCAISSÉS (PAYÉS)</strong>. Aucune saisie manuelle.</div>
   <!-- Tableau des formules : masqué par défaut à l'écran (réglage
        Paramètres > Bilan > "Afficher le tableau des formules"), mais
@@ -1067,11 +1121,11 @@ select[id^="f-"]{flex:0 1 auto !important;width:auto;min-width:0 !important;max-
       <button class="btn bs bsm" onclick="om('mpaym')">Paiement</button>
       <button class="btn bd bsm" onclick="viderDettes()" title="🔒 Mot de passe requis">Dettes</button>
       <button class="btn bd bsm" onclick="viderPaiements()" title="🔒 Mot de passe requis">Paiements</button>
+    <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-associe',this)">En savoir plus</button>
     </div>
   </div>
   <div id="al-clot" class="al ald" style="display:none">🔒 Anomalie détectée : les dettes sont restées verrouillées d'une ancienne clôture. <button class="btn bh bxs" onclick="deverrouillerDettes()" style="margin-left:6px">🔓 Déverrouiller</button></div>
-  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-associe',this)" style="margin-bottom:8px">En savoir plus</button>
-  <div class="al ali" id="fm-associe" style="font-size:.77rem;display:none">
+    <div class="al ali" id="fm-associe" style="font-size:.77rem;display:none">
     🤝 <strong>Dettes actives</strong> = cette période (modifiables) | <strong>Cumulé clôtures</strong> = périodes précédentes (verrouillées).<br>
     💳 <strong>Paiement type :</strong> Dette directe de l'associé OU Dette de sa femme uniquement.<br>     Dans le bilan : Dettes nettes = Total dettes − Total paiements reçus.
   </div>
@@ -1186,7 +1240,7 @@ select[id^="f-"]{flex:0 1 auto !important;width:auto;min-width:0 !important;max-
         <span style="color:var(--tx3);font-size:.7rem">→</span>
         <input type="date" id="f-periode-cmd-end" onchange="rCmd()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
       </span>
-      <button class="btn bo bsm" onclick="rCF();om('mc')" data-i18n="btn.nouvelle.commande">+ Nouvelle commande</button>
+      <button class="btn bo bsm" onclick="rCF();om('mc')" data-i18n="btn.nouvelle.commande">+ Commande</button>
     </div>
     <div class="tw"><table>
     <thead><tr><th>#</th><th>Date</th><th>N° Cmd</th><th>Client</th><th>Téléphone</th><th>Produits</th><th>Total</th><th>Statut</th><th>Actions</th></tr></thead>
@@ -1219,7 +1273,7 @@ select[id^="f-"]{flex:0 1 auto !important;width:auto;min-width:0 !important;max-
   <div class="card"><div class="tw"><table>
     <thead><tr><th>#</th><th>Date</th><th>Type</th><th>Description</th><th>Montant</th></tr></thead>
     <tbody id="tbl-histo"><tr><td colspan="5" style="text-align:center;color:var(--tx2);padding:20px">Aucun historique</td></tr></tbody>
-  </table></div></div>
+  </table></div></div></div>
 
 <!-- RAPPORT DES ACTIVITÉS -->
 <div id="tab-rapport" class="tab-panel">
@@ -1237,7 +1291,7 @@ select[id^="f-"]{flex:0 1 auto !important;width:auto;min-width:0 !important;max-
       </select>
       <input type="text" id="f-search-rapport" placeholder="🔍 Rechercher..." oninput="deb('rapport',rRapport)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;min-width:160px;outline:none">
       <select id="f-rapport-auteur" onchange="rRapport()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Tous les auteurs</option>
+        <option value="">Auteur</option>
         <option value="Administrateur">Administrateur uniquement</option>
         <option value="Associé">Associé uniquement</option>
       </select>
@@ -1268,7 +1322,6 @@ select[id^="f-"]{flex:0 1 auto !important;width:auto;min-width:0 !important;max-
        cours ; ce bloc ne sert qu'à retrouver les données d'une période
        déjà refermée. -->
   <div id="rapport-detail-periode-cloturee"></div>
-</div>
 </div>
 
 <!-- PATRIMOINE (biens et matériels de l'Administrateur, visibles par le compte Visiteur) -->
@@ -2747,13 +2800,13 @@ var I18N={
     "btn.calculer":"Calculer",
     "btn.cloture":"Clôture",
     "btn.deconnexion.icone":"🚪",
-    "btn.entree.stock":"+ Entrée stock",
+    "btn.entree.stock":"+ Entrée",
     "btn.excel":"Excel",
     "btn.export":"Export",
     "btn.import":"Import",
     "btn.monmdp":"Mon mot de passe",
-    "btn.nouvelle.activite":"+ Nouvelle",
-    "btn.nouvelle.commande":"+ Nouvelle commande",
+    "btn.nouvelle.activite":"+ Nouv.",
+    "btn.nouvelle.commande":"+ Commande",
     "btn.parametres":"Paramètres",
     "btn.tout":"Tout",
     "login.connecter":"Se connecter",
@@ -2991,8 +3044,10 @@ var I18N={
     "). Elles resteront visibles côté Associé. Détail :":"). They will remain visible on the Partner side. Details:",
     "*AUTRES*":"*OTHERS*",
     "+ Activité":"+ Activity",
+    "+ Activ.":"+ Activity",
     "+ Ajouter produit":"+ Add product",
     "+ Commande":"+ Order",
+    "+ Cmd":"+ Order",
     "+ Dépense":"+ Expense",
     "+ Perso":"+ Personal",
     "+ Stock":"+ Stock",
@@ -4345,9 +4400,11 @@ var I18N={
     "). Elles resteront visibles côté Associé. Détail :":"). 𞤍𞤵𞤥 𞤭𞤲𞤢 𞤥𞤦𞤢𞥄𞤱𞤭 𞤼𞤢𞤱𞤫𞥅 𞤫 𞤅𞤫𞤸𞤭𞤤. 𞤄𞤮𞤤𞥆𞤫 :",
     "*AUTRES*":"*𞤩𞤫𞤴𞤯𞤫*",
     "+ Activité":"+ 𞤘𞤮𞤤𞥆𞤢𞤤",
+    "+ Activ.":"+ 𞤘𞤮𞤤𞥆𞤢𞤤",
     "+ Ajouter":"+ 𞤄𞤫𞤴𞤣𞤵",
     "+ Ajouter produit":"+ 𞤄𞤫𞤴𞤣𞤵 𞤶𞤢𞤱𞤣𞤭",
     "+ Commande":"+ 𞤒𞤢𞤥𞤭𞤪𞤮𞥅𞤪𞤫",
+    "+ Cmd":"+ 𞤒𞤢𞤥𞤭𞤪𞤮𞥅𞤪𞤫",
     "+ Dépense":"+ 𞤐𞤢𞤬𞤢𞤹𞤢",
     "+ Entrée stock":"+ 𞤐𞤢𞥄𞤼𞤢𞤤 𞤶𞤢𞤱𞤣𞤭",
     "+ Nouvelle":"+ 𞤑𞤫𞤧𞤢𞤤",
@@ -7120,7 +7177,7 @@ function fillPP(){
   var sel=document.getElementById('pp-act');
   sel.innerHTML='<option value="">-- Choisir --</option>';
   D.activites.filter(function(a){ return a.reste>0; }).forEach(function(a){
-    var o=document.createElement('option'); o.value=a.id; o.textContent=a.desig+' — Reste: '+fmt(a.reste); sel.appendChild(o);
+    var o=document.createElement('option'); o.value=a.id; o.textContent=a.desig+(a.client?' — '+a.client:'')+' — Reste: '+fmt(a.reste); sel.appendChild(o);
   });
   sel.onchange=function(){
     var a=D.activites.find(function(x){ return x.id==sel.value; });
@@ -11353,8 +11410,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.29'; // 06-10-2026 13:10 : barres de filtres harmonisées sur toutes les vues (CSS/libellés d'affichage uniquement). Précédemment V0.28 — 06-10-2026 10:15 : logo/badge raccourcis et filtres plus compacts (CSS d'affichage uniquement). Précédemment V0.27 — 06-10-2026 09:40 : boutons plus courts à l'horizontale (CSS d'affichage uniquement, bloc V0.27 de la feuille de style). Précédemment V0.26 — 06-10-2026 : simplification 5 — harmonisation visuelle (3 niveaux de boutons : principal .bp/.bg, secondaire .bh/.bs/.bt/.bo, danger .bd ; 2 niveaux de cartes : .card et blocs internes .kpi/.rb/.ci/.fi-box/.reset-info ; 4 tailles de texte : .7/.8/.9/1.05rem), bloc CSS autonome « V0.26 » en fin de feuille de style, affichage uniquement, aucun balisage/donnée/calcul/synchro/droit modifié. Précédemment V0.25 : simplification emojis — retrait des emojis décoratifs (boutons, titres, titres de modales, lignes, libellés) ; conservés : onglets, statuts (✅ ❌ ⚠️ ⏳ 🟢🟠🔴⚪ 🔒), icônes seules (✏️ 🗑️ ➕ ✕ 🖨️ 👁) ; dictionnaire FR/EN/FF aligné, affichage uniquement. Précédemment V0.24 05-10-2026 : menu ⋯ pour les actions secondaires des en-têtes (Commandes, Activités, Stock, Perso, Dépenses, Historique, Corbeille), boutons et fonctions inchangés. Précédemment V0.23 05-10-2026 : Commandes — alertes stock simplifiées (1 cadre, 2 lignes par produit, nom non répété) et titre en double masqué, rendu seul. Précédemment V0.22 05-10-2026 : compactage vertical global (Z1 titres/boutons d'onglet, Z3 filtres, Z4 modales, Z5 tableau de bord, Z6 recherche globale, Z7 bilan) — CSS d'affichage uniquement. Précédemment V0.21 05-10-2026 : Alertes Stock Faible — 2e passe de compactage (marges/paddings résiduels, affichage uniquement). Précédemment V0.20 05-10-2026 : Commandes › Alertes Stock Faible — affichage compact (cartes, espacements, 4 compteurs sur une ligne, fiche fournisseur resserrée), CSS/markup d'affichage uniquement, aucune logique ni donnée modifiée. Précédemment V0.19 04-10-2026 : Affichage — nouveau réglage « Taille des onglets » (− / curseur / +, 80–140 %, indépendant de la taille du texte, mémorisé). Précédemment V0.18 03-10-2026 : English (US) complété — 1 227 phrases ajoutées au dictionnaire I18N centralisé (I18N.phrases.en), aucune modification de la logique métier. Précédemment V0.17 : Affichage — ajout du Pular/Fulfulde de Guinée (Conakry) en véritable écriture Adlam Unicode (tous les textes statiques et dynamiques, placeholders, infobulles, boîtes de dialogue, impression), police Adlam embarquée ; Français et English (US) inchangés, règles par rôle inchangées. Précédemment V0.16 — choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
-var APP_VERSION_DATE = '2026-10-06T13:10:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.32'; // 06-10-2026 22:10 : onglet Rapport de nouveau affiché (balise </div> manquante avant le bloc Rapport — structure HTML uniquement). Précédemment V0.31 — 06-10-2026 21:40 : champ Recherche agrandi à la saisie (affichage uniquement). Précédemment V0.30 — 06-10-2026 21:15 : tous les boutons de chaque onglet sur une seule ligne, nom du client dans Paiement partiel (affichage uniquement). Précédemment V0.29 — 06-10-2026 13:10 : barres de filtres harmonisées sur toutes les vues (CSS/libellés d'affichage uniquement). Précédemment V0.28 — 06-10-2026 10:15 : logo/badge raccourcis et filtres plus compacts (CSS d'affichage uniquement). Précédemment V0.27 — 06-10-2026 09:40 : boutons plus courts à l'horizontale (CSS d'affichage uniquement, bloc V0.27 de la feuille de style). Précédemment V0.26 — 06-10-2026 : simplification 5 — harmonisation visuelle (3 niveaux de boutons : principal .bp/.bg, secondaire .bh/.bs/.bt/.bo, danger .bd ; 2 niveaux de cartes : .card et blocs internes .kpi/.rb/.ci/.fi-box/.reset-info ; 4 tailles de texte : .7/.8/.9/1.05rem), bloc CSS autonome « V0.26 » en fin de feuille de style, affichage uniquement, aucun balisage/donnée/calcul/synchro/droit modifié. Précédemment V0.25 : simplification emojis — retrait des emojis décoratifs (boutons, titres, titres de modales, lignes, libellés) ; conservés : onglets, statuts (✅ ❌ ⚠️ ⏳ 🟢🟠🔴⚪ 🔒), icônes seules (✏️ 🗑️ ➕ ✕ 🖨️ 👁) ; dictionnaire FR/EN/FF aligné, affichage uniquement. Précédemment V0.24 05-10-2026 : menu ⋯ pour les actions secondaires des en-têtes (Commandes, Activités, Stock, Perso, Dépenses, Historique, Corbeille), boutons et fonctions inchangés. Précédemment V0.23 05-10-2026 : Commandes — alertes stock simplifiées (1 cadre, 2 lignes par produit, nom non répété) et titre en double masqué, rendu seul. Précédemment V0.22 05-10-2026 : compactage vertical global (Z1 titres/boutons d'onglet, Z3 filtres, Z4 modales, Z5 tableau de bord, Z6 recherche globale, Z7 bilan) — CSS d'affichage uniquement. Précédemment V0.21 05-10-2026 : Alertes Stock Faible — 2e passe de compactage (marges/paddings résiduels, affichage uniquement). Précédemment V0.20 05-10-2026 : Commandes › Alertes Stock Faible — affichage compact (cartes, espacements, 4 compteurs sur une ligne, fiche fournisseur resserrée), CSS/markup d'affichage uniquement, aucune logique ni donnée modifiée. Précédemment V0.19 04-10-2026 : Affichage — nouveau réglage « Taille des onglets » (− / curseur / +, 80–140 %, indépendant de la taille du texte, mémorisé). Précédemment V0.18 03-10-2026 : English (US) complété — 1 227 phrases ajoutées au dictionnaire I18N centralisé (I18N.phrases.en), aucune modification de la logique métier. Précédemment V0.17 : Affichage — ajout du Pular/Fulfulde de Guinée (Conakry) en véritable écriture Adlam Unicode (tous les textes statiques et dynamiques, placeholders, infobulles, boîtes de dialogue, impression), police Adlam embarquée ; Français et English (US) inchangés, règles par rôle inchangées. Précédemment V0.16 — choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
+var APP_VERSION_DATE = '2026-10-06T22:10:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
