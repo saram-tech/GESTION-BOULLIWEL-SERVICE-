@@ -317,15 +317,12 @@ tbody tr:last-child td{border-bottom:none;}
 .ac{display:flex;gap:3px;}
 .ci{padding:8px 11px;background:var(--bg4);border-radius:8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;font-size:.79rem;}
 .fi-box{background:var(--bg4);border-radius:10px;padding:13px;border-left:4px solid var(--re);margin-bottom:10px;}
-/* V0.20 — Alertes Stock Faible (Commandes) : affichage compact, limité à #alertes-stock */
-#alertes-stock .al{padding:6px 10px;margin-bottom:8px;line-height:1.3;}
-#alertes-stock .fi-box{padding:6px 10px;margin-bottom:5px;}
-#alertes-stock .ast-h{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px 8px;margin-bottom:4px;}
-#alertes-stock .g4,#alertes-stock .g4{grid-template-columns:repeat(4,1fr);gap:5px;}
-#alertes-stock .ast-b{background:var(--bg5);padding:3px 2px;border-radius:6px;text-align:center;line-height:1.2;}
-#alertes-stock .ast-b>div:first-child{color:var(--tx2);font-size:.6rem;}
-#alertes-stock .ast-b>div:last-child{font-weight:700;font-size:.85rem;}
-#alertes-stock .ast-f{margin-top:4px;padding:4px 8px;background:var(--bg3);border-radius:6px;font-size:.74rem;line-height:1.3;}
+/* V0.23 — Alertes Stock Faible simplifiées : 1 seul cadre, lignes séparées par un filet, plus de bandeau ni de cases */
+#alertes-stock .ast-n{font-size:.74rem;color:var(--tx2);line-height:1.3;margin:-4px 0 4px;}
+#alertes-stock .ast-r{padding:7px 0;border-top:1px solid var(--bd);}
+#alertes-stock .ast-h{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px 8px;margin-bottom:3px;}
+#alertes-stock .ast-s{font-size:.76rem;color:var(--tx2);line-height:1.4;}
+#alertes-stock .ast-s b{color:var(--tx);font-weight:700;}
 #alertes-stock .btn.bxs{padding:5px 8px;}
 /* V0.22 — Z1 : bloc titre + boutons d'onglet compacté (espacements verticaux uniquement) */
 .tab-panel > .sh{margin-bottom:6px;gap:4px 7px;}
@@ -365,6 +362,19 @@ tbody tr:last-child td{border-bottom:none;}
 #bilan-result .card > div[style*="margin-bottom:11px"]{margin-bottom:7px !important;}
 #bilan-result .card > div[style*="padding:12px"]{padding-top:9px !important;padding-bottom:9px !important;}
 /* /Z7 */
+/* V0.23 — Commandes : titre masqué car déjà affiché par l'onglet actif (sous-titre conservé) */
+#tab-commandes > .sh .st{display:none;}
+/* /V0.23 */
+/* V0.24 — Menu ⋯ (actions secondaires des en-têtes d'onglet) */
+.mm{position:relative;display:inline-block;}
+.mm-t{min-width:36px;font-weight:800;letter-spacing:1px;}
+.mm:has(.mm-p .bp) .mm-t{border-color:var(--ac);color:var(--ac);}
+.mm-p{display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:60;min-width:215px;flex-direction:column;gap:1px;padding:4px;background:var(--bg2);border:1px solid var(--bd);border-radius:11px;box-shadow:0 10px 28px rgba(0,0,0,.45);}
+.mm.open .mm-p{display:flex;}
+.mm-p .btn{width:100%;justify-content:flex-start;text-align:left;white-space:nowrap;padding:9px 12px;border-color:transparent;}
+.mm-p .btn:not(.bp):not(.bg){background:transparent;}
+.mm-sep{height:1px;background:var(--bd);margin:3px 4px;}
+/* /V0.24 */
 
 /* ===== LOGIN ===== */
 #login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -398,6 +408,108 @@ tbody tr:last-child td{border-bottom:none;}
 #btn-retour{position:fixed;bottom:70px;left:16px;z-index:400;width:44px;height:44px;border-radius:50%;background:transparent;border:1px solid var(--bd2);color:var(--tx2);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
 #btn-retour:hover{background:rgba(255,255,255,.08);color:var(--ac);border-color:var(--ac);}
 
+/* =====================================================================
+   V0.26 — Simplification 5 : harmonisation visuelle (AFFICHAGE UNIQUEMENT)
+   3 niveaux de boutons · 2 niveaux de cartes · 4 tailles de texte.
+   Aucune donnée, aucun calcul, aucune synchronisation, aucun droit, aucun
+   libellé ni aucun balisage modifiés. Bloc autonome : le supprimer rétablit
+   exactement l'affichage V0.25. Commandes (compactage V0.20-V0.23) volontairement
+   non concernée.
+   ===================================================================== */
+:root{
+  --t1:.7rem;   /* légendes, étiquettes, méta */
+  --t2:.8rem;   /* texte courant, tableaux, boutons, champs */
+  --t3:.9rem;   /* titres de carte et de fenêtre */
+  --t4:1.05rem; /* valeurs, titre de page */
+  --r-card:12px;--r-bloc:10px;--r-btn:9px;
+}
+/* ---- Texte : 4 tailles (classes de l'application) ---- */
+.kl,.ks,.ss,.rl,.fg label,.badge,.dv,.lkb,thead th,.ni .nb small{font-size:var(--t1);}
+table,.al,.ci,.btn,.fg input,.fg select,.fg textarea,.reset-info{font-size:var(--t2);}
+.ch,.mhd{font-size:var(--t3);}
+.st,.rv,.kv{font-size:var(--t4);}
+.btn.bxs{font-size:var(--t1);}
+.btn.bsm{font-size:var(--t2);}
+/* ---- Texte : mêmes 4 tailles pour les tailles écrites directement dans le balisage ---- */
+[style*="font-size:.6rem"]:not(#tab-commandes *),
+[style*="font-size: .6rem"]:not(#tab-commandes *),
+[style*="font-size:.62rem"]:not(#tab-commandes *),
+[style*="font-size: .62rem"]:not(#tab-commandes *),
+[style*="font-size:.65rem"]:not(#tab-commandes *),
+[style*="font-size: .65rem"]:not(#tab-commandes *),
+[style*="font-size:.66rem"]:not(#tab-commandes *),
+[style*="font-size: .66rem"]:not(#tab-commandes *),
+[style*="font-size:.68rem"]:not(#tab-commandes *),
+[style*="font-size: .68rem"]:not(#tab-commandes *),
+[style*="font-size:.69rem"]:not(#tab-commandes *),
+[style*="font-size: .69rem"]:not(#tab-commandes *),
+[style*="font-size:.7rem"]:not(#tab-commandes *),
+[style*="font-size: .7rem"]:not(#tab-commandes *),
+[style*="font-size:.72rem"]:not(#tab-commandes *),
+[style*="font-size: .72rem"]:not(#tab-commandes *){font-size:var(--t1) !important;}
+[style*="font-size:.73rem"]:not(#tab-commandes *),
+[style*="font-size: .73rem"]:not(#tab-commandes *),
+[style*="font-size:.74rem"]:not(#tab-commandes *),
+[style*="font-size: .74rem"]:not(#tab-commandes *),
+[style*="font-size:.75rem"]:not(#tab-commandes *),
+[style*="font-size: .75rem"]:not(#tab-commandes *),
+[style*="font-size:.76rem"]:not(#tab-commandes *),
+[style*="font-size: .76rem"]:not(#tab-commandes *),
+[style*="font-size:.77rem"]:not(#tab-commandes *),
+[style*="font-size: .77rem"]:not(#tab-commandes *),
+[style*="font-size:.78rem"]:not(#tab-commandes *),
+[style*="font-size: .78rem"]:not(#tab-commandes *),
+[style*="font-size:.79rem"]:not(#tab-commandes *),
+[style*="font-size: .79rem"]:not(#tab-commandes *),
+[style*="font-size:.8rem"]:not(#tab-commandes *),
+[style*="font-size: .8rem"]:not(#tab-commandes *),
+[style*="font-size:.81rem"]:not(#tab-commandes *),
+[style*="font-size: .81rem"]:not(#tab-commandes *),
+[style*="font-size:.82rem"]:not(#tab-commandes *),
+[style*="font-size: .82rem"]:not(#tab-commandes *),
+[style*="font-size:.83rem"]:not(#tab-commandes *),
+[style*="font-size: .83rem"]:not(#tab-commandes *),
+[style*="font-size:.85rem"]:not(#tab-commandes *),
+[style*="font-size: .85rem"]:not(#tab-commandes *){font-size:var(--t2) !important;}
+[style*="font-size:.88rem"]:not(#tab-commandes *),
+[style*="font-size: .88rem"]:not(#tab-commandes *),
+[style*="font-size:.95rem"]:not(#tab-commandes *),
+[style*="font-size: .95rem"]:not(#tab-commandes *){font-size:var(--t3) !important;}
+[style*="font-size:1rem"]:not(#tab-commandes *),
+[style*="font-size: 1rem"]:not(#tab-commandes *),
+[style*="font-size:1.05rem"]:not(#tab-commandes *),
+[style*="font-size: 1.05rem"]:not(#tab-commandes *),
+[style*="font-size:1.1rem"]:not(#tab-commandes *),
+[style*="font-size: 1.1rem"]:not(#tab-commandes *){font-size:var(--t4) !important;}
+/* ---- Boutons : 3 niveaux ----
+   1 Principal  : .bp .bg  (plein, couleur d'accent)
+   2 Secondaire : .bh .bs .bt .bo  (contour neutre)
+   3 Danger     : .bd  (contour rouge discret) */
+.btn{border-radius:var(--r-btn);font-weight:600;box-shadow:none;}
+.btn.bp,.btn.bg{background:var(--ac);border:1px solid var(--ac);color:#fff;}
+.btn.bp:hover,.btn.bg:hover{opacity:.9;transform:none;}
+.btn.bh,.btn.bs,.btn.bt,.btn.bo{background:transparent;border:1px solid var(--bd2);color:var(--tx);}
+.btn.bh:hover,.btn.bs:hover,.btn.bt:hover,.btn.bo:hover{background:rgba(79,142,247,.08);border-color:var(--ac);color:var(--ac);}
+.btn.bd{background:transparent;border:1px solid rgba(239,68,68,.45);color:var(--re);}
+.btn.bd:hover{background:rgba(239,68,68,.12);border-color:var(--re);}
+.btn:disabled{opacity:.45;}
+/* ---- Cartes : 2 niveaux ----
+   1 Carte (conteneur)       : .card
+   2 Bloc interne (dans carte): .kpi .rb .ci .fi-box .reset-info */
+.card{border-radius:var(--r-card);background:var(--bg2);border:1px solid var(--bd);box-shadow:none;}
+.kpi,.rb,.ci,.fi-box,.reset-info{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r-bloc);box-shadow:none;}
+.rb,.fi-box{border-left-width:3px;}
+.rb{border-left-color:var(--ac);}
+.rb.gold{border-left-color:var(--go);}.rb.green{border-left-color:var(--gr);}.rb.red{border-left-color:var(--re);}
+.fi-box{border-left-color:var(--re);}
+.kpi:hover{transform:none;}
+div[style*="padding"][style*="border-radius:8px"],
+div[style*="padding"][style*="border-radius:9px"],
+div[style*="padding"][style*="border-radius:11px"]{border-radius:var(--r-bloc) !important;}
+div[style*="padding"][style*="border-radius:12px"],
+div[style*="padding"][style*="border-radius:13px"]{border-radius:var(--r-card) !important;}
+/* /V0.26 */
+
   </style>
 </head>
 <body>
@@ -416,7 +528,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="login-sub" data-i18n="login.soustitre">Système de Gestion Intégrée</div>
     <div class="login-sub" id="loginVersion" style="text-align:center;margin-top:-6px;margin-bottom:6px;font-size:.7rem"></div>
     <div style="text-align:center;margin-bottom:4px">
-      <button type="button" class="btn bh bsm" onclick="ouvrirAffichage()" style="font-size:.72rem" data-i18n="btn.affichage">🎨 Affichage (taille, thème, langue)</button>
+      <button type="button" class="btn bh bsm" onclick="ouvrirAffichage()" style="font-size:.72rem" data-i18n="btn.affichage">Affichage (taille, thème, langue)</button>
     </div>
 
     <!-- TAB: CONNEXION -->
@@ -427,11 +539,11 @@ tbody tr:last-child td{border-bottom:none;}
           <span onclick="togglePass('inp-pass',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem;user-select:none">👁</span>
         </div></div>
       <div class="login-err" id="login-err"></div>
-      <button class="login-btn" onclick="doLogin()" data-i18n="login.connecter">🔐 Se connecter</button>
+      <button class="login-btn" onclick="doLogin()" data-i18n="login.connecter">Se connecter</button>
       <div id="login-forgot-zone" style="display:none;margin-top:10px;padding:10px;background:var(--bg4);border-radius:8px;font-size:.78rem">
         <div style="margin-bottom:7px;color:var(--tx2)">Mot de passe oublié ?</div>
         <div style="display:flex;gap:7px;flex-wrap:wrap">
-          <button class="btn bh bsm" onclick="ouvrirDemandeCode()">🔑 Demander un code de réinitialisation</button>
+          <button class="btn bh bsm" onclick="ouvrirDemandeCode()">Demander un code de réinitialisation</button>
         </div>
         <div style="margin-top:7px;color:var(--tx3)">Ou veuillez contacter l'Administrateur.</div>
       </div>
@@ -458,25 +570,23 @@ tbody tr:last-child td{border-bottom:none;}
 
       <!-- Parcours réel : lien de récupération envoyé par Supabase Auth -->
       <div id="reset-email-zone">
-        <div class="reset-info">
-          🔑 Saisissez l'adresse e-mail associée à votre compte. Vous recevrez un lien pour définir un nouveau mot de passe, sans avoir besoin d'ouvrir Supabase.
+        <div class="reset-info">           Saisissez l'adresse e-mail associée à votre compte. Vous recevrez un lien pour définir un nouveau mot de passe, sans avoir besoin d'ouvrir Supabase.
         </div>
         <div class="fg"><label>Adresse e-mail</label><input type="email" id="inp-forgot-email" placeholder="votre@email.com" autocomplete="email" onkeydown="if(event.key==='Enter')doForgotPassword()"></div>
         <div class="login-err" id="forgot-err"></div>
-        <button class="login-btn" id="btn-forgot" onclick="doForgotPassword()">📩 Envoyer le lien de réinitialisation</button>
+        <button class="login-btn" id="btn-forgot" onclick="doForgotPassword()">Envoyer le lien de réinitialisation</button>
       </div>
 
       <!-- Repli : ancien système de code local, utilisé seulement si la -->
       <!-- vraie authentification Supabase (AUTH_EMAIL_ADMIN) n'est pas active. -->
       <div id="reset-legacy-zone" style="display:none">
-        <div class="reset-info">
-          🔑 Choisissez le compte concerné, demandez un code, puis entrez-le ci-dessous avec votre nouveau mot de passe. Le code est <strong>unique, à usage unique et expire après 7 minutes</strong>.
+        <div class="reset-info">           Choisissez le compte concerné, demandez un code, puis entrez-le ci-dessous avec votre nouveau mot de passe. Le code est <strong>unique, à usage unique et expire après 7 minutes</strong>.
         </div>
         <div class="fg"><label>Compte concerné</label><select id="inp-reset-role" onchange="document.getElementById('reset-role-info').textContent=''">
           <option value="associe">Associé</option>
           <option value="admin">Administrateur</option>
         </select></div>
-        <button type="button" class="btn bh bsm" style="margin-bottom:9px" onclick="genererEtAfficherCode(v('inp-reset-role'))">📩 Générer un code pour ce compte</button>
+        <button type="button" class="btn bh bsm" style="margin-bottom:9px" onclick="genererEtAfficherCode(v('inp-reset-role'))">Générer un code pour ce compte</button>
         <div id="reset-role-info" style="font-size:.76rem;color:var(--tx2);margin-bottom:9px"></div>
         <div class="fg"><label>Code de réinitialisation</label><input type="text" id="inp-reset-code" placeholder="Code à 6 chiffres" inputmode="numeric" maxlength="6"></div>
         <div class="fg"><label>Nouveau mot de passe</label><div style="position:relative">
@@ -498,8 +608,7 @@ tbody tr:last-child td{border-bottom:none;}
     <!-- TAB: NOUVEAU MOT DE PASSE — affiché automatiquement quand l'utilisateur -->
     <!-- arrive depuis le lien reçu par e-mail (jamais ouvert manuellement) -->
     <div id="tab-nouveau-mdp" class="login-tab">
-      <div class="reset-info">
-        🔐 Choisissez un nouveau mot de passe pour votre compte.
+      <div class="reset-info">         Choisissez un nouveau mot de passe pour votre compte.
       </div>
       <div class="fg"><label>Nouveau mot de passe</label><div style="position:relative">
           <input type="password" id="np-nouveau" placeholder="Nouveau mot de passe (min. 4 caractères)" style="padding-right:40px">
@@ -522,30 +631,30 @@ tbody tr:last-child td{border-bottom:none;}
   <div id="sync-status" class="sync-badge sync-offline" title="Statut de synchronisation — Toucher pour voir le diagnostic détaillé" onclick="diagnosticConnexion()" style="cursor:pointer">⚪ Vérification…</div>
   <div id="hbts-admin" class="hbts">
     <button id="btn-refresh-admin" class="btn-refresh" onclick="rafraichirDonnees()" title="Rafraîchir les données affichées">⟳</button>
-    <button class="btn bh bsm" onclick="ouvrirAffichage()" title="Taille du texte, thème, langue" data-i18n="btn.affichage">🎨 Affichage</button>
-    <button class="btn bs bsm" onclick="ouvrirParametres()" title="Paramètres — contrôle total de l'application" data-i18n="btn.parametres">⚙️ Paramètres</button>
+    <button class="btn bh bsm" onclick="ouvrirAffichage()" title="Taille du texte, thème, langue" data-i18n="btn.affichage">Affichage</button>
+    <button class="btn bs bsm" onclick="ouvrirParametres()" title="Paramètres — contrôle total de l'application" data-i18n="btn.parametres">Paramètres</button>
     <button class="btn bh bsm" onclick="showChangerPass()" title="Changer mot de passe">🔑</button>
-    <button class="btn bh bsm" onclick="exportData()" title="Télécharger une sauvegarde complète des données (.json)" data-i18n="btn.export">💾 Export</button>
-    <button class="btn bh bsm" onclick="exportExcel()" title="Exporter toutes les données en fichier Excel (.xlsx)" data-i18n="btn.excel">📊 Excel</button>
-    <button class="btn bh bsm" onclick="importData()" title="Restaurer les données depuis un fichier de sauvegarde (.json)" data-i18n="btn.import">📂 Import</button>
+    <button class="btn bh bsm" onclick="exportData()" title="Télécharger une sauvegarde complète des données (.json)" data-i18n="btn.export">Export</button>
+    <button class="btn bh bsm" onclick="exportExcel()" title="Exporter toutes les données en fichier Excel (.xlsx)" data-i18n="btn.excel">Excel</button>
+    <button class="btn bh bsm" onclick="importData()" title="Restaurer les données depuis un fichier de sauvegarde (.json)" data-i18n="btn.import">Import</button>
     <!-- v96 : boutons masqués sur DEMANDE (barre supérieure uniquement)
          — style="display:none" seulement, onclick/fonction intacts,
          aucun autre élément de la barre supérieure modifié. Les mêmes
          actions restent disponibles dans Paramètres > Données. -->
-    <button class="btn bg bsm" onclick="saveCloud()" title="Génère un lien de partage manuel (différent de la synchronisation cloud automatique)" style="display:none">🔗 Lien partage</button>
-    <button class="btn bg bsm" onclick="testSupabaseConnection()" title="Vérifier la connexion Supabase" style="display:none">🔌 Test Cloud</button>
-    <button class="btn bd bsm" onclick="cloturer()" title="Clôturer la période : archive dettes/activités, remet les compteurs à zéro (mot de passe requis)" data-i18n="btn.cloture">🔄 Clôture</button>
-    <button class="btn bd bsm" onclick="viderTout()" title="Supprimer TOUT — remise à zéro complète de l'application (mot de passe requis)" data-i18n="btn.tout">🗑️ Tout</button>
-    <button id="btn-install" class="btn bs bsm" style="display:none">📲 Installer</button>
+    <button class="btn bg bsm" onclick="saveCloud()" title="Génère un lien de partage manuel (différent de la synchronisation cloud automatique)" style="display:none">Lien partage</button>
+    <button class="btn bg bsm" onclick="testSupabaseConnection()" title="Vérifier la connexion Supabase" style="display:none">Test Cloud</button>
+    <button class="btn bd bsm" onclick="cloturer()" title="Clôturer la période : archive dettes/activités, remet les compteurs à zéro (mot de passe requis)" data-i18n="btn.cloture">Clôture</button>
+    <button class="btn bd bsm" onclick="viderTout()" title="Supprimer TOUT — remise à zéro complète de l'application (mot de passe requis)" data-i18n="btn.tout">Tout</button>
+    <button id="btn-install" class="btn bs bsm" style="display:none">Installer</button>
   </div>
   <div id="hbts-associe" class="hbts" style="display:none">
     <button id="btn-refresh-associe" class="btn-refresh" onclick="rafraichirDonnees()" title="Rafraîchir les données affichées">⟳</button>
-    <button class="btn bh bsm" onclick="ouvrirAffichage()" title="Taille du texte, thème, langue" data-i18n="btn.affichage">🎨 Affichage</button>
-    <button class="btn bh bsm" onclick="showChangerPass()" title="Changer mon mot de passe" data-i18n="btn.monmdp">🔑 Mon mot de passe</button>
+    <button class="btn bh bsm" onclick="ouvrirAffichage()" title="Taille du texte, thème, langue" data-i18n="btn.affichage">Affichage</button>
+    <button class="btn bh bsm" onclick="showChangerPass()" title="Changer mon mot de passe" data-i18n="btn.monmdp">Mon mot de passe</button>
   </div>
   <div id="hbts-visiteur" class="hbts" style="display:none">
     <button id="btn-refresh-visiteur" class="btn-refresh" onclick="rafraichirVisiteur()" title="Rafraîchir les données affichées">⟳</button>
-    <button class="btn bh bsm" onclick="ouvrirAffichage()" title="Taille du texte, thème, langue" data-i18n="btn.affichage">🎨 Affichage</button>
+    <button class="btn bh bsm" onclick="ouvrirAffichage()" title="Taille du texte, thème, langue" data-i18n="btn.affichage">Affichage</button>
   </div>
   <!--
     CORRECTIF ("le bouton de déconnexion est masqué en mode portrait") :
@@ -595,14 +704,14 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="g4" style="margin-bottom:14px" id="va-dashboard">
     <div class="kpi" data-vk="as-capital"><div class="kl">Votre capital actuel</div><div class="kv g" id="va-capital">0 GNF</div><div class="ks">Produits saisis directement en Stock Ent. ÷ 2</div></div>
     <div class="kpi" data-vk="as-interet"><div class="kl">Votre part d'intérêt actuelle</div><div class="kv" id="va-interet">0 GNF</div><div class="ks">Votre part = Bénéfice total ÷ 2 (partage 50/50)</div></div>
-    <div class="kpi" data-vk="as-reste"><div class="kl">Reste que vous devez à votre associé</div><div class="kv r" id="va-reste">0 GNF</div><button class="btn bh bxs no-print" style="margin-top:6px" onclick="ouvrirDetailDette()">🔍 En savoir plus</button></div>
-    <div class="kpi" data-vk="as-depenses"><div class="kl">Total dépenses</div><div class="kv r" id="va-depenses">0 GNF</div><button class="btn bh bxs no-print" style="margin-top:6px" onclick="ouvrirDetailDepenses()">🔍 En savoir plus</button></div>
+    <div class="kpi" data-vk="as-reste"><div class="kl">Reste que vous devez à votre associé</div><div class="kv r" id="va-reste">0 GNF</div><button class="btn bh bxs no-print" style="margin-top:6px" onclick="ouvrirDetailDette()">En savoir plus</button></div>
+    <div class="kpi" data-vk="as-depenses"><div class="kl">Total dépenses</div><div class="kv r" id="va-depenses">0 GNF</div><button class="btn bh bxs no-print" style="margin-top:6px" onclick="ouvrirDetailDepenses()">En savoir plus</button></div>
   </div>
   <div class="card" data-vk="as-activites">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-      <h3 style="margin:0">📋 Vos activités</h3>
+      <h3 style="margin:0">Vos activités</h3>
       <div style="display:flex;gap:6px">
-        <button class="btn bs bsm" onclick="rAF();om('ma')" title="Enregistrer une nouvelle vente/réparation/service">➕ Nouvelle activité</button>
+        <button class="btn bs bsm" onclick="rAF();om('ma')" title="Enregistrer une nouvelle vente/réparation/service">Nouvelle activité</button>
       </div>
     </div>
     <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
@@ -633,8 +742,8 @@ tbody tr:last-child td{border-bottom:none;}
   </div>
   <div class="card" data-vk="vi-biens">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-      <h3 style="margin:0">💼 Biens & Matériels</h3>
-      <button class="btn bh bsm no-print" onclick="imprimerSection('vue-visiteur','Patrimoine de BAH Ousmane')" title="Imprimer">🖨️ Imprimer</button>
+      <h3 style="margin:0">Biens & Matériels</h3>
+      <button class="btn bh bsm no-print" onclick="imprimerSection('vue-visiteur','Patrimoine de BAH Ousmane')" title="Imprimer">Imprimer</button>
     </div>
     <div style="font-size:.74rem;color:var(--tx2);margin-bottom:8px">Biens, matériels et outils de travail propres à BAH Ousmane au sein de l'entreprise.</div>
     <div class="tw"><table>
@@ -649,7 +758,7 @@ tbody tr:last-child td{border-bottom:none;}
 
 <!-- DASHBOARD -->
 <div id="tab-dashboard" class="tab-panel active">
-  <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn bh bsm no-print" onclick="imprimerSection('tab-dashboard','Tableau de bord')" title="Imprimer le tableau de bord">🖨️ Imprimer</button></div>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn bh bsm no-print" onclick="imprimerSection('tab-dashboard','Tableau de bord')" title="Imprimer le tableau de bord">Imprimer</button></div>
   <div class="g5" style="margin-bottom:12px">
     <div class="kpi" data-vk="db-enc"><div class="kl">Encaissé</div><div class="kv g" id="k-enc">0 GNF</div><div class="ks">Payés uniquement</div></div>
     <div class="kpi" data-vk="db-ben"><div class="kl">Bénéfice Net</div><div class="kv g" id="k-ben">0 GNF</div><div class="ks">Après 20%+dépenses</div></div>
@@ -662,14 +771,14 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="kpi kpi-dash-act" data-vk="db-ven"><div class="kl">Ventes</div><div class="kv b" id="k-ven">0</div></div>
     <div class="kpi kpi-dash-act" data-vk="db-rep"><div class="kl">Rép./Services</div><div class="kv pur" id="k-rep">0</div></div>
   </div>
-  <div class="ch" style="margin:4px 0 8px"><span class="dot" style="background:var(--go)"></span>💼 Total des avoirs de l'Administrateur</div>
+  <div class="ch" style="margin:4px 0 8px"><span class="dot" style="background:var(--go)"></span>Total des avoirs de l'Administrateur</div>
   <div class="g4" style="margin-bottom:12px">
     <div class="kpi" data-vk="db-admin-capital"><div class="kl">Mon capital dans l'entreprise</div><div class="kv" id="k-admin-capital">0 GNF</div><div class="ks">Produits saisis directement + augmentations de capital, hors Stock Perso</div></div>
     <div class="kpi" data-vk="db-admin-doit"><div class="kl">Entreprise me doit en Stock perso</div><div class="kv" id="k-admin-doit">0 GNF</div><div class="ks">Valeur due au titre du Stock Perso</div></div>
     <div class="kpi" data-vk="db-admin-total"><div class="kl">Total des avoirs</div><div class="kv b" id="k-admin-total">0 GNF</div><div class="ks">Capital + Ce que l'entreprise me doit</div></div>
     <div class="kpi" data-vk="db-admin-benefice"><div class="kl">Mon bénéfice actuel dans l'entreprise</div><div class="kv g" id="k-admin-benefice">0 GNF</div><div class="ks">Affiché séparément, non inclus ci-dessus</div></div>
   </div>
-  <div class="ch" style="margin:4px 0 8px"><span class="dot" style="background:var(--go)"></span>📦 Vue d'ensemble du Stock</div>
+  <div class="ch" style="margin:4px 0 8px"><span class="dot" style="background:var(--go)"></span>Vue d'ensemble du Stock</div>
   <div class="g5" style="margin-bottom:12px">
     <div class="kpi" data-vk="db-capital-total"><div class="kl">Capital total de l'entreprise</div><div class="kv b" id="k-capital-total">0 GNF</div><div class="ks">Produits saisis directement + augmentations de capital, hors Stock Perso</div></div>
     <div class="kpi" data-vk="db-stock-valeur"><div class="kl">Valeur du Stock</div><div class="kv g" id="k-stock-valeur">0 GNF</div><div class="ks">Restant × Prix achat</div></div>
@@ -684,7 +793,7 @@ tbody tr:last-child td{border-bottom:none;}
         <button class="btn bh bsm" onclick="gt('depenses',null);rDepF();om('md')">+ Dépense</button>
         <button class="btn bt bsm" onclick="gt('perso',null);rPF();om('mp')">+ Perso</button>
         <button class="btn bo bsm" onclick="gt('commandes',null);rCF();om('mc')">+ Commande</button>
-        <button class="btn bh bsm" onclick="gt('bilan',null);calculerBilan()">📊 Bilan</button>
+        <button class="btn bh bsm" onclick="gt('bilan',null);calculerBilan()">Bilan</button>
       </div>
     </div>
     <div class="card"><div class="ch"><span class="dot" style="background:var(--go)"></span>Dernières opérations</div>
@@ -698,16 +807,12 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st" data-i18n="titre.activites">Activités</div><div class="ss" data-i18n="soustitre.activites">Ventes · Réparations · Services</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bh bsm" onclick="om('mpp')">💳 Paiement partiel</button>
-      <button class="btn bd bsm" onclick="viderActivites()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
-      <button class="btn bd bsm" onclick="viderActivitesAssocie()" title="🔒 Mot de passe requis — supprime uniquement les activités créées par l'Associé">🗑️ Vider Associé</button>
-      <button class="btn bh bsm no-print" onclick="imprimerSection('tab-activites','Activités')" title="Imprimer">🖨️</button>
+      <button class="btn bh bsm" onclick="om('mpp')">Paiement partiel</button>
+      <div class="mm no-print"><button class="btn bh bsm mm-t" onclick="toggleMM(event,this)" aria-haspopup="true" aria-expanded="false" aria-label="Plus d'actions" title="Plus d'actions">⋯</button><div class="mm-p"><button class="btn bh bsm no-print" onclick="imprimerSection('tab-activites','Activités')" title="Imprimer">Imprimer</button><button class="btn bh bsm no-print" onclick="toggleInfoTech('fm-activites',this)">En savoir plus</button><div class="mm-sep"></div><button class="btn bd bsm" onclick="viderActivites()" title="🔒 Mot de passe requis">Tout supprimer</button><button class="btn bd bsm" onclick="viderActivitesAssocie()" title="🔒 Mot de passe requis — supprime uniquement les activités créées par l'Associé">Vider Associé</button></div></div>
     </div>
   </div>
-  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-activites',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
   <div class="al ali" id="fm-activites" style="font-size:.77rem;display:none">
-    💡 <strong>Bénéfice = Montant PAYÉ − (Prix achat × Qté).</strong> Les restes à payer sont exclus du calcul.<br>
-    📋 Colonnes : Date | N° ordre | Ticket (manuel) | Type | Désignation | Panne | Prix achat×Qté | À Payer | Payé | Reste | Client | Bénéfice
+    💡 <strong>Bénéfice = Montant PAYÉ − (Prix achat × Qté).</strong> Les restes à payer sont exclus du calcul.<br>     Colonnes : Date | N° ordre | Ticket (manuel) | Type | Désignation | Panne | Prix achat×Qté | À Payer | Payé | Reste | Client | Bénéfice
   </div>
   <div class="card">
     <div class="barre-add-sticky" style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
@@ -715,7 +820,7 @@ tbody tr:last-child td{border-bottom:none;}
         <option value="">Tous</option><option value="Vente">Ventes</option><option value="Réparation">Réparations</option><option value="Service">Services</option>
       </select>
       <select id="f-auteur" onchange="rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem" title="Filtrer / masquer par auteur">
-        <option value="">Tous les auteurs</option><option value="Administrateur">👤 Administrateur seul</option><option value="Associé">🤝 Associé seul</option><option value="masquer_associe">🚫 Masquer l'Associé</option>
+        <option value="">Tous les auteurs</option><option value="Administrateur">Administrateur seul</option><option value="Associé">Associé seul</option><option value="masquer_associe">Masquer l'Associé</option>
       </select>
       <select id="f-periode-act" onchange="togglePeriodeCustom('f-periode-act');rAct()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
         <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
@@ -745,14 +850,9 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st" data-i18n="titre.stock">Stock Entreprise</div><div class="ss" data-i18n="soustitre.stock">Marchandises communes — seuil d'alerte par produit</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bh bsm" onclick="ouvrirAugmentationCapital()" title="Augmenter le capital total de l'entreprise (montant ajouté)">➕ Augmenter le capital</button>
-      <button class="btn bh bsm" onclick="ouvrirReductionCapital()" title="Réduire manuellement le capital (montant + motif)">➖ Réduire le capital</button>
-      <button class="btn bh bsm" onclick="toggleTriAZ('stock')" id="btn-az-stock" title="Trier les produits par ordre alphabétique">🔤 A-Z</button>
-      <button class="btn bd bsm" onclick="viderStock()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
-      <button class="btn bh bsm no-print" onclick="imprimerSection('tab-stock','Stock Entreprise')" title="Imprimer">🖨️</button>
+      <div class="mm no-print"><button class="btn bh bsm mm-t" onclick="toggleMM(event,this)" aria-haspopup="true" aria-expanded="false" aria-label="Plus d'actions" title="Plus d'actions">⋯</button><div class="mm-p"><button class="btn bh bsm" onclick="ouvrirAugmentationCapital()" title="Augmenter le capital total de l'entreprise (montant ajouté)">Augmenter le capital</button><button class="btn bh bsm" onclick="ouvrirReductionCapital()" title="Réduire manuellement le capital (montant + motif)">Réduire le capital</button><button class="btn bh bsm" onclick="toggleTriAZ('stock')" id="btn-az-stock" title="Trier les produits par ordre alphabétique">A-Z</button><button class="btn bh bsm no-print" onclick="imprimerSection('tab-stock','Stock Entreprise')" title="Imprimer">Imprimer</button><button class="btn bh bsm no-print" onclick="toggleInfoTech('fm-stock',this)">En savoir plus</button><div class="mm-sep"></div><button class="btn bd bsm" onclick="viderStock()" title="🔒 Mot de passe requis">Tout supprimer</button></div></div>
     </div>
   </div>
-  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-stock',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
   <div class="al ali" id="fm-stock" style="font-size:.77rem;display:none">
     📦 <strong>Stock Restant = Initial − Vendu</strong> (mis à jour automatiquement à chaque vente).<br>
     🔴 Quand Stock Restant ≤ Seuil → alerte + fiche commande fournisseur dans l'onglet <strong>Commandes</strong>.
@@ -791,11 +891,9 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st" data-i18n="titre.perso">Stock Personnel</div><div class="ss" data-i18n="soustitre.perso">Suivi comptable — vos produits sont fusionnés au Stock Entreprise</div></div>
     <div style="display:flex;gap:6px">
-      <button class="btn bh bsm" onclick="toggleTriAZ('perso')" id="btn-az-perso" title="Trier les produits par ordre alphabétique">🔤 A-Z</button>
-      <button class="btn bd bsm" onclick="viderPerso()" title="🔒 Mot de passe requis">🗑️ Vider</button>
+      <div class="mm no-print"><button class="btn bh bsm mm-t" onclick="toggleMM(event,this)" aria-haspopup="true" aria-expanded="false" aria-label="Plus d'actions" title="Plus d'actions">⋯</button><div class="mm-p"><button class="btn bh bsm" onclick="toggleTriAZ('perso')" id="btn-az-perso" title="Trier les produits par ordre alphabétique">A-Z</button><button class="btn bh bsm no-print" onclick="toggleInfoTech('fm-perso',this)">En savoir plus</button><div class="mm-sep"></div><button class="btn bd bsm" onclick="viderPerso()" title="🔒 Mot de passe requis">Vider</button></div></div>
     </div>
   </div>
-  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-perso',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
   <div class="al alw" id="fm-perso" style="font-size:.77rem;display:none">
     🔗 <strong>Ce n'est plus un stock séparé.</strong> Chaque produit ajouté ici est automatiquement fusionné dans le Stock Entreprise (stock physique unique) — cette page ne sert qu'à suivre ce que l'entreprise vous doit.<br>
     🏷️ <strong>Créance = (Prix achat × Qté) × 1.15</strong> — L'entreprise vous doit le prix de revient + 15%.<br>
@@ -831,8 +929,8 @@ tbody tr:last-child td{border-bottom:none;}
 
 <!-- BILAN -->
 <div id="tab-bilan" class="tab-panel">
-  <div class="sh"><div><div class="st" data-i18n="titre.bilan">Bilan & Répartition</div></div><button class="btn bg bsm" onclick="calculerBilan()" data-i18n="btn.calculer">🔄 Calculer</button></div>
-  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-bilan-note',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
+  <div class="sh"><div><div class="st" data-i18n="titre.bilan">Bilan & Répartition</div></div><button class="btn bg bsm" onclick="calculerBilan()" data-i18n="btn.calculer">Calculer</button></div>
+  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-bilan-note',this)" style="margin-bottom:8px">En savoir plus</button>
   <div class="al als" id="fm-bilan-note" style="font-size:.77rem;display:none">✅ Bénéfice calculé uniquement sur montants <strong>ENCAISSÉS (PAYÉS)</strong>. Aucune saisie manuelle.</div>
   <!-- Tableau des formules : masqué par défaut à l'écran (réglage
        Paramètres > Bilan > "Afficher le tableau des formules"), mais
@@ -840,9 +938,9 @@ tbody tr:last-child td{border-bottom:none;}
        calculerBilan()...) ne dépendent en rien de cet affichage et
        continuent normalement, que ce bloc soit visible ou non. Voir
        appliquerVisibiliteFormulesBilan(). -->
-  <button class="btn bh bxs no-print" onclick="toggleInfoTech('card-formules-bilan',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
+  <button class="btn bh bxs no-print" onclick="toggleInfoTech('card-formules-bilan',this)" style="margin-bottom:8px">En savoir plus</button>
   <div class="card" id="card-formules-bilan" style="border-color:rgba(79,142,247,.25);margin-bottom:12px">
-    <div class="ch"><span class="dot" style="background:var(--ac2)"></span>📐 Formules de calcul</div>
+    <div class="ch"><span class="dot" style="background:var(--ac2)"></span>Formules de calcul</div>
     <div class="g3">
       <div style="background:var(--bg4);border-radius:8px;padding:11px">
         <div style="font-size:.7rem;color:var(--ac);font-weight:700;margin-bottom:6px;text-transform:uppercase">① Bénéfice Brut</div>
@@ -878,17 +976,16 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st" data-i18n="titre.associe">Associé & Dettes</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bs bsm" onclick="om('mpaym')">💳 Paiement</button>
-      <button class="btn bd bsm" onclick="viderDettes()" title="🔒 Mot de passe requis">🗑️ Dettes</button>
-      <button class="btn bd bsm" onclick="viderPaiements()" title="🔒 Mot de passe requis">🗑️ Paiements</button>
+      <button class="btn bs bsm" onclick="om('mpaym')">Paiement</button>
+      <button class="btn bd bsm" onclick="viderDettes()" title="🔒 Mot de passe requis">Dettes</button>
+      <button class="btn bd bsm" onclick="viderPaiements()" title="🔒 Mot de passe requis">Paiements</button>
     </div>
   </div>
   <div id="al-clot" class="al ald" style="display:none">🔒 Anomalie détectée : les dettes sont restées verrouillées d'une ancienne clôture. <button class="btn bh bxs" onclick="deverrouillerDettes()" style="margin-left:6px">🔓 Déverrouiller</button></div>
-  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-associe',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
+  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-associe',this)" style="margin-bottom:8px">En savoir plus</button>
   <div class="al ali" id="fm-associe" style="font-size:.77rem;display:none">
     🤝 <strong>Dettes actives</strong> = cette période (modifiables) | <strong>Cumulé clôtures</strong> = périodes précédentes (verrouillées).<br>
-    💳 <strong>Paiement type :</strong> Dette directe de l'associé OU Dette de sa femme uniquement.<br>
-    📊 Dans le bilan : Dettes nettes = Total dettes − Total paiements reçus.
+    💳 <strong>Paiement type :</strong> Dette directe de l'associé OU Dette de sa femme uniquement.<br>     Dans le bilan : Dettes nettes = Total dettes − Total paiements reçus.
   </div>
   <div class="g2 g2-dettes">
     <div class="card">
@@ -903,7 +1000,7 @@ tbody tr:last-child td{border-bottom:none;}
           <span style="color:var(--tx3);font-size:.68rem">→</span>
           <input type="date" id="f-periode-dettes-end" onchange="rDettes()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.7rem;flex:1">
         </span>
-        <button class="btn bd bsm" id="btn-add-dette" onclick="rDF();om('mdet')" data-i18n="btn.ajouter.dette">➕ Ajouter dette</button>
+        <button class="btn bd bsm" id="btn-add-dette" onclick="rDF();om('mdet')" data-i18n="btn.ajouter.dette">Ajouter dette</button>
       </div>
       <div class="tw"><table>
         <thead><tr><th>#</th><th>Date</th><th>Description</th><th>Type</th><th>Montant</th><th>Actions</th></tr></thead>
@@ -944,10 +1041,8 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- DÉPENSES -->
 <div id="tab-depenses" class="tab-panel">
   <div class="sh"><div><div class="st" data-i18n="titre.depenses">Dépenses</div></div><div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bd bsm" onclick="viderDep()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
-      <button class="btn bh bsm no-print" onclick="imprimerSection('tab-depenses','Dépenses')" title="Imprimer">🖨️</button>
+      <div class="mm no-print"><button class="btn bh bsm mm-t" onclick="toggleMM(event,this)" aria-haspopup="true" aria-expanded="false" aria-label="Plus d'actions" title="Plus d'actions">⋯</button><div class="mm-p"><button class="btn bh bsm no-print" onclick="imprimerSection('tab-depenses','Dépenses')" title="Imprimer">Imprimer</button><button class="btn bh bsm no-print" onclick="toggleInfoTech('fm-depenses',this)">En savoir plus</button><div class="mm-sep"></div><button class="btn bd bsm" onclick="viderDep()" title="🔒 Mot de passe requis">Tout supprimer</button></div></div>
     </div></div>
-  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-depenses',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
   <div class="al ali" id="fm-depenses" style="font-size:.77rem;display:none">
     💸 <strong>Total = Quantité × Prix unitaire</strong> (calculé automatiquement).<br>
     Les dépenses sont déduites du bénéfice net <strong>après</strong> le 20% de réinvestissement.
@@ -980,12 +1075,9 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="sh">
     <div><div class="st" data-i18n="titre.commandes">Commandes</div><div class="ss" data-i18n="soustitre.commandes">Clients + Alertes stock faible → Fournisseurs</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bh bsm" onclick="toggleTriAZ('cmd')" id="btn-az-cmd" title="Trier les commandes par nom de client, par ordre alphabétique">🔤 A-Z</button>
-      <button class="btn bg bsm" onclick="genererCmdFournisseurAuto()" title="Génère (ou met à jour) automatiquement une commande fournisseur à partir des produits en stock faible, groupée par catégorie, modifiable avant envoi">📦 Générer commande fournisseur</button>
-      <button class="btn bd bsm" onclick="viderCommandes()" title="🔒 Mot de passe requis">🗑️ Tout supprimer</button>
+      <div class="mm no-print"><button class="btn bh bsm mm-t" onclick="toggleMM(event,this)" aria-haspopup="true" aria-expanded="false" aria-label="Plus d'actions" title="Plus d'actions">⋯</button><div class="mm-p"><button class="btn bg bsm" onclick="genererCmdFournisseurAuto()" title="Génère (ou met à jour) automatiquement une commande fournisseur à partir des produits en stock faible, groupée par catégorie, modifiable avant envoi">Générer commande fournisseur</button><button class="btn bh bsm" onclick="toggleTriAZ('cmd')" id="btn-az-cmd" title="Trier les commandes par nom de client, par ordre alphabétique">A-Z</button><button class="btn bh bsm no-print" onclick="toggleInfoTech('fm-commandes',this)">En savoir plus</button><div class="mm-sep"></div><button class="btn bd bsm" onclick="viderCommandes()" title="🔒 Mot de passe requis">Tout supprimer</button></div></div>
     </div>
   </div>
-  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-commandes',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
   <div class="al alw" id="fm-commandes" style="font-size:.77rem;display:none">
     📑 <strong>Commandes clients</strong> avec numéro de téléphone — appel direct depuis l'app quand la commande est prête.<br>
     🔴 <strong>Alertes stock faible</strong> ci-dessous : fiches commande fournisseur générées automatiquement.
@@ -1030,10 +1122,9 @@ tbody tr:last-child td{border-bottom:none;}
         <span style="color:var(--tx3);font-size:.7rem">→</span>
         <input type="date" id="f-periode-histo-end" onchange="rHisto()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
       </span>
-      <button class="btn bd bsm" onclick="vHisto()" title="🔒 Mot de passe requis">🗑️ Vider</button>
+      <div class="mm no-print"><button class="btn bh bsm mm-t" onclick="toggleMM(event,this)" aria-haspopup="true" aria-expanded="false" aria-label="Plus d'actions" title="Plus d'actions">⋯</button><div class="mm-p"><button class="btn bh bsm no-print" onclick="toggleInfoTech('fm-historique',this)">En savoir plus</button><div class="mm-sep"></div><button class="btn bd bsm" onclick="vHisto()" title="🔒 Mot de passe requis">Vider</button></div></div>
     </div>
   </div>
-  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-historique',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
   <div class="al ali" id="fm-historique" style="font-size:.77rem;display:none">
     📋 <strong>Journal automatique</strong> : chaque opération (activité, stock, dépense, paiement, dette, commande) y est enregistrée avec sa date, son heure et son montant, dès qu'elle est effectuée.
   </div>
@@ -1044,7 +1135,7 @@ tbody tr:last-child td{border-bottom:none;}
 
 <!-- RAPPORT DES ACTIVITÉS -->
 <div id="tab-rapport" class="tab-panel">
-  <div class="sh"><div class="st" data-i18n="titre.rapport">📈 Rapport des activités</div>
+  <div class="sh"><div class="st" data-i18n="titre.rapport">Rapport des activités</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       <!-- AJOUT (21-09-2026) : sélection de la période à afficher — la
            période active (comportement inchangé, D.activites en direct)
@@ -1059,8 +1150,8 @@ tbody tr:last-child td{border-bottom:none;}
       <input type="text" id="f-search-rapport" placeholder="🔍 Produit, client, montant, statut..." oninput="deb('rapport',rRapport)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;min-width:160px;outline:none">
       <select id="f-rapport-auteur" onchange="rRapport()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
         <option value="">Tous les auteurs</option>
-        <option value="Administrateur">👔 Administrateur uniquement</option>
-        <option value="Associé">👤 Associé uniquement</option>
+        <option value="Administrateur">Administrateur uniquement</option>
+        <option value="Associé">Associé uniquement</option>
       </select>
       <select id="f-periode-rapport" onchange="togglePeriodeCustom('f-periode-rapport');rRapport()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
         <option value="">Toute période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
@@ -1070,7 +1161,7 @@ tbody tr:last-child td{border-bottom:none;}
         <span style="color:var(--tx3);font-size:.7rem">→</span>
         <input type="date" id="f-periode-rapport-end" onchange="rRapport()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
       </span>
-      <button class="btn bh bsm no-print" onclick="imprimerSection('tab-rapport','Rapport des activités')" title="Imprimer ce rapport">🖨️ Imprimer</button>
+      <button class="btn bh bsm no-print" onclick="imprimerSection('tab-rapport','Rapport des activités')" title="Imprimer ce rapport">Imprimer</button>
     </div>
   </div>
   <div id="rapport-synthese"></div>
@@ -1094,10 +1185,10 @@ tbody tr:last-child td{border-bottom:none;}
 
 <!-- PATRIMOINE (biens et matériels de l'Administrateur, visibles par le compte Visiteur) -->
 <div id="tab-patrimoine" class="tab-panel">
-  <div class="ch"><span class="dot" style="background:var(--go)"></span>🏛️ Patrimoine — Biens &amp; Matériels</div>
-  <div class="al ali" style="font-size:.77rem">📋 Enregistre uniquement les biens réellement existants. Cette liste est visible par le compte Visiteur (avec le total des avoirs).</div>
+  <div class="ch"><span class="dot" style="background:var(--go)"></span>Patrimoine — Biens &amp; Matériels</div>
+  <div class="al ali" style="font-size:.77rem">Enregistre uniquement les biens réellement existants. Cette liste est visible par le compte Visiteur (avec le total des avoirs).</div>
   <div class="card" style="margin-bottom:14px">
-    <div style="font-weight:700;margin-bottom:10px">➕ Ajouter un bien</div>
+    <div style="font-weight:700;margin-bottom:10px">Ajouter un bien</div>
     <div class="fr">
       <div class="fg"><label>Nom *</label><input type="text" id="pt-nom" placeholder="Ex: Ordinateur portable" onblur="capitaliserChamp('pt-nom')"></div>
       <div class="fg"><label>Quantité</label><input type="number" id="pt-qte" value="1" min="1"></div>
@@ -1123,7 +1214,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="card">
     <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap;justify-content:space-between">
       <input type="text" id="f-search-patrimoine" placeholder="🔍 Rechercher un bien..." oninput="deb('patrimoine',rPatrimoine)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
-      <button class="btn bh bsm" onclick="imprimerSection('tab-patrimoine','Patrimoine — Biens & Matériels')">🖨️ Imprimer</button>
+      <button class="btn bh bsm" onclick="imprimerSection('tab-patrimoine','Patrimoine — Biens & Matériels')">Imprimer</button>
     </div>
     <div class="tw"><table>
       <thead><tr><th>Nom</th><th>Qté</th><th>Date</th><th>Actions</th></tr></thead>
@@ -1136,10 +1227,9 @@ tbody tr:last-child td{border-bottom:none;}
 <div id="tab-corbeille" class="tab-panel">
   <div class="sh">
     <div><div class="st" data-i18n="titre.corbeille">Corbeille</div><div class="ss" data-i18n="soustitre.corbeille">Éléments supprimés — récupérables</div></div>
-    <button class="btn bd bsm" onclick="vCorbeille()" title="🔒 Mot de passe requis">❌ Vider définitivement</button>
+    <div class="mm no-print"><button class="btn bh bsm mm-t" onclick="toggleMM(event,this)" aria-haspopup="true" aria-expanded="false" aria-label="Plus d'actions" title="Plus d'actions">⋯</button><div class="mm-p"><button class="btn bh bsm no-print" onclick="toggleInfoTech('fm-corbeille',this)">En savoir plus</button><div class="mm-sep"></div><button class="btn bd bsm" onclick="vCorbeille()" title="🔒 Mot de passe requis">❌ Vider définitivement</button></div></div>
   </div>
-  <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-corbeille',this)" style="margin-bottom:8px">🔍 En savoir plus</button>
-  <div class="al alw" id="fm-corbeille" style="font-size:.77rem;display:none">♻️ Restaurez ou supprimez définitivement. Les éléments supprimés de la corbeille sont irrécupérables.</div>
+  <div class="al alw" id="fm-corbeille" style="font-size:.77rem;display:none">Restaurez ou supprimez définitivement. Les éléments supprimés de la corbeille sont irrécupérables.</div>
   <div class="card">
     <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
       <input type="text" id="f-search-corbeille" placeholder="🔍 Rechercher..." oninput="deb('corbeille',rCorbeille)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
@@ -1154,7 +1244,7 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- ACTIVITÉ -->
 <div class="ov" id="ma">
   <div class="modal">
-    <div class="mhd"><span id="ma-t">📋 Nouvelle Activité</span><button class="mcl" onclick="cm('ma');rAF()">✕</button></div>
+    <div class="mhd"><span id="ma-t">Nouvelle Activité</span><button class="mcl" onclick="cm('ma');rAF()">✕</button></div>
     <input type="hidden" id="a-eid">
     <div class="fr">
       <div class="fg"><label>Date *</label><input type="date" id="a-date"></div>
@@ -1195,7 +1285,7 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- PAIEMENT PARTIEL -->
 <div class="ov" id="mpp">
   <div class="modal">
-    <div class="mhd">💳 Paiement partiel<button class="mcl" onclick="cm('mpp')">✕</button></div>
+    <div class="mhd">Paiement partiel<button class="mcl" onclick="cm('mpp')">✕</button></div>
     <div class="fr"><div class="fg"><label>Activité avec solde restant</label><select id="pp-act"><option value="">-- Choisir --</option></select></div></div>
     <div id="pp-inf" style="background:var(--bg4);border-radius:7px;padding:8px;margin-bottom:9px;font-size:.79rem;display:none"></div>
     <div class="fr">
@@ -1212,7 +1302,7 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- AJOUTER QUANTITÉ (Stock Ent. / Stock Perso) -->
 <div class="ov" id="maq">
   <div class="modal" style="max-width:420px">
-    <div class="mhd">➕ Ajouter une quantité<button class="mcl" onclick="cm('maq')">✕</button></div>
+    <div class="mhd">Ajouter une quantité<button class="mcl" onclick="cm('maq')">✕</button></div>
     <input type="hidden" id="aq-id"><input type="hidden" id="aq-type">
     <div id="aq-inf" style="background:var(--bg4);border-radius:7px;padding:8px;margin-bottom:9px;font-size:.79rem"></div>
     <div class="fr"><div class="fg"><label>Quantité à ajouter *</label><input type="number" id="aq-qte" placeholder="0" min="1"></div></div>
@@ -1227,9 +1317,9 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- AFFICHAGE — taille du texte, thème, langue (accessible à tous les rôles, y compris avant connexion) -->
 <div class="ov" id="maffichage">
   <div class="modal" style="max-width:460px">
-    <div class="mhd"><span data-i18n="affichage.titre">🎨 Affichage</span><button class="mcl" onclick="cm('maffichage')">✕</button></div>
+    <div class="mhd"><span data-i18n="affichage.titre">Affichage</span><button class="mcl" onclick="cm('maffichage')">✕</button></div>
 
-    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 10px" data-i18n="affichage.taille.titre">🔠 Taille du texte</div>
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 10px" data-i18n="affichage.taille.titre">Taille du texte</div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
       <button type="button" class="btn bh bsm" onclick="changerTaillePolice(-10)" style="min-width:42px" aria-label="Réduire">−</button>
       <input type="range" id="rg-taille-police" min="80" max="150" step="5" value="100" oninput="appliquerTaillePolice(parseInt(this.value,10))" style="flex:1;accent-color:var(--ac)">
@@ -1244,7 +1334,7 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
 
     <hr class="sep">
-    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 10px" data-i18n="affichage.onglets.titre">📑 Taille des onglets</div>
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 10px" data-i18n="affichage.onglets.titre">Taille des onglets</div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
       <button type="button" class="btn bh bsm" onclick="changerTailleOnglets(-10)" style="min-width:42px" aria-label="Réduire les onglets">−</button>
       <input type="range" id="rg-taille-onglets" min="80" max="140" step="5" value="100" oninput="appliquerTailleOnglets(parseInt(this.value,10))" style="flex:1;accent-color:var(--ac)">
@@ -1256,12 +1346,12 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
 
     <hr class="sep">
-    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 10px" data-i18n="affichage.theme.titre">🎨 Thème</div>
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 10px" data-i18n="affichage.theme.titre">Thème</div>
     <div id="theme-boutons" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px"></div>
 
     <div id="bloc-langue" style="display:none">
     <hr class="sep">
-    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 10px" data-i18n="affichage.langue.titre">🌐 Langue / Language</div>
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 10px" data-i18n="affichage.langue.titre">Langue / Language</div>
     <div id="langue-boutons" style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px"></div>
     <div style="font-size:.68rem;color:var(--tx3);margin-top:8px" data-i18n="affichage.langue.note">ℹ️ La traduction s'applique à l'interface (menus, boutons, titres). Les données que vous saisissez (noms, descriptions...) ne sont jamais traduites.</div>
     </div>
@@ -1271,9 +1361,9 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- PARAMÈTRES / CONTRÔLE TOTAL -->
 <div class="ov" id="mparams">
   <div class="modal" style="max-width:520px">
-    <div class="mhd">⚙️ Paramètres — Contrôle total<button class="mcl" onclick="cm('mparams')">✕</button></div>
+    <div class="mhd">Paramètres — Contrôle total<button class="mcl" onclick="cm('mparams')">✕</button></div>
 
-    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">💰 Pourcentages financiers</div>
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">Pourcentages financiers</div>
     <div class="fr">
       <div class="fg"><label>% Réinvestissement (sur bénéfice brut)</label><input type="number" id="pr-reinvest" min="0" max="100" step="0.1"></div>
     </div>
@@ -1283,20 +1373,20 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="al alw" style="font-size:.74rem">⚠️ Modifier ces valeurs change immédiatement tous les calculs de l'app (Bilan, tableau de bord, nouveaux produits Stock Perso). Les articles déjà enregistrés gardent leur ancien pourcentage tant qu'ils ne sont pas modifiés.</div>
 
     <hr class="sep">
-    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">🖥️ Gestion de l'affichage</div>
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">Gestion de l'affichage</div>
     <div style="font-size:.72rem;color:var(--tx2);margin-bottom:10px">Décochez un élément pour le masquer à l'écran uniquement — ses données et calculs restent toujours intacts, et il peut être réaffiché à tout moment ici. Rien n'est jamais supprimé.</div>
 
-    <div style="font-size:.75rem;color:var(--tx);font-weight:700;margin:10px 0 6px">🤝 A. Compte Associé — éléments visibles pour l'Associé</div>
+    <div style="font-size:.75rem;color:var(--tx);font-weight:700;margin:10px 0 6px">A. Compte Associé — éléments visibles pour l'Associé</div>
     <div id="vis-associe-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
 
     <div style="font-size:.75rem;color:var(--tx);font-weight:700;margin:10px 0 6px">👁️ A. Compte Visiteur — éléments visibles pour le Visiteur</div>
     <div id="vis-visiteur-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:4px"></div>
     <div style="font-size:.68rem;color:var(--tx3);margin-bottom:8px">ℹ️ Ce réglage s'applique dès que l'appareil du Visiteur reçoit ces paramètres (ex : même appareil que l'Administrateur, ou synchronisation ultérieure). Sur un appareil Visiteur totalement séparé et hors ligne, tous les éléments restent visibles par défaut.</div>
 
-    <div style="font-size:.75rem;color:var(--tx);font-weight:700;margin:10px 0 6px">📊 B. Tableau de bord — éléments visibles à tous les niveaux</div>
+    <div style="font-size:.75rem;color:var(--tx);font-weight:700;margin:10px 0 6px">B. Tableau de bord — éléments visibles à tous les niveaux</div>
     <div id="vis-dashboard-list" style="display:grid;grid-template-columns:1fr 1fr;gap:5px 10px;margin-bottom:8px"></div>
 
-    <div style="font-size:.75rem;color:var(--tx);font-weight:700;margin:10px 0 6px">📐 C. Bilan</div>
+    <div style="font-size:.75rem;color:var(--tx);font-weight:700;margin:10px 0 6px">C. Bilan</div>
     <div style="display:flex;align-items:center;gap:7px;margin:4px 0 4px">
       <input type="checkbox" id="pr-bilan-formules-visible" style="width:16px;height:16px">
       <label for="pr-bilan-formules-visible" style="font-size:.8rem;margin:0">👁️ Afficher le tableau des formules de calcul dans l'onglet Bilan</label>
@@ -1304,14 +1394,14 @@ tbody tr:last-child td{border-bottom:none;}
     <div style="font-size:.72rem;color:var(--tx2);margin-bottom:9px">Décoché par défaut : ce tableau est masqué à l'écran, mais les calculs et résultats du Bilan restent intacts — réactivable à tout moment ici.</div>
 
     <hr class="sep">
-    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">📲 Fournisseur WhatsApp</div>
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">Fournisseur WhatsApp</div>
     <div class="fr">
       <div class="fg"><label>Numéro WhatsApp fournisseur (avec indicatif, ex: 224620000000)</label><input type="text" id="pr-fourn" placeholder="224620000000"></div>
     </div>
-    <div style="font-size:.74rem;color:var(--tx2);margin-bottom:10px">Si renseigné, "📲 Copier pour fournisseur" enverra directement à ce numéro au lieu d'ouvrir le sélecteur de contact.</div>
+    <div style="font-size:.74rem;color:var(--tx2);margin-bottom:10px">Si renseigné, "Copier pour fournisseur" enverra directement à ce numéro au lieu d'ouvrir le sélecteur de contact.</div>
 
     <hr class="sep">
-    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">🔐 Récupération de mot de passe</div>
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">Récupération de mot de passe</div>
     <div class="fr">
       <div class="fg"><label>Téléphone de récupération</label><input type="text" id="pr-recup-tel" placeholder="620000000"></div>
       <div class="fg"><label>E-mail de récupération</label><input type="email" id="pr-recup-email" placeholder="admin@exemple.com"></div>
@@ -1331,7 +1421,7 @@ tbody tr:last-child td{border-bottom:none;}
       <label for="pr-visiteur-verrou" style="font-size:.8rem;margin:0">🔒 Verrouiller l'accès Visiteur</label>
     </div>
     <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:9px">
-      <button class="btn bh bsm" onclick="ouvrirPatrimoine()">💼 Gérer le Patrimoine (biens & matériels)</button>
+      <button class="btn bh bsm" onclick="ouvrirPatrimoine()">Gérer le Patrimoine (biens & matériels)</button>
     </div>
     <div style="font-size:.72rem;color:var(--tx2);margin-bottom:9px">Le code et le verrouillage sont enregistrés avec le reste des paramètres ci-dessous (bouton "✓ Enregistrer").</div>
 
@@ -1346,27 +1436,27 @@ tbody tr:last-child td{border-bottom:none;}
       <button class="btn bh bsm" onclick="ouvrirAPropos()">ℹ️ À propos / Dernière mise à jour</button>
     </div>
 
-    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">🗂️ Données</div>
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">Données</div>
     <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">
-      <button class="btn bh bsm" onclick="exportData()">💾 Export JSON</button>
-      <button class="btn bh bsm" onclick="importData()">📂 Import JSON</button>
-      <button class="btn bh bsm" onclick="exportExcel()">📊 Export Excel</button>
-      <button class="btn bh bsm" onclick="importExcel()" title="Réintégrer les données depuis un fichier Excel exporté par l'application">📥 Import Excel</button>
-      <button class="btn bg bsm" onclick="saveCloud()">🔗 Lien partage</button>
-      <button class="btn bg bsm" onclick="testSupabaseConnection()">🔌 Test Cloud</button>
+      <button class="btn bh bsm" onclick="exportData()">Export JSON</button>
+      <button class="btn bh bsm" onclick="importData()">Import JSON</button>
+      <button class="btn bh bsm" onclick="exportExcel()">Export Excel</button>
+      <button class="btn bh bsm" onclick="importExcel()" title="Réintégrer les données depuis un fichier Excel exporté par l'application">Import Excel</button>
+      <button class="btn bg bsm" onclick="saveCloud()">Lien partage</button>
+      <button class="btn bg bsm" onclick="testSupabaseConnection()">Test Cloud</button>
     </div>
     <div id="last-import-undo-zone" style="display:none;margin:-6px 0 14px"></div>
 
-    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">🔑 Compte</div>
+    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">Compte</div>
     <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">
-      <button class="btn bh bsm" onclick="cm('mparams');showChangerPass()">🔑 Changer mot de passe</button>
-      <button class="btn bh bsm" onclick="doLogout()">🚪 Déconnexion</button>
+      <button class="btn bh bsm" onclick="cm('mparams');showChangerPass()">Changer mot de passe</button>
+      <button class="btn bh bsm" onclick="doLogout()">Déconnexion</button>
     </div>
 
     <div style="font-size:.78rem;color:var(--re);font-weight:700;text-transform:uppercase;margin:4px 0 8px">⚠️ Zone à risque</div>
     <div style="display:flex;gap:7px;flex-wrap:wrap">
-      <button class="btn bd bsm" onclick="cloturer()">🔄 Clôturer la période</button>
-      <button class="btn bd bsm" onclick="viderTout()">🗑️ Tout supprimer</button>
+      <button class="btn bd bsm" onclick="cloturer()">Clôturer la période</button>
+      <button class="btn bd bsm" onclick="viderTout()">Tout supprimer</button>
     </div>
   </div>
 </div>
@@ -1416,7 +1506,7 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- STOCK -->
 <div class="ov" id="ms">
   <div class="modal">
-    <div class="mhd"><span id="ms-t">📦 Entrée Stock</span><button class="mcl" onclick="cm('ms');rSF()">✕</button></div>
+    <div class="mhd"><span id="ms-t">Entrée Stock</span><button class="mcl" onclick="cm('ms');rSF()">✕</button></div>
     <input type="hidden" id="s-eid">
     <div class="fr">
       <div class="fg"><label>Nom produit *</label><input type="text" id="s-nom" placeholder="Ex: Riz 25kg" list="dl-prod" oninput="autoPS()" onblur="capitaliserChamp('s-nom');autoPS()"></div>
@@ -1444,7 +1534,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="fr">
       <div class="fg"><label>Date</label><input type="date" id="s-date"></div>
     </div>
-    <div class="al ali" style="font-size:.75rem">⚙️ Seuil : alerte déclenchée quand stock restant ≤ cette valeur. Ex: 3 → alerte si restant ≤ 3.</div>
+    <div class="al ali" style="font-size:.75rem">Seuil : alerte déclenchée quand stock restant ≤ cette valeur. Ex: 3 → alerte si restant ≤ 3.</div>
     <div class="mft">
       <button class="btn bh" onclick="cm('ms');rSF()">Annuler</button>
       <button class="btn bp js-tap-fast" id="btn-ss" onclick="enrStock()">✓ Enregistrer</button>
@@ -1455,7 +1545,7 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- AUGMENTATION DU CAPITAL TOTAL DE L'ENTREPRISE (Stock Entreprise, compte Administrateur) -->
 <div class="ov" id="mca">
   <div class="modal">
-    <div class="mhd"><span>➕ Augmenter le capital total de l'entreprise</span><button class="mcl" onclick="cm('mca')">✕</button></div>
+    <div class="mhd"><span>Augmenter le capital total de l'entreprise</span><button class="mcl" onclick="cm('mca')">✕</button></div>
     <div class="al ali" style="font-size:.75rem">
       Cette opération ajoute un montant au capital total de l'entreprise (partagé 50/50 entre BAH Ousmane et l'Associé). Elle ne modifie ni le stock, ni les ventes, ni les dépenses, ni les dettes, ni le Stock Perso. Chaque augmentation est conservée dans l'historique.
     </div>
@@ -1482,7 +1572,7 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- RÉDUCTION MANUELLE DU CAPITAL (Stock Entreprise, compte Administrateur) -->
 <div class="ov" id="mcr">
   <div class="modal">
-    <div class="mhd"><span>➖ Réduire le capital</span><button class="mcl" onclick="cm('mcr')">✕</button></div>
+    <div class="mhd"><span>Réduire le capital</span><button class="mcl" onclick="cm('mcr')">✕</button></div>
     <div class="al ali" style="font-size:.75rem">
       Cette opération réduit uniquement le capital affiché. Elle ne modifie ni le stock, ni les ventes, ni les dépenses, ni les dettes. Le capital ne peut jamais devenir négatif.
     </div>
@@ -1506,7 +1596,7 @@ tbody tr:last-child td{border-bottom:none;}
 
 <div class="ov" id="mp">
   <div class="modal">
-    <div class="mhd"><span id="mp-t">🏷️ Produit Personnel</span><button class="mcl" onclick="cm('mp');rPF()">✕</button></div>
+    <div class="mhd"><span id="mp-t">Produit Personnel</span><button class="mcl" onclick="cm('mp');rPF()">✕</button></div>
     <input type="hidden" id="p-eid">
     <div class="al alw" style="font-size:.77rem">Créance = (Prix achat × Qté) × 1.15 — Prix revient + 15%</div>
     <div class="fr">
@@ -1536,7 +1626,7 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- DETTE -->
 <div class="ov" id="mdet">
   <div class="modal">
-    <div class="mhd"><span id="mdet-t">➕ Ajouter une dette</span><button class="mcl" onclick="cm('mdet');rDF()">✕</button></div>
+    <div class="mhd"><span id="mdet-t">Ajouter une dette</span><button class="mcl" onclick="cm('mdet');rDF()">✕</button></div>
     <input type="hidden" id="det-eid">
     <div class="fr">
       <div class="fg"><label>Date *</label><input type="date" id="det-date"></div>
@@ -1548,7 +1638,7 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mdet');rDF()">Annuler</button>
-      <button class="btn bd js-tap-fast" id="btn-sd" onclick="enrDette()">💾 Enregistrer dette</button>
+      <button class="btn bd js-tap-fast" id="btn-sd" onclick="enrDette()">Enregistrer dette</button>
     </div>
   </div>
 </div>
@@ -1556,7 +1646,7 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- PAIEMENT ASSOCIÉ -->
 <div class="ov" id="mpaym">
   <div class="modal">
-    <div class="mhd"><span id="mpaym-t">💳 Paiement Associé</span><button class="mcl" onclick="cm('mpaym');rPAF()">✕</button></div>
+    <div class="mhd"><span id="mpaym-t">Paiement Associé</span><button class="mcl" onclick="cm('mpaym');rPAF()">✕</button></div>
     <input type="hidden" id="paym-eid">
     <div class="fr">
       <div class="fg"><label>Montant reçu (GNF) *</label><input type="number" id="paym-m" placeholder="0"></div>
@@ -1581,10 +1671,10 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- DÉPENSE -->
 <div class="ov" id="md">
   <div class="modal">
-    <div class="mhd"><span id="md-t">💸 Nouvelle Dépense</span><button class="mcl" onclick="cm('md');rDepF()">✕</button></div>
+    <div class="mhd"><span id="md-t">Nouvelle Dépense</span><button class="mcl" onclick="cm('md');rDepF()">✕</button></div>
     <input type="hidden" id="dep-eid">
     <div class="fr">
-      <div class="fg"><label>Catégorie <button type="button" onclick="ouvrirGestionCategories()" style="background:none;border:none;color:var(--ac);cursor:pointer;font-size:.68rem;text-decoration:underline;padding:0;margin-left:5px" title="Ajouter, renommer ou supprimer une catégorie">🏷️ Gérer</button></label><input type="text" id="dep-cat" list="dep-cat-list" placeholder="Nouvelle ou existante..." autocomplete="off"><datalist id="dep-cat-list"></datalist></div>
+      <div class="fg"><label>Catégorie <button type="button" onclick="ouvrirGestionCategories()" style="background:none;border:none;color:var(--ac);cursor:pointer;font-size:.68rem;text-decoration:underline;padding:0;margin-left:5px" title="Ajouter, renommer ou supprimer une catégorie">Gérer</button></label><input type="text" id="dep-cat" list="dep-cat-list" placeholder="Nouvelle ou existante..." autocomplete="off"><datalist id="dep-cat-list"></datalist></div>
       <div class="fg"><label>Description *</label><input type="text" id="dep-desc" placeholder="Détail..."></div>
     </div>
     <div class="fr">
@@ -1603,7 +1693,7 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- GESTION CATÉGORIES DÉPENSES -->
 <div class="ov" id="mcat">
   <div class="modal" style="max-width:440px">
-    <div class="mhd">🏷️ Catégories de dépenses<button class="mcl" onclick="cm('mcat')">✕</button></div>
+    <div class="mhd">Catégories de dépenses<button class="mcl" onclick="cm('mcat')">✕</button></div>
     <div id="mcat-list" style="max-height:280px;overflow-y:auto;margin-bottom:12px"></div>
     <div class="fr">
       <div class="fg" style="flex:1"><label>Nouvelle catégorie</label><input type="text" id="mcat-new" placeholder="Nom de la catégorie" onkeydown="if(event.key==='Enter')ajouterCategorieDep()"></div>
@@ -1618,7 +1708,7 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- COMMANDE -->
 <div class="ov" id="mc">
   <div class="modal">
-    <div class="mhd"><span id="mc-t">📑 Nouvelle Commande</span><button class="mcl" onclick="cm('mc');rCF()">✕</button></div>
+    <div class="mhd"><span id="mc-t">Nouvelle Commande</span><button class="mcl" onclick="cm('mc');rCF()">✕</button></div>
     <input type="hidden" id="c-eid">
     <div class="fr">
       <div class="fg"><label>Date *</label><input type="date" id="c-date"></div>
@@ -1657,7 +1747,7 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- DÉTAIL "RESTE QUE VOUS DEVEZ" — Compte Associé -->
 <div class="ov" id="m-detail-dette">
   <div class="modal" style="max-width:600px">
-    <div class="mhd">🔍 Détail de votre situation avec l'Administrateur<button class="mcl" onclick="cm('m-detail-dette')">✕</button></div>
+    <div class="mhd">Détail de votre situation avec l'Administrateur<button class="mcl" onclick="cm('m-detail-dette')">✕</button></div>
     <div id="dd-resume" style="background:var(--bg4);border-radius:9px;padding:11px;margin-bottom:12px;font-size:.85rem"></div>
     <div id="dd-corps" style="max-height:50vh;overflow-y:auto"></div>
     <div class="mft">
@@ -1669,7 +1759,7 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- DÉTAIL "TOTAL DÉPENSES" — Compte Associé -->
 <div class="ov" id="m-detail-depenses">
   <div class="modal" style="max-width:600px">
-    <div class="mhd">🔍 Détail des dépenses<button class="mcl" onclick="cm('m-detail-depenses')">✕</button></div>
+    <div class="mhd">Détail des dépenses<button class="mcl" onclick="cm('m-detail-depenses')">✕</button></div>
     <div id="ddp-resume" style="background:var(--bg4);border-radius:9px;padding:11px;margin-bottom:12px;font-size:.85rem"></div>
     <div id="ddp-corps" style="max-height:50vh;overflow-y:auto"></div>
     <div class="mft">
@@ -1680,7 +1770,7 @@ tbody tr:last-child td{border-bottom:none;}
 
 <div class="ov" id="m-changer-pass">
   <div class="modal" style="max-width:420px">
-    <div class="mhd">🔑 Changer le mot de passe<button class="mcl" onclick="cm('m-changer-pass')">✕</button></div>
+    <div class="mhd">Changer le mot de passe<button class="mcl" onclick="cm('m-changer-pass')">✕</button></div>
     <div class="fg" style="margin-bottom:10px"><label>Mot de passe actuel</label><div style="position:relative"><input type="password" id="cp-actuel" placeholder="Votre mot de passe actuel" style="padding-right:40px"><span onclick="togglePass('cp-actuel',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem">👁</span></div></div>
     <div class="fg" style="margin-bottom:10px"><label>Nouveau mot de passe</label><div style="position:relative"><input type="password" id="cp-nouveau" placeholder="Nouveau mot de passe (min. 4 caractères)" style="padding-right:40px"><span onclick="togglePass('cp-nouveau',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem">👁</span></div></div>
     <div class="fg" style="margin-bottom:10px"><label>Confirmer</label><div style="position:relative"><input type="password" id="cp-confirm" placeholder="Répétez le nouveau mot de passe" style="padding-right:40px"><span onclick="togglePass('cp-confirm',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem">👁</span></div></div>
@@ -1711,7 +1801,7 @@ tbody tr:last-child td{border-bottom:none;}
      N'ajoute aucune nouvelle fonctionnalité métier, ne modifie aucun
      calcul, aucune donnée, aucune formule. -->
 <div id="maj-dispo-banner" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:9999;background:var(--pr,#3b82f6);color:#fff;padding:10px 14px;font-size:.82rem;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;box-shadow:0 -2px 10px rgba(0,0,0,.25)">
-  <span>🔄 Nouvelle version de l'application disponible.</span>
+  <span>Nouvelle version de l'application disponible.</span>
   <button onclick="location.reload()" style="background:#fff;color:#111;border:none;border-radius:7px;padding:6px 12px;font-weight:600;font-family:'Outfit';cursor:pointer">Recharger maintenant</button>
 </div>
 <input type="file" id="fi" accept=".json" style="display:none" onchange="hImport(event)">
@@ -1965,8 +2055,37 @@ function toggleInfoTech(id,btn){
   if(!el) return;
   var masque = (el.style.display==='none');
   el.style.display = masque ? '' : 'none';
-  if(btn) btn.textContent = masque ? '🔽 Masquer' : '🔍 En savoir plus';
+  if(btn) btn.textContent = masque ? 'Masquer' : 'En savoir plus';
 }
+/* V0.24 — Menu ⋯ des en-têtes d'onglet (affichage seul : ouvre/ferme un panneau qui contient les boutons existants, leurs fonctions sont inchangées) */
+function closeAllMM(){
+  document.querySelectorAll('.mm.open').forEach(function(m){
+    m.classList.remove('open');
+    var t=m.querySelector('.mm-t'); if(t) t.setAttribute('aria-expanded','false');
+  });
+}
+function toggleMM(ev,btn){
+  if(ev) ev.stopPropagation();
+  var m=btn.parentNode, ouvrir=!m.classList.contains('open');
+  closeAllMM();
+  if(!ouvrir) return;
+  m.classList.add('open');
+  btn.setAttribute('aria-expanded','true');
+  var p=m.querySelector('.mm-p');
+  if(p){
+    /* aligne le panneau sur le bord droit du bouton ⋯ et le garde entièrement dans l'écran (8 px de marge) */
+    p.style.right='auto'; p.style.left='0px';
+    var mr=m.getBoundingClientRect(), w=p.offsetWidth, vw=document.documentElement.clientWidth;
+    var L=Math.min(Math.max(mr.right-w,8),vw-w-8);
+    p.style.left=(L-mr.left)+'px';
+  }
+}
+document.addEventListener('click',function(e){
+  var t=e.target;
+  if(t && t.closest && t.closest('.mm-p .btn')){ setTimeout(closeAllMM,0); return; }
+  if(!(t && t.closest && t.closest('.mm'))) closeAllMM();
+});
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeAllMM(); });
 /**
  * CORRECTIF (Paramètres — la fenêtre se ferme/revient en arrière toute
  * seule) : cause réelle identifiée — la fermeture au clic sur le fond
@@ -2130,7 +2249,7 @@ function nowHM(){ var d=new Date(); return ('0'+d.getHours()).slice(-2)+':'+('0'
 /** Combine une date (JJ-MM-AAAA, via fmtDateJour) et une heure HH:MM pour affichage dans les tableaux. */
 function fmtDateHeure(dateStr,heure){
   var dj=dateStr?fmtDateJour(dateStr):'—';
-  return heure?(dj+' <span style="color:var(--tx3);font-size:.68rem">🕒 '+heure+'</span>'):dj;
+  return heure?(dj+' <span style="color:var(--tx3);font-size:.68rem">'+heure+'</span>'):dj;
 }
 /**
  * CORRECTIF (fonction manquante — bug réel trouvé en vérifiant le code
@@ -2525,31 +2644,31 @@ var I18N={
   langues:['fr','en','ff'],
   cles:{
   fr:{
-    "affichage.titre":"🎨 Affichage",
-    "affichage.taille.titre":"🔠 Taille du texte",
+    "affichage.titre":"Affichage",
+    "affichage.taille.titre":"Taille du texte",
     "affichage.taille.exemple":"Aa — Exemple de texte",
     "affichage.taille.reinit":"↺ Taille normale (100%)",
-    "affichage.onglets.titre":"📑 Taille des onglets",
+    "affichage.onglets.titre":"Taille des onglets",
     "affichage.onglets.reinit":"↺ Onglets normaux (100%)",
-    "affichage.theme.titre":"🎨 Thème",
-    "affichage.langue.titre":"🌐 Langue / Language",
+    "affichage.theme.titre":"Thème",
+    "affichage.langue.titre":"Langue / Language",
     "affichage.langue.note":"ℹ️ La traduction s'applique à l'interface (menus, boutons, titres). Les données que vous saisissez (noms, descriptions...) ne sont jamais traduites.",
-    "btn.affichage":"🎨 Affichage",
+    "btn.affichage":"Affichage",
     "btn.ajouter":"+ Ajouter",
-    "btn.ajouter.dette":"➕ Ajouter dette",
-    "btn.calculer":"🔄 Calculer",
-    "btn.cloture":"🔄 Clôture",
+    "btn.ajouter.dette":"Ajouter dette",
+    "btn.calculer":"Calculer",
+    "btn.cloture":"Clôture",
     "btn.deconnexion.icone":"🚪",
     "btn.entree.stock":"+ Entrée stock",
-    "btn.excel":"📊 Excel",
-    "btn.export":"💾 Export",
-    "btn.import":"📂 Import",
-    "btn.monmdp":"🔑 Mon mot de passe",
+    "btn.excel":"Excel",
+    "btn.export":"Export",
+    "btn.import":"Import",
+    "btn.monmdp":"Mon mot de passe",
     "btn.nouvelle.activite":"+ Nouvelle",
     "btn.nouvelle.commande":"+ Nouvelle commande",
-    "btn.parametres":"⚙️ Paramètres",
-    "btn.tout":"🗑️ Tout",
-    "login.connecter":"🔐 Se connecter",
+    "btn.parametres":"Paramètres",
+    "btn.tout":"Tout",
+    "login.connecter":"Se connecter",
     "login.identifiant":"Identifiant",
     "login.soustitre":"Système de Gestion Intégrée",
     "nav.activites":"📋 Activités",
@@ -2576,35 +2695,35 @@ var I18N={
     "titre.depenses":"Dépenses",
     "titre.historique":"Historique",
     "titre.perso":"Stock Personnel",
-    "titre.rapport":"📈 Rapport des activités",
+    "titre.rapport":"Rapport des activités",
     "titre.stock":"Stock Entreprise"
   },
   en:{
-    "affichage.titre":"🎨 Display",
-    "affichage.taille.titre":"🔠 Text size",
+    "affichage.titre":"Display",
+    "affichage.taille.titre":"Text size",
     "affichage.taille.exemple":"Aa — Sample text",
     "affichage.taille.reinit":"↺ Normal size (100%)",
-    "affichage.onglets.titre":"📑 Tab size",
+    "affichage.onglets.titre":"Tab size",
     "affichage.onglets.reinit":"↺ Normal tabs (100%)",
-    "affichage.theme.titre":"🎨 Theme",
-    "affichage.langue.titre":"🌐 Language / Langue",
+    "affichage.theme.titre":"Theme",
+    "affichage.langue.titre":"Language / Langue",
     "affichage.langue.note":"ℹ️ Translation applies to the interface (menus, buttons, titles). Data you enter (names, descriptions...) is never translated.",
-    "btn.affichage":"🎨 Display",
+    "btn.affichage":"Display",
     "btn.ajouter":"+ Add",
-    "btn.ajouter.dette":"➕ Add debt",
-    "btn.calculer":"🔄 Calculate",
-    "btn.cloture":"🔄 Close period",
+    "btn.ajouter.dette":"Add debt",
+    "btn.calculer":"Calculate",
+    "btn.cloture":"Close period",
     "btn.deconnexion.icone":"🚪",
     "btn.entree.stock":"+ Stock entry",
-    "btn.excel":"📊 Excel",
-    "btn.export":"💾 Export",
-    "btn.import":"📂 Import",
-    "btn.monmdp":"🔑 My password",
+    "btn.excel":"Excel",
+    "btn.export":"Export",
+    "btn.import":"Import",
+    "btn.monmdp":"My password",
     "btn.nouvelle.activite":"+ New",
     "btn.nouvelle.commande":"+ New order",
-    "btn.parametres":"⚙️ Settings",
-    "btn.tout":"🗑️ Clear all",
-    "login.connecter":"🔐 Log in",
+    "btn.parametres":"Settings",
+    "btn.tout":"Clear all",
+    "login.connecter":"Log in",
     "login.identifiant":"Username",
     "login.soustitre":"Integrated Management System",
     "nav.activites":"📋 Activities",
@@ -2631,7 +2750,7 @@ var I18N={
     "titre.depenses":"Expenses",
     "titre.historique":"History",
     "titre.perso":"Personal Stock",
-    "titre.rapport":"📈 Activity report",
+    "titre.rapport":"Activity report",
     "titre.stock":"Company Stock"
   },
   ff:{
@@ -2648,7 +2767,7 @@ var I18N={
     "btn.calculer":"🔄 𞤂𞤭𞤥",
     "btn.cloture":"🔄 𞤖𞤮𞥅𞤧𞤵𞤺𞤮𞤤",
     "btn.entree.stock":"+ 𞤐𞤢𞥄𞤼𞤢𞤤 𞤶𞤢𞤱𞤣𞤭",
-    "btn.excel":"📊 Excel",
+    "btn.excel":"Excel",
     "btn.export":"💾 𞤋𞤼𞥆𞤵",
     "btn.import":"📂 𞤐𞤢𞥄𞤼",
     "btn.monmdp":"🔑 𞤑𞤮𞤲𞥆𞤺𞤮𞤤 𞤤𞤢𞥄𞤱𞤮𞤤 𞤢𞤥",
@@ -2691,23 +2810,33 @@ var I18N={
   phrases:{
   en:{
     "🎨 Affichage":"🎨 Display",
+    "Affichage":"Display",
     "🔠 Taille du texte":"🔠 Text size",
+    "Taille du texte":"Text size",
     "Aa — Exemple de texte":"Aa — Sample text",
     "↺ Taille normale (100%)":"↺ Normal size (100%)",
     "🎨 Thème":"🎨 Theme",
+    "Thème":"Theme",
     "🌐 Langue / Language":"🌐 Language / Langue",
+    "Langue / Language":"Language / Langue",
     "ℹ️ La traduction s'applique à l'interface (menus, boutons, titres). Les données que vous saisissez (noms, descriptions...) ne sont jamais traduites.":"ℹ️ Translation applies to the interface (menus, buttons, titles). Data you enter (names, descriptions...) is never translated.",
     "+ Ajouter":"+ Add",
     "➕ Ajouter dette":"➕ Add debt",
+    "Ajouter dette":"Add debt",
     "🔄 Calculer":"🔄 Calculate",
+    "Calculer":"Calculate",
     "🔄 Clôture":"🔄 Close period",
+    "Clôture":"Close period",
     "+ Entrée stock":"+ Stock entry",
     "🔑 Mon mot de passe":"🔑 My password",
+    "Mon mot de passe":"My password",
     "+ Nouvelle":"+ New",
     "+ Nouvelle commande":"+ New order",
     "⚙️ Paramètres":"⚙️ Settings",
+    "Paramètres":"Settings",
     "🗑️ Tout":"🗑️ Clear all",
     "🔐 Se connecter":"🔐 Log in",
+    "Se connecter":"Log in",
     "Identifiant":"Username",
     "Système de Gestion Intégrée":"Integrated Management System",
     "📋 Activités":"📋 Activities",
@@ -2718,9 +2847,12 @@ var I18N={
     "💸 Dépenses":"💸 Expenses",
     "📋 Historique":"📋 History",
     "🏛️ Patrimoine":"🏛️ Assets",
+    "Patrimoine":"Assets",
     "🏷️ Stock Perso":"🏷️ Personal Stock",
     "📈 Rapport":"📈 Report",
+    "Rapport":"Report",
     "📦 Stock Ent.":"📦 Company Stock",
+    "Stock Ent.":"Company Stock",
     "Ventes · Réparations · Services":"Sales · Repairs · Services",
     "Clients + Alertes stock faible → Fournisseurs":"Customers + Low-stock alerts → Suppliers",
     "Éléments supprimés — récupérables":"Deleted items — recoverable",
@@ -2735,11 +2867,15 @@ var I18N={
     "Historique":"History",
     "Stock Personnel":"Personal Stock",
     "📈 Rapport des activités":"📈 Activity report",
+    "Rapport des activités":"Activity report",
     "Stock Entreprise":"Company Stock",
     "🚪":"🚪",
     "📊 Excel":"📊 Excel",
+    "Excel":"Excel",
     "💾 Export":"💾 Export",
+    "Export":"Export",
     "📂 Import":"📂 Import",
+    "Import":"Import",
     "(disponible :":"(available:",
     "n'existe dans aucun stock (Entreprise ou Perso). Ajoutez-le d'abord dans le Stock avant de le vendre.":"does not exist in any stock (Business or Personal). Add it to Stock first before selling it.",
     "🔒 Période clôturée le":"🔒 Period closed on",
@@ -2758,7 +2894,9 @@ var I18N={
     "(⚠️ EXPIRÉ depuis":"(⚠️ EXPIRED since",
     ") — le capital ne peut jamais devenir négatif.":") — the capital can never become negative.",
     "♻️ Restaurer":"♻️ Restore",
+    "Restaurer":"Restore",
     "❌ Suppr. déf.":"❌ Delete perm.",
+    "Suppr. déf.":"Delete perm.",
     "). Détail :":"). Details:",
     "). Elle restera visible côté Associé. Détail :":"). It will remain visible on the Partner side. Details:",
     "). Elles resteront visibles côté Associé jusqu'à la prochaine tentative.":"). They will remain visible on the Partner side until the next attempt.",
@@ -3532,8 +3670,11 @@ var I18N={
     "⑥ Clôture":"⑥ Closing",
     "☁️ Données fusionnées avec le cloud (rien n'est perdu)":"☁️ Data merged with the cloud (nothing is lost)",
     "♻️ Restaurez ou supprimez définitivement. Les éléments supprimés de la corbeille sont irrécupérables.":"♻️ Restore or delete permanently. Items deleted from the trash are unrecoverable.",
+    "Restaurez ou supprimez définitivement. Les éléments supprimés de la corbeille sont irrécupérables.":"Restore or delete permanently. Items deleted from the trash are unrecoverable.",
     "⚙️ Paramètres — Contrôle total":"⚙️ Settings — Full control",
+    "Paramètres — Contrôle total":"Settings — Full control",
     "⚙️ Seuil : alerte déclenchée quand stock restant ≤ cette valeur. Ex: 3 → alerte si restant ≤ 3.":"⚙️ Threshold: alert triggered when remaining stock ≤ this value. E.g.: 3 → alert if remaining ≤ 3.",
+    "Seuil : alerte déclenchée quand stock restant ≤ cette valeur. Ex: 3 → alerte si restant ≤ 3.":"Threshold: alert triggered when remaining stock ≤ this value. E.g.: 3 → alert if remaining ≤ 3.",
     "⚠️ Ajoutez au moins un produit":"⚠️ Add at least one product",
     "⚠️ Aucun contact de récupération n'a été configuré par l'Administrateur.":"⚠️ No recovery contact has been configured by the Administrator.",
     "⚠️ Aucun numéro de téléphone saisi":"⚠️ No phone number entered",
@@ -3620,7 +3761,9 @@ var I18N={
     "⚪ Mode Visiteur (hors ligne)":"⚪ Visitor mode (offline)",
     "⚪ Vérification…":"⚪ Checking…",
     "⛔ Modification non autorisée pour ce compte.":"⛔ Edit not authorized for this account.",
+    "Modification non autorisée pour ce compte.":"Edit not authorized for this account.",
     "⛔ Modification non autorisée pour ce compte. Vous pouvez créer une nouvelle activité ou supprimer celle-ci.":"⛔ Edit not authorized for this account. You can create a new activity or delete this one.",
+    "Modification non autorisée pour ce compte. Vous pouvez créer une nouvelle activité ou supprimer celle-ci.":"Edit not authorized for this account. You can create a new activity or delete this one.",
     "✅ Accès Visiteur autorisé":"✅ Visitor access granted",
     "✅ Activité supprimée définitivement":"✅ Activity permanently deleted",
     "✅ Activités de l'Associé vidées → corbeille":"✅ Partner activities emptied → trash",
@@ -3686,12 +3829,19 @@ var I18N={
     "✅ Étape 2/3 réussie (fichier JSON exporté) — Étape 3/3 : export Excel…":"✅ Step 2/3 successful (JSON file exported) — Step 3/3: Excel export…",
     "✅ Étape 3/3 réussie (fichier Excel exporté) — les 3 vérifications ont réussi. Clôture en cours…":"✅ Step 3/3 successful (Excel file exported) — all 3 checks passed. Closing in progress…",
     "✏️ Modifier Activité":"✏️ Edit Activity",
+    "Modifier Activité":"Edit Activity",
     "✏️ Modifier Commande":"✏️ Edit Order",
+    "Modifier Commande":"Edit Order",
     "✏️ Modifier Dette":"✏️ Edit Debt",
+    "Modifier Dette":"Edit Debt",
     "✏️ Modifier Dépense":"✏️ Edit Expense",
+    "Modifier Dépense":"Edit Expense",
     "✏️ Modifier Paiement":"✏️ Edit Payment",
+    "Modifier Paiement":"Edit Payment",
     "✏️ Modifier Perso":"✏️ Edit Personal",
+    "Modifier Perso":"Edit Personal",
     "✏️ Modifier Stock":"✏️ Edit Stock",
+    "Modifier Stock":"Edit Stock",
     "✓ Ajouter":"✓ Add",
     "✓ Confirmer et exécuter":"✓ Confirm and execute",
     "✓ Confirmer la réduction":"✓ Confirm the reduction",
@@ -3759,17 +3909,29 @@ var I18N={
     "❌ Échec de l'envoi :":"❌ Sending failed:",
     "❌ Échec de la suppression —":"❌ Deletion failed —",
     "➕ Ajouter un bien":"➕ Add an asset",
+    "Ajouter un bien":"Add an asset",
     "➕ Ajouter une dette":"➕ Add a debt",
+    "Ajouter une dette":"Add a debt",
     "➕ Ajouter une quantité":"➕ Add a quantity",
+    "Ajouter une quantité":"Add a quantity",
     "➕ Augmenter le capital":"➕ Increase the capital",
+    "Augmenter le capital":"Increase the capital",
     "➕ Augmenter le capital total de l'entreprise":"➕ Increase the company's total capital",
+    "Augmenter le capital total de l'entreprise":"Increase the company's total capital",
     "➕ Nouvelle activité":"➕ New activity",
+    "Nouvelle activité":"New activity",
     "➖ Réduire le capital":"➖ Reduce the capital",
+    "Réduire le capital":"Reduce the capital",
     "🎨 Affichage (taille, thème, langue)":"🎨 Display (size, theme, language)",
+    "Affichage (taille, thème, langue)":"Display (size, theme, language)",
     "🏛️ Patrimoine — Biens & Matériels":"🏛️ Estate — Assets & Equipment",
+    "Patrimoine — Biens & Matériels":"Estate — Assets & Equipment",
     "🏷️ Catégories de dépenses":"🏷️ Expense categories",
+    "Catégories de dépenses":"Expense categories",
     "🏷️ Gérer":"🏷️ Manage",
+    "Gérer":"Manage",
     "🏷️ Produit Personnel":"🏷️ Personal Product",
+    "Produit Personnel":"Personal Product",
     "👁️ A. Compte Visiteur — éléments visibles pour le Visiteur":"👁️ A. Visitor Account — items visible to the Visitor",
     "👁️ Accéder":"👁️ Access",
     "👁️ Accéder en tant que Visiteur":"👁️ Access as Visitor",
@@ -3777,81 +3939,148 @@ var I18N={
     "👁️ Compte Visiteur":"👁️ Visitor Account",
     "👁️ Le Compte Visiteur permet de consulter le patrimoine de l'Administrateur avec un simple code d'accès fourni par lui.":"👁️ The Visitor Account lets someone view the Administrator's estate with a simple access code provided by him.",
     "👔 Admin":"👔 Admin",
+    "Admin":"Admin",
     "👔 Administrateur":"👔 Administrator",
     "👔 Administrateur uniquement":"👔 Administrator only",
+    "Administrateur uniquement":"Administrator only",
     "👤 Administrateur seul":"👤 Administrator only",
+    "Administrateur seul":"Administrator only",
     "👤 Associé":"👤 Partner",
     "👤 Associé uniquement":"👤 Partner only",
+    "Associé uniquement":"Partner only",
     "💰 Bénéfice (sur cette sélection, encaissé uniquement)":"💰 Profit (on this selection, collected only)",
+    "Bénéfice (sur cette sélection, encaissé uniquement)":"Profit (on this selection, collected only)",
     "💰 Paiements":"💰 Payments",
     "💰 Pourcentages financiers":"💰 Financial percentages",
+    "Pourcentages financiers":"Financial percentages",
     "💳 Dettes":"💳 Debts",
     "💳 Paiement":"💳 Payment",
     "💳 Paiement Associé":"💳 Partner Payment",
+    "Paiement Associé":"Partner Payment",
     "💳 Paiement partiel":"💳 Partial payment",
+    "Paiement partiel":"Partial payment",
     "💳 Reste à vous payer (dette non couverte)":"💳 Balance to pay you (uncovered debt)",
+    "Reste à vous payer (dette non couverte)":"Balance to pay you (uncovered debt)",
     "💸 Nouvelle Dépense":"💸 New Expense",
+    "Nouvelle Dépense":"New Expense",
     "💼 Biens & Matériels":"💼 Assets & Equipment",
+    "Biens & Matériels":"Assets & Equipment",
     "💼 Gérer le Patrimoine (biens & matériels)":"💼 Manage the Estate (assets & equipment)",
+    "Gérer le Patrimoine (biens & matériels)":"Manage the Estate (assets & equipment)",
     "💼 Total des avoirs de l'Administrateur":"💼 Total assets of the Administrator",
+    "Total des avoirs de l'Administrateur":"Total assets of the Administrator",
     "💾 Enregistrer dette":"💾 Save debt",
+    "Enregistrer dette":"Save debt",
     "💾 Export JSON":"💾 Export JSON",
+    "Export JSON":"Export JSON",
     "📂 Import JSON":"📂 Import JSON",
+    "Import JSON":"Import JSON",
     "📂 Importer et remplacer toutes les données":"📂 Import and replace all data",
+    "Importer et remplacer toutes les données":"Import and replace all data",
     "📈 Rapport de gestion —":"📈 Management report —",
+    "Rapport de gestion —":"Management report —",
     "📊 B. Tableau de bord — éléments visibles à tous les niveaux":"📊 B. Dashboard — items visible at all levels",
+    "B. Tableau de bord — éléments visibles à tous les niveaux":"B. Dashboard — items visible at all levels",
     "📊 Bilan":"📊 Balance sheet",
     "📊 Bord":"📊 Dash",
+    "Bord":"Dash",
     "📊 Export Excel":"📊 Excel Export",
+    "Export Excel":"Excel Export",
     "📋 Colonnes : Date | N° ordre | Ticket (manuel) | Type | Désignation | Panne | Prix achat×Qté | À Payer | Payé | Reste | Client | Bénéfice":"📋 Columns: Date | Order no. | Ticket (manual) | Type | Designation | Fault | Purchase price×Qty | To Pay | Paid | Balance | Customer | Profit",
+    "Colonnes : Date | N° ordre | Ticket (manuel) | Type | Désignation | Panne | Prix achat×Qté | À Payer | Payé | Reste | Client | Bénéfice":"Columns: Date | Order no. | Ticket (manual) | Type | Designation | Fault | Purchase price×Qty | To Pay | Paid | Balance | Customer | Profit",
     "📋 Enregistre uniquement les biens réellement existants. Cette liste est visible par le compte Visiteur (avec le total des avoirs).":"📋 Only record assets that really exist. This list is visible to the Visitor account (with the total assets).",
+    "Enregistre uniquement les biens réellement existants. Cette liste est visible par le compte Visiteur (avec le total des avoirs).":"Only record assets that really exist. This list is visible to the Visitor account (with the total assets).",
     "📋 Fiche commande fournisseur :":"📋 Supplier order sheet:",
     "📋 Nouvelle Activité":"📋 New Activity",
+    "Nouvelle Activité":"New Activity",
     "📋 Vos activités":"📋 Your activities",
+    "Vos activités":"Your activities",
     "📌 Origine des montants (dettes)":"📌 Origin of amounts (debts)",
+    "Origine des montants (dettes)":"Origin of amounts (debts)",
     "📐 C. Bilan":"📐 C. Balance sheet",
+    "C. Bilan":"C. Balance sheet",
     "📐 Formules de calcul":"📐 Calculation formulas",
+    "Formules de calcul":"Calculation formulas",
     "📑 Nouvelle Commande":"📑 New Order",
+    "Nouvelle Commande":"New Order",
     "📥 Import Excel":"📥 Excel Import",
+    "Import Excel":"Excel Import",
     "📥 Importer depuis Excel et remplacer toutes les données":"📥 Import from Excel and replace all data",
+    "Importer depuis Excel et remplacer toutes les données":"Import from Excel and replace all data",
     "📦 *COMMANDE FOURNISSEUR — Boulliwel Service*":"📦 *SUPPLIER ORDER — Boulliwel Service*",
+    "*COMMANDE FOURNISSEUR — Boulliwel Service*":"*SUPPLIER ORDER — Boulliwel Service*",
     "📦 Ajouter à la commande fournisseur":"📦 Add to supplier order",
+    "Ajouter à la commande fournisseur":"Add to supplier order",
     "📦 Entrée Stock":"📦 Stock Entry",
+    "Entrée Stock":"Stock Entry",
     "📦 Générer commande fournisseur":"📦 Generate supplier order",
+    "Générer commande fournisseur":"Generate supplier order",
     "📦 Stock actuel":"📦 Current stock",
+    "Stock actuel":"Current stock",
     "📦 Vue d'ensemble du Stock":"📦 Stock overview",
+    "Vue d'ensemble du Stock":"Stock overview",
     "📩 Envoyer le lien de réinitialisation":"📩 Send the reset link",
+    "Envoyer le lien de réinitialisation":"Send the reset link",
     "📩 Générer un code pour ce compte":"📩 Generate a code for this account",
+    "Générer un code pour ce compte":"Generate a code for this account",
     "📲 Fournisseur WhatsApp":"📲 WhatsApp Supplier",
+    "Fournisseur WhatsApp":"WhatsApp Supplier",
     "📲 Installer":"📲 Install",
+    "Installer":"Install",
     "📴 Mode hors ligne — dernières données du":"📴 Offline mode — latest data from",
+    "Mode hors ligne — dernières données du":"Offline mode — latest data from",
     "📴 Mode hors ligne — dernières données synchronisées le":"📴 Offline mode — latest data synchronized on",
+    "Mode hors ligne — dernières données synchronisées le":"Offline mode — latest data synchronized on",
     "🔄 Clôture sécurisée — Étape 0/3 : synchronisation avec le serveur…":"🔄 Secure closing — Step 0/3: synchronization with the server…",
+    "Clôture sécurisée — Étape 0/3 : synchronisation avec le serveur…":"Secure closing — Step 0/3: synchronization with the server…",
     "🔄 Clôturer la période":"🔄 Close the period",
     "🔄 Nouvelle version de l'application disponible.":"🔄 New version of the application available.",
+    "Nouvelle version de l'application disponible.":"New version of the application available.",
     "🔄 Nouvelle version disponible. Rechargez la page.":"🔄 New version available. Reload the page.",
+    "Nouvelle version disponible. Rechargez la page.":"New version available. Reload the page.",
     "🔌 Test Cloud":"🔌 Cloud Test",
+    "Test Cloud":"Cloud Test",
     "🔍 Détail de votre situation avec l'Administrateur":"🔍 Details of your situation with the Administrator",
+    "Détail de votre situation avec l'Administrateur":"Details of your situation with the Administrator",
     "🔍 Détail des dépenses":"🔍 Expense details",
+    "Détail des dépenses":"Expense details",
     "🔍 En savoir plus":"🔍 Learn more",
+    "En savoir plus":"Learn more",
     "🔍 Produit, client, montant, statut...":"🔍 Product, customer, amount, status...",
+    "Produit, client, montant, statut...":"Product, customer, amount, status...",
     "🔍 Rechercher (catégorie, description)...":"🔍 Search (category, description)...",
+    "Rechercher (catégorie, description)...":"Search (category, description)...",
     "🔍 Rechercher (client, n° cmd, produit)...":"🔍 Search (customer, order no., product)...",
+    "Rechercher (client, n° cmd, produit)...":"Search (customer, order no., product)...",
     "🔍 Rechercher un bien...":"🔍 Search for an asset...",
+    "Rechercher un bien...":"Search for an asset...",
     "🔍 Rechercher un produit, client, dette, commande, dépense...":"🔍 Search for a product, customer, debt, order, expense...",
+    "Rechercher un produit, client, dette, commande, dépense...":"Search for a product, customer, debt, order, expense...",
     "🔍 Rechercher un produit...":"🔍 Search for a product...",
+    "Rechercher un produit...":"Search for a product...",
     "🔍 Rechercher...":"🔍 Search...",
+    "Rechercher...":"Search...",
     "🔎 DIAGNOSTIC DE CONNEXION":"🔎 CONNECTION DIAGNOSTICS",
+    "DIAGNOSTIC DE CONNEXION":"CONNECTION DIAGNOSTICS",
     "🔐 Choisissez un nouveau mot de passe pour votre compte.":"🔐 Choose a new password for your account.",
+    "Choisissez un nouveau mot de passe pour votre compte.":"Choose a new password for your account.",
     "🔐 Récupération de mot de passe":"🔐 Password recovery",
+    "Récupération de mot de passe":"Password recovery",
     "🔑 Changer le mot de passe":"🔑 Change the password",
+    "Changer le mot de passe":"Change the password",
     "🔑 Changer mot de passe":"🔑 Change password",
     "🔑 Choisissez le compte concerné, demandez un code, puis entrez-le ci-dessous avec votre nouveau mot de passe. Le code est":"🔑 Choose the account concerned, request a code, then enter it below with your new password. The code is",
+    "Choisissez le compte concerné, demandez un code, puis entrez-le ci-dessous avec votre nouveau mot de passe. Le code est":"Choose the account concerned, request a code, then enter it below with your new password. The code is",
     "🔑 Code de réinitialisation Administrateur :":"🔑 Administrator reset code:",
+    "Code de réinitialisation Administrateur :":"Administrator reset code:",
     "🔑 Code(s) Associé à relayer :":"🔑 Partner code(s) to relay:",
+    "Code(s) Associé à relayer :":"Partner code(s) to relay:",
     "🔑 Compte":"🔑 Account",
+    "Compte":"Account",
     "🔑 Demander un code de réinitialisation":"🔑 Request a reset code",
+    "Demander un code de réinitialisation":"Request a reset code",
     "🔑 Saisissez l'adresse e-mail associée à votre compte. Vous recevrez un lien pour définir un nouveau mot de passe, sans avoir besoin d'ouvrir Supabase.":"🔑 Enter the email address associated with your account. You will receive a link to set a new password, without needing to open Supabase.",
+    "Saisissez l'adresse e-mail associée à votre compte. Vous recevrez un lien pour définir un nouveau mot de passe, sans avoir besoin d'ouvrir Supabase.":"Enter the email address associated with your account. You will receive a link to set a new password, without needing to open Supabase.",
     "🔒 Accès verrouillé":"🔒 Access locked",
     "🔒 Anomalie détectée : les dettes sont restées verrouillées d'une ancienne clôture.":"🔒 Anomaly detected: the debts remained locked from a previous closing.",
     "🔒 Ci-dessous, les Dettes, Paiements et Dépenses tels qu'ils existaient au moment de la clôture du":"🔒 Below, the Debts, Payments and Expenses as they existed at the time of the closing of",
@@ -3866,7 +4095,9 @@ var I18N={
     "🔓 Déverrouiller":"🔓 Unlock",
     "🔓 Saisie des dettes déverrouillée":"🔓 Debt entry unlocked",
     "🔗 Lien partage":"🔗 Share link",
+    "Lien partage":"Share link",
     "🔴 Alertes Stock Faible — Fiches Commande Fournisseur":"🔴 Low Stock Alerts — Supplier Order Sheets",
+    "Alertes Stock Faible — Fiches Commande Fournisseur":"Low Stock Alerts — Supplier Order Sheets",
     "🔴 Données locales incomplètes (hors ligne)":"🔴 Local data incomplete (offline)",
     "🔴 Erreur de synchronisation":"🔴 Synchronization error",
     "🔴 Erreur de synchronisation des activités":"🔴 Activities synchronization error",
@@ -3875,30 +4106,49 @@ var I18N={
     "🔴 Échec de synchronisation auto":"🔴 Auto synchronization failed",
     "🔴 Échec de synchronisation auto (Activités/Stock)":"🔴 Auto synchronization failed (Activities/Stock)",
     "🔵 PART ASSOCIÉ (base)":"🔵 PARTNER SHARE (base)",
+    "PART ASSOCIÉ (base)":"PARTNER SHARE (base)",
     "🔽 Masquer":"🔽 Hide",
+    "Masquer":"Hide",
     "🖥️ Gestion de l'affichage":"🖥️ Display management",
+    "Gestion de l'affichage":"Display management",
     "🖨️ Imprimer":"🖨️ Print",
     "🗂️ Données":"🗂️ Data",
+    "Données":"Data",
     "🗑️ Dettes":"🗑️ Debts",
     "🗑️ Paiements":"🗑️ Payments",
     "🗑️ Supprimer ce bien du patrimoine":"🗑️ Delete this asset from the estate",
+    "Supprimer ce bien du patrimoine":"Delete this asset from the estate",
     "🗑️ Supprimer cette activité":"🗑️ Delete this activity",
+    "Supprimer cette activité":"Delete this activity",
     "🗑️ Supprimer définitivement cette activité":"🗑️ Permanently delete this activity",
     "🗑️ Supprimer tous les paiements":"🗑️ Delete all payments",
+    "Supprimer tous les paiements":"Delete all payments",
     "🗑️ Supprimer tout le Stock Entreprise":"🗑️ Delete all Business Stock",
+    "Supprimer tout le Stock Entreprise":"Delete all Business Stock",
     "🗑️ Supprimer toutes les activités":"🗑️ Delete all activities",
+    "Supprimer toutes les activités":"Delete all activities",
     "🗑️ Supprimer toutes les commandes":"🗑️ Delete all orders",
+    "Supprimer toutes les commandes":"Delete all orders",
     "🗑️ Supprimer toutes les dettes":"🗑️ Delete all debts",
+    "Supprimer toutes les dettes":"Delete all debts",
     "🗑️ Supprimer toutes les dépenses":"🗑️ Delete all expenses",
+    "Supprimer toutes les dépenses":"Delete all expenses",
     "🗑️ Tout supprimer":"🗑️ Delete everything",
+    "Tout supprimer":"Delete everything",
     "🗑️ Vider":"🗑️ Empty",
+    "Vider":"Empty",
     "🗑️ Vider Associé":"🗑️ Empty Partner",
+    "Vider Associé":"Empty Partner",
     "🗑️ Vider les activités de l'Associé":"🗑️ Empty the Partner's activities",
+    "Vider les activités de l'Associé":"Empty the Partner's activities",
     "🗑️ Vider tout l'historique":"🗑️ Empty the whole history",
     "🗓️ Période réellement couverte par les activités affichées :":"🗓️ Period actually covered by the displayed activities:",
+    "Période réellement couverte par les activités affichées :":"Period actually covered by the displayed activities:",
     "🚪 Déconnexion":"🚪 Log out",
+    "Déconnexion":"Log out",
     "🚫 Action réservée à l'Administrateur.":"🚫 Action reserved for the Administrator.",
     "🚫 Masquer l'Associé":"🚫 Hide the Partner",
+    "Masquer l'Associé":"Hide the Partner",
     "🚫 Section réservée à l'Administrateur.":"🚫 Section reserved for the Administrator.",
     "🟠 Reconnexion…":"🟠 Reconnecting…",
     "🟠 Synchronisation (clôture)…":"🟠 Synchronization (closing)…",
@@ -3906,19 +4156,25 @@ var I18N={
     "🟠 Synchronisation…":"🟠 Synchronizing…",
     "🟠 Vérification cloud…":"🟠 Cloud check…",
     "🟡 MA PART":"🟡 MY SHARE",
+    "MA PART":"MY SHARE",
     "🟢 Activités synchronisées":"🟢 Activities synchronized",
     "🟢 Commandes clients disponibles — à faire savoir":"🟢 Customer orders available — let them know",
+    "Commandes clients disponibles — à faire savoir":"Customer orders available — let them know",
     "🟢 En ligne (Associé)":"🟢 Online (Partner)",
     "🟢 Période active (en cours)":"🟢 Active period (ongoing)",
     "🟢 Synchronisé":"🟢 Synchronized",
     "🟢 Visiteur connecté":"🟢 Visitor connected",
     "🤝 A. Compte Associé — éléments visibles pour l'Associé":"🤝 A. Partner Account — items visible to the Partner",
+    "A. Compte Associé — éléments visibles pour l'Associé":"A. Partner Account — items visible to the Partner",
     "🤝 Associé seul":"🤝 Partner only",
+    "Associé seul":"Partner only",
     "🧾 Dépenses":"🧾 Expenses",
     "% Stock Perso (créance = prix revient + X%)":"% Personal Stock (receivable = cost price + X%)",
     "📞 Appeler":"📞 Call",
     "📲 Prévenir (WhatsApp)":"📲 Notify (WhatsApp)",
+    "Prévenir (WhatsApp)":"Notify (WhatsApp)",
     "👤 dont":"👤 of which",
+    "dont":"of which",
     "Bénéfice = Montant PAYÉ − (Prix achat × Qté).":"Profit = PAID Amount − (Purchase price × Qty).",
     "Créance = (Prix achat × Qté) × 1.15":"Receivable = (Purchase price × Qty) × 1.15",
     "Créance = (Prix achat × Qté) × 1.15 — Prix revient + 15%":"Receivable = (Purchase price × Qty) × 1.15 — Cost price + 15%",
@@ -3940,6 +4196,7 @@ var I18N={
     "= cette période (modifiables) |":"= this period (editable) |",
     "= périodes précédentes (verrouillées).":"= previous periods (locked).",
     "📊 Dans le bilan : Dettes nettes = Total dettes − Total paiements reçus.":"📊 In the balance sheet: Net debts = Total debts − Total payments received.",
+    "Dans le bilan : Dettes nettes = Total dettes − Total paiements reçus.":"In the balance sheet: Net debts = Total debts − Total payments received.",
     "Capital Ent":"Business Cap.",
     "Reste Perso":"Personal Balance",
     "Val. Ent":"Bus. Val.",
@@ -3948,9 +4205,12 @@ var I18N={
     "[Supabase] Échec de synchronisation (réception) :":"[Supabase] Synchronization failure (receiving):",
     "[doLogin] Échec réseau — tentative de reprise hors ligne…":"[doLogin] Network failure — attempting offline recovery…",
     "🌑 Sombre":"🌑 Dark",
+    "Sombre":"Dark",
     "⚫ Noir":"⚫ Black",
+    "Noir":"Black",
     "⬛ Gris":"⬛ Gray",
     "⚪ Blanc":"⚪ White",
+    "Blanc":"White",
     "Aucune donnée n'a été modifiée ou supprimée.":"No data was modified or deleted.",
     "Aucune récupération possible après confirmation.":"No recovery possible after confirmation.",
     "Aucune saisie manuelle.":"No manual entry.",
@@ -3987,7 +4247,9 @@ var I18N={
     "(⚠️ EXPIRÉ depuis":"(⚠️ 𞤖𞤌𞥅𞤅𞤀𞥄𞤃𞤀 𞤺𞤭𞤤𞤢",
     ") — le capital ne peut jamais devenir négatif.":") — 𞤳𞤢𞤨𞤭𞤼𞤢𞥄𞤤 𞤱𞤢𞥄𞤱𞤢𞤼𞤢𞥄 𞤱𞤮𞤲𞤣𞤫 𞤦𞤢𞤥𞤢𞥄𞤪𞤭.",
     "♻️ Restaurer":"♻️ 𞤈𞤵𞤼𞥆𞤭𞤼𞤮",
+    "Restaurer":"♻️ 𞤈𞤵𞤼𞥆𞤭𞤼𞤮",
     "❌ Suppr. déf.":"❌ 𞤋𞤼𞥆𞤵 𞤸𞤢𞥄 𞤬𞤵𞥅",
+    "Suppr. déf.":"𞤋𞤼𞥆𞤵 𞤸𞤢𞥄 𞤬𞤵𞥅",
     "). Détail :":"). 𞤄𞤮𞤤𞥆𞤫 :",
     "). Elle restera visible côté Associé. Détail :":"). 𞤍𞤵𞤥 𞤭𞤲𞤢 𞤼𞤢𞤱𞤢𞥄 𞤫 𞤅𞤫𞤸𞤭𞤤. 𞤄𞤮𞤤𞥆𞤫 :",
     "). Elles resteront visibles côté Associé jusqu'à la prochaine tentative.":"). 𞤍𞤵𞤥 𞤭𞤲𞤢 𞤥𞤦𞤢𞥄𞤱𞤭 𞤼𞤢𞤱𞤫𞥅 𞤫 𞤅𞤫𞤸𞤭𞤤 𞤸𞤢𞥄 𞤲𞤣𞤫 𞤸𞤮𞤴𞤼𞤭𞤲𞤢𞥄.",
@@ -4784,9 +5046,13 @@ var I18N={
     "⑥ Clôture":"⑥ 𞤖𞤮𞥅𞤧𞤵𞤺𞤮𞤤",
     "☁️ Données fusionnées avec le cloud (rien n'est perdu)":"☁️ 𞤑𞤫𞤩𞤢𞤤 𞤳𞤢𞤱𞤼𞤢𞥄𞤥𞤢 𞤫 cloud (𞤬𞤵𞥅 𞤥𞤢𞤶𞥆𞤢𞤼𞤢𞥄)",
     "♻️ Restaurez ou supprimez définitivement. Les éléments supprimés de la corbeille sont irrécupérables.":"♻️ 𞤈𞤵𞤼𞥆𞤭𞤲 𞤥𞤢𞤤𞥆𞤢 𞤭𞤼𞥆𞤵 𞤸𞤢𞥄 𞤬𞤵𞥅. 𞤑𞤮 𞤭𞤼𞥆𞤢𞥄𞤥𞤢 𞤫 𞤬𞤢𞥄𞤦𞤵𞥅𞤶𞤭 𞤪𞤵𞤼𞥆𞤭𞤲𞤼𞤭𞤲𞤢𞥄𞤳𞤢.",
+    "Restaurez ou supprimez définitivement. Les éléments supprimés de la corbeille sont irrécupérables.":"♻️ 𞤈𞤵𞤼𞥆𞤭𞤲 𞤥𞤢𞤤𞥆𞤢 𞤭𞤼𞥆𞤵 𞤸𞤢𞥄 𞤬𞤵𞥅. 𞤑𞤮 𞤭𞤼𞥆𞤢𞥄𞤥𞤢 𞤫 𞤬𞤢𞥄𞤦𞤵𞥅𞤶𞤭 𞤪𞤵𞤼𞥆𞤭𞤲𞤼𞤭𞤲𞤢𞥄𞤳𞤢.",
     "⚙️ Paramètres":"⚙️ 𞤚𞤮𞤩𞥆𞤫",
+    "Paramètres":"⚙️ 𞤚𞤮𞤩𞥆𞤫",
     "⚙️ Paramètres — Contrôle total":"⚙️ 𞤚𞤮𞤩𞥆𞤫 — 𞤐𞤺𞤢𞤯𞤵𞤺𞤮𞤤 𞤬𞤵𞥅",
+    "Paramètres — Contrôle total":"⚙️ 𞤚𞤮𞤩𞥆𞤫 — 𞤐𞤺𞤢𞤯𞤵𞤺𞤮𞤤 𞤬𞤵𞥅",
     "⚙️ Seuil : alerte déclenchée quand stock restant ≤ cette valeur. Ex: 3 → alerte si restant ≤ 3.":"⚙️ 𞤑𞤢𞤦𞤢𞥄𞤪𞤵 : 𞤸𞤢𞤦𞤢𞤪𞤵 𞤭𞤲𞤢 𞤲𞤢𞤲𞥆𞤺𞤫𞥅 𞤲𞤣𞤫 𞤶𞤢𞤱𞤣𞤭 𞤪𞤫𞥅𞤲𞤭 ≤ 𞤲𞤣𞤫𞥅 𞤤𞤭𞤥𞤮𞥅𞤪𞤫. 𞤃𞤭𞤧𞤢𞥄𞤤 : 3 → 𞤸𞤢𞤦𞤢𞤪𞤵 𞤧𞤭 𞤪𞤫𞥅𞤲𞤭 ≤ 3.",
+    "Seuil : alerte déclenchée quand stock restant ≤ cette valeur. Ex: 3 → alerte si restant ≤ 3.":"⚙️ 𞤑𞤢𞤦𞤢𞥄𞤪𞤵 : 𞤸𞤢𞤦𞤢𞤪𞤵 𞤭𞤲𞤢 𞤲𞤢𞤲𞥆𞤺𞤫𞥅 𞤲𞤣𞤫 𞤶𞤢𞤱𞤣𞤭 𞤪𞤫𞥅𞤲𞤭 ≤ 𞤲𞤣𞤫𞥅 𞤤𞤭𞤥𞤮𞥅𞤪𞤫. 𞤃𞤭𞤧𞤢𞥄𞤤 : 3 → 𞤸𞤢𞤦𞤢𞤪𞤵 𞤧𞤭 𞤪𞤫𞥅𞤲𞤭 ≤ 3.",
     "⚠️ Ajoutez au moins un produit":"⚠️ 𞤄𞤫𞤴𞤣𞤵 𞤶𞤢𞤱𞤣𞤭 𞤺𞤮𞥅𞤼𞤫𞤤 𞤩𞤵𞤪𞤭",
     "⚠️ Aucun contact de récupération n'a été configuré par l'Administrateur.":"⚠️ 𞤔𞤭𞥅𞤣𞤢𞥄𞤯𞤮 𞤧𞤵𞤩𞤼𞤢𞥄𞤳𞤭 𞤳𞤮𞤲𞤼𞤢𞥄 𞤪𞤵𞤼𞥆𞤭𞤼𞤵𞤺𞤮𞤤.",
     "⚠️ Aucun numéro de téléphone saisi":"⚠️ 𞤂𞤭𞤥𞤪𞤫 𞤼𞤫𞤤𞥆𞤫𞤬𞤮𞤲 𞤱𞤭𞤲𞥆𞤣𞤢𞥄𞤳𞤢",
@@ -4873,7 +5139,9 @@ var I18N={
     "⚪ Mode Visiteur (hors ligne)":"⚪ 𞤐𞤣𞤫𞥅𞤲𞤳𞤢 𞤔𞤮𞥅𞤯𞤭𞥅𞤯𞤮 (𞤱𞤢𞤤𞤢𞥄 𞤳𞤢𞤱𞤼𞤢𞤤)",
     "⚪ Vérification…":"⚪ 𞤋𞤲𞤢 𞤲𞤣𞤢𞥄𞤪𞤢…",
     "⛔ Modification non autorisée pour ce compte.":"⛔ 𞤅𞤢𞤲𞤶𞤵𞤺𞤮𞤤 𞤶𞤢𞤩𞤢𞥄𞤳𞤢 𞤲𞤺𞤢𞤥 𞤲𞤣𞤫𞥅 𞤳𞤮𞤲𞤼𞤫.",
+    "Modification non autorisée pour ce compte.":"⛔ 𞤅𞤢𞤲𞤶𞤵𞤺𞤮𞤤 𞤶𞤢𞤩𞤢𞥄𞤳𞤢 𞤲𞤺𞤢𞤥 𞤲𞤣𞤫𞥅 𞤳𞤮𞤲𞤼𞤫.",
     "⛔ Modification non autorisée pour ce compte. Vous pouvez créer une nouvelle activité ou supprimer celle-ci.":"⛔ 𞤅𞤢𞤲𞤶𞤵𞤺𞤮𞤤 𞤶𞤢𞤩𞤢𞥄𞤳𞤢 𞤲𞤺𞤢𞤥 𞤲𞤣𞤫𞥅 𞤳𞤮𞤲𞤼𞤫. 𞤀 𞤱𞤢𞥄𞤱𞤭 𞤧𞤮𞤧𞤵𞤺𞤮𞤤 𞤺𞤮𞤤𞥆𞤢𞤤 𞤳𞤫𞤧𞤢𞤤 𞤥𞤢𞤤𞥆𞤢 𞤭𞤼𞥆𞤵𞤺𞤮𞤤 𞤲𞤣𞤫𞥅.",
+    "Modification non autorisée pour ce compte. Vous pouvez créer une nouvelle activité ou supprimer celle-ci.":"⛔ 𞤅𞤢𞤲𞤶𞤵𞤺𞤮𞤤 𞤶𞤢𞤩𞤢𞥄𞤳𞤢 𞤲𞤺𞤢𞤥 𞤲𞤣𞤫𞥅 𞤳𞤮𞤲𞤼𞤫. 𞤀 𞤱𞤢𞥄𞤱𞤭 𞤧𞤮𞤧𞤵𞤺𞤮𞤤 𞤺𞤮𞤤𞥆𞤢𞤤 𞤳𞤫𞤧𞤢𞤤 𞤥𞤢𞤤𞥆𞤢 𞤭𞤼𞥆𞤵𞤺𞤮𞤤 𞤲𞤣𞤫𞥅.",
     "✅ Accès Visiteur autorisé":"✅ 𞤐𞤢𞥄𞤼𞤵𞤺𞤮𞤤 𞤔𞤮𞥅𞤯𞤭𞥅𞤯𞤮 𞤶𞤢𞤩𞤢𞥄𞤥𞤢",
     "✅ Activité supprimée définitivement":"✅ 𞤘𞤮𞤤𞥆𞤢𞤤 𞤭𞤼𞥆𞤢𞥄𞤥𞤢 𞤸𞤢𞥄 𞤬𞤵𞥅",
     "✅ Activités de l'Associé vidées → corbeille":"✅ 𞤘𞤮𞤤𞥆𞤫 𞤅𞤫𞤸𞤭𞤤 𞤩𞤮𞥅𞤧𞤢𞥄𞤥𞤢 → 𞤬𞤢𞥄𞤦𞤵𞥅𞤶𞤭",
@@ -4939,12 +5207,19 @@ var I18N={
     "✅ Étape 2/3 réussie (fichier JSON exporté) — Étape 3/3 : export Excel…":"✅ 𞤘𞤢𞤣𞥆𞤢𞤲𞤮𞤤 2/3 𞤶𞤢𞤩𞤭𞥅 (𞤬𞤢𞤴𞤤 JSON 𞤭𞤼𞥆𞤢𞥄𞤥𞤢) — 𞤘𞤢𞤣𞥆𞤢𞤲𞤮𞤤 3/3 : 𞤭𞤼𞥆𞤵𞤺𞤮𞤤 Excel…",
     "✅ Étape 3/3 réussie (fichier Excel exporté) — les 3 vérifications ont réussi. Clôture en cours…":"✅ 𞤘𞤢𞤣𞥆𞤢𞤲𞤮𞤤 3/3 𞤶𞤢𞤩𞤭𞥅 (𞤬𞤢𞤴𞤤 Excel 𞤭𞤼𞥆𞤢𞥄𞤥𞤢) — 𞤲𞤣𞤢𞥄𞤪𞤵𞤺𞤮𞤤 3 𞤬𞤵𞥅 𞤶𞤢𞤩𞤭𞥅. 𞤖𞤮𞥅𞤧𞤵𞤺𞤮𞤤 𞤭𞤲𞤢 𞤲𞤺𞤮𞤤𞥆𞤢…",
     "✏️ Modifier Activité":"✏️ 𞤅𞤢𞤲𞤶𞤭𞤲 𞤘𞤮𞤤𞥆𞤢𞤤",
+    "Modifier Activité":"✏️ 𞤅𞤢𞤲𞤶𞤭𞤲 𞤘𞤮𞤤𞥆𞤢𞤤",
     "✏️ Modifier Commande":"✏️ 𞤅𞤢𞤲𞤶𞤭𞤲 𞤒𞤢𞤥𞤭𞤪𞤮𞥅𞤪𞤫",
+    "Modifier Commande":"✏️ 𞤅𞤢𞤲𞤶𞤭𞤲 𞤒𞤢𞤥𞤭𞤪𞤮𞥅𞤪𞤫",
     "✏️ Modifier Dette":"✏️ 𞤅𞤢𞤲𞤶𞤭𞤲 𞤄𞤢𞤥𞥆𞤦𞤢𞤤",
+    "Modifier Dette":"✏️ 𞤅𞤢𞤲𞤶𞤭𞤲 𞤄𞤢𞤥𞥆𞤦𞤢𞤤",
     "✏️ Modifier Dépense":"✏️ 𞤅𞤢𞤲𞤶𞤭𞤲 𞤐𞤢𞤬𞤢𞤹𞤢",
+    "Modifier Dépense":"✏️ 𞤅𞤢𞤲𞤶𞤭𞤲 𞤐𞤢𞤬𞤢𞤹𞤢",
     "✏️ Modifier Paiement":"✏️ 𞤅𞤢𞤲𞤶𞤭𞤲 𞤒𞤮𞤩𞤢𞤤",
+    "Modifier Paiement":"✏️ 𞤅𞤢𞤲𞤶𞤭𞤲 𞤒𞤮𞤩𞤢𞤤",
     "✏️ Modifier Perso":"✏️ 𞤅𞤢𞤲𞤶𞤭𞤲 𞤔𞤢𞤱𞤣𞤭 𞤢𞤥",
+    "Modifier Perso":"✏️ 𞤅𞤢𞤲𞤶𞤭𞤲 𞤔𞤢𞤱𞤣𞤭 𞤢𞤥",
     "✏️ Modifier Stock":"✏️ 𞤅𞤢𞤲𞤶𞤭𞤲 𞤔𞤢𞤱𞤣𞤭",
+    "Modifier Stock":"✏️ 𞤅𞤢𞤲𞤶𞤭𞤲 𞤔𞤢𞤱𞤣𞤭",
     "✓ Ajouter":"✓ 𞤄𞤫𞤴𞤣𞤵",
     "✓ Confirmer et exécuter":"✓ 𞤚𞤢𞤦𞥆𞤭𞤼𞤭𞤲 𞤫 𞤲𞤺𞤢𞤯",
     "✓ Confirmer la réduction":"✓ 𞤚𞤢𞤦𞥆𞤭𞤼𞤭𞤲 𞤩𞤮𞤴𞤲𞤺𞤮𞤤",
@@ -5012,22 +5287,39 @@ var I18N={
     "❌ Échec de l'envoi :":"❌ 𞤐𞤫𞤤𞤣𞤵𞤺𞤮𞤤 𞤱𞤢𞥄𞤱𞤭𞥅 :",
     "❌ Échec de la suppression —":"❌ 𞤋𞤼𞥆𞤵𞤺𞤮𞤤 𞤱𞤢𞥄𞤱𞤭𞥅 —",
     "➕ Ajouter dette":"➕ 𞤄𞤫𞤴𞤣𞤵 𞤦𞤢𞤥𞥆𞤦𞤢𞤤",
+    "Ajouter dette":"➕ 𞤄𞤫𞤴𞤣𞤵 𞤦𞤢𞤥𞥆𞤦𞤢𞤤",
     "➕ Ajouter un bien":"➕ 𞤄𞤫𞤴𞤣𞤵 𞤶𞤢𞤱𞤣𞤭",
+    "Ajouter un bien":"➕ 𞤄𞤫𞤴𞤣𞤵 𞤶𞤢𞤱𞤣𞤭",
     "➕ Ajouter une dette":"➕ 𞤄𞤫𞤴𞤣𞤵 𞤦𞤢𞤥𞥆𞤦𞤢𞤤",
+    "Ajouter une dette":"➕ 𞤄𞤫𞤴𞤣𞤵 𞤦𞤢𞤥𞥆𞤦𞤢𞤤",
     "➕ Ajouter une quantité":"➕ 𞤄𞤫𞤴𞤣𞤵 𞤤𞤭𞤥𞤮𞥅𞤪𞤫",
+    "Ajouter une quantité":"➕ 𞤄𞤫𞤴𞤣𞤵 𞤤𞤭𞤥𞤮𞥅𞤪𞤫",
     "➕ Augmenter le capital":"➕ 𞤄𞤫𞤴𞤣𞤵 𞤳𞤢𞤨𞤭𞤼𞤢𞥄𞤤",
+    "Augmenter le capital":"➕ 𞤄𞤫𞤴𞤣𞤵 𞤳𞤢𞤨𞤭𞤼𞤢𞥄𞤤",
     "➕ Augmenter le capital total de l'entreprise":"➕ 𞤄𞤫𞤴𞤣𞤵 𞤳𞤢𞤨𞤭𞤼𞤢𞥄𞤤 𞤳𞤮𞤥𞤨𞤢𞤲𞤭 𞤬𞤵𞥅",
+    "Augmenter le capital total de l'entreprise":"➕ 𞤄𞤫𞤴𞤣𞤵 𞤳𞤢𞤨𞤭𞤼𞤢𞥄𞤤 𞤳𞤮𞤥𞤨𞤢𞤲𞤭 𞤬𞤵𞥅",
     "➕ Nouvelle activité":"➕ 𞤘𞤮𞤤𞥆𞤢𞤤 𞤳𞤫𞤧𞤢𞤤",
+    "Nouvelle activité":"➕ 𞤘𞤮𞤤𞥆𞤢𞤤 𞤳𞤫𞤧𞤢𞤤",
     "➖ Réduire le capital":"➖ 𞤇𞤮𞤴𞤭𞤲 𞤳𞤢𞤨𞤭𞤼𞤢𞥄𞤤",
+    "Réduire le capital":"➖ 𞤇𞤮𞤴𞤭𞤲 𞤳𞤢𞤨𞤭𞤼𞤢𞥄𞤤",
     "🌐 Langue / Language":"🌐 𞤍𞤫𞤥𞤲𞤺𞤢𞤤",
+    "Langue / Language":"🌐 𞤍𞤫𞤥𞤲𞤺𞤢𞤤",
     "🎨 Affichage":"🎨 𞤃𞤦𞤢𞥄𞤣𞤭",
+    "Affichage":"🎨 𞤃𞤦𞤢𞥄𞤣𞤭",
     "🎨 Affichage (taille, thème, langue)":"🎨 𞤃𞤦𞤢𞥄𞤣𞤭 (𞤥𞤢𞤱𞤲𞤵𞤺𞤮𞤤, 𞤯𞤵𞥅𞤯𞤢𞤤, 𞤯𞤫𞤥𞤲𞤺𞤢𞤤)",
+    "Affichage (taille, thème, langue)":"🎨 𞤃𞤦𞤢𞥄𞤣𞤭 (𞤥𞤢𞤱𞤲𞤵𞤺𞤮𞤤, 𞤯𞤵𞥅𞤯𞤢𞤤, 𞤯𞤫𞤥𞤲𞤺𞤢𞤤)",
     "🎨 Thème":"🎨 𞤍𞤵𞥅𞤯𞤢𞤤",
+    "Thème":"🎨 𞤍𞤵𞥅𞤯𞤢𞤤",
     "🏛️ Patrimoine":"🏛️ 𞤔𞤢𞤱𞤣𞤭",
+    "Patrimoine":"🏛️ 𞤔𞤢𞤱𞤣𞤭",
     "🏛️ Patrimoine — Biens & Matériels":"🏛️ 𞤔𞤢𞤱𞤣𞤭 — 𞤔𞤢𞤱𞤣𞤭 & 𞤑𞤵𞥅𞤼𞤮𞤪𞤯𞤫",
+    "Patrimoine — Biens & Matériels":"🏛️ 𞤔𞤢𞤱𞤣𞤭 — 𞤔𞤢𞤱𞤣𞤭 & 𞤑𞤵𞥅𞤼𞤮𞤪𞤯𞤫",
     "🏷️ Catégories de dépenses":"🏷️ 𞤊𞤢𞤲𞥆𞤵𞥅𞤶𞤭 𞤲𞤢𞤬𞤢𞤹𞤢",
+    "Catégories de dépenses":"🏷️ 𞤊𞤢𞤲𞥆𞤵𞥅𞤶𞤭 𞤲𞤢𞤬𞤢𞤹𞤢",
     "🏷️ Gérer":"🏷️ 𞤖𞤢𞤳𞥆𞤭𞤤𞤮",
+    "Gérer":"🏷️ 𞤖𞤢𞤳𞥆𞤭𞤤𞤮",
     "🏷️ Produit Personnel":"🏷️ 𞤔𞤢𞤱𞤣𞤭 𞤖𞤮𞥅𞤪𞤫",
+    "Produit Personnel":"🏷️ 𞤔𞤢𞤱𞤣𞤭 𞤖𞤮𞥅𞤪𞤫",
     "🏷️ Stock Perso":"🏷️ 𞤔𞤢𞤱𞤣𞤭 𞤢𞤥",
     "👁️ A. Compte Visiteur — éléments visibles pour le Visiteur":"👁️ 𞤀. 𞤑𞤮𞤲𞤼𞤫 𞤔𞤮𞥅𞤯𞤭𞥅𞤯𞤮 — 𞤳𞤮 𞤯𞤮𞤲 𞤲𞤺𞤭𞥅𞤼𞤫𞥅 𞤲𞤺𞤢𞤥 𞤔𞤮𞥅𞤯𞤭𞥅𞤯𞤮",
     "👁️ Accéder":"👁️ 𞤐𞤢𞥄𞤼𞤵",
@@ -5036,96 +5328,173 @@ var I18N={
     "👁️ Compte Visiteur":"👁️ 𞤑𞤮𞤲𞤼𞤫 𞤔𞤮𞥅𞤯𞤭𞥅𞤯𞤮",
     "👁️ Le Compte Visiteur permet de consulter le patrimoine de l'Administrateur avec un simple code d'accès fourni par lui.":"👁️ 𞤑𞤮𞤲𞤼𞤫 𞤔𞤮𞥅𞤯𞤭𞥅𞤯𞤮 𞤭𞤲𞤢 𞤢𞤷𞥆𞤢𞤲𞤼𞤢 𞤲𞤣𞤢𞥄𞤪𞤢𞥄𞤺𞤮 𞤶𞤢𞤱𞤣𞤭 𞤔𞤭𞥅𞤣𞤢𞥄𞤯𞤮 𞤫 𞤳𞤮𞥅𞤣𞤢𞥄 𞤲𞤢𞥄𞤼𞤵𞤺𞤮𞤤 𞤼𞤢𞤲 𞤮 𞤸𞤮𞤳𞥆𞤭.",
     "👔 Admin":"👔 𞤔𞤭𞥅𞤣𞤢𞥄𞤯𞤮",
+    "Admin":"👔 𞤔𞤭𞥅𞤣𞤢𞥄𞤯𞤮",
     "👔 Administrateur":"👔 𞤔𞤭𞥅𞤣𞤢𞥄𞤯𞤮",
     "👔 Administrateur uniquement":"👔 𞤔𞤭𞥅𞤣𞤢𞥄𞤯𞤮 𞤼𞤢𞤲",
+    "Administrateur uniquement":"👔 𞤔𞤭𞥅𞤣𞤢𞥄𞤯𞤮 𞤼𞤢𞤲",
     "👤 Administrateur seul":"👤 𞤔𞤭𞥅𞤣𞤢𞥄𞤯𞤮 𞤼𞤢𞤲",
+    "Administrateur seul":"👤 𞤔𞤭𞥅𞤣𞤢𞥄𞤯𞤮 𞤼𞤢𞤲",
     "👤 Associé":"👤 𞤅𞤫𞤸𞤭𞤤",
     "👤 Associé uniquement":"👤 𞤅𞤫𞤸𞤭𞤤 𞤼𞤢𞤲",
+    "Associé uniquement":"👤 𞤅𞤫𞤸𞤭𞤤 𞤼𞤢𞤲",
     "💰 Bilan":"💰 𞤂𞤭𞤥𞤮𞥅𞤪𞤫",
     "💰 Bénéfice (sur cette sélection, encaissé uniquement)":"💰 𞤐𞤢𞤬𞤮𞥅𞤪𞤫 (𞤫 𞤲𞤣𞤫𞥅 𞤧𞤵𞤩𞤢𞥄𞤥𞤢, 𞤴𞤮𞤩𞤢𞥄𞤥𞤢 𞤼𞤢𞤲)",
+    "Bénéfice (sur cette sélection, encaissé uniquement)":"💰 𞤐𞤢𞤬𞤮𞥅𞤪𞤫 (𞤫 𞤲𞤣𞤫𞥅 𞤧𞤵𞤩𞤢𞥄𞤥𞤢, 𞤴𞤮𞤩𞤢𞥄𞤥𞤢 𞤼𞤢𞤲)",
     "💰 Paiements":"💰 𞤒𞤮𞤩𞤢𞤤",
     "💰 Pourcentages financiers":"💰 𞤆𞤵𞤪𞤧𞤢𞤲𞤼𞤢𞥄𞤶𞤭 𞤷𞤫𞥅𞤣𞤫",
+    "Pourcentages financiers":"💰 𞤆𞤵𞤪𞤧𞤢𞤲𞤼𞤢𞥄𞤶𞤭 𞤷𞤫𞥅𞤣𞤫",
     "💳 Dettes":"💳 𞤄𞤢𞤥𞥆𞤦𞤢𞤤",
     "💳 Paiement":"💳 𞤒𞤮𞤩𞤢𞤤",
     "💳 Paiement Associé":"💳 𞤒𞤮𞤩𞤢𞤤 𞤅𞤫𞤸𞤭𞤤",
+    "Paiement Associé":"💳 𞤒𞤮𞤩𞤢𞤤 𞤅𞤫𞤸𞤭𞤤",
     "💳 Paiement partiel":"💳 𞤒𞤮𞤩𞤢𞤤 𞤧𞤫𞤯𞥆𞤢",
+    "Paiement partiel":"💳 𞤒𞤮𞤩𞤢𞤤 𞤧𞤫𞤯𞥆𞤢",
     "💳 Reste à vous payer (dette non couverte)":"💳 𞤈𞤫𞥅𞤲𞤭 𞤴𞤮𞤩𞤵𞤺𞤮𞤤 𞤥𞤢𞥄 (𞤦𞤢𞤥𞥆𞤦𞤢𞤤 𞤯𞤮𞤲 𞤸𞤮𞥅𞤧𞤢𞥄𞤳𞤢)",
+    "Reste à vous payer (dette non couverte)":"💳 𞤈𞤫𞥅𞤲𞤭 𞤴𞤮𞤩𞤵𞤺𞤮𞤤 𞤥𞤢𞥄 (𞤦𞤢𞤥𞥆𞤦𞤢𞤤 𞤯𞤮𞤲 𞤸𞤮𞥅𞤧𞤢𞥄𞤳𞤢)",
     "💸 Dépenses":"💸 𞤐𞤢𞤬𞤢𞤹𞤢",
     "💸 Nouvelle Dépense":"💸 𞤐𞤢𞤬𞤢𞤹𞤢 𞤳𞤫𞤧𞤢𞤤",
+    "Nouvelle Dépense":"💸 𞤐𞤢𞤬𞤢𞤹𞤢 𞤳𞤫𞤧𞤢𞤤",
     "💼 Biens & Matériels":"💼 𞤔𞤢𞤱𞤣𞤭 & 𞤑𞤵𞥅𞤼𞤮𞤪𞤯𞤫",
+    "Biens & Matériels":"💼 𞤔𞤢𞤱𞤣𞤭 & 𞤑𞤵𞥅𞤼𞤮𞤪𞤯𞤫",
     "💼 Gérer le Patrimoine (biens & matériels)":"💼 𞤖𞤢𞤳𞥆𞤭𞤤 𞤔𞤢𞤱𞤣𞤭 (𞤶𞤢𞤱𞤣𞤭 & 𞤳𞤵𞥅𞤼𞤮𞤪𞤯𞤫)",
+    "Gérer le Patrimoine (biens & matériels)":"💼 𞤖𞤢𞤳𞥆𞤭𞤤 𞤔𞤢𞤱𞤣𞤭 (𞤶𞤢𞤱𞤣𞤭 & 𞤳𞤵𞥅𞤼𞤮𞤪𞤯𞤫)",
     "💼 Total des avoirs de l'Administrateur":"💼 𞤑𞤫𞤩𞤢𞤤 𞤬𞤵𞥅 𞤔𞤭𞥅𞤣𞤢𞥄𞤯𞤮",
+    "Total des avoirs de l'Administrateur":"💼 𞤑𞤫𞤩𞤢𞤤 𞤬𞤵𞥅 𞤔𞤭𞥅𞤣𞤢𞥄𞤯𞤮",
     "💾 Enregistrer dette":"💾 𞤏𞤭𞤲𞥆𞤣𞤵 𞤦𞤢𞤥𞥆𞤦𞤢𞤤",
+    "Enregistrer dette":"💾 𞤏𞤭𞤲𞥆𞤣𞤵 𞤦𞤢𞤥𞥆𞤦𞤢𞤤",
     "💾 Export":"💾 𞤋𞤼𞥆𞤵",
+    "Export":"💾 𞤋𞤼𞥆𞤵",
     "💾 Export JSON":"💾 𞤋𞤼𞥆𞤵 JSON",
+    "Export JSON":"𞤋𞤼𞥆𞤵 JSON",
     "📂 Import":"📂 𞤐𞤢𞥄𞤼",
+    "Import":"📂 𞤐𞤢𞥄𞤼",
     "📂 Import JSON":"📂 𞤐𞤢𞥄𞤼 JSON",
+    "Import JSON":"𞤐𞤢𞥄𞤼 JSON",
     "📂 Importer et remplacer toutes les données":"📂 𞤐𞤢𞥄𞤼 𞤫 𞤧𞤢𞤲𞤶𞤭𞤲 𞤳𞤫𞤩𞤢𞤤 𞤬𞤵𞥅",
+    "Importer et remplacer toutes les données":"📂 𞤐𞤢𞥄𞤼 𞤫 𞤧𞤢𞤲𞤶𞤭𞤲 𞤳𞤫𞤩𞤢𞤤 𞤬𞤵𞥅",
     "📈 Rapport":"📈 𞤅𞤫𞥅𞤣𞤢𞤲𞤼𞤢𞥄𞤺𞤢𞤤",
+    "Rapport":"📈 𞤅𞤫𞥅𞤣𞤢𞤲𞤼𞤢𞥄𞤺𞤢𞤤",
     "📈 Rapport de gestion —":"📈 𞤅𞤫𞥅𞤣𞤢𞤲𞤼𞤢𞥄𞤺𞤢𞤤 𞤸𞤢𞤳𞥆𞤭𞤤𞤮 —",
+    "Rapport de gestion —":"📈 𞤅𞤫𞥅𞤣𞤢𞤲𞤼𞤢𞥄𞤺𞤢𞤤 𞤸𞤢𞤳𞥆𞤭𞤤𞤮 —",
     "📈 Rapport des activités":"📈 𞤅𞤫𞥅𞤣𞤢𞤲𞤼𞤢𞥄𞤺𞤢𞤤 𞤺𞤮𞤤𞥆𞤫",
+    "Rapport des activités":"📈 𞤅𞤫𞥅𞤣𞤢𞤲𞤼𞤢𞥄𞤺𞤢𞤤 𞤺𞤮𞤤𞥆𞤫",
     "📊 B. Tableau de bord — éléments visibles à tous les niveaux":"📊 𞤄. 𞤚𞤢𞥄𞤦𞤢𞤤𞤵 𞤳𞤫𞤩𞤢𞤤 — 𞤳𞤮 𞤯𞤮𞤲 𞤲𞤺𞤭𞥅𞤼𞤫𞥅 𞤫 𞤣𞤢𞤪𞤢𞤶𞤢 𞤬𞤵𞥅",
+    "B. Tableau de bord — éléments visibles à tous les niveaux":"📊 𞤄. 𞤚𞤢𞥄𞤦𞤢𞤤𞤵 𞤳𞤫𞤩𞤢𞤤 — 𞤳𞤮 𞤯𞤮𞤲 𞤲𞤺𞤭𞥅𞤼𞤫𞥅 𞤫 𞤣𞤢𞤪𞤢𞤶𞤢 𞤬𞤵𞥅",
     "📊 Bilan":"📊 𞤂𞤭𞤥𞤮𞥅𞤪𞤫",
     "📊 Bord":"📊 𞤚𞤢𞥄𞤦𞤢𞤤𞤵",
+    "Bord":"📊 𞤚𞤢𞥄𞤦𞤢𞤤𞤵",
     "📊 Excel":"📊 Excel",
+    "Excel":"Excel",
     "📊 Export Excel":"📊 𞤋𞤼𞥆𞤵 Excel",
+    "Export Excel":"𞤋𞤼𞥆𞤵 Excel",
     "📋 Activités":"📋 𞤘𞤮𞤤𞥆𞤫",
     "📋 Colonnes : Date | N° ordre | Ticket (manuel) | Type | Désignation | Panne | Prix achat×Qté | À Payer | Payé | Reste | Client | Bénéfice":"📋 𞤚𞤢𞤦𞤢𞤤𞤵 : 𞤙𞤢𞤤𞤲𞤣𞤫 | 𞤂𞤭𞤥𞤪𞤫 𞤯𞤢𞤩𞥆𞤢𞤤 | 𞤚𞤭𞤳𞤫𞥅 (𞤶𞤵𞤲𞥆𞤺𞤮) | 𞤅𞤭𞤬𞤢𞥄 | 𞤋𞤲𞥆𞤣𞤫 | 𞤈𞤵𞤼𞥆𞤵𞤺𞤮𞤤 | 𞤕𞤮𞤺𞥆𞤢 𞤷𞤮𞤺𞥆𞤵𞤺𞤮𞤤×𞤂𞤭𞤥𞤮𞥅𞤪𞤫 | 𞤒𞤮𞤩𞤵𞤺𞤮𞤤 | 𞤒𞤮𞤩𞤢𞥄𞤥𞤢 | 𞤈𞤫𞥅𞤲𞤭 | 𞤑𞤭𞤤𞤭𞤴𞤢𞥄𞤲 | 𞤐𞤢𞤬𞤮𞥅𞤪𞤫",
+    "Colonnes : Date | N° ordre | Ticket (manuel) | Type | Désignation | Panne | Prix achat×Qté | À Payer | Payé | Reste | Client | Bénéfice":"𞤚𞤢𞤦𞤢𞤤𞤵 : 𞤙𞤢𞤤𞤲𞤣𞤫 | 𞤂𞤭𞤥𞤪𞤫 𞤯𞤢𞤩𞥆𞤢𞤤 | 𞤚𞤭𞤳𞤫𞥅 (𞤶𞤵𞤲𞥆𞤺𞤮) | 𞤅𞤭𞤬𞤢𞥄 | 𞤋𞤲𞥆𞤣𞤫 | 𞤈𞤵𞤼𞥆𞤵𞤺𞤮𞤤 | 𞤕𞤮𞤺𞥆𞤢 𞤷𞤮𞤺𞥆𞤵𞤺𞤮𞤤×𞤂𞤭𞤥𞤮𞥅𞤪𞤫 | 𞤒𞤮𞤩𞤵𞤺𞤮𞤤 | 𞤒𞤮𞤩𞤢𞥄𞤥𞤢 | 𞤈𞤫𞥅𞤲𞤭 | 𞤑𞤭𞤤𞤭𞤴𞤢𞥄𞤲 | 𞤐𞤢𞤬𞤮𞥅𞤪𞤫",
     "📋 Enregistre uniquement les biens réellement existants. Cette liste est visible par le compte Visiteur (avec le total des avoirs).":"📋 𞤏𞤭𞤲𞥆𞤣𞤵 𞤶𞤢𞤱𞤣𞤭 𞤯𞤭 𞤲𞤺𞤮𞥅𞤯𞤭 𞤫 𞤯𞤵𞤥 𞤼𞤢𞤲. 𞤐𞤣𞤫𞥅 𞤤𞤭𞤥𞤼𞤮𞤪𞤺𞤢𞤤 𞤭𞤲𞤢 𞤴𞤭𞥅𞤼𞤫𞥅 𞤫 𞤳𞤮𞤲𞤼𞤫 𞤔𞤮𞥅𞤯𞤭𞥅𞤯𞤮 (𞤫 𞤬𞤵𞥅 𞤳𞤫𞤩𞤢𞤤).",
+    "Enregistre uniquement les biens réellement existants. Cette liste est visible par le compte Visiteur (avec le total des avoirs).":"📋 𞤏𞤭𞤲𞥆𞤣𞤵 𞤶𞤢𞤱𞤣𞤭 𞤯𞤭 𞤲𞤺𞤮𞥅𞤯𞤭 𞤫 𞤯𞤵𞤥 𞤼𞤢𞤲. 𞤐𞤣𞤫𞥅 𞤤𞤭𞤥𞤼𞤮𞤪𞤺𞤢𞤤 𞤭𞤲𞤢 𞤴𞤭𞥅𞤼𞤫𞥅 𞤫 𞤳𞤮𞤲𞤼𞤫 𞤔𞤮𞥅𞤯𞤭𞥅𞤯𞤮 (𞤫 𞤬𞤵𞥅 𞤳𞤫𞤩𞤢𞤤).",
     "📋 Fiche commande fournisseur :":"📋 𞤊𞤭𞥅𞤧 𞤴𞤢𞤥𞤭𞤪𞤮𞥅𞤪𞤫 𞤲𞤶𞤫𞤴𞤯𞤮 :",
     "📋 Historique":"📋 𞤚𞤢𞥄𞤪𞤭𞥅𞤳𞤢",
     "📋 Nouvelle Activité":"📋 𞤘𞤮𞤤𞥆𞤢𞤤 𞤳𞤫𞤧𞤢𞤤",
+    "Nouvelle Activité":"📋 𞤘𞤮𞤤𞥆𞤢𞤤 𞤳𞤫𞤧𞤢𞤤",
     "📋 Vos activités":"📋 𞤘𞤮𞤤𞥆𞤫 𞤥𞤢𞥄",
+    "Vos activités":"📋 𞤘𞤮𞤤𞥆𞤫 𞤥𞤢𞥄",
     "📌 Origine des montants (dettes)":"📌 𞤑𞤮 𞤤𞤭𞤥𞤮𞥅𞤪𞤫 𞤲𞤺𞤢𞤪𞤢𞥄 (𞤦𞤢𞤥𞥆𞤦𞤢𞤤)",
+    "Origine des montants (dettes)":"📌 𞤑𞤮 𞤤𞤭𞤥𞤮𞥅𞤪𞤫 𞤲𞤺𞤢𞤪𞤢𞥄 (𞤦𞤢𞤥𞥆𞤦𞤢𞤤)",
     "📐 C. Bilan":"📐 𞤕. 𞤂𞤭𞤥𞤮𞥅𞤪𞤫",
+    "C. Bilan":"📐 𞤕. 𞤂𞤭𞤥𞤮𞥅𞤪𞤫",
     "📐 Formules de calcul":"📐 𞤚𞤢𞤦𞤢𞤤𞤵 𞤤𞤭𞤥𞤵𞤺𞤮𞤤",
+    "Formules de calcul":"📐 𞤚𞤢𞤦𞤢𞤤𞤵 𞤤𞤭𞤥𞤵𞤺𞤮𞤤",
     "📑 Commandes":"📑 𞤒𞤢𞤥𞤭𞤪𞤮𞥅𞤶𞤫",
     "📑 Nouvelle Commande":"📑 𞤒𞤢𞤥𞤭𞤪𞤮𞥅𞤪𞤫 𞤳𞤫𞤧𞤢𞤤",
+    "Nouvelle Commande":"📑 𞤒𞤢𞤥𞤭𞤪𞤮𞥅𞤪𞤫 𞤳𞤫𞤧𞤢𞤤",
     "📥 Import Excel":"📥 𞤐𞤢𞥄𞤼 Excel",
+    "Import Excel":"𞤐𞤢𞥄𞤼 Excel",
     "📥 Importer depuis Excel et remplacer toutes les données":"📥 𞤐𞤢𞥄𞤼 𞤣𞤭𞤺𞤢 Excel 𞤫 𞤧𞤢𞤲𞤶𞤭𞤲 𞤳𞤫𞤩𞤢𞤤 𞤬𞤵𞥅",
+    "Importer depuis Excel et remplacer toutes les données":"𞤐𞤢𞥄𞤼 𞤣𞤭𞤺𞤢 Excel 𞤫 𞤧𞤢𞤲𞤶𞤭𞤲 𞤳𞤫𞤩𞤢𞤤 𞤬𞤵𞥅",
     "📦 *COMMANDE FOURNISSEUR — Boulliwel Service*":"📦 *𞤒𞤀𞤃𞤋𞤈𞤌𞥅𞤈𞤉 𞤐𞤔𞤉𞤒𞤍𞤌 — Boulliwel Service*",
+    "*COMMANDE FOURNISSEUR — Boulliwel Service*":"*𞤒𞤀𞤃𞤋𞤈𞤌𞥅𞤈𞤉 𞤐𞤔𞤉𞤒𞤍𞤌 — Boulliwel Service*",
     "📦 Ajouter à la commande fournisseur":"📦 𞤄𞤫𞤴𞤣𞤵 𞤫 𞤴𞤢𞤥𞤭𞤪𞤮𞥅𞤪𞤫 𞤲𞤶𞤫𞤴𞤯𞤮",
+    "Ajouter à la commande fournisseur":"📦 𞤄𞤫𞤴𞤣𞤵 𞤫 𞤴𞤢𞤥𞤭𞤪𞤮𞥅𞤪𞤫 𞤲𞤶𞤫𞤴𞤯𞤮",
     "📦 Entrée Stock":"📦 𞤐𞤢𞥄𞤼𞤢𞤤 𞤔𞤢𞤱𞤣𞤭",
+    "Entrée Stock":"📦 𞤐𞤢𞥄𞤼𞤢𞤤 𞤔𞤢𞤱𞤣𞤭",
     "📦 Générer commande fournisseur":"📦 𞤅𞤮𞤧 𞤴𞤢𞤥𞤭𞤪𞤮𞥅𞤪𞤫 𞤲𞤶𞤫𞤴𞤯𞤮",
+    "Générer commande fournisseur":"📦 𞤅𞤮𞤧 𞤴𞤢𞤥𞤭𞤪𞤮𞥅𞤪𞤫 𞤲𞤶𞤫𞤴𞤯𞤮",
     "📦 Stock Ent.":"📦 𞤔𞤢𞤱𞤣𞤭 𞤑𞤮𞤥𞤨𞤢𞤲𞤭",
+    "Stock Ent.":"📦 𞤔𞤢𞤱𞤣𞤭 𞤑𞤮𞤥𞤨𞤢𞤲𞤭",
     "📦 Stock actuel":"📦 𞤔𞤢𞤱𞤣𞤭 𞤶𞤮𞥅𞤲𞤭",
+    "Stock actuel":"📦 𞤔𞤢𞤱𞤣𞤭 𞤶𞤮𞥅𞤲𞤭",
     "📦 Vue d'ensemble du Stock":"📦 𞤒𞤭𞥅𞤣𞤫 𞤬𞤵𞥅 𞤔𞤢𞤱𞤣𞤭",
+    "Vue d'ensemble du Stock":"📦 𞤒𞤭𞥅𞤣𞤫 𞤬𞤵𞥅 𞤔𞤢𞤱𞤣𞤭",
     "📩 Envoyer le lien de réinitialisation":"📩 𞤐𞤫𞤤𞤣𞤢 𞤶𞤮𞤳𞥆𞤮𞤤 𞤪𞤵𞤼𞥆𞤭𞤼𞤵𞤺𞤮𞤤",
+    "Envoyer le lien de réinitialisation":"📩 𞤐𞤫𞤤𞤣𞤢 𞤶𞤮𞤳𞥆𞤮𞤤 𞤪𞤵𞤼𞥆𞤭𞤼𞤵𞤺𞤮𞤤",
     "📩 Générer un code pour ce compte":"📩 𞤅𞤮𞤧 𞤳𞤮𞥅𞤣𞤢𞥄 𞤲𞤺𞤢𞤥 𞤲𞤣𞤫𞥅 𞤳𞤮𞤲𞤼𞤫",
+    "Générer un code pour ce compte":"📩 𞤅𞤮𞤧 𞤳𞤮𞥅𞤣𞤢𞥄 𞤲𞤺𞤢𞤥 𞤲𞤣𞤫𞥅 𞤳𞤮𞤲𞤼𞤫",
     "📲 Fournisseur WhatsApp":"📲 𞤐𞤶𞤫𞤴𞤯𞤮 WhatsApp",
+    "Fournisseur WhatsApp":"𞤐𞤶𞤫𞤴𞤯𞤮 WhatsApp",
     "📲 Installer":"📲 𞤅𞤮𞤧𞤵",
+    "Installer":"📲 𞤅𞤮𞤧𞤵",
     "📴 Mode hors ligne — dernières données du":"📴 𞤐𞤣𞤫𞥅𞤲𞤳𞤢 𞤱𞤢𞤤𞤢𞥄 𞤳𞤢𞤱𞤼𞤢𞤤 — 𞤳𞤫𞤩𞤢𞤤 𞤷𞤢𞤳𞥆𞤭𞤼𞤭𞥅𞤲𞤺𞤮𞤤",
+    "Mode hors ligne — dernières données du":"📴 𞤐𞤣𞤫𞥅𞤲𞤳𞤢 𞤱𞤢𞤤𞤢𞥄 𞤳𞤢𞤱𞤼𞤢𞤤 — 𞤳𞤫𞤩𞤢𞤤 𞤷𞤢𞤳𞥆𞤭𞤼𞤭𞥅𞤲𞤺𞤮𞤤",
     "📴 Mode hors ligne — dernières données synchronisées le":"📴 𞤐𞤣𞤫𞥅𞤲𞤳𞤢 𞤱𞤢𞤤𞤢𞥄 𞤳𞤢𞤱𞤼𞤢𞤤 — 𞤳𞤫𞤩𞤢𞤤 𞤷𞤢𞤳𞥆𞤭𞤼𞤭𞥅𞤲𞤺𞤮𞤤 𞤳𞤢𞤱𞤼𞤢𞥄𞤯𞤮 𞤲𞤴𞤢𞤤𞤢𞥄𞤲𞤣𞤫",
+    "Mode hors ligne — dernières données synchronisées le":"📴 𞤐𞤣𞤫𞥅𞤲𞤳𞤢 𞤱𞤢𞤤𞤢𞥄 𞤳𞤢𞤱𞤼𞤢𞤤 — 𞤳𞤫𞤩𞤢𞤤 𞤷𞤢𞤳𞥆𞤭𞤼𞤭𞥅𞤲𞤺𞤮𞤤 𞤳𞤢𞤱𞤼𞤢𞥄𞤯𞤮 𞤲𞤴𞤢𞤤𞤢𞥄𞤲𞤣𞤫",
     "🔄 Calculer":"🔄 𞤂𞤭𞤥",
+    "Calculer":"🔄 𞤂𞤭𞤥",
     "🔄 Clôture":"🔄 𞤖𞤮𞥅𞤧𞤵𞤺𞤮𞤤",
+    "Clôture":"🔄 𞤖𞤮𞥅𞤧𞤵𞤺𞤮𞤤",
     "🔄 Clôture sécurisée — Étape 0/3 : synchronisation avec le serveur…":"🔄 𞤖𞤮𞥅𞤧𞤵𞤺𞤮𞤤 𞤼𞤢𞤦𞥆𞤭𞤼𞤭𞥅𞤲𞤺𞤮𞤤 — 𞤘𞤢𞤣𞥆𞤢𞤲𞤮𞤤 0/3 : 𞤳𞤢𞤱𞤼𞤵𞤺𞤮𞤤 𞤫 𞤧𞤢𞤪𞤱𞤢𞤪…",
+    "Clôture sécurisée — Étape 0/3 : synchronisation avec le serveur…":"🔄 𞤖𞤮𞥅𞤧𞤵𞤺𞤮𞤤 𞤼𞤢𞤦𞥆𞤭𞤼𞤭𞥅𞤲𞤺𞤮𞤤 — 𞤘𞤢𞤣𞥆𞤢𞤲𞤮𞤤 0/3 : 𞤳𞤢𞤱𞤼𞤵𞤺𞤮𞤤 𞤫 𞤧𞤢𞤪𞤱𞤢𞤪…",
     "🔄 Clôturer la période":"🔄 𞤖𞤮𞥅𞤧𞤵 𞤲𞤣𞤫𞥅𞤲𞤳𞤢",
     "🔄 Nouvelle version de l'application disponible.":"🔄 𞤐𞤣𞤫𞥅 𞤶𞤢𞥄𞤩𞤮𞤪𞤺𞤢𞤤 𞤱𞤮𞥅𞤣𞤭 𞤼𞤢𞤱𞤢𞥄𞤥𞤢 𞤳𞤫𞤧𞤢𞤤.",
+    "Nouvelle version de l'application disponible.":"🔄 𞤐𞤣𞤫𞥅 𞤶𞤢𞥄𞤩𞤮𞤪𞤺𞤢𞤤 𞤱𞤮𞥅𞤣𞤭 𞤼𞤢𞤱𞤢𞥄𞤥𞤢 𞤳𞤫𞤧𞤢𞤤.",
     "🔄 Nouvelle version disponible. Rechargez la page.":"🔄 𞤑𞤫𞤧𞤢𞤤 𞤱𞤮𞥅𞤣𞤭. 𞤋𞤼𞥆𞤵 𞤬𞤢𞤸𞤭𞤲 𞤲𞤣𞤫𞥅 𞤸𞤫𞤤𞥆𞤮.",
+    "Nouvelle version disponible. Rechargez la page.":"🔄 𞤑𞤫𞤧𞤢𞤤 𞤱𞤮𞥅𞤣𞤭. 𞤋𞤼𞥆𞤵 𞤬𞤢𞤸𞤭𞤲 𞤲𞤣𞤫𞥅 𞤸𞤫𞤤𞥆𞤮.",
     "🔌 Test Cloud":"🔌 𞤐𞤣𞤢𞥄𞤪𞤵 Cloud",
+    "Test Cloud":"𞤐𞤣𞤢𞥄𞤪𞤵 Cloud",
     "🔍 Détail de votre situation avec l'Administrateur":"🔍 𞤄𞤮𞤤𞥆𞤫 𞤳𞤮 𞤯𞤮𞤲 𞤼𞤢𞤱𞤭 𞤫 𞤔𞤭𞥅𞤣𞤢𞥄𞤯𞤮",
+    "Détail de votre situation avec l'Administrateur":"🔍 𞤄𞤮𞤤𞥆𞤫 𞤳𞤮 𞤯𞤮𞤲 𞤼𞤢𞤱𞤭 𞤫 𞤔𞤭𞥅𞤣𞤢𞥄𞤯𞤮",
     "🔍 Détail des dépenses":"🔍 𞤄𞤮𞤤𞥆𞤫 𞤲𞤢𞤬𞤢𞤹𞤢",
+    "Détail des dépenses":"🔍 𞤄𞤮𞤤𞥆𞤫 𞤲𞤢𞤬𞤢𞤹𞤢",
     "🔍 En savoir plus":"🔍 𞤀𞤲𞥆𞤣𞤵 𞤩𞤵𞤪𞤭",
+    "En savoir plus":"🔍 𞤀𞤲𞥆𞤣𞤵 𞤩𞤵𞤪𞤭",
     "🔍 Produit, client, montant, statut...":"🔍 𞤔𞤢𞤱𞤣𞤭, 𞤳𞤭𞤤𞤭𞤴𞤢𞥄𞤲, 𞤤𞤭𞤥𞤮𞥅𞤪𞤫, 𞤸𞤮𞤳𞥆𞤵𞤺𞤮𞤤...",
+    "Produit, client, montant, statut...":"🔍 𞤔𞤢𞤱𞤣𞤭, 𞤳𞤭𞤤𞤭𞤴𞤢𞥄𞤲, 𞤤𞤭𞤥𞤮𞥅𞤪𞤫, 𞤸𞤮𞤳𞥆𞤵𞤺𞤮𞤤...",
     "🔍 Rechercher (catégorie, description)...":"🔍 𞤇𞤢𞤽 (𞤬𞤢𞤲𞥆𞤵, 𞤯𞤢𞤲𞤼𞤢𞥄𞤪𞤫)...",
+    "Rechercher (catégorie, description)...":"🔍 𞤇𞤢𞤽 (𞤬𞤢𞤲𞥆𞤵, 𞤯𞤢𞤲𞤼𞤢𞥄𞤪𞤫)...",
     "🔍 Rechercher (client, n° cmd, produit)...":"🔍 𞤇𞤢𞤽 (𞤳𞤭𞤤𞤭𞤴𞤢𞥄𞤲, 𞤤𞤭𞤥𞤪𞤫 𞤴𞤢𞤥𞤭𞤪𞤮𞥅𞤪𞤫, 𞤶𞤢𞤱𞤣𞤭)...",
+    "Rechercher (client, n° cmd, produit)...":"🔍 𞤇𞤢𞤽 (𞤳𞤭𞤤𞤭𞤴𞤢𞥄𞤲, 𞤤𞤭𞤥𞤪𞤫 𞤴𞤢𞤥𞤭𞤪𞤮𞥅𞤪𞤫, 𞤶𞤢𞤱𞤣𞤭)...",
     "🔍 Rechercher un bien...":"🔍 𞤇𞤢𞤽 𞤶𞤢𞤱𞤣𞤭...",
+    "Rechercher un bien...":"🔍 𞤇𞤢𞤽 𞤶𞤢𞤱𞤣𞤭...",
     "🔍 Rechercher un produit, client, dette, commande, dépense...":"🔍 𞤇𞤢𞤽 𞤶𞤢𞤱𞤣𞤭, 𞤳𞤭𞤤𞤭𞤴𞤢𞥄𞤲, 𞤦𞤢𞤥𞥆𞤦𞤢𞤤, 𞤴𞤢𞤥𞤭𞤪𞤮𞥅𞤪𞤫, 𞤲𞤢𞤬𞤢𞤹𞤢...",
+    "Rechercher un produit, client, dette, commande, dépense...":"🔍 𞤇𞤢𞤽 𞤶𞤢𞤱𞤣𞤭, 𞤳𞤭𞤤𞤭𞤴𞤢𞥄𞤲, 𞤦𞤢𞤥𞥆𞤦𞤢𞤤, 𞤴𞤢𞤥𞤭𞤪𞤮𞥅𞤪𞤫, 𞤲𞤢𞤬𞤢𞤹𞤢...",
     "🔍 Rechercher un produit...":"🔍 𞤇𞤢𞤽 𞤶𞤢𞤱𞤣𞤭...",
+    "Rechercher un produit...":"🔍 𞤇𞤢𞤽 𞤶𞤢𞤱𞤣𞤭...",
     "🔍 Rechercher...":"🔍 𞤇𞤢𞤽...",
+    "Rechercher...":"🔍 𞤇𞤢𞤽...",
     "🔎 DIAGNOSTIC DE CONNEXION":"🔎 𞤐𞤁𞤀𞥄𞤈𞤓𞤘𞤌𞤂 𞤔𞤌𞤑𞥆𞤉𞤈𞤉",
+    "DIAGNOSTIC DE CONNEXION":"🔎 𞤐𞤁𞤀𞥄𞤈𞤓𞤘𞤌𞤂 𞤔𞤌𞤑𞥆𞤉𞤈𞤉",
     "🔐 Choisissez un nouveau mot de passe pour votre compte.":"🔐 𞤅𞤵𞤩𞤼𞤵 𞤳𞤮𞤲𞥆𞤺𞤮𞤤 𞤤𞤢𞥄𞤱𞤮𞤤 𞤳𞤫𞤧𞤢𞤤 𞤲𞤺𞤢𞤥 𞤳𞤮𞤲𞤼𞤫 𞤥𞤢𞥄.",
+    "Choisissez un nouveau mot de passe pour votre compte.":"🔐 𞤅𞤵𞤩𞤼𞤵 𞤳𞤮𞤲𞥆𞤺𞤮𞤤 𞤤𞤢𞥄𞤱𞤮𞤤 𞤳𞤫𞤧𞤢𞤤 𞤲𞤺𞤢𞤥 𞤳𞤮𞤲𞤼𞤫 𞤥𞤢𞥄.",
     "🔐 Récupération de mot de passe":"🔐 𞤈𞤵𞤼𞥆𞤵𞤺𞤮𞤤 𞤳𞤮𞤲𞥆𞤺𞤮𞤤 𞤤𞤢𞥄𞤱𞤮𞤤",
+    "Récupération de mot de passe":"🔐 𞤈𞤵𞤼𞥆𞤵𞤺𞤮𞤤 𞤳𞤮𞤲𞥆𞤺𞤮𞤤 𞤤𞤢𞥄𞤱𞤮𞤤",
     "🔐 Se connecter":"🔐 𞤐𞤢𞥄𞤼𞤵",
+    "Se connecter":"🔐 𞤐𞤢𞥄𞤼𞤵",
     "🔑 Changer le mot de passe":"🔑 𞤅𞤢𞤲𞤶𞤭𞤲 𞤳𞤮𞤲𞥆𞤺𞤮𞤤 𞤤𞤢𞥄𞤱𞤮𞤤",
+    "Changer le mot de passe":"🔑 𞤅𞤢𞤲𞤶𞤭𞤲 𞤳𞤮𞤲𞥆𞤺𞤮𞤤 𞤤𞤢𞥄𞤱𞤮𞤤",
     "🔑 Changer mot de passe":"🔑 𞤅𞤢𞤲𞤶𞤭𞤲 𞤳𞤮𞤲𞥆𞤺𞤮𞤤 𞤤𞤢𞥄𞤱𞤮𞤤",
     "🔑 Choisissez le compte concerné, demandez un code, puis entrez-le ci-dessous avec votre nouveau mot de passe. Le code est":"🔑 𞤅𞤵𞤩𞤼𞤵 𞤳𞤮𞤲𞤼𞤫, 𞤯𞤢𞤩𞥆𞤵 𞤳𞤮𞥅𞤣𞤢𞥄, 𞤩𞤢𞥄𞤱𞤮 𞤲𞤢𞥄𞤼𞤵 𞤯𞤵𞤥 𞤤𞤫𞤧 𞤫 𞤳𞤮𞤲𞥆𞤺𞤮𞤤 𞤤𞤢𞥄𞤱𞤮𞤤 𞤳𞤫𞤧𞤢𞤤 𞤥𞤢𞥄. 𞤑𞤮𞥅𞤣𞤢𞥄 𞤭𞤲𞤢",
+    "Choisissez le compte concerné, demandez un code, puis entrez-le ci-dessous avec votre nouveau mot de passe. Le code est":"🔑 𞤅𞤵𞤩𞤼𞤵 𞤳𞤮𞤲𞤼𞤫, 𞤯𞤢𞤩𞥆𞤵 𞤳𞤮𞥅𞤣𞤢𞥄, 𞤩𞤢𞥄𞤱𞤮 𞤲𞤢𞥄𞤼𞤵 𞤯𞤵𞤥 𞤤𞤫𞤧 𞤫 𞤳𞤮𞤲𞥆𞤺𞤮𞤤 𞤤𞤢𞥄𞤱𞤮𞤤 𞤳𞤫𞤧𞤢𞤤 𞤥𞤢𞥄. 𞤑𞤮𞥅𞤣𞤢𞥄 𞤭𞤲𞤢",
     "🔑 Code de réinitialisation Administrateur :":"🔑 𞤑𞤮𞥅𞤣𞤢𞥄 𞤪𞤵𞤼𞥆𞤭𞤼𞤵𞤺𞤮𞤤 𞤔𞤭𞥅𞤣𞤢𞥄𞤯𞤮 :",
+    "Code de réinitialisation Administrateur :":"🔑 𞤑𞤮𞥅𞤣𞤢𞥄 𞤪𞤵𞤼𞥆𞤭𞤼𞤵𞤺𞤮𞤤 𞤔𞤭𞥅𞤣𞤢𞥄𞤯𞤮 :",
     "🔑 Code(s) Associé à relayer :":"🔑 𞤑𞤮𞥅𞤣𞤢𞥄(𞤶𞤭) 𞤅𞤫𞤸𞤭𞤤 𞤲𞤺𞤢𞤯𞤢𞤲 𞤸𞤮𞤳𞥆𞤫𞥅𞤣𞤫 :",
+    "Code(s) Associé à relayer :":"🔑 𞤑𞤮𞥅𞤣𞤢𞥄(𞤶𞤭) 𞤅𞤫𞤸𞤭𞤤 𞤲𞤺𞤢𞤯𞤢𞤲 𞤸𞤮𞤳𞥆𞤫𞥅𞤣𞤫 :",
     "🔑 Compte":"🔑 𞤑𞤮𞤲𞤼𞤫",
+    "Compte":"🔑 𞤑𞤮𞤲𞤼𞤫",
     "🔑 Demander un code de réinitialisation":"🔑 𞤍𞤢𞤩𞥆𞤵 𞤳𞤮𞥅𞤣𞤢𞥄 𞤪𞤵𞤼𞥆𞤭𞤼𞤵𞤺𞤮𞤤",
+    "Demander un code de réinitialisation":"🔑 𞤍𞤢𞤩𞥆𞤵 𞤳𞤮𞥅𞤣𞤢𞥄 𞤪𞤵𞤼𞥆𞤭𞤼𞤵𞤺𞤮𞤤",
     "🔑 Mon mot de passe":"🔑 𞤑𞤮𞤲𞥆𞤺𞤮𞤤 𞤤𞤢𞥄𞤱𞤮𞤤 𞤢𞤥",
+    "Mon mot de passe":"🔑 𞤑𞤮𞤲𞥆𞤺𞤮𞤤 𞤤𞤢𞥄𞤱𞤮𞤤 𞤢𞤥",
     "🔑 Saisissez l'adresse e-mail associée à votre compte. Vous recevrez un lien pour définir un nouveau mot de passe, sans avoir besoin d'ouvrir Supabase.":"🔑 𞤏𞤭𞤲𞥆𞤣𞤵 𞤲𞤣𞤭𞥅𞤱𞤢𞤲 e-mail 𞤶𞤮𞤳𞥆𞤵𞤯𞤮 𞤫 𞤳𞤮𞤲𞤼𞤫 𞤥𞤢𞥄. 𞤀 𞤸𞤫𞤩𞤢𞤲 𞤶𞤮𞤳𞥆𞤮𞤤 𞤲𞤺𞤢𞤥 𞤧𞤮𞤧𞤵𞤺𞤮𞤤 𞤳𞤮𞤲𞥆𞤺𞤮𞤤 𞤤𞤢𞥄𞤱𞤮𞤤 𞤳𞤫𞤧𞤢𞤤, 𞤢𞤤𞤢𞥄 𞤳𞤮 𞤲𞤺𞤢𞤯𞤢𞤼𞤢𞥄 Supabase.",
+    "Saisissez l'adresse e-mail associée à votre compte. Vous recevrez un lien pour définir un nouveau mot de passe, sans avoir besoin d'ouvrir Supabase.":"𞤏𞤭𞤲𞥆𞤣𞤵 𞤲𞤣𞤭𞥅𞤱𞤢𞤲 e-mail 𞤶𞤮𞤳𞥆𞤵𞤯𞤮 𞤫 𞤳𞤮𞤲𞤼𞤫 𞤥𞤢𞥄. 𞤀 𞤸𞤫𞤩𞤢𞤲 𞤶𞤮𞤳𞥆𞤮𞤤 𞤲𞤺𞤢𞤥 𞤧𞤮𞤧𞤵𞤺𞤮𞤤 𞤳𞤮𞤲𞥆𞤺𞤮𞤤 𞤤𞤢𞥄𞤱𞤮𞤤 𞤳𞤫𞤧𞤢𞤤, 𞤢𞤤𞤢𞥄 𞤳𞤮 𞤲𞤺𞤢𞤯𞤢𞤼𞤢𞥄 Supabase.",
     "🔒 Accès verrouillé":"🔒 𞤐𞤢𞥄𞤼𞤵𞤺𞤮𞤤 𞤵𞤣𞥆𞤢𞥄𞤥𞤢",
     "🔒 Anomalie détectée : les dettes sont restées verrouillées d'une ancienne clôture.":"🔒 𞤄𞤮𞤤𞥆𞤫 𞤼𞤢𞤱𞤢𞥄𞤥𞤢 : 𞤦𞤢𞤥𞥆𞤦𞤢𞤤 𞤭𞤲𞤢 𞤲𞤺𞤮𞥅𞤣𞤭 𞤵𞤣𞥆𞤢𞥄𞤯𞤭 𞤣𞤭𞤺𞤢 𞤸𞤮𞥅𞤧𞤵𞤺𞤮𞤤 𞤢𞤣𞤭𞥅.",
     "🔒 Ci-dessous, les Dettes, Paiements et Dépenses tels qu'ils existaient au moment de la clôture du":"🔒 𞤂𞤫𞤧, 𞤄𞤢𞤥𞥆𞤦𞤢𞤤, 𞤒𞤮𞤩𞤢𞤤 𞤫 𞤐𞤢𞤬𞤢𞤹𞤢 𞤲𞤮 𞤲𞤺𞤮𞤲𞤭 𞤫 𞤲𞤣𞤫 𞤸𞤮𞥅𞤧𞤵𞤺𞤮𞤤",
@@ -5140,8 +5509,11 @@ var I18N={
     "🔓 Déverrouiller":"🔓 𞤓𞤣𞥆𞤭𞤼",
     "🔓 Saisie des dettes déverrouillée":"🔓 𞤏𞤭𞤲𞥆𞤣𞤵𞤺𞤮𞤤 𞤦𞤢𞤥𞥆𞤦𞤢𞤤 𞤵𞤣𞥆𞤭𞤼𞤢𞥄𞤥𞤢",
     "🔗 Lien partage":"🔗 𞤔𞤮𞤳𞥆𞤮𞤤 𞤧𞤫𞤲𞥆𞤣𞤵𞤺𞤮𞤤",
+    "Lien partage":"🔗 𞤔𞤮𞤳𞥆𞤮𞤤 𞤧𞤫𞤲𞥆𞤣𞤵𞤺𞤮𞤤",
     "🔠 Taille du texte":"🔠 𞤃𞤢𞤱𞤲𞤵𞤺𞤮𞤤 𞤦𞤭𞤲𞥆𞤣𞤭",
+    "Taille du texte":"🔠 𞤃𞤢𞤱𞤲𞤵𞤺𞤮𞤤 𞤦𞤭𞤲𞥆𞤣𞤭",
     "🔴 Alertes Stock Faible — Fiches Commande Fournisseur":"🔴 𞤖𞤢𞤦𞤢𞤪𞤵 𞤔𞤢𞤱𞤣𞤭 𞤇𞤮𞤴𞤯𞤮 — 𞤊𞤭𞥅𞤧 𞤒𞤢𞤥𞤭𞤪𞤮𞥅𞤪𞤫 𞤐𞤶𞤫𞤴𞤯𞤮",
+    "Alertes Stock Faible — Fiches Commande Fournisseur":"𞤖𞤢𞤦𞤢𞤪𞤵 𞤔𞤢𞤱𞤣𞤭 𞤇𞤮𞤴𞤯𞤮 — 𞤊𞤭𞥅𞤧 𞤒𞤢𞤥𞤭𞤪𞤮𞥅𞤪𞤫 𞤐𞤶𞤫𞤴𞤯𞤮",
     "🔴 Données locales incomplètes (hors ligne)":"🔴 𞤑𞤫𞤩𞤢𞤤 𞤲𞤣𞤫𞤪 𞤳𞤵𞥅𞤼𞤮𞤪𞤺𞤢𞤤 𞤲𞤺𞤮𞤤𞤭 (𞤱𞤢𞤤𞤢𞥄 𞤳𞤢𞤱𞤼𞤢𞤤)",
     "🔴 Erreur de synchronisation":"🔴 𞤄𞤮𞤤𞥆𞤫 𞤳𞤢𞤱𞤼𞤵𞤺𞤮𞤤",
     "🔴 Erreur de synchronisation des activités":"🔴 𞤄𞤮𞤤𞥆𞤫 𞤳𞤢𞤱𞤼𞤵𞤺𞤮𞤤 𞤺𞤮𞤤𞥆𞤫",
@@ -5150,32 +5522,51 @@ var I18N={
     "🔴 Échec de synchronisation auto":"🔴 𞤑𞤢𞤱𞤼𞤵𞤺𞤮𞤤 𞤸𞤮𞥅𞤪𞤫 𞤥𞤢𞤴𞤪𞤫 𞤱𞤢𞥄𞤱𞤭𞥅",
     "🔴 Échec de synchronisation auto (Activités/Stock)":"🔴 𞤑𞤢𞤱𞤼𞤵𞤺𞤮𞤤 𞤸𞤮𞥅𞤪𞤫 𞤥𞤢𞤴𞤪𞤫 𞤱𞤢𞥄𞤱𞤭𞥅 (𞤘𞤮𞤤𞥆𞤫/𞤔𞤢𞤱𞤣𞤭)",
     "🔵 PART ASSOCIÉ (base)":"🔵 𞤊𞤉𞤐𞥆𞤁𞤌 𞤅𞤉𞤖𞤋𞤂 (𞤬𞤵𞤯𞥆𞤮𞥅𞤣𞤫)",
+    "PART ASSOCIÉ (base)":"🔵 𞤊𞤉𞤐𞥆𞤁𞤌 𞤅𞤉𞤖𞤋𞤂 (𞤬𞤵𞤯𞥆𞤮𞥅𞤣𞤫)",
     "🔽 Masquer":"🔽 𞤅𞤵𞥅𞤯𞤵",
+    "Masquer":"🔽 𞤅𞤵𞥅𞤯𞤵",
     "🖥️ Gestion de l'affichage":"🖥️ 𞤖𞤢𞤳𞥆𞤭𞤤𞤵𞤺𞤮𞤤 𞤥𞤦𞤢𞥄𞤣𞤭",
+    "Gestion de l'affichage":"🖥️ 𞤖𞤢𞤳𞥆𞤭𞤤𞤵𞤺𞤮𞤤 𞤥𞤦𞤢𞥄𞤣𞤭",
     "🖨️ Imprimer":"🖨️ 𞤐𞤣𞤢𞥄𞤪𞤵",
     "🗂️ Données":"🗂️ 𞤑𞤫𞤩𞤢𞤤",
+    "Données":"🗂️ 𞤑𞤫𞤩𞤢𞤤",
     "🗑️ Corbeille":"🗑️ 𞤊𞤢𞥄𞤦𞤵𞥅𞤶𞤭",
     "🗑️ Dettes":"🗑️ 𞤄𞤢𞤥𞥆𞤦𞤢𞤤",
     "🗑️ Paiements":"🗑️ 𞤒𞤮𞤩𞤢𞤤",
     "🗑️ Supprimer ce bien du patrimoine":"🗑️ 𞤋𞤼𞥆𞤵 𞤲𞤣𞤫𞥅 𞤶𞤢𞤱𞤣𞤭 𞤫 𞤶𞤢𞤱𞤣𞤭",
+    "Supprimer ce bien du patrimoine":"🗑️ 𞤋𞤼𞥆𞤵 𞤲𞤣𞤫𞥅 𞤶𞤢𞤱𞤣𞤭 𞤫 𞤶𞤢𞤱𞤣𞤭",
     "🗑️ Supprimer cette activité":"🗑️ 𞤋𞤼𞥆𞤵 𞤲𞤣𞤫𞥅 𞤺𞤮𞤤𞥆𞤢𞤤",
+    "Supprimer cette activité":"🗑️ 𞤋𞤼𞥆𞤵 𞤲𞤣𞤫𞥅 𞤺𞤮𞤤𞥆𞤢𞤤",
     "🗑️ Supprimer définitivement cette activité":"🗑️ 𞤋𞤼𞥆𞤵 𞤲𞤣𞤫𞥅 𞤺𞤮𞤤𞥆𞤢𞤤 𞤸𞤢𞥄 𞤬𞤵𞥅",
     "🗑️ Supprimer tous les paiements":"🗑️ 𞤋𞤼𞥆𞤵 𞤴𞤮𞤩𞤢𞤤 𞤬𞤵𞥅",
+    "Supprimer tous les paiements":"🗑️ 𞤋𞤼𞥆𞤵 𞤴𞤮𞤩𞤢𞤤 𞤬𞤵𞥅",
     "🗑️ Supprimer tout le Stock Entreprise":"🗑️ 𞤋𞤼𞥆𞤵 𞤔𞤢𞤱𞤣𞤭 𞤑𞤮𞤥𞤨𞤢𞤲𞤭 𞤬𞤵𞥅",
+    "Supprimer tout le Stock Entreprise":"🗑️ 𞤋𞤼𞥆𞤵 𞤔𞤢𞤱𞤣𞤭 𞤑𞤮𞤥𞤨𞤢𞤲𞤭 𞤬𞤵𞥅",
     "🗑️ Supprimer toutes les activités":"🗑️ 𞤋𞤼𞥆𞤵 𞤺𞤮𞤤𞥆𞤫 𞤬𞤵𞥅",
+    "Supprimer toutes les activités":"🗑️ 𞤋𞤼𞥆𞤵 𞤺𞤮𞤤𞥆𞤫 𞤬𞤵𞥅",
     "🗑️ Supprimer toutes les commandes":"🗑️ 𞤋𞤼𞥆𞤵 𞤴𞤢𞤥𞤭𞤪𞤮𞥅𞤶𞤫 𞤬𞤵𞥅",
+    "Supprimer toutes les commandes":"🗑️ 𞤋𞤼𞥆𞤵 𞤴𞤢𞤥𞤭𞤪𞤮𞥅𞤶𞤫 𞤬𞤵𞥅",
     "🗑️ Supprimer toutes les dettes":"🗑️ 𞤋𞤼𞥆𞤵 𞤦𞤢𞤥𞥆𞤦𞤢𞤤 𞤬𞤵𞥅",
+    "Supprimer toutes les dettes":"🗑️ 𞤋𞤼𞥆𞤵 𞤦𞤢𞤥𞥆𞤦𞤢𞤤 𞤬𞤵𞥅",
     "🗑️ Supprimer toutes les dépenses":"🗑️ 𞤋𞤼𞥆𞤵 𞤲𞤢𞤬𞤢𞤹𞤢 𞤬𞤵𞥅",
+    "Supprimer toutes les dépenses":"🗑️ 𞤋𞤼𞥆𞤵 𞤲𞤢𞤬𞤢𞤹𞤢 𞤬𞤵𞥅",
     "🗑️ Tout":"🗑️ 𞤊𞤵𞥅",
     "🗑️ Tout supprimer":"🗑️ 𞤋𞤼𞥆𞤵 𞤬𞤵𞥅",
+    "Tout supprimer":"🗑️ 𞤋𞤼𞥆𞤵 𞤬𞤵𞥅",
     "🗑️ Vider":"🗑️ 𞤇𞤮𞥅𞤧",
+    "Vider":"🗑️ 𞤇𞤮𞥅𞤧",
     "🗑️ Vider Associé":"🗑️ 𞤇𞤮𞥅𞤧 𞤅𞤫𞤸𞤭𞤤",
+    "Vider Associé":"🗑️ 𞤇𞤮𞥅𞤧 𞤅𞤫𞤸𞤭𞤤",
     "🗑️ Vider les activités de l'Associé":"🗑️ 𞤇𞤮𞥅𞤧 𞤺𞤮𞤤𞥆𞤫 𞤅𞤫𞤸𞤭𞤤",
+    "Vider les activités de l'Associé":"🗑️ 𞤇𞤮𞥅𞤧 𞤺𞤮𞤤𞥆𞤫 𞤅𞤫𞤸𞤭𞤤",
     "🗑️ Vider tout l'historique":"🗑️ 𞤇𞤮𞥅𞤧 𞤼𞤢𞥄𞤪𞤭𞥅𞤳𞤢 𞤬𞤵𞥅",
     "🗓️ Période réellement couverte par les activités affichées :":"🗓️ 𞤐𞤣𞤫𞥅𞤲𞤳𞤢 𞤺𞤮𞤤𞥆𞤫 𞤸𞤮𞤤𞥆𞤢𞥄𞤯𞤫 𞤳𞤢𞤩𞤭 :",
+    "Période réellement couverte par les activités affichées :":"🗓️ 𞤐𞤣𞤫𞥅𞤲𞤳𞤢 𞤺𞤮𞤤𞥆𞤫 𞤸𞤮𞤤𞥆𞤢𞥄𞤯𞤫 𞤳𞤢𞤩𞤭 :",
     "🚪 Déconnexion":"🚪 𞤒𞤢𞤤𞤼𞤵",
+    "Déconnexion":"🚪 𞤒𞤢𞤤𞤼𞤵",
     "🚫 Action réservée à l'Administrateur.":"🚫 𞤘𞤮𞤤𞥆𞤢𞤤 𞤔𞤭𞥅𞤣𞤢𞥄𞤯𞤮 𞤼𞤢𞤲.",
     "🚫 Masquer l'Associé":"🚫 𞤅𞤵𞥅𞤯𞤵 𞤅𞤫𞤸𞤭𞤤",
+    "Masquer l'Associé":"🚫 𞤅𞤵𞥅𞤯𞤵 𞤅𞤫𞤸𞤭𞤤",
     "🚫 Section réservée à l'Administrateur.":"🚫 𞤚𞤫𞤲𞥆𞤣𞤵𞤺𞤮𞤤 𞤔𞤭𞥅𞤣𞤢𞥄𞤯𞤮 𞤼𞤢𞤲.",
     "🟠 Reconnexion…":"🟠 𞤔𞤮𞤳𞥆𞤭𞤼𞤵𞤺𞤮𞤤…",
     "🟠 Synchronisation (clôture)…":"🟠 𞤑𞤢𞤱𞤼𞤵𞤺𞤮𞤤 (𞤸𞤮𞥅𞤧𞤵𞤺𞤮𞤤)…",
@@ -5183,20 +5574,26 @@ var I18N={
     "🟠 Synchronisation…":"🟠 𞤑𞤢𞤱𞤼𞤵𞤺𞤮𞤤…",
     "🟠 Vérification cloud…":"🟠 𞤐𞤣𞤢𞥄𞤪𞤵𞤺𞤮𞤤 cloud…",
     "🟡 MA PART":"🟡 𞤊𞤉𞤐𞥆𞤁𞤌 𞤀𞤃",
+    "MA PART":"🟡 𞤊𞤉𞤐𞥆𞤁𞤌 𞤀𞤃",
     "🟢 Activités synchronisées":"🟢 𞤘𞤮𞤤𞥆𞤫 𞤳𞤢𞤱𞤼𞤢𞥄𞤯𞤫",
     "🟢 Commandes clients disponibles — à faire savoir":"🟢 𞤒𞤢𞤥𞤭𞤪𞤮𞥅𞤶𞤫 𞤳𞤭𞤤𞤭𞤴𞤢𞥄𞤩𞤫 𞤲𞤺𞤮𞥅𞤣𞤭 — 𞤢𞤲𞥆𞤣𞤭𞤲",
+    "Commandes clients disponibles — à faire savoir":"𞤒𞤢𞤥𞤭𞤪𞤮𞥅𞤶𞤫 𞤳𞤭𞤤𞤭𞤴𞤢𞥄𞤩𞤫 𞤲𞤺𞤮𞥅𞤣𞤭 — 𞤢𞤲𞥆𞤣𞤭𞤲",
     "🟢 En ligne (Associé)":"🟢 𞤉 𞤳𞤢𞤱𞤼𞤢𞤤 (𞤅𞤫𞤸𞤭𞤤)",
     "🟢 Période active (en cours)":"🟢 𞤐𞤣𞤫𞥅𞤲𞤳𞤢 𞤯𞤮𞤲 𞤲𞤺𞤮𞤤𞥆𞤢 (𞤶𞤮𞥅𞤲𞤭)",
     "🟢 Synchronisé":"🟢 𞤑𞤢𞤱𞤼𞤢𞥄𞤥𞤢",
     "🟢 Visiteur connecté":"🟢 𞤔𞤮𞥅𞤯𞤭𞥅𞤯𞤮 𞤶𞤮𞤳𞥆𞤭𞥅",
     "🤝 A. Compte Associé — éléments visibles pour l'Associé":"🤝 𞤀. 𞤑𞤮𞤲𞤼𞤫 𞤅𞤫𞤸𞤭𞤤 — 𞤳𞤮 𞤯𞤮𞤲 𞤲𞤺𞤭𞥅𞤼𞤫𞥅 𞤲𞤺𞤢𞤥 𞤅𞤫𞤸𞤭𞤤",
+    "A. Compte Associé — éléments visibles pour l'Associé":"🤝 𞤀. 𞤑𞤮𞤲𞤼𞤫 𞤅𞤫𞤸𞤭𞤤 — 𞤳𞤮 𞤯𞤮𞤲 𞤲𞤺𞤭𞥅𞤼𞤫𞥅 𞤲𞤺𞤢𞤥 𞤅𞤫𞤸𞤭𞤤",
     "🤝 Associé":"🤝 𞤅𞤫𞤸𞤭𞤤",
     "🤝 Associé seul":"🤝 𞤅𞤫𞤸𞤭𞤤 𞤼𞤢𞤲",
+    "Associé seul":"🤝 𞤅𞤫𞤸𞤭𞤤 𞤼𞤢𞤲",
     "🧾 Dépenses":"🧾 𞤐𞤢𞤬𞤢𞤹𞤢",
     "% Stock Perso (créance = prix revient + X%)":"% 𞤔𞤢𞤱𞤣𞤭 𞤢𞤥 (𞤦𞤢𞤥𞥆𞤦𞤢𞤤 = 𞤷𞤮𞤺𞥆𞤢 𞤪𞤵𞤼𞥆𞤵𞤺𞤮𞤤 + 𞤝%)",
     "📞 Appeler":"📞 𞤐𞤮𞤣𞥆𞤵",
     "📲 Prévenir (WhatsApp)":"📲 𞤀𞤲𞥆𞤣𞤭𞤲 (WhatsApp)",
+    "Prévenir (WhatsApp)":"𞤀𞤲𞥆𞤣𞤭𞤲 (WhatsApp)",
     "👤 dont":"👤 𞤫",
+    "dont":"👤 𞤫",
     "Bénéfice = Montant PAYÉ − (Prix achat × Qté).":"𞤐𞤢𞤬𞤮𞥅𞤪𞤫 = 𞤂𞤭𞤥𞤮𞥅𞤪𞤫 𞤒𞤌𞤩𞤀𞥄𞤃𞤀 − (𞤕𞤮𞤺𞥆𞤢 𞤷𞤮𞤺𞥆𞤵𞤺𞤮𞤤 × 𞤂𞤭𞤥𞤮𞥅𞤪𞤫).",
     "Créance = (Prix achat × Qté) × 1.15":"𞤄𞤢𞤥𞥆𞤦𞤢𞤤 = (𞤕𞤮𞤺𞥆𞤢 𞤷𞤮𞤺𞥆𞤵𞤺𞤮𞤤 × 𞤂𞤭𞤥𞤮𞥅𞤪𞤫) × 1.15",
     "Créance = (Prix achat × Qté) × 1.15 — Prix revient + 15%":"𞤄𞤢𞤥𞥆𞤦𞤢𞤤 = (𞤕𞤮𞤺𞥆𞤢 𞤷𞤮𞤺𞥆𞤵𞤺𞤮𞤤 × 𞤂𞤭𞤥𞤮𞥅𞤪𞤫) × 1.15 — 𞤕𞤮𞤺𞥆𞤢 𞤪𞤵𞤼𞥆𞤵𞤺𞤮𞤤 + 15%",
@@ -5218,6 +5615,7 @@ var I18N={
     "= cette période (modifiables) |":"= 𞤲𞤣𞤫𞥅𞤲𞤳𞤢 𞤯𞤮𞥅 (𞤭𞤲𞤢 𞤱𞤢𞥄𞤱𞤭 𞤧𞤢𞤲𞤶𞤫𞥅𞤣𞤫) |",
     "= périodes précédentes (verrouillées).":"= 𞤲𞤣𞤫𞥅𞤲𞤳𞤢 𞤢𞤣𞤭𞥅𞤯𞤮 (𞤵𞤣𞥆𞤢𞥄𞤯𞤮).",
     "📊 Dans le bilan : Dettes nettes = Total dettes − Total paiements reçus.":"📊 𞤉 𞤤𞤭𞤥𞤮𞥅𞤪𞤫 : 𞤄𞤢𞤥𞥆𞤦𞤢𞤤 𞤷𞤵𞤩𞤢𞥄𞤯𞤮 = 𞤊𞤵𞥅 𞤦𞤢𞤥𞥆𞤦𞤢𞤤 − 𞤊𞤵𞥅 𞤴𞤮𞤩𞤢𞤤 𞤸𞤫𞤩𞤢𞥄𞤥𞤢.",
+    "Dans le bilan : Dettes nettes = Total dettes − Total paiements reçus.":"📊 𞤉 𞤤𞤭𞤥𞤮𞥅𞤪𞤫 : 𞤄𞤢𞤥𞥆𞤦𞤢𞤤 𞤷𞤵𞤩𞤢𞥄𞤯𞤮 = 𞤊𞤵𞥅 𞤦𞤢𞤥𞥆𞤦𞤢𞤤 − 𞤊𞤵𞥅 𞤴𞤮𞤩𞤢𞤤 𞤸𞤫𞤩𞤢𞥄𞤥𞤢.",
     "Capital Ent":"𞤑𞤢𞤨𞤭𞤼𞤢𞥄𞤤 𞤑𞤮𞤥𞤨𞤢𞤲𞤭",
     "Reste Perso":"𞤈𞤫𞥅𞤲𞤭 𞤔𞤢𞤱𞤣𞤭 𞤢𞤥",
     "Val. Ent":"𞤕𞤫𞥅𞤣𞤫 𞤑𞤮𞤥𞤨𞤢𞤲𞤭",
@@ -5226,9 +5624,12 @@ var I18N={
     "[Supabase] Échec de synchronisation (réception) :":"[Supabase] 𞤑𞤢𞤱𞤼𞤵𞤺𞤮𞤤 𞤱𞤢𞥄𞤱𞤭𞥅 (𞤸𞤫𞤩𞤵𞤺𞤮𞤤) :",
     "[doLogin] Échec réseau — tentative de reprise hors ligne…":"[𞤣𞤮𞤂𞤮𞤺𞤭𞤲] 𞤄𞤮𞤤𞥆𞤫 𞤳𞤢𞤱𞤼𞤢𞤤 — 𞤭𞤲𞤢 𞤸𞤮𞤴𞤼𞤭𞤲𞤢 𞤫 𞤱𞤢𞤤𞤢𞥄 𞤳𞤢𞤱𞤼𞤢𞤤…",
     "🌑 Sombre":"🌑 𞤐𞤭𞤩𞥆𞤫𞤪𞤫",
+    "Sombre":"🌑 𞤐𞤭𞤩𞥆𞤫𞤪𞤫",
     "⚫ Noir":"⚫ 𞤇𞤢𞤤𞤫𞥅𞤪𞤭",
+    "Noir":"⚫ 𞤇𞤢𞤤𞤫𞥅𞤪𞤭",
     "⬛ Gris":"⬛ 𞤄𞤵𞥅𞤯𞤭",
     "⚪ Blanc":"⚪ 𞤍𞤢𞤲𞤫𞥅𞤪𞤭",
+    "Blanc":"𞤍𞤢𞤲𞤫𞥅𞤪𞤭",
     "Aucune donnée n'a été modifiée ou supprimée.":"𞤑𞤫𞤩𞤢𞤤 𞤱𞤢𞤤𞤢𞥄 𞤧𞤢𞤲𞤶𞤢𞥄𞤥𞤢 𞤥𞤢𞤤𞥆𞤢 𞤭𞤼𞥆𞤢𞥄𞤥𞤢.",
     "Aucune récupération possible après confirmation.":"𞤈𞤵𞤼𞥆𞤵𞤺𞤮𞤤 𞤱𞤢𞤤𞤢𞥄 𞤩𞤢𞥄𞤱𞤮 𞤼𞤢𞤦𞥆𞤭𞤼𞤭𞤲𞤺𞤮𞤤.",
     "Aucune saisie manuelle.":"𞤏𞤭𞤲𞥆𞤣𞤵𞤺𞤮𞤤 𞤶𞤵𞤲𞥆𞤺𞤮 𞤱𞤢𞤤𞤢𞥄.",
@@ -5900,7 +6301,7 @@ function rZoneCodesAttente(){
   var z=document.getElementById('zone-codes-attente'); if(!z) return;
   var actifs=(D.resetCodes||[]).filter(function(c){ return c.role==='associe' && !c.used && Date.now()<c.expiresAt; });
   if(!actifs.length){ z.innerHTML='<div style="font-size:.73rem;color:var(--tx3)">Aucun code de réinitialisation Associé en attente.</div>'; return; }
-  var html='<div style="font-size:.76rem;color:var(--tx2);margin-bottom:5px">🔑 Code(s) Associé à relayer :</div>';
+  var html='<div style="font-size:.76rem;color:var(--tx2);margin-bottom:5px">Code(s) Associé à relayer :</div>';
   actifs.forEach(function(c){
     var resteSec=Math.max(0,Math.round((c.expiresAt-Date.now())/1000));
     html+='<div style="background:var(--bg4);border-radius:7px;padding:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center"><strong style="font-size:1.05rem;letter-spacing:2px">'+c.code+'</strong><span style="font-size:.7rem;color:var(--tx3)">expire dans '+Math.floor(resteSec/60)+'m'+(resteSec%60)+'s</span></div>';
@@ -6569,7 +6970,7 @@ function rAF(){
   ['a-date','a-ticket','a-desig','a-panne','a-achat','a-apayer','a-paye','a-client','a-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
   sv('a-qte',1); sv('a-type','Vente');
   document.getElementById('a-prev').style.display='none';
-  st('ma-t','📋 Nouvelle Activité');
+  st('ma-t','Nouvelle Activité');
   var b=document.getElementById('btn-sa'); b.textContent='✓ Enregistrer'; b.onclick=enrAct;
   basculerChampsSelonType();
 }
@@ -6586,11 +6987,11 @@ function editAct(id){
   sv('a-eid',id);sv('a-date',a.date);sv('a-ticket',a.ticket||'');sv('a-type',a.type);
   sv('a-desig',a.desig);sv('a-panne',a.panne||'');sv('a-achat',a.achat);sv('a-qte',a.qte||1);
   sv('a-apayer',a.apayer);sv('a-paye',a.paye);sv('a-client',a.client||'');
-  st('ma-t','✏️ Modifier Activité'); basculerChampsSelonType(); pAct(); om('ma');
+  st('ma-t','Modifier Activité'); basculerChampsSelonType(); pAct(); om('ma');
 }
 function delAct(id){
   var a=D.activites.find(function(x){ return x.id===id; }); if(!a) return;
-  demanderConfirmationSecurisee('🗑️ Supprimer cette activité', '• '+a.type+' : <strong>'+echap(a.desig)+'</strong><br>• Montant payé : '+fmt(a.paye||0)+'<br>• Le stock lié sera automatiquement réajusté.', false, function(){
+  demanderConfirmationSecurisee('Supprimer cette activité', '• '+a.type+' : <strong>'+echap(a.desig)+'</strong><br>• Montant payé : '+fmt(a.paye||0)+'<br>• Le stock lié sera automatiquement réajusté.', false, function(){
     ajusterStockVendu(a.desig, -(a.qte||0));
     D.activites=D.activites.filter(function(x){ return x.id!==id; });
     markDeleted('activites',id);
@@ -6769,7 +7170,7 @@ function rSF(){
   // produit pourtant ajouté le jour même. On le pré-remplit maintenant
   // avec la date du jour, comme point de départ (modifiable si besoin).
   sv('s-date', td());
-  sv('s-vente',0); sv('s-seuil',3); st('ms-t','📦 Entrée Stock');
+  sv('s-vente',0); sv('s-seuil',3); st('ms-t','Entrée Stock');
   fillDLCategoriesStock();
   var b=document.getElementById('btn-ss'); b.textContent='✓ Enregistrer'; b.onclick=enrStock;
   var h=document.getElementById('s-qte-hint'); if(h) h.style.display='none';
@@ -6778,7 +7179,7 @@ function editStock(id){
   var s=D.stock.find(function(x){ return x.id===id; }); if(!s) return;
   sv('s-eid',id);sv('s-nom',s.nom);sv('s-qte',s.qteInitiale);sv('s-achat',s.achat);sv('s-vente',s.vente||'');sv('s-date',s.date||'');sv('s-seuil',s.seuil||3);sv('s-categorie',s.categorie||'');
   fillDLCategoriesStock();
-  st('ms-t','✏️ Modifier Stock');
+  st('ms-t','Modifier Stock');
   var b=document.getElementById('btn-ss'); b.textContent='✓ Modifier'; b.onclick=enrStock; om('ms');
   var h=document.getElementById('s-qte-hint'); if(h) h.style.display='block';
 }
@@ -7116,14 +7517,14 @@ function rPF(){
   // gardant l'ancienne valeur d'un précédent produit édité.
   sv('p-date', td());
   sv('p-vente',0);
-  st('mp-t','🏷️ Produit Personnel');
+  st('mp-t','Produit Personnel');
   var b=document.getElementById('btn-sp'); b.textContent='✓ Enregistrer'; b.onclick=enrPerso;
   var h=document.getElementById('p-qte-hint'); if(h) h.style.display='none';
 }
 function editPerso(id){
   var p=D.perso.find(function(x){ return x.id===id; }); if(!p) return;
   sv('p-eid',id);sv('p-nom',p.nom);sv('p-qte',p.qteInitiale);sv('p-achat',p.achat);sv('p-vente',p.vente||'');sv('p-date',p.date||'');
-  st('mp-t','✏️ Modifier Perso');
+  st('mp-t','Modifier Perso');
   var b=document.getElementById('btn-sp'); b.textContent='✓ Modifier'; b.onclick=enrPerso; om('mp');
   var h=document.getElementById('p-qte-hint'); if(h) h.style.display='block';
 }
@@ -7195,14 +7596,14 @@ function enrDette(){
 }
 function rDF(){
   ['det-date','det-desc','det-montant','det-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
-  sv('det-type','directe'); st('mdet-t','➕ Ajouter une dette');
-  var b=document.getElementById('btn-sd'); b.textContent='💾 Enregistrer dette'; b.onclick=enrDette;
+  sv('det-type','directe'); st('mdet-t','Ajouter une dette');
+  var b=document.getElementById('btn-sd'); b.textContent='Enregistrer dette'; b.onclick=enrDette;
 }
 function editDette(id){
   if(D.detteVerrou){ notif('🔒 Dettes verrouillées'); return; }
   var d=D.dettes.find(function(x){ return x.id===id; }); if(!d) return;
   sv('det-eid',id);sv('det-date',d.date||td());sv('det-type',d.type);sv('det-desc',d.desc);sv('det-montant',d.montant);
-  st('mdet-t','✏️ Modifier Dette');
+  st('mdet-t','Modifier Dette');
   var b=document.getElementById('btn-sd'); b.textContent='✓ Modifier'; b.onclick=enrDette; om('mdet');
 }
 function delDette(id){
@@ -7255,13 +7656,13 @@ function enrPaym(){
 }
 function rPAF(){
   ['paym-m','paym-n','paym-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
-  sv('paym-t','directe'); st('mpaym-t','💳 Paiement Associé');
+  sv('paym-t','directe'); st('mpaym-t','Paiement Associé');
   var b=document.getElementById('btn-spaym'); b.textContent='✓ Enregistrer'; b.onclick=enrPaym;
 }
 function editPaym(id){
   var p=D.paiements.find(function(x){ return x.id===id; }); if(!p) return;
   sv('paym-eid',id);sv('paym-m',p.montant);sv('paym-t',p.type);sv('paym-n',p.note||'');sv('paym-d',p.date||td());
-  st('mpaym-t','✏️ Modifier Paiement');
+  st('mpaym-t','Modifier Paiement');
   var b=document.getElementById('btn-spaym'); b.textContent='✓ Modifier'; b.onclick=enrPaym; om('mpaym');
 }
 function delPaym(id){
@@ -7364,13 +7765,13 @@ function enrDep(){
 }
 function rDepF(){
   ['dep-desc','dep-prix','dep-tot','dep-eid','dep-cat'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
-  sv('dep-qte',1); st('md-t','💸 Nouvelle Dépense'); rCatList();
+  sv('dep-qte',1); st('md-t','Nouvelle Dépense'); rCatList();
   var b=document.getElementById('btn-sdep'); b.textContent='✓ Enregistrer'; b.onclick=enrDep;
 }
 function editDep(id){
   var d=D.depenses.find(function(x){ return x.id===id; }); if(!d) return;
   sv('dep-eid',id);sv('dep-cat',d.cat);sv('dep-desc',d.desc);sv('dep-qte',d.qte||1);sv('dep-prix',d.prix||d.montant);sv('dep-date',d.date||td()); cDepTot();
-  st('md-t','✏️ Modifier Dépense');
+  st('md-t','Modifier Dépense');
   var b=document.getElementById('btn-sdep'); b.textContent='✓ Modifier'; b.onclick=enrDep; om('md');
 }
 function delDep(id){
@@ -7448,14 +7849,14 @@ function enrCmd(){
 }
 function rCF(){
   ['c-date','c-num','c-client','c-tel','c-adr','c-note','c-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
-  sv('c-st','En attente'); cmdLignes=[]; rCL(); st('mc-t','📑 Nouvelle Commande');
+  sv('c-st','En attente'); cmdLignes=[]; rCL(); st('mc-t','Nouvelle Commande');
   var b=document.getElementById('btn-sc'); b.textContent='✓ Enregistrer commande'; b.onclick=enrCmd;
 }
 function editCmd(id){
   var c=D.commandes.find(function(x){ return x.id===id; }); if(!c) return;
   sv('c-eid',id);sv('c-date',c.date);sv('c-num',c.num);sv('c-client',c.client);sv('c-tel',c.tel||'');sv('c-adr',c.adresse||'');sv('c-st',c.statut);sv('c-note',c.note||'');
   cmdLignes=c.produits.slice(); rCL();
-  st('mc-t','✏️ Modifier Commande');
+  st('mc-t','Modifier Commande');
   var b=document.getElementById('btn-sc'); b.textContent='✓ Modifier'; b.onclick=enrCmd; om('mc');
 }
 function delCmd(id){
@@ -7773,7 +8174,7 @@ function associeSupprimerActivite(id){
   if(!isAssocie()) return;
   var a=D.activites.find(function(x){ return x.id===id && x.auteur==='Associé'; });
   if(!a) return;
-  demanderConfirmationSecurisee('🗑️ Supprimer définitivement cette activité', '• '+a.type+' : <strong>'+echap(a.desig)+'</strong><br>• Montant payé : '+fmt(a.paye||0)+'<br>• Action irréversible — ne passe pas par la Corbeille.', false, function(){
+  demanderConfirmationSecurisee('Supprimer définitivement cette activité', '• '+a.type+' : <strong>'+echap(a.desig)+'</strong><br>• Montant payé : '+fmt(a.paye||0)+'<br>• Action irréversible — ne passe pas par la Corbeille.', false, function(){
     var session=getSession();
     if(!(session && session.access_token && navigator.onLine)){
       notif('⚠️ Connexion internet requise pour supprimer définitivement une activité.', 6000);
@@ -7870,11 +8271,11 @@ function ouvrirDetailDette(){
 
       var html='';
       if(dettes.length){
-        html+='<div style="font-weight:700;font-size:.78rem;color:var(--tx2);margin:8px 0 6px">📌 Origine des montants (dettes)</div>';
+        html+='<div style="font-weight:700;font-size:.78rem;color:var(--tx2);margin:8px 0 6px">Origine des montants (dettes)</div>';
         dettes.forEach(function(d){
           html+='<div style="background:var(--bg3);border-radius:7px;padding:8px 10px;margin-bottom:6px;font-size:.8rem">'+
             '<div style="display:flex;justify-content:space-between"><strong>'+(d.desc||d.type||'Dette')+'</strong><span style="color:var(--re)">'+fmt(d.montant)+'</span></div>'+
-            '<div style="color:var(--tx3);font-size:.7rem;margin-top:2px">'+fmtDateJour(d.date)+(d.heure?(' · 🕒 '+d.heure):'')+(d.type?(' · '+d.type):'')+'</div>'+
+            '<div style="color:var(--tx3);font-size:.7rem;margin-top:2px">'+fmtDateJour(d.date)+(d.heure?(' · '+d.heure):'')+(d.type?(' · '+d.type):'')+'</div>'+
           '</div>';
         });
       }
@@ -7883,7 +8284,7 @@ function ouvrirDetailDette(){
         paiements.forEach(function(p){
           html+='<div style="background:var(--bg3);border-radius:7px;padding:8px 10px;margin-bottom:6px;font-size:.8rem">'+
             '<div style="display:flex;justify-content:space-between"><strong>'+(p.note||p.type||'Paiement')+'</strong><span style="color:var(--gr)">'+fmt(p.montant)+'</span></div>'+
-            '<div style="color:var(--tx3);font-size:.7rem;margin-top:2px">'+fmtDateJour(p.date)+(p.heure?(' · 🕒 '+p.heure):'')+'</div>'+
+            '<div style="color:var(--tx3);font-size:.7rem;margin-top:2px">'+fmtDateJour(p.date)+(p.heure?(' · '+p.heure):'')+'</div>'+
           '</div>';
         });
       }
@@ -7934,7 +8335,7 @@ function ouvrirDetailDepenses(){
         deps.forEach(function(d){
           html+='<div style="background:var(--bg3);border-radius:7px;padding:8px 10px;margin-bottom:6px;font-size:.8rem">'+
             '<div style="display:flex;justify-content:space-between"><strong>'+(d.desc||d.cat||'Dépense')+'</strong><span style="color:var(--re)">'+fmt(d.montant)+'</span></div>'+
-            '<div style="color:var(--tx3);font-size:.7rem;margin-top:2px">'+fmtDateJour(d.date)+(d.heure?(' · 🕒 '+d.heure):'')+(d.cat?(' · '+d.cat):'')+'</div>'+
+            '<div style="color:var(--tx3);font-size:.7rem;margin-top:2px">'+fmtDateJour(d.date)+(d.heure?(' · '+d.heure):'')+(d.cat?(' · '+d.cat):'')+'</div>'+
           '</div>';
         });
       } else {
@@ -8031,8 +8432,8 @@ function calculerBilan(){
   html+='</div>';
   html+='<div class="dv">Répartition 50/50</div>';
   html+='<div class="g2" style="margin-bottom:11px">';
-  html+='<div class="rb gold"><div class="rl">🟡 MA PART</div><div class="rv" style="color:var(--go)">'+fmt(mp)+'</div><div style="font-size:.69rem;color:var(--tx2);margin-top:2px">50% bénéfice net</div></div>';
-  html+='<div class="rb"><div class="rl">🔵 PART ASSOCIÉ (base)</div><div class="rv" style="color:var(--ac)">'+fmt(pab)+'</div><div style="font-size:.69rem;color:var(--tx2);margin-top:2px">50% bénéfice net</div></div>';
+  html+='<div class="rb gold"><div class="rl">MA PART</div><div class="rv" style="color:var(--go)">'+fmt(mp)+'</div><div style="font-size:.69rem;color:var(--tx2);margin-top:2px">50% bénéfice net</div></div>';
+  html+='<div class="rb"><div class="rl">PART ASSOCIÉ (base)</div><div class="rv" style="color:var(--ac)">'+fmt(pab)+'</div><div style="font-size:.69rem;color:var(--tx2);margin-top:2px">50% bénéfice net</div></div>';
   html+='</div>';
   html+='<div class="dv">Calcul part associé</div>';
   html+='<div style="background:var(--bg4);border-radius:9px;padding:12px;margin-bottom:11px">';
@@ -8045,7 +8446,7 @@ function calculerBilan(){
   if(ra<0) html+='<div style="margin-top:6px;padding:6px;background:rgba(239,68,68,.1);border-radius:7px;font-size:.77rem;color:var(--re)">⚠️ Il vous doit encore : <strong>'+fmt(Math.abs(ra))+'</strong></div>';
   html+='</div>';
   html+='<div style="padding:10px;background:var(--bg5);border-radius:8px;margin-bottom:11px;display:flex;justify-content:space-between">';
-  html+='<span style="color:var(--tx2)">💳 Reste à vous payer (dette non couverte)</span>';
+  html+='<span style="color:var(--tx2)">Reste à vous payer (dette non couverte)</span>';
   html+='<span style="font-family:Syne,sans-serif;color:var(--re)">'+fmt(Math.max(0,-ra))+'</span>';
   html+='</div>';
   html+='<div class="dv">Ce que l\'entreprise vous doit</div>';
@@ -8103,15 +8504,15 @@ function rAlertesCommandesDisponibles(){
   });
   if(!dispo.length){ el.innerHTML=''; return; }
   var html='<div class="card" style="border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.03);margin-bottom:12px">';
-  html+='<div class="ch"><span class="dot" style="background:var(--gr)"></span>🟢 Commandes clients disponibles — à faire savoir</div>';
+  html+='<div class="ch"><span class="dot" style="background:var(--gr)"></span>Commandes clients disponibles — à faire savoir</div>';
   html+='<div class="al alg" style="font-size:.77rem">✅ Ces commandes sont maintenant entièrement en stock. Prévenez le client.</div>';
   dispo.forEach(function(c){
     html+='<div class="fi-box">';
     html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">';
     html+='<div><strong style="font-size:.88rem">'+c.client+'</strong> <span class="badge bgr" style="margin-left:6px">'+c.num+'</span></div>';
     html+='<div style="display:flex;gap:6px">';
-    html+='<button class="btn bg bxs" onclick="notifierClientDisponible('+c.id+')" title="Message WhatsApp pré-rempli">📲 Prévenir (WhatsApp)</button>';
-    if(c.tel) html+='<button class="btn bs bxs" onclick="appelClientById('+c.id+')" title="Appeler">📞 Appeler</button>';
+    html+='<button class="btn bg bxs" onclick="notifierClientDisponible('+c.id+')" title="Message WhatsApp pré-rempli">Prévenir (WhatsApp)</button>';
+    if(c.tel) html+='<button class="btn bs bxs" onclick="appelClientById('+c.id+')" title="Appeler">Appeler</button>';
     html+='</div></div>';
     html+='<div style="margin-top:7px;font-size:.76rem;color:var(--tx2)">'+(c.produits||[]).map(function(l){ return l.produit+' ×'+l.qte; }).join(', ')+'</div>';
     html+='</div>';
@@ -8127,28 +8528,21 @@ function rAlertesStock(){
   });
   if(!faibles.length){ el.innerHTML=''; return; }
   var html='<div class="card" style="border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.03);margin-bottom:12px">';
-  html+='<div class="ch"><span class="dot" style="background:var(--re)"></span>🔴 Alertes Stock Faible — Fiches Commande Fournisseur</div>';
-  html+='<div class="al ald" style="font-size:.77rem">⚠️ Ces produits ont atteint leur seuil d\'alerte. Commandez auprès de votre fournisseur.</div>';
+  html+='<div class="ch"><span class="dot" style="background:var(--re)"></span>Alertes Stock Faible — Fiches Commande Fournisseur</div>';
+  html+='<div class="ast-n">Ces produits ont atteint leur seuil d\'alerte. Commandez auprès de votre fournisseur.</div>';
   faibles.forEach(function(s){
     var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
     var seuil=s.seuil||3;
     var niv=niveauStock(restant,seuil);
     var qteCmd=Math.max(seuil*3,10);
-    html+='<div class="fi-box">';
+    html+='<div class="ast-r">';
     html+='<div class="ast-h">';
     html+='<div><strong style="font-size:.88rem">'+echap(s.nom)+'</strong> <span class="badge bdr" style="margin-left:6px">'+niv.label+' ('+restant+')</span></div>';
-    html+='<button class="btn bo bxs" onclick="genererCmdFournisseurAuto()">📦 Ajouter à la commande fournisseur</button>';
+    html+='<button class="btn bo bxs" onclick="genererCmdFournisseurAuto()">Ajouter à la commande fournisseur</button>';
     html+='</div>';
-    html+='<div class="g4">';
-    html+='<div class="ast-b"><div>RESTANT</div><div style="color:'+niv.color+'">'+restant+'</div></div>';
-    html+='<div class="ast-b"><div>SEUIL</div><div>'+seuil+'</div></div>';
-    html+='<div class="ast-b"><div>INITIAL</div><div>'+s.qteInitiale+'</div></div>';
-    html+='<div class="ast-b"><div>VENDU</div><div style="color:var(--or)">'+(s.qteVendue||0)+'</div></div>';
+    html+='<div class="ast-s">Restant <b style="color:'+niv.color+'">'+restant+'</b> · Seuil <b>'+seuil+'</b> · Initial <b>'+s.qteInitiale+'</b> · Vendu <b style="color:var(--or)">'+(s.qteVendue||0)+'</b></div>';
+    html+='<div class="ast-s">Qté suggérée <b style="color:var(--go)">'+qteCmd+'</b> · Dernier P.Achat <b>'+fmt(s.achat)+'</b></div>';
     html+='</div>';
-    html+='<div class="ast-f">';
-    html+='<strong style="color:var(--te)">📋 Fiche commande fournisseur :</strong> ';
-    html+='Produit: <strong>'+echap(s.nom)+'</strong> | Qté suggérée: <strong style="color:var(--go)">'+qteCmd+'</strong> | Dernier P.Achat: <strong>'+fmt(s.achat)+'</strong>';
-    html+='</div></div>';
   });
   html+='</div>';
   el.innerHTML=html;
@@ -8913,11 +9307,11 @@ function rAct(){
     var isNewDay=(a.date!==lastDate);
     lastDate=a.date;
     html+='<tr>';
-    html+='<td>'+(isNewDay?('<strong>'+fmtDateJour(a.date)+'</strong>'):'')+(a.heure?' <span style="color:var(--tx3);font-size:.66rem">🕒'+a.heure+'</span>':'')+'</td>';
+    html+='<td>'+(isNewDay?('<strong>'+fmtDateJour(a.date)+'</strong>'):'')+(a.heure?' <span style="color:var(--tx3);font-size:.66rem">'+a.heure+'</span>':'')+'</td>';
     html+='<td style="color:var(--tx2);font-weight:600">'+numAffiche+'</td>';
     html+='<td>'+(a.ticket?'<span class="badge bpr" style="font-size:.66rem">'+echap(a.ticket)+'</span>':'<span style="color:var(--tx3)">—</span>')+'</td>';
     html+='<td><span class="badge '+tcc+'">'+a.type+'</span></td>';
-    html+='<td><strong>'+echap(a.desig)+'</strong>'+(a.qte>1?' <span style="color:var(--tx2);font-size:.73rem">×'+a.qte+'</span>':'')+(a.auteur==='Associé'?' <span class="badge bpr" style="font-size:.6rem" title="Activité créée par l\'Associé">👤 Associé</span>':'')+'</td>';
+    html+='<td><strong>'+echap(a.desig)+'</strong>'+(a.qte>1?' <span style="color:var(--tx2);font-size:.73rem">×'+a.qte+'</span>':'')+(a.auteur==='Associé'?' <span class="badge bpr" style="font-size:.6rem" title="Activité créée par l\'Associé">Associé</span>':'')+'</td>';
     html+='<td style="color:var(--tx2);font-size:.75rem">'+echap(a.panne||'—')+'</td>';
     html+='<td>'+fmt(a.achat*(a.qte||1))+'</td>';
     html+='<td>'+fmt(a.apayer)+'</td>';
@@ -9001,7 +9395,7 @@ function rStock(){
     html+='<td>'+fmt(s.achat)+'</td>';
     html+='<td>'+fmt(s.vente||0)+'</td>';
     html+='<td>'+fmt(restant*s.achat)+'</td>';
-    html+='<td>'+fmtDateHeure(s.date,s.heure)+(s.dernierAjoutQte>0?'<br><span class="badge bor" style="font-size:.62rem" title="Dernière modification">🕒 +'+s.dernierAjoutQte+' le '+fmtDateHeureISO(s.dernierAjoutDate)+'</span>':'')+'</td>';
+    html+='<td>'+fmtDateHeure(s.date,s.heure)+(s.dernierAjoutQte>0?'<br><span class="badge bor" style="font-size:.62rem" title="Dernière modification">+'+s.dernierAjoutQte+' le '+fmtDateHeureISO(s.dernierAjoutDate)+'</span>':'')+'</td>';
     html+='<td class="ac"><button class="btn bs bxs" onclick="ouvrirAjoutQte('+s.id+',\'stock\')" title="Ajouter une quantité (s\'additionne au stock existant)">➕</button>'+(s.dernierAjoutQte>0?'<button class="btn bh bxs" onclick="annulerDernierAjout('+s.id+',\'stock\')" title="Annuler le dernier ajout (+'+s.dernierAjoutQte+')">↩️</button>':'')+'<button class="btn bh bxs" onclick="editStock('+s.id+')">✏️</button><button class="btn bd bxs" onclick="delStock('+s.id+')">🗑️</button></td>';
     html+='</tr>';
   });
@@ -9052,7 +9446,7 @@ function rPerso(){
     totRevient+=(p.prixRevient||p.achat*p.qteInitiale); totCommission+=p.commission||0; totDu+=p.totalDu||0;
     html+='<tr>';
     html+='<td style="color:var(--tx3)">'+(idx+1)+'</td>';
-    html+='<td><strong>'+echap(p.nom)+'</strong>'+(lie?' <span style="font-size:.65rem;color:var(--tx3)" title="Fusionné dans le Stock Entreprise">🔗</span>':' <span style="font-size:.65rem;color:var(--re)" title="Non retrouvé dans le Stock Entreprise">⚠️</span>')+(p.dernierAjoutQte>0?'<br><span class="badge bor" style="font-size:.62rem" title="Dernière modification">🕒 +'+p.dernierAjoutQte+' le '+fmtDateHeureISO(p.dernierAjoutDate)+'</span>':'')+'</td>';
+    html+='<td><strong>'+echap(p.nom)+'</strong>'+(lie?' <span style="font-size:.65rem;color:var(--tx3)" title="Fusionné dans le Stock Entreprise">🔗</span>':' <span style="font-size:.65rem;color:var(--re)" title="Non retrouvé dans le Stock Entreprise">⚠️</span>')+(p.dernierAjoutQte>0?'<br><span class="badge bor" style="font-size:.62rem" title="Dernière modification">+'+p.dernierAjoutQte+' le '+fmtDateHeureISO(p.dernierAjoutDate)+'</span>':'')+'</td>';
     html+='<td>'+p.qteInitiale+'</td>';
     html+='<td style="color:var(--or)">'+vr.vendu+'</td>';
     html+='<td><strong style="color:'+(vr.restant<3?'var(--re)':'var(--gr)')+'">'+vr.restant+'</strong></td>';
@@ -9146,7 +9540,7 @@ function rDep(){
   items.forEach(function(d,idx){
     tot+=d.montant; if(d.date&&d.date.startsWith(m)) mois+=d.montant;
     var isNewDayDep=(d.date!==lastDateDep); lastDateDep=d.date;
-    html+='<tr><td style="color:var(--tx3)">'+(idx+1)+'</td><td>'+(isNewDayDep?('<strong>'+(d.date?fmtDateJour(d.date):'—')+'</strong>'):'')+(d.heure?' <span style="color:var(--tx3);font-size:.66rem">🕒'+d.heure+'</span>':'')+'</td><td><span class="badge bbr">'+d.cat+'</span></td>';
+    html+='<tr><td style="color:var(--tx3)">'+(idx+1)+'</td><td>'+(isNewDayDep?('<strong>'+(d.date?fmtDateJour(d.date):'—')+'</strong>'):'')+(d.heure?' <span style="color:var(--tx3);font-size:.66rem">'+d.heure+'</span>':'')+'</td><td><span class="badge bbr">'+d.cat+'</span></td>';
     html+='<td>'+(d.desc||'—')+'</td><td>'+(d.qte||1)+'</td>';
     html+='<td>'+fmt(d.prix||d.montant)+'</td>';
     html+='<td style="color:var(--re)"><strong>'+fmt(d.montant)+'</strong></td>';
@@ -9179,7 +9573,7 @@ function rCmd(){
     html+='<td>'+fmtDateHeure(c.date,c.heure)+'</td>';
     html+='<td><span class="badge bpr">'+c.num+'</span></td>';
     html+='<td><strong>'+c.client+'</strong></td>';
-    html+='<td>'+(c.tel?'<a href="tel:'+c.tel+'" style="color:var(--gr);font-size:.76rem;text-decoration:none">📞 '+c.tel+'</a>':'<span style="color:var(--tx3)">—</span>')+'</td>';
+    html+='<td>'+(c.tel?'<a href="tel:'+c.tel+'" style="color:var(--gr);font-size:.76rem;text-decoration:none">'+c.tel+'</a>':'<span style="color:var(--tx3)">—</span>')+'</td>';
     html+='<td style="font-size:.75rem;color:var(--tx2)">'+c.produits.map(function(p){ return p.produit+' ×'+p.qte; }).join(', ')+'</td>';
     html+='<td style="color:var(--go)">'+fmt(c.total)+'</td>';
     html+='<td><select onchange="cStatCmd('+c.id+',this.value)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:5px;padding:2px 7px;color:var(--tx);font-size:.74rem">';
@@ -9293,19 +9687,19 @@ function rRapportDetailPeriode(periodeCloture){
     return html;
   }
   var html='<div class="al ali" style="font-size:.77rem;margin-bottom:10px">🔒 Ci-dessous, les Dettes, Paiements et Dépenses tels qu\'ils existaient au moment de la clôture du '+fmtDateJour(periodeCloture.date)+' — figés, non modifiables (ils ont déjà été retirés de leurs onglets habituels par cette clôture).</div>';
-  html+=bloc('💳 Dettes', periodeCloture.dettes.slice().reverse(), [
+  html+=bloc('Dettes', periodeCloture.dettes.slice().reverse(), [
     ['Date', function(d){ return fmtDateHeure(d.date,d.heure); }],
     ['Type', function(d){ return d.type; }],
     ['Description', function(d){ return echap(d.desc); }],
     ['Montant', function(d){ return fmt(d.montant); }]
   ], 'TOTAL dettes de la période');
-  html+=bloc('💰 Paiements', periodeCloture.paiements.slice().reverse(), [
+  html+=bloc('Paiements', periodeCloture.paiements.slice().reverse(), [
     ['Date', function(p){ return fmtDateHeure(p.date,p.heure); }],
     ['Type', function(p){ return p.type; }],
     ['Note', function(p){ return echap(p.note||'—'); }],
     ['Montant', function(p){ return fmt(p.montant); }]
   ], 'TOTAL paiements de la période');
-  html+=bloc('🧾 Dépenses', periodeCloture.depenses.slice().reverse(), [
+  html+=bloc('Dépenses', periodeCloture.depenses.slice().reverse(), [
     ['Date', function(d){ return fmtDateHeure(d.date,d.heure); }],
     ['Catégorie', function(d){ return d.cat; }],
     ['Description', function(d){ return echap(d.desc||'—'); }],
@@ -9343,7 +9737,7 @@ function rRapport(){
   items.forEach(function(a){
     var estAssocie=a.auteur==='Associé';
     html+='<tr><td>'+fmtDateJour(a.date)+'</td><td>'+(a.heure||'—')+'</td>'+
-      '<td><span class="badge '+(estAssocie?'bpr':'bbr')+'">'+(estAssocie?'👤 Associé':'👔 Admin')+'</span></td>'+
+      '<td><span class="badge '+(estAssocie?'bpr':'bbr')+'">'+(estAssocie?'Associé':'Admin')+'</span></td>'+
       '<td>'+a.type+'</td><td>'+echap(a.desig)+'</td><td>'+(a.qte||1)+'</td><td>'+echap(a.client||'—')+'</td>'+
       '<td>'+fmt(a.paye)+'</td><td><span class="badge '+(a.reste>0?'bor':'bgr')+'">'+(a.reste>0?'Partiel':'Payé')+'</span></td></tr>';
   });
@@ -9383,8 +9777,8 @@ function rSyntheseRapport(items){
     items.forEach(function(a){ var au=a.auteur||'Administrateur'; if(!parAuteur[au]) parAuteur[au]={n:0,paye:0}; parAuteur[au].n++; parAuteur[au].paye+=a.paye; });
 
     html+='<div class="card" style="border-color:rgba(34,197,94,.2);background:var(--bg3);margin-bottom:12px">';
-    html+='<div class="ch"><span class="dot" style="background:var(--gr)"></span>📈 Rapport de gestion — '+libelleFiltre+'</div>';
-    html+='<div style="font-size:.74rem;color:var(--tx2);margin-bottom:11px">🗓️ Période réellement couverte par les activités affichées : <strong style="color:var(--tx)">'+periodeTxt+'</strong></div>';
+    html+='<div class="ch"><span class="dot" style="background:var(--gr)"></span>Rapport de gestion — '+libelleFiltre+'</div>';
+    html+='<div style="font-size:.74rem;color:var(--tx2);margin-bottom:11px">Période réellement couverte par les activités affichées : <strong style="color:var(--tx)">'+periodeTxt+'</strong></div>';
     html+='<div class="g5" style="margin-bottom:12px">';
     html+='<div class="kpi"><div class="kl">Activités</div><div class="kv">'+items.length+'</div></div>';
     html+='<div class="kpi"><div class="kl">Quantités</div><div class="kv">'+totQte+'</div></div>';
@@ -9393,7 +9787,7 @@ function rSyntheseRapport(items){
     html+='<div class="kpi"><div class="kl">Total restant</div><div class="kv gold">'+fmt(totReste)+'</div></div>';
     html+='</div>';
     html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg4);border-radius:9px;margin-bottom:12px">';
-    html+='<span style="color:var(--tx2);font-size:.8rem">💰 Bénéfice (sur cette sélection, encaissé uniquement)</span>';
+    html+='<span style="color:var(--tx2);font-size:.8rem">Bénéfice (sur cette sélection, encaissé uniquement)</span>';
     html+='<span style="font-family:Syne,sans-serif;font-size:1.05rem;color:'+(totBenefice>=0?'var(--gr)':'var(--re)')+'">'+fmt(totBenefice)+'</span>';
     html+='</div>';
 
@@ -9408,7 +9802,7 @@ function rSyntheseRapport(items){
     html+='<div class="g2">';
     Object.keys(parAuteur).forEach(function(au){
       var estAssocie=au==='Associé';
-      html+='<div class="kpi"><div class="kl">'+(estAssocie?'👤 Associé':'👔 Administrateur')+'</div><div class="kv">'+parAuteur[au].n+' activité'+(parAuteur[au].n>1?'s':'')+'</div><div style="font-size:.68rem;color:var(--tx2);margin-top:2px">'+fmt(parAuteur[au].paye)+' payé</div></div>';
+      html+='<div class="kpi"><div class="kl">'+(estAssocie?'Associé':'Administrateur')+'</div><div class="kv">'+parAuteur[au].n+' activité'+(parAuteur[au].n>1?'s':'')+'</div><div style="font-size:.68rem;color:var(--tx2);margin-top:2px">'+fmt(parAuteur[au].paye)+' payé</div></div>';
     });
     html+='</div></div>';
   } else {
@@ -9425,7 +9819,7 @@ function rSyntheseRapport(items){
     var valeurAchatStock=D.stock.reduce(function(s,p){ var r=(p.qteRestante!==undefined?p.qteRestante:p.qteInitiale); return s+r*(p.achat||0); },0);
     var faibles=D.stock.filter(function(p){ var r=(p.qteRestante!==undefined?p.qteRestante:p.qteInitiale); return r<=(p.seuil||3); });
     html+='<div class="card" style="margin-bottom:12px">';
-    html+='<div class="ch"><span class="dot" style="background:var(--ac)"></span>📦 Stock actuel</div>';
+    html+='<div class="ch"><span class="dot" style="background:var(--ac)"></span>Stock actuel</div>';
     html+='<div class="g4">';
     html+='<div class="kpi"><div class="kl">Produits référencés</div><div class="kv">'+D.stock.length+'</div></div>';
     html+='<div class="kpi"><div class="kl">Qté restante (total)</div><div class="kv">'+totRestantStock+'</div></div>';
@@ -9443,7 +9837,7 @@ function rSyntheseRapport(items){
 function vHisto(){
   if(!exigerAdmin()) return;
   var n=D.histo.length;
-  demanderConfirmationSecurisee('🗑️ Vider tout l\'historique', '• <strong>'+n+'</strong> entrée(s) d\'historique seront supprimées définitivement (pas de corbeille pour l\'historique)', true, function(){
+  demanderConfirmationSecurisee('Vider tout l\'historique', '• <strong>'+n+'</strong> entrée(s) d\'historique seront supprimées définitivement (pas de corbeille pour l\'historique)', true, function(){
     D.histo.forEach(function(h){ markDeleted('histo',h.id); });
     D.histo=[]; save(); rHisto(); notif('✅ Historique vidé');
   });
@@ -9459,8 +9853,8 @@ function rCorbeille(){
   var html='';
   items.forEach(function(c){
     html+='<div class="ci">';
-    html+='<div style="color:var(--tx2)"><span class="badge '+(tc[c.type]||'bgg')+'" style="margin-right:6px">'+c.type+'</span><strong>'+c.label+'</strong> <span style="font-size:.7rem;color:var(--tx3)">— '+fmtDateJour(c.date)+(c.heure?' 🕒 '+c.heure:'')+'</span></div>';
-    html+='<div style="display:flex;gap:5px"><button class="btn bs bxs" onclick="restaurer('+c.id+')">♻️ Restaurer</button><button class="btn bd bxs" onclick="suppDef('+c.id+')">❌ Suppr. déf.</button></div>';
+    html+='<div style="color:var(--tx2)"><span class="badge '+(tc[c.type]||'bgg')+'" style="margin-right:6px">'+c.type+'</span><strong>'+c.label+'</strong> <span style="font-size:.7rem;color:var(--tx3)">— '+fmtDateJour(c.date)+(c.heure?' '+c.heure:'')+'</span></div>';
+    html+='<div style="display:flex;gap:5px"><button class="btn bs bxs" onclick="restaurer('+c.id+')">Restaurer</button><button class="btn bd bxs" onclick="suppDef('+c.id+')">Suppr. déf.</button></div>';
     html+='</div>';
   });
   el.innerHTML=html;
@@ -9819,7 +10213,7 @@ function hImport(e){
     var details='Le fichier remplacera <strong>l\'intégralité</strong> des données actuelles :<br><br>'+detail+
       '<br><br>Date d\'export du fichier : '+dateFichier+
       '<br><br>✅ Une sauvegarde de sécurité de vos données ACTUELLES sera conservée automatiquement et pourra être annulée juste après l\'import.';
-    demanderConfirmationSecurisee('📂 Importer et remplacer toutes les données', details, false, function(){
+    demanderConfirmationSecurisee('Importer et remplacer toutes les données', details, false, function(){
       try{ localStorage.setItem(KEY+'_before_import', JSON.stringify(D)); }catch(e2){}
       D=Object.assign({},DEFAULT_SHAPE,d);
       delete D._meta;
@@ -10151,7 +10545,7 @@ function hImportExcel(e){
           avert+
           '<br><br>ℹ️ Les prix unitaires "Achat" des Activités sont recalculés (Prix achat total ÷ Qté) car seul le total est présent dans le fichier Excel.'+
           '<br><br>✅ Une sauvegarde de sécurité de vos données ACTUELLES sera conservée automatiquement et annulable juste après l\'import.';
-        demanderConfirmationSecurisee('📥 Importer depuis Excel et remplacer toutes les données', details, false, function(){
+        demanderConfirmationSecurisee('Importer depuis Excel et remplacer toutes les données', details, false, function(){
           try{ localStorage.setItem(KEY+'_before_import', JSON.stringify(D)); }catch(e2){}
           // Excel ne contient QUE les 9 tables de données, jamais les
           // réglages (auth, params, compteurs _o/_co, tombstones _del,
@@ -10713,7 +11107,7 @@ function viderActivites() {
   if(!exigerAdmin()) return;
   var n=D.activites.length;
   var details='• <strong>'+n+'</strong> activité(s) seront supprimées et envoyées à la Corbeille (récupérables)<br>• Le stock lié sera automatiquement réajusté';
-  demanderConfirmationSecurisee('🗑️ Supprimer toutes les activités', details, false, function(){
+  demanderConfirmationSecurisee('Supprimer toutes les activités', details, false, function(){
     var ids=D.activites.map(function(a){ return a.id; });
     D.activites.forEach(function(a){ markDeleted('activites',a.id); ajusterStockVendu(a.desig, -(a.qte||0)); rb('activite', a.desig, a); });
     D.activites = []; save(); notif('✅ Activités vidées → corbeille');
@@ -10742,7 +11136,7 @@ function viderActivitesAssocie() {
   var details='• <strong>'+n+'</strong> activité(s) créée(s) par l\'Associé seront supprimées et envoyées à la Corbeille (récupérables)<br>'+
     '• Les activités de l\'Administrateur ne sont pas concernées<br>'+
     '• Le stock lié sera automatiquement réajusté';
-  demanderConfirmationSecurisee('🗑️ Vider les activités de l\'Associé', details, false, function(){
+  demanderConfirmationSecurisee('Vider les activités de l\'Associé', details, false, function(){
     var ids=ciblees.map(function(a){ return a.id; });
     ciblees.forEach(function(a){ markDeleted('activites',a.id); ajusterStockVendu(a.desig, -(a.qte||0)); rb('activite', a.desig+' (Associé)', a); });
     D.activites=D.activites.filter(function(a){ return a.auteur!=='Associé'; });
@@ -10755,7 +11149,7 @@ function viderStock() {
   if(!exigerAdmin()) return;
   var n=D.stock.length;
   var details='• <strong>'+n+'</strong> produit(s) du Stock Entreprise seront supprimés et envoyés à la Corbeille (récupérables)';
-  demanderConfirmationSecurisee('🗑️ Supprimer tout le Stock Entreprise', details, false, function(){
+  demanderConfirmationSecurisee('Supprimer tout le Stock Entreprise', details, false, function(){
     /**
      * CORRECTIF CRITIQUE (05-09-2026 — audit intégrité des données,
      * point 2) : ce bouton ne posait qu'un tombstone local — la table
@@ -10803,7 +11197,7 @@ function viderDettes() {
   var n=D.dettes.length;
   var totD=D.dettes.reduce(function(s,d){ return s+d.montant; },0);
   var details='• <strong>'+n+'</strong> dette(s) actives seront supprimées et envoyées à la Corbeille (récupérables)<br>• Montant total concerné : '+fmt(totD);
-  demanderConfirmationSecurisee('🗑️ Supprimer toutes les dettes', details, false, function(){
+  demanderConfirmationSecurisee('Supprimer toutes les dettes', details, false, function(){
     // CORRECTIF CRITIQUE (05-09-2026 — audit intégrité des données, point
     // 2) : voir le correctif détaillé dans viderStock() ci-dessus, même
     // cause exacte, appliquée ici à la table Supabase dédiée "dettes".
@@ -10818,7 +11212,7 @@ function viderPaiements() {
   if(!exigerAdmin()) return;
   var n=D.paiements.length;
   var details='• <strong>'+n+'</strong> paiement(s) reçus seront supprimés et envoyés à la Corbeille (récupérables)';
-  demanderConfirmationSecurisee('🗑️ Supprimer tous les paiements', details, false, function(){
+  demanderConfirmationSecurisee('Supprimer tous les paiements', details, false, function(){
     // CORRECTIF CRITIQUE (05-09-2026 — audit intégrité des données, point
     // 2) : voir le correctif détaillé dans viderStock() ci-dessus, même
     // cause exacte, appliquée ici à la table Supabase dédiée "paiements".
@@ -10833,7 +11227,7 @@ function viderCommandes() {
   if(!exigerAdmin()) return;
   var n=D.commandes.length;
   var details='• <strong>'+n+'</strong> commande(s) seront supprimées et envoyées à la Corbeille (récupérables)';
-  demanderConfirmationSecurisee('🗑️ Supprimer toutes les commandes', details, false, function(){
+  demanderConfirmationSecurisee('Supprimer toutes les commandes', details, false, function(){
     D.commandes.forEach(function(c){ markDeleted('commandes',c.id); rb('commande', c.num+': '+c.client, c); });
     D.commandes = []; save(); notif('✅ Commandes vidées → corbeille');
   });
@@ -10843,7 +11237,7 @@ function viderDep() {
   if(!exigerAdmin()) return;
   var n=D.depenses.length;
   var details='• <strong>'+n+'</strong> dépense(s) seront supprimées et envoyées à la Corbeille (récupérables)';
-  demanderConfirmationSecurisee('🗑️ Supprimer toutes les dépenses', details, false, function(){
+  demanderConfirmationSecurisee('Supprimer toutes les dépenses', details, false, function(){
     // CORRECTIF CRITIQUE (05-09-2026 — audit intégrité des données, point
     // 2) : voir le correctif détaillé dans viderStock() ci-dessus, même
     // cause exacte, appliquée ici à la table Supabase dédiée "depenses".
@@ -10869,8 +11263,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.22'; // 05-10-2026 : compactage vertical global (Z1 titres/boutons d'onglet, Z3 filtres, Z4 modales, Z5 tableau de bord, Z6 recherche globale, Z7 bilan) — CSS d'affichage uniquement. Précédemment V0.21 05-10-2026 : Alertes Stock Faible — 2e passe de compactage (marges/paddings résiduels, affichage uniquement). Précédemment V0.20 05-10-2026 : Commandes › Alertes Stock Faible — affichage compact (cartes, espacements, 4 compteurs sur une ligne, fiche fournisseur resserrée), CSS/markup d'affichage uniquement, aucune logique ni donnée modifiée. Précédemment V0.19 04-10-2026 : Affichage — nouveau réglage « Taille des onglets » (− / curseur / +, 80–140 %, indépendant de la taille du texte, mémorisé). Précédemment V0.18 03-10-2026 : English (US) complété — 1 227 phrases ajoutées au dictionnaire I18N centralisé (I18N.phrases.en), aucune modification de la logique métier. Précédemment V0.17 : Affichage — ajout du Pular/Fulfulde de Guinée (Conakry) en véritable écriture Adlam Unicode (tous les textes statiques et dynamiques, placeholders, infobulles, boîtes de dialogue, impression), police Adlam embarquée ; Français et English (US) inchangés, règles par rôle inchangées. Précédemment V0.16 — choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
-var APP_VERSION_DATE = '2026-10-05T16:00:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.26'; // 06-10-2026 : simplification 5 — harmonisation visuelle (3 niveaux de boutons : principal .bp/.bg, secondaire .bh/.bs/.bt/.bo, danger .bd ; 2 niveaux de cartes : .card et blocs internes .kpi/.rb/.ci/.fi-box/.reset-info ; 4 tailles de texte : .7/.8/.9/1.05rem), bloc CSS autonome « V0.26 » en fin de feuille de style, affichage uniquement, aucun balisage/donnée/calcul/synchro/droit modifié. Précédemment V0.25 : simplification emojis — retrait des emojis décoratifs (boutons, titres, titres de modales, lignes, libellés) ; conservés : onglets, statuts (✅ ❌ ⚠️ ⏳ 🟢🟠🔴⚪ 🔒), icônes seules (✏️ 🗑️ ➕ ✕ 🖨️ 👁) ; dictionnaire FR/EN/FF aligné, affichage uniquement. Précédemment V0.24 05-10-2026 : menu ⋯ pour les actions secondaires des en-têtes (Commandes, Activités, Stock, Perso, Dépenses, Historique, Corbeille), boutons et fonctions inchangés. Précédemment V0.23 05-10-2026 : Commandes — alertes stock simplifiées (1 cadre, 2 lignes par produit, nom non répété) et titre en double masqué, rendu seul. Précédemment V0.22 05-10-2026 : compactage vertical global (Z1 titres/boutons d'onglet, Z3 filtres, Z4 modales, Z5 tableau de bord, Z6 recherche globale, Z7 bilan) — CSS d'affichage uniquement. Précédemment V0.21 05-10-2026 : Alertes Stock Faible — 2e passe de compactage (marges/paddings résiduels, affichage uniquement). Précédemment V0.20 05-10-2026 : Commandes › Alertes Stock Faible — affichage compact (cartes, espacements, 4 compteurs sur une ligne, fiche fournisseur resserrée), CSS/markup d'affichage uniquement, aucune logique ni donnée modifiée. Précédemment V0.19 04-10-2026 : Affichage — nouveau réglage « Taille des onglets » (− / curseur / +, 80–140 %, indépendant de la taille du texte, mémorisé). Précédemment V0.18 03-10-2026 : English (US) complété — 1 227 phrases ajoutées au dictionnaire I18N centralisé (I18N.phrases.en), aucune modification de la logique métier. Précédemment V0.17 : Affichage — ajout du Pular/Fulfulde de Guinée (Conakry) en véritable écriture Adlam Unicode (tous les textes statiques et dynamiques, placeholders, infobulles, boîtes de dialogue, impression), police Adlam embarquée ; Français et English (US) inchangés, règles par rôle inchangées. Précédemment V0.16 — choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
+var APP_VERSION_DATE = '2026-10-06T08:45:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
@@ -11674,7 +12068,7 @@ function editPatrimoine(id){
 }
 function delPatrimoine(id){
   var p=(D.patrimoine||[]).find(function(x){ return x.id===id; }); if(!p) return;
-  demanderConfirmationSecurisee('🗑️ Supprimer ce bien du patrimoine', '• <strong>'+echap(p.nom)+'</strong><br>• Ce bien ne sera plus visible par le compte Visiteur.', false, function(){
+  demanderConfirmationSecurisee('Supprimer ce bien du patrimoine', '• <strong>'+echap(p.nom)+'</strong><br>• Ce bien ne sera plus visible par le compte Visiteur.', false, function(){
     // CORRECTIF (01-09-2026) — "perte de données hors ligne, appareil A
     // écrasé par l'état de l'appareil B" : contrairement à TOUTES les
     // autres suppressions de l'app (activités, stock, dettes, paiements,
@@ -11757,7 +12151,7 @@ function doForgotPassword(){
   }).then(function(res){
     return res.json().catch(function(){ return {}; }).then(function(body){ return {ok:res.ok, status:res.status, body:body}; });
   }).then(function(res){
-    btn.disabled = false; btn.textContent = '📩 Envoyer le lien de réinitialisation';
+    btn.disabled = false; btn.textContent = 'Envoyer le lien de réinitialisation';
     if (!res.ok) {
       // Erreur RÉELLE (quota d'e-mails dépassé, SMTP non configuré côté
       // Supabase, clé API invalide...) — on ne la cache plus derrière un
@@ -11776,7 +12170,7 @@ function doForgotPassword(){
     notif('✅ Si cette adresse est associée à un compte, un e-mail de récupération vient d\'être envoyé. Vérifiez votre boîte de réception (et vos spams).', 6000);
     showLogin();
   }).catch(function(e){
-    btn.disabled = false; btn.textContent = '📩 Envoyer le lien de réinitialisation';
+    btn.disabled = false; btn.textContent = 'Envoyer le lien de réinitialisation';
     err.textContent = '⚠️ Erreur réseau — réessayez.';
     console.error('[doForgotPassword]', e);
   });
