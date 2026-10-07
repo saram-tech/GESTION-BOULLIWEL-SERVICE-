@@ -708,7 +708,36 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 }
 /* /BOÎTES DE DIALOGUE */
 
-  </style>
+  
+/* ===== V0.45 — Boîtes de dialogue compactes, adaptatives (portrait / paysage) — affichage uniquement ===== */
+.modal{padding:12px 14px;border-radius:14px;max-width:min(560px,100%);}
+.modal .mhd{font-size:.92rem;margin-bottom:8px;}
+.modal .mcl{font-size:1rem;padding:2px 4px;}
+.modal .fr{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,128px),1fr));gap:6px 8px;margin-bottom:6px;}
+.modal .fg{min-width:0;gap:2px;}
+.modal .fg[style*="flex:2"]{grid-column:span 2;}
+.modal .fg label{font-size:.68rem;text-transform:none;letter-spacing:0;font-weight:600;}
+.modal .fg input,.modal .fg select,.modal .fg textarea{padding:6px 9px;border-radius:7px;font-size:.84rem;min-height:34px;}
+.modal .ks,.modal .al.ali,.modal small.ks{display:none !important;}
+.modal .dv{margin:6px 0 4px;font-size:.72rem;}
+.modal .mft{gap:6px;bottom:-12px;margin:8px -14px -12px;padding:8px 14px calc(8px + env(safe-area-inset-bottom,0px));}
+.modal .mft .btn{padding:7px 14px;min-height:36px;flex:0 1 auto;}
+.modal .btn.bsm{padding:5px 9px;}
+@media (max-width:520px){
+  .modal .mft .btn{flex:1 1 0;}
+  .modal .fr{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .modal .fg[style*="flex:2"]{grid-column:1 / -1;}
+}
+@media (max-height:480px) and (orientation:landscape){
+  .modal{max-width:min(760px,100%);padding:8px 12px;}
+  .modal .mhd{margin-bottom:5px;}
+  .modal .fr{grid-template-columns:repeat(auto-fit,minmax(min(100%,110px),1fr));gap:4px 6px;margin-bottom:4px;}
+  .modal .fg input,.modal .fg select{padding:4px 8px;min-height:30px;}
+  .modal .mft{margin:6px -12px -8px;bottom:-8px;padding:6px 12px calc(6px + env(safe-area-inset-bottom,0px));}
+  .modal .mft .btn{min-height:32px;padding:5px 12px;}
+}
+/* ===== /V0.45 ===== */
+</style>
 </head>
 <body>
 
@@ -787,12 +816,12 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
         <button type="button" class="btn bh bsm" style="margin-bottom:9px" onclick="genererEtAfficherCode(v('inp-reset-role'))">Générer un code pour ce compte</button>
         <div id="reset-role-info" style="font-size:.76rem;color:var(--tx2);margin-bottom:9px"></div>
         <div class="fg"><label>Code de réinitialisation</label><input type="text" id="inp-reset-code" placeholder="Code à 6 chiffres" inputmode="numeric" maxlength="6"></div>
-        <div class="fg"><label>Nouveau mot de passe</label><div style="position:relative">
-            <input type="password" id="inp-new-pass" placeholder="Nouveau mot de passe (min. 4 caractères)" style="padding-right:40px">
+        <div class="fg"><label>Nouveau</label><div style="position:relative">
+            <input type="password" id="inp-new-pass" placeholder="min. 4" style="padding-right:40px">
             <span onclick="togglePass('inp-new-pass',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem;user-select:none">👁</span>
           </div></div>
         <div class="fg"><label>Confirmer le mot de passe</label><div style="position:relative">
-            <input type="password" id="inp-confirm-pass" placeholder="Répétez le nouveau mot de passe" style="padding-right:40px">
+            <input type="password" id="inp-confirm-pass" placeholder="" style="padding-right:40px">
             <span onclick="togglePass('inp-confirm-pass',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem;user-select:none">👁</span>
           </div></div>
         <div class="login-err" id="reset-err"></div>
@@ -1404,24 +1433,24 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     <input type="hidden" id="a-eid">
     <div class="fr">
       <div class="fg"><label>Date *</label><input type="date" id="a-date"></div>
-      <div class="fg" id="fg-a-ticket"><label>Ticket (optionnel — saisir manuellement)</label><input type="text" id="a-ticket" placeholder="Laisser vide si pas de ticket"></div>
+      <div class="fg" id="fg-a-ticket"><label>Ticket</label><input type="text" id="a-ticket"></div>
       <div class="fg"><label>Type *</label><select id="a-type" onchange="basculerChampsSelonType()"><option>Vente</option><option>Réparation</option><option>Service</option></select></div>
     </div>
     <div class="fr">
-      <div class="fg" style="flex:2"><label id="lbl-a-desig">Désignation / Produit *</label>
-        <input type="text" id="a-desig" placeholder="Ex: iPhone 12..." oninput="autoPA()" onblur="capitaliserChamp('a-desig')" list="dl-prod">
+      <div class="fg" style="flex:2"><label id="lbl-a-desig">Produit *</label>
+        <input type="text" id="a-desig" placeholder="" oninput="autoPA()" onblur="capitaliserChamp('a-desig')" list="dl-prod">
         <datalist id="dl-prod"></datalist>
       </div>
-      <div class="fg" id="fg-a-panne"><label id="lbl-a-panne">Panne</label><input type="text" id="a-panne" placeholder="Ex: Écran cassé"></div>
+      <div class="fg" id="fg-a-panne"><label id="lbl-a-panne">Panne</label><input type="text" id="a-panne" placeholder=""></div>
     </div>
     <div class="fr">
-      <div class="fg" id="fg-a-achat"><label>Prix achat unitaire (GNF)</label><input type="number" id="a-achat" placeholder="0" oninput="pAct()"></div>
-      <div class="fg" id="fg-a-qte"><label>Quantité</label><input type="number" id="a-qte" placeholder="1" min="1" value="1" oninput="pAct()"></div>
-      <div class="fg"><label id="lbl-a-apayer">À Payer (GNF)</label><input type="number" id="a-apayer" placeholder="0 (facultatif)" min="0" oninput="pAct()"></div>
+      <div class="fg" id="fg-a-achat"><label>Prix achat</label><input type="number" id="a-achat" placeholder="0" oninput="pAct()"></div>
+      <div class="fg" id="fg-a-qte"><label>Qté</label><input type="number" id="a-qte" placeholder="1" min="1" value="1" oninput="pAct()"></div>
+      <div class="fg"><label id="lbl-a-apayer">À payer</label><input type="number" id="a-apayer" placeholder="0" min="0" oninput="pAct()"></div>
     </div>
     <div class="fr">
-      <div class="fg"><label>Payé (GNF)</label><input type="number" id="a-paye" placeholder="0" oninput="pAct()"></div>
-      <div class="fg"><label>Client / Adresse</label><input type="text" id="a-client" placeholder="Nom ou adresse" list="dl-client" onblur="capitaliserChamp('a-client')"></div>
+      <div class="fg"><label>Payé</label><input type="number" id="a-paye" placeholder="0" oninput="pAct()"></div>
+      <div class="fg"><label>Client</label><input type="text" id="a-client" placeholder="" list="dl-client" onblur="capitaliserChamp('a-client')"></div>
       <datalist id="dl-client"></datalist>
     </div>
     <div id="a-prev" style="background:var(--bg4);border-radius:8px;padding:10px;margin-bottom:11px;font-size:.8rem;display:none">
@@ -1442,10 +1471,10 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 <div class="ov" id="mpp">
   <div class="modal">
     <div class="mhd">Paiement partiel<button class="mcl" onclick="cm('mpp')">✕</button></div>
-    <div class="fr"><div class="fg"><label>Activité avec solde restant</label><select id="pp-act"><option value="">-- Choisir --</option></select></div></div>
+    <div class="fr"><div class="fg"><label>Activité</label><select id="pp-act"><option value="">-- Choisir --</option></select></div></div>
     <div id="pp-inf" style="background:var(--bg4);border-radius:7px;padding:8px;margin-bottom:9px;font-size:.79rem;display:none"></div>
     <div class="fr">
-      <div class="fg"><label>Montant encaissé *</label><input type="number" id="pp-m" placeholder="0"></div>
+      <div class="fg"><label>Montant *</label><input type="number" id="pp-m" placeholder="0"></div>
       <div class="fg"><label>Date</label><input type="date" id="pp-d"></div>
     </div>
     <div class="mft">
@@ -1461,8 +1490,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     <div class="mhd">Ajouter une quantité<button class="mcl" onclick="cm('maq')">✕</button></div>
     <input type="hidden" id="aq-id"><input type="hidden" id="aq-type">
     <div id="aq-inf" style="background:var(--bg4);border-radius:7px;padding:8px;margin-bottom:9px;font-size:.79rem"></div>
-    <div class="fr"><div class="fg"><label>Quantité à ajouter *</label><input type="number" id="aq-qte" placeholder="0" min="1"></div></div>
-    <div class="al ali" style="font-size:.74rem">Cette quantité s'additionne automatiquement à la quantité déjà existante du produit.</div>
+    <div class="fr"><div class="fg"><label>Quantité *</label><input type="number" id="aq-qte" placeholder="0" min="1"></div></div>
     <div class="mft">
       <button class="btn bh" onclick="cm('maq')">Annuler</button>
       <button class="btn bs js-tap-fast" onclick="enrAjoutQte()">✓ Ajouter</button>
@@ -1476,8 +1504,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     <div class="mhd">Diminuer une quantité<button class="mcl" onclick="cm('mdq')">✕</button></div>
     <input type="hidden" id="dq-id">
     <div id="dq-inf" style="background:var(--bg4);border-radius:7px;padding:8px;margin-bottom:9px;font-size:.79rem"></div>
-    <div class="fr"><div class="fg"><label>Quantité à retirer *</label><input type="number" id="dq-qte" placeholder="0" min="1" step="1" inputmode="numeric"></div></div>
-    <div class="al ali" style="font-size:.74rem">Cette quantité est retirée du Stock Perso et du Stock Entreprise. Elle ne peut pas dépasser ce qui reste (non vendu) ; aucune quantité négative n'est possible.</div>
+    <div class="fr"><div class="fg"><label>Quantité *</label><input type="number" id="dq-qte" placeholder="0" min="1" step="1" inputmode="numeric"></div></div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mdq')">Annuler</button>
       <button class="btn bs js-tap-fast" onclick="enrDiminutionQte()">✓ Diminuer</button>
@@ -1491,8 +1518,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     <div class="mhd">Diminuer une quantité<button class="mcl" onclick="cm('mdqe')">✕</button></div>
     <input type="hidden" id="dqe-id">
     <div id="dqe-inf" style="background:var(--bg4);border-radius:7px;padding:8px;margin-bottom:9px;font-size:.79rem"></div>
-    <div class="fr"><div class="fg"><label>Quantité à retirer *</label><input type="number" id="dqe-qte" placeholder="0" min="1" step="1" inputmode="numeric"></div></div>
-    <div class="al ali" style="font-size:.74rem">Cette quantité est retirée du Stock Entreprise. Elle ne peut pas dépasser le restant disponible ; aucune quantité négative n'est possible. Les unités apportées par le Stock Perso se retirent depuis le Stock Perso.</div>
+    <div class="fr"><div class="fg"><label>Quantité *</label><input type="number" id="dqe-qte" placeholder="0" min="1" step="1" inputmode="numeric"></div></div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mdqe')">Annuler</button>
       <button class="btn bs js-tap-fast" onclick="enrDiminutionStock()">✓ Diminuer</button>
@@ -1551,12 +1577,11 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 
     <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">Pourcentages financiers</div>
     <div class="fr">
-      <div class="fg"><label>% Réinvestissement (sur bénéfice brut)</label><input type="number" id="pr-reinvest" min="0" max="100" step="0.1"></div>
+      <div class="fg"><label>% Réinvestissement</label><input type="number" id="pr-reinvest" min="0" max="100" step="0.1"></div>
     </div>
     <div class="fr">
-      <div class="fg"><label>% Stock Perso (créance = prix revient + X%)</label><input type="number" id="pr-perso" min="0" max="100" step="0.1"></div>
+      <div class="fg"><label>% Stock Perso</label><input type="number" id="pr-perso" min="0" max="100" step="0.1"></div>
     </div>
-    <div class="al alw" style="font-size:.74rem">⚠️ Modifier ces valeurs change immédiatement tous les calculs de l'app (Bilan, tableau de bord, nouveaux produits Stock Perso). Les articles déjà enregistrés gardent leur ancien pourcentage tant qu'ils ne sont pas modifiés.</div>
 
     <hr class="sep">
     <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">Gestion de l'affichage</div>
@@ -1582,17 +1607,16 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     <hr class="sep">
     <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">Fournisseur WhatsApp</div>
     <div class="fr">
-      <div class="fg"><label>Numéro WhatsApp fournisseur (avec indicatif, ex: 224620000000)</label><input type="text" id="pr-fourn" placeholder="224620000000"></div>
+      <div class="fg"><label>WhatsApp fournisseur</label><input type="text" id="pr-fourn" placeholder="224620000000"></div>
     </div>
     <div style="font-size:.74rem;color:var(--tx2);margin-bottom:10px">Si renseigné, "Copier pour fournisseur" enverra directement à ce numéro au lieu d'ouvrir le sélecteur de contact.</div>
 
     <hr class="sep">
     <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 8px">Récupération de mot de passe</div>
     <div class="fr">
-      <div class="fg"><label>Téléphone de récupération</label><input type="text" id="pr-recup-tel" placeholder="620000000"></div>
-      <div class="fg"><label>E-mail de récupération</label><input type="email" id="pr-recup-email" placeholder="admin@exemple.com"></div>
+      <div class="fg"><label>Téléphone récupération</label><input type="text" id="pr-recup-tel" placeholder="620000000"></div>
+      <div class="fg"><label>E-mail récupération</label><input type="email" id="pr-recup-email" placeholder="admin@exemple.com"></div>
     </div>
-    <div class="al alw" style="font-size:.73rem">⚠️ Ces coordonnées ne servent qu'à identifier qu'un contact de récupération existe. Cette application n'ayant pas de serveur d'envoi SMS/e-mail connecté, les codes de réinitialisation générés s'affichent directement dans l'app (voir ci-dessous pour l'Associé) plutôt que d'être envoyés automatiquement.</div>
     <div id="zone-codes-attente" style="margin-top:9px"></div>
 
     <hr class="sep">
@@ -1600,7 +1624,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     <div style="font-size:.74rem;color:var(--tx2);margin-bottom:8px">Permet à une personne de confiance de consulter votre patrimoine (biens, capital) avec un simple code — jamais vos données confidentielles (dépenses, dettes, activités...).</div>
     <div id="zone-visiteur-statut" style="margin-bottom:9px;font-size:.78rem"></div>
     <div class="fr">
-      <div class="fg"><label>Code d'accès Visiteur (min. 4 caractères)</label><input type="text" id="pr-visiteur-pin" placeholder="Ex: Kalil ou 1234"></div>
+      <div class="fg"><label>Code Visiteur</label><input type="text" id="pr-visiteur-pin" placeholder="min. 4"></div>
     </div>
     <div style="display:flex;align-items:center;gap:7px;margin:4px 0 9px">
       <input type="checkbox" id="pr-visiteur-verrou" style="width:16px;height:16px">
@@ -1659,7 +1683,6 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
       <div style="display:flex;justify-content:space-between"><span style="color:var(--tx2)">Version</span><strong id="ap-version">—</strong></div>
       <div style="display:flex;justify-content:space-between"><span style="color:var(--tx2)">Développé pour</span><strong>Boulliwel Service</strong></div>
     </div>
-    <div class="al alw" style="font-size:.74rem;margin-top:10px">Dernière mise à jour majeure : fusion Stock Perso ↔ Stock Entreprise, majuscules automatiques, suggestions de produits, paramètres réglables, envoi WhatsApp fournisseur.</div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mabout')">Fermer</button>
     </div>
@@ -1674,7 +1697,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     <div id="sec-details" style="background:var(--bg4);border-radius:9px;padding:12px;font-size:.82rem;line-height:1.7;margin-bottom:10px"></div>
     <div id="sec-irrev" class="al ald" style="font-size:.78rem;margin-bottom:10px">⚠️ Cette action est <strong>IRRÉVERSIBLE</strong>. Aucune récupération possible après confirmation.</div>
     <div class="fr">
-      <div class="fg"><label>Mot de passe de l'application *</label>
+      <div class="fg"><label>Mot de passe *</label>
         <div style="position:relative">
           <input type="password" id="sec-pass" placeholder="Entrez le mot de passe" style="padding-right:38px;width:100%" onkeydown="if(event.key==='Enter')validerActionSecurisee()">
           <button type="button" onclick="toggleAfficherMotDePasse('sec-pass', this)" title="Afficher/masquer le mot de passe" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;padding:2px 4px">👁️</button>
@@ -1695,11 +1718,11 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     <div class="mhd"><span id="ms-t">Entrée Stock</span><button class="mcl" onclick="cm('ms');rSF()">✕</button></div>
     <input type="hidden" id="s-eid">
     <div class="fr">
-      <div class="fg"><label>Nom produit *</label><input type="text" id="s-nom" placeholder="Ex: Riz 25kg" list="dl-prod" oninput="autoPS()" onblur="capitaliserChamp('s-nom');autoPS()"></div>
-      <div class="fg"><label>Catégorie</label><input type="text" id="s-categorie" placeholder="Ex: POCHETTE, BATTERIE..." list="dl-categorie-stock" onblur="capitaliserChamp('s-categorie')"><datalist id="dl-categorie-stock"></datalist></div>
+      <div class="fg"><label>Produit *</label><input type="text" id="s-nom" placeholder="" list="dl-prod" oninput="autoPS()" onblur="capitaliserChamp('s-nom');autoPS()"></div>
+      <div class="fg"><label>Catégorie</label><input type="text" id="s-categorie" placeholder="" list="dl-categorie-stock" onblur="capitaliserChamp('s-categorie')"><datalist id="dl-categorie-stock"></datalist></div>
     </div>
     <div class="fr">
-      <div class="fg"><label>Quantité initiale *</label><input type="number" id="s-qte" placeholder="0" min="0">
+      <div class="fg"><label>Quantité *</label><input type="number" id="s-qte" placeholder="0" min="0">
         <!-- AJOUT (05-09-2026 — demande explicite : pouvoir diminuer la
              quantité existante depuis ✏️ Modifier) : enrStock() acceptait
              déjà une quantité inférieure à l'actuelle en édition (jusqu'à
@@ -1711,16 +1734,15 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
              une nouvelle entrée où cela n'a pas de sens). -->
         <small id="s-qte-hint" class="ks" style="display:none">Tapez un nombre plus petit pour diminuer le stock existant.</small>
       </div>
-      <div class="fg"><label>Prix achat unitaire (GNF) *</label><input type="number" id="s-achat" placeholder="0"></div>
+      <div class="fg"><label>Prix achat *</label><input type="number" id="s-achat" placeholder="0"></div>
     </div>
     <div class="fr">
-      <div class="fg"><label>Prix vente unitaire (GNF)</label><input type="number" id="s-vente" placeholder="0"></div>
-      <div class="fg"><label>Seuil alerte stock faible</label><input type="number" id="s-seuil" placeholder="3" min="1" value="3"></div>
+      <input type="hidden" id="s-vente" value="0">
+      <div class="fg"><label>Seuil alerte</label><input type="number" id="s-seuil" placeholder="3" min="1" value="3"></div>
     </div>
     <div class="fr">
       <div class="fg"><label>Date</label><input type="date" id="s-date"></div>
     </div>
-    <div class="al ali" style="font-size:.75rem">Seuil : alerte déclenchée quand stock restant ≤ cette valeur. Ex: 3 → alerte si restant ≤ 3.</div>
     <div class="mft">
       <button class="btn bh" onclick="cm('ms');rSF()">Annuler</button>
       <button class="btn bp js-tap-fast" id="btn-ss" onclick="enrStock()">✓ Enregistrer</button>
@@ -1731,22 +1753,19 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 <!-- AUGMENTATION DU CAPITAL TOTAL DE L'ENTREPRISE (Stock Entreprise, compte Administrateur) -->
 <div class="ov" id="mca">
   <div class="modal">
-    <div class="mhd"><span>Augmenter le capital total de l'entreprise</span><button class="mcl" onclick="cm('mca')">✕</button></div>
-    <div class="al ali" style="font-size:.75rem">
-      Cette opération ajoute un montant au capital total de l'entreprise (partagé 50/50 entre BAH Ousmane et l'Associé). Elle ne modifie ni le stock, ni les ventes, ni les dépenses, ni les dettes, ni le Stock Perso. Chaque augmentation est conservée dans l'historique.
-    </div>
+    <div class="mhd"><span>Augmenter le capital</span><button class="mcl" onclick="cm('mca')">✕</button></div>
     <div style="font-size:.8rem;color:var(--tx2);margin:6px 0">Capital total actuel : <strong id="ca-capital-actuel">0 GNF</strong></div>
     <div class="fr">
-      <div class="fg"><label>Montant ajouté (GNF) *</label><input type="number" id="ca-montant" placeholder="0" min="0" oninput="majApercuAugmentationCapital()"></div>
+      <div class="fg"><label>Montant *</label><input type="number" id="ca-montant" placeholder="0" min="0" oninput="majApercuAugmentationCapital()"></div>
     </div>
     <div class="fr">
-      <div class="fg"><label>Motif / note (facultatif)</label><input type="text" id="ca-motif" placeholder="Ex: Apport de fonds, nouvel investissement..."></div>
+      <div class="fg"><label>Motif</label><input type="text" id="ca-motif" placeholder=""></div>
     </div>
     <div style="font-size:.8rem;color:var(--tx2);margin:6px 0">Nouveau capital total après ajout : <strong id="ca-capital-nouveau" style="color:var(--gr)">—</strong></div>
     <div style="font-size:.8rem;color:var(--tx2);margin:6px 0">Part de chaque associé (50 %) : <strong id="ca-part-associe">0 GNF</strong></div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mca')">Fermer</button>
-      <button class="btn bp js-tap-fast" id="btn-ca-valider" onclick="enrAugmentationCapital()">✓ Valider l'augmentation</button>
+      <button class="btn bp js-tap-fast" id="btn-ca-valider" onclick="enrAugmentationCapital()">✓ Valider</button>
     </div>
     <div style="margin-top:12px;border-top:1px solid var(--bd);padding-top:10px">
       <div style="font-size:.78rem;color:var(--tx2);margin-bottom:6px">Historique des augmentations — total : <strong id="ca-total-augmentations">0 GNF</strong></div>
@@ -1759,19 +1778,16 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 <div class="ov" id="mcr">
   <div class="modal">
     <div class="mhd"><span>Réduire le capital</span><button class="mcl" onclick="cm('mcr')">✕</button></div>
-    <div class="al ali" style="font-size:.75rem">
-      Cette opération réduit uniquement le capital affiché. Elle ne modifie ni le stock, ni les ventes, ni les dépenses, ni les dettes. Le capital ne peut jamais devenir négatif.
-    </div>
     <div style="font-size:.8rem;color:var(--tx2);margin:6px 0">Capital actuel : <strong id="cr-capital-actuel">0 GNF</strong></div>
     <div class="fr">
-      <div class="fg"><label>Montant à déduire (GNF) *</label><input type="number" id="cr-montant" placeholder="0" min="0"></div>
+      <div class="fg"><label>Montant *</label><input type="number" id="cr-montant" placeholder="0" min="0"></div>
     </div>
     <div class="fr">
-      <div class="fg"><label>Motif *</label><input type="text" id="cr-motif" placeholder="Ex: Retrait personnel, perte, correction..."></div>
+      <div class="fg"><label>Motif *</label><input type="text" id="cr-motif" placeholder=""></div>
     </div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mcr')">Annuler</button>
-      <button class="btn bd js-tap-fast" onclick="enrReductionCapital()">✓ Confirmer la réduction</button>
+      <button class="btn bd js-tap-fast" onclick="enrReductionCapital()">✓ Confirmer</button>
     </div>
     <div style="margin-top:12px;border-top:1px solid var(--bd);padding-top:10px">
       <div style="font-size:.78rem;color:var(--tx2);margin-bottom:6px">Historique des réductions</div>
@@ -1784,9 +1800,8 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
   <div class="modal">
     <div class="mhd"><span id="mp-t">Produit Personnel</span><button class="mcl" onclick="cm('mp');rPF()">✕</button></div>
     <input type="hidden" id="p-eid">
-    <div class="al alw" style="font-size:.77rem">Créance = (Prix achat × Qté) × 1.15 — Prix revient + 15%</div>
     <div class="fr">
-      <div class="fg"><label>Nom produit *</label><input type="text" id="p-nom" placeholder="Ex: Cahiers" list="dl-prod" oninput="autoPP()" onblur="capitaliserChamp('p-nom');autoPP()"></div>
+      <div class="fg"><label>Produit *</label><input type="text" id="p-nom" placeholder="" list="dl-prod" oninput="autoPP()" onblur="capitaliserChamp('p-nom');autoPP()"></div>
       <div class="fg"><label>Quantité *</label><input type="number" id="p-qte" placeholder="0" min="0">
         <!-- AJOUT (05-09-2026 — même demande que Stock Entreprise, voir
              s-qte-hint plus haut) : enrPerso() acceptait déjà une
@@ -1796,8 +1811,8 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
       </div>
     </div>
     <div class="fr">
-      <div class="fg"><label>Prix achat unitaire (GNF) *</label><input type="number" id="p-achat" placeholder="0"></div>
-      <div class="fg"><label>Prix vente unitaire (GNF)</label><input type="number" id="p-vente" placeholder="0"></div>
+      <div class="fg"><label>Prix achat *</label><input type="number" id="p-achat" placeholder="0"></div>
+      <input type="hidden" id="p-vente" value="0">
     </div>
     <div class="fr">
       <div class="fg"><label>Date</label><input type="date" id="p-date"></div>
@@ -1816,11 +1831,11 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     <input type="hidden" id="det-eid">
     <div class="fr">
       <div class="fg"><label>Date *</label><input type="date" id="det-date"></div>
-      <div class="fg"><label>Type</label><select id="det-type"><option value="directe">Dette directe (associé)</option><option value="femme">Dette de sa femme</option></select></div>
+      <div class="fg"><label>Type</label><select id="det-type"><option value="directe">Directe</option><option value="femme">Femme</option></select></div>
     </div>
     <div class="fr">
-      <div class="fg" style="flex:2"><label>Description *</label><input type="text" id="det-desc" placeholder="Ex: Prêt du 01/04/2026..."></div>
-      <div class="fg"><label>Montant (GNF) *</label><input type="number" id="det-montant" placeholder="0"></div>
+      <div class="fg" style="flex:2"><label>Description *</label><input type="text" id="det-desc" placeholder=""></div>
+      <div class="fg"><label>Montant *</label><input type="number" id="det-montant" placeholder="0"></div>
     </div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mdet');rDF()">Annuler</button>
@@ -1835,7 +1850,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     <div class="mhd"><span id="mpaym-t">Paiement Associé</span><button class="mcl" onclick="cm('mpaym');rPAF()">✕</button></div>
     <input type="hidden" id="paym-eid">
     <div class="fr">
-      <div class="fg"><label>Montant reçu (GNF) *</label><input type="number" id="paym-m" placeholder="0"></div>
+      <div class="fg"><label>Montant *</label><input type="number" id="paym-m" placeholder="0"></div>
       <div class="fg"><label>Type *</label>
         <select id="paym-t">
           <option value="directe">Dette directe (associé)</option>
@@ -1844,7 +1859,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
       </div>
     </div>
     <div class="fr">
-      <div class="fg"><label>Note</label><input type="text" id="paym-n" placeholder="Description..."></div>
+      <div class="fg"><label>Note</label><input type="text" id="paym-n" placeholder=""></div>
       <div class="fg"><label>Date *</label><input type="date" id="paym-d"></div>
     </div>
     <div class="mft">
@@ -1861,12 +1876,12 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     <input type="hidden" id="dep-eid">
     <div class="fr">
       <div class="fg"><label>Catégorie <button type="button" onclick="ouvrirGestionCategories()" style="background:none;border:none;color:var(--ac);cursor:pointer;font-size:.68rem;text-decoration:underline;padding:0;margin-left:5px" title="Ajouter, renommer ou supprimer une catégorie">Gérer</button></label><input type="text" id="dep-cat" list="dep-cat-list" placeholder="Nouvelle ou existante..." autocomplete="off"><datalist id="dep-cat-list"></datalist></div>
-      <div class="fg"><label>Description *</label><input type="text" id="dep-desc" placeholder="Détail..."></div>
+      <div class="fg"><label>Description *</label><input type="text" id="dep-desc" placeholder=""></div>
     </div>
     <div class="fr">
-      <div class="fg"><label>Quantité</label><input type="number" id="dep-qte" value="1" min="1" oninput="cDepTot()"></div>
-      <div class="fg"><label>Prix unitaire (GNF) *</label><input type="number" id="dep-prix" placeholder="0" oninput="cDepTot()"></div>
-      <div class="fg"><label>Total (auto)</label><input type="number" id="dep-tot" placeholder="0" readonly></div>
+      <div class="fg"><label>Qté</label><input type="number" id="dep-qte" value="1" min="1" oninput="cDepTot()"></div>
+      <div class="fg"><label>Prix unitaire *</label><input type="number" id="dep-prix" placeholder="0" oninput="cDepTot()"></div>
+      <div class="fg"><label>Total</label><input type="number" id="dep-tot" placeholder="0" readonly></div>
     </div>
     <div class="fr"><div class="fg"><label>Date</label><input type="date" id="dep-date"></div></div>
     <div class="mft">
@@ -1882,7 +1897,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     <div class="mhd">Catégories de dépenses<button class="mcl" onclick="cm('mcat')">✕</button></div>
     <div id="mcat-list" style="max-height:280px;overflow-y:auto;margin-bottom:12px"></div>
     <div class="fr">
-      <div class="fg" style="flex:1"><label>Nouvelle catégorie</label><input type="text" id="mcat-new" placeholder="Nom de la catégorie" onkeydown="if(event.key==='Enter')ajouterCategorieDep()"></div>
+      <div class="fg" style="flex:1"><label>Catégorie</label><input type="text" id="mcat-new" placeholder="" onkeydown="if(event.key==='Enter')ajouterCategorieDep()"></div>
     </div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mcat')">Fermer</button>
@@ -1898,32 +1913,32 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     <input type="hidden" id="c-eid">
     <div class="fr">
       <div class="fg"><label>Date *</label><input type="date" id="c-date"></div>
-      <div class="fg"><label>N° Commande (optionnel)</label><input type="text" id="c-num" placeholder="Laisser vide ou saisir"></div>
-      <div class="fg"><label>Client *</label><input type="text" id="c-client" placeholder="Nom client" list="dl-client" onblur="capitaliserChamp('c-client')"></div>
+      <div class="fg"><label>N° commande</label><input type="text" id="c-num" placeholder=""></div>
+      <div class="fg"><label>Client *</label><input type="text" id="c-client" placeholder="" list="dl-client" onblur="capitaliserChamp('c-client')"></div>
     </div>
     <div class="fr">
       <div class="fg">
-        <label>Téléphone client</label>
+        <label>Téléphone</label>
         <div style="display:flex;gap:6px;align-items:center">
-          <input type="tel" id="c-tel" placeholder="Ex: +224 620 000 000" style="flex:1">
+          <input type="tel" id="c-tel" placeholder="" style="flex:1">
           <button type="button" class="btn bs bsm" onclick="appelClient()" style="padding:8px 10px" title="Appeler">📞</button>
         </div>
       </div>
-      <div class="fg"><label>Adresse</label><input type="text" id="c-adr" placeholder="Adresse..."></div>
+      <div class="fg"><label>Adresse</label><input type="text" id="c-adr" placeholder=""></div>
     </div>
-    <div class="dv">Produits commandés</div>
+    <div class="dv">Produits</div>
     <div id="c-lignes"></div>
-    <button type="button" class="btn bh bsm" style="margin-bottom:10px" onclick="addCL()">+ Ajouter produit</button>
+    <button type="button" class="btn bh bsm" style="margin-bottom:10px" onclick="addCL()">+ Produit</button>
     <div style="background:var(--bg4);border-radius:8px;padding:9px;margin-bottom:10px;font-size:.8rem">
       Total : <strong style="color:var(--go)" id="c-tot">0 GNF</strong>
     </div>
     <div class="fr">
       <div class="fg"><label>Statut</label><select id="c-st"><option>En attente</option><option>En cours</option><option>Livré</option><option>Annulé</option></select></div>
-      <div class="fg"><label>Note</label><input type="text" id="c-note" placeholder="Remarque..."></div>
+      <div class="fg"><label>Note</label><input type="text" id="c-note" placeholder=""></div>
     </div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mc');rCF()">Annuler</button>
-      <button class="btn bo js-tap-fast" id="btn-sc" onclick="enrCmd()">✓ Enregistrer commande</button>
+      <button class="btn bo js-tap-fast" id="btn-sc" onclick="enrCmd()">✓ Enregistrer</button>
     </div>
   </div>
 </div>
@@ -1957,7 +1972,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 <div class="ov" id="m-changer-pass">
   <div class="modal" style="max-width:420px">
     <div class="mhd">Changer le mot de passe<button class="mcl" onclick="cm('m-changer-pass')">✕</button></div>
-    <div class="fg" style="margin-bottom:10px"><label>Mot de passe actuel</label><div style="position:relative"><input type="password" id="cp-actuel" placeholder="Votre mot de passe actuel" style="padding-right:40px"><span onclick="togglePass('cp-actuel',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem">👁</span></div></div>
+    <div class="fg" style="margin-bottom:10px"><label>Actuel</label><div style="position:relative"><input type="password" id="cp-actuel" placeholder="" style="padding-right:40px"><span onclick="togglePass('cp-actuel',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem">👁</span></div></div>
     <div class="fg" style="margin-bottom:10px"><label>Nouveau mot de passe</label><div style="position:relative"><input type="password" id="cp-nouveau" placeholder="Nouveau mot de passe (min. 4 caractères)" style="padding-right:40px"><span onclick="togglePass('cp-nouveau',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem">👁</span></div></div>
     <div class="fg" style="margin-bottom:10px"><label>Confirmer</label><div style="position:relative"><input type="password" id="cp-confirm" placeholder="Répétez le nouveau mot de passe" style="padding-right:40px"><span onclick="togglePass('cp-confirm',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tx2);font-size:1rem">👁</span></div></div>
     <div class="login-err" id="cp-err"></div>
@@ -7440,9 +7455,9 @@ function basculerChampsSelonType(){
   if (estVente)  { sv('a-panne',''); }
 
   var lblDesig = document.getElementById('lbl-a-desig');
-  if (lblDesig) lblDesig.textContent = estVente ? 'Désignation / Produit *' : (estReparation ? 'Désignation / Appareil *' : 'Désignation / Service *');
+  if (lblDesig) lblDesig.textContent = estVente ? 'Produit *' : (estReparation ? 'Appareil *' : 'Service *');
   var lblApayer = document.getElementById('lbl-a-apayer');
-  if (lblApayer) lblApayer.textContent = estVente ? 'À Payer (GNF)' : 'Montant à payer (GNF)';
+  if (lblApayer) lblApayer.textContent = 'À payer';
   var lblPanne = document.getElementById('lbl-a-panne');
   if (lblPanne) lblPanne.textContent = estReparation ? 'Panne' : 'Description';
 
@@ -11735,8 +11750,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.43'; // 07-10-2026 15:10 : onglet Commandes — affichage en cartes (1 carte = 1 commande, produits sur lignes séparées), alertes simplifiées (affichage uniquement, logique inchangée). Précédemment V0.42 : onglet Rapport — seul le tableau « Historique clôture » est conservé.
-var APP_VERSION_DATE = '2026-10-07T15:10:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.45'; // 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
+var APP_VERSION_DATE = '2026-10-07T16:20:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
