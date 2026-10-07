@@ -653,6 +653,32 @@ select[id^="f-"]{-webkit-appearance:none !important;appearance:none !important;b
 input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;font-size:.88rem !important;}
 /* /V0.31 */
 
+
+/* =====================================================================
+   BOÎTES DE DIALOGUE — visibilité totale des zones de saisie (06-10-2026)
+   Purement visuel : aucune logique, donnée, calcul ni synchronisation modifiés.
+   - hauteur dynamique en unités "dvh" (suit la barre d'adresse / le clavier,
+     portrait comme paysage) avec repli sur vh/% pour les anciens navigateurs ;
+   - scroll-padding-bottom : un champ amené dans la vue (focus, scrollIntoView)
+     n'est plus caché derrière le pied collant .mft (Annuler / Enregistrer) ;
+   - marges latérales tenant compte des encoches (paysage) ;
+   - défilement interne contenu, jamais de débordement horizontal.
+   Bloc autonome : le supprimer rétablit exactement le comportement précédent.
+   ===================================================================== */
+.ov{padding-top:max(8px,env(safe-area-inset-top,0px));padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px));box-sizing:border-box;}
+.modal,.login-box{max-height:min(92vh,92%);max-height:min(92dvh,100%);overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;box-sizing:border-box;min-width:0;}
+.modal{scroll-padding-bottom:84px;scroll-padding-top:12px;}
+.login-box{scroll-padding-bottom:12px;}
+.modal .fg,.modal .fg input,.modal .fg select,.modal .fg textarea{min-width:0;max-width:100%;box-sizing:border-box;}
+.modal img,.modal canvas,.modal video{max-width:100%;height:auto;}
+.modal table{max-width:100%;}
+@media (orientation:landscape) and (max-height:520px){
+  .modal{padding-top:8px;padding-bottom:8px;}
+  .modal .mhd{margin-bottom:6px;}
+  .mft{bottom:-8px;margin-bottom:-8px;padding-top:8px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));}
+}
+/* /BOÎTES DE DIALOGUE */
+
   </style>
 </head>
 <body>
@@ -6830,6 +6856,7 @@ function retirerDeStockEnt(nom, qte){
   s.origPerso=Math.max(0,(s.origPerso||0)-qte);
   s.qteRestante=Math.max(0,s.qteInitiale-(s.qteVendue||0));
   s._localTouchedAt=Date.now();
+  s._baisseVoulueAt=s._localTouchedAt; // V0.35 : baisse VOLONTAIRE (annulation/suppression) — voir mergeAppData(), protection anti-recul
 }
 /**
  * Ouvre le formulaire d'ajout rapide de quantité pour une fiche du Stock
@@ -6924,6 +6951,7 @@ function annulerDernierAjout(id, type){
     s.qteRestante=Math.max(0,s.qteInitiale-(s.qteVendue||0));
     s.dernierAjoutQte=0; s.dernierAjoutDate=null;
     s._localTouchedAt=Date.now();
+    s._baisseVoulueAt=s._localTouchedAt; // V0.35 : baisse volontaire (voir mergeAppData)
     ah('stock','Annulation ajout: '+s.nom+' -'+qte,0,td());
     save(); rStock(); notif('↩️ Dernier ajout annulé sur '+s.nom+' (-'+qte+')');
   } else {
@@ -6938,6 +6966,8 @@ function annulerDernierAjout(id, type){
     retirerDeStockEnt(p.nom,qte);
     p.dernierAjoutQte=0; p.dernierAjoutDate=null; p.dernierAjoutRevient=0; p.dernierAjoutCommission=0;
     p.derniereModifDate=new Date().toISOString();
+    p._localTouchedAt=Date.now(); // V0.34 : horodatage de la modification (comme toutes les autres fiches, voir mergeAppData)
+    p._baisseVoulueAt=p._localTouchedAt; // V0.35 : baisse volontaire (voir mergeAppData)
     ah('perso','Annulation ajout: '+p.nom+' -'+qte,0,td());
     save(); rPerso(); notif('↩️ Dernier ajout annulé sur '+p.nom+' (-'+qte+')');
   }
@@ -7587,6 +7617,8 @@ function enrPerso(){
       // montants ci-dessous (qui reste, elle, strictement inchangée).
       ajouterHistoriquePrix(ex, achat, qte, date);
       ex.qteInitiale+=qte;ex.prixRevient+=prixRevient;ex.commission+=commission;ex.totalDu+=totalDu; ex.derniereModifDate=maintenant; ex.dernierAjoutQte=qte; ex.dernierAjoutDate=maintenant;
+      // V0.34 : montants exacts de CE lot conservés (comme enrAjoutQte) pour que annulerDernierAjout() restitue aussi prixRevient/commission/totalDu
+      ex.dernierAjoutRevient=prixRevient; ex.dernierAjoutCommission=commission;
       // CORRECTIF (même cause qu'au-dessus, voir le commentaire détaillé
       // dans la branche d'édition ci-dessus) : une fiche déjà consolidée
       // et réutilisée ici par correspondance de nom doit elle aussi
@@ -11410,7 +11442,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.32'; // 06-10-2026 22:10 : onglet Rapport de nouveau affiché (balise </div> manquante avant le bloc Rapport — structure HTML uniquement). Précédemment V0.31 — 06-10-2026 21:40 : champ Recherche agrandi à la saisie (affichage uniquement). Précédemment V0.30 — 06-10-2026 21:15 : tous les boutons de chaque onglet sur une seule ligne, nom du client dans Paiement partiel (affichage uniquement). Précédemment V0.29 — 06-10-2026 13:10 : barres de filtres harmonisées sur toutes les vues (CSS/libellés d'affichage uniquement). Précédemment V0.28 — 06-10-2026 10:15 : logo/badge raccourcis et filtres plus compacts (CSS d'affichage uniquement). Précédemment V0.27 — 06-10-2026 09:40 : boutons plus courts à l'horizontale (CSS d'affichage uniquement, bloc V0.27 de la feuille de style). Précédemment V0.26 — 06-10-2026 : simplification 5 — harmonisation visuelle (3 niveaux de boutons : principal .bp/.bg, secondaire .bh/.bs/.bt/.bo, danger .bd ; 2 niveaux de cartes : .card et blocs internes .kpi/.rb/.ci/.fi-box/.reset-info ; 4 tailles de texte : .7/.8/.9/1.05rem), bloc CSS autonome « V0.26 » en fin de feuille de style, affichage uniquement, aucun balisage/donnée/calcul/synchro/droit modifié. Précédemment V0.25 : simplification emojis — retrait des emojis décoratifs (boutons, titres, titres de modales, lignes, libellés) ; conservés : onglets, statuts (✅ ❌ ⚠️ ⏳ 🟢🟠🔴⚪ 🔒), icônes seules (✏️ 🗑️ ➕ ✕ 🖨️ 👁) ; dictionnaire FR/EN/FF aligné, affichage uniquement. Précédemment V0.24 05-10-2026 : menu ⋯ pour les actions secondaires des en-têtes (Commandes, Activités, Stock, Perso, Dépenses, Historique, Corbeille), boutons et fonctions inchangés. Précédemment V0.23 05-10-2026 : Commandes — alertes stock simplifiées (1 cadre, 2 lignes par produit, nom non répété) et titre en double masqué, rendu seul. Précédemment V0.22 05-10-2026 : compactage vertical global (Z1 titres/boutons d'onglet, Z3 filtres, Z4 modales, Z5 tableau de bord, Z6 recherche globale, Z7 bilan) — CSS d'affichage uniquement. Précédemment V0.21 05-10-2026 : Alertes Stock Faible — 2e passe de compactage (marges/paddings résiduels, affichage uniquement). Précédemment V0.20 05-10-2026 : Commandes › Alertes Stock Faible — affichage compact (cartes, espacements, 4 compteurs sur une ligne, fiche fournisseur resserrée), CSS/markup d'affichage uniquement, aucune logique ni donnée modifiée. Précédemment V0.19 04-10-2026 : Affichage — nouveau réglage « Taille des onglets » (− / curseur / +, 80–140 %, indépendant de la taille du texte, mémorisé). Précédemment V0.18 03-10-2026 : English (US) complété — 1 227 phrases ajoutées au dictionnaire I18N centralisé (I18N.phrases.en), aucune modification de la logique métier. Précédemment V0.17 : Affichage — ajout du Pular/Fulfulde de Guinée (Conakry) en véritable écriture Adlam Unicode (tous les textes statiques et dynamiques, placeholders, infobulles, boîtes de dialogue, impression), police Adlam embarquée ; Français et English (US) inchangés, règles par rôle inchangées. Précédemment V0.16 — choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
+var APP_VERSION = 'V0.35'; // 06-10-2026 23:55 : synchronisation — une annulation/suppression volontaire (Stock Perso → Stock Entreprise) plus récente que le cloud n'est plus écrasée par une ancienne quantité (exception ciblée dans la protection anti-recul de mergeAppData ; marqueur _baisseVoulueAt). Précédemment V0.34 — 06-10-2026 23:20 : Stock Perso — annuler le dernier ajout d'une saisie fusionnée par nom restitue aussi prixRevient/commission/totalDu et pose _localTouchedAt (aucune formule modifiée). Précédemment V0.33 — 06-10-2026 22:45 : boîtes de dialogue — aucune zone de saisie masquée (hauteur dvh, scroll-padding sous le pied collant, recalage à l'ouverture/rotation ; CSS + recalage d'affichage uniquement). Précédemment V0.32 — 06-10-2026 22:10 : onglet Rapport de nouveau affiché (balise </div> manquante avant le bloc Rapport — structure HTML uniquement). Précédemment V0.31 — 06-10-2026 21:40 : champ Recherche agrandi à la saisie (affichage uniquement). Précédemment V0.30 — 06-10-2026 21:15 : tous les boutons de chaque onglet sur une seule ligne, nom du client dans Paiement partiel (affichage uniquement). Précédemment V0.29 — 06-10-2026 13:10 : barres de filtres harmonisées sur toutes les vues (CSS/libellés d'affichage uniquement). Précédemment V0.28 — 06-10-2026 10:15 : logo/badge raccourcis et filtres plus compacts (CSS d'affichage uniquement). Précédemment V0.27 — 06-10-2026 09:40 : boutons plus courts à l'horizontale (CSS d'affichage uniquement, bloc V0.27 de la feuille de style). Précédemment V0.26 — 06-10-2026 : simplification 5 — harmonisation visuelle (3 niveaux de boutons : principal .bp/.bg, secondaire .bh/.bs/.bt/.bo, danger .bd ; 2 niveaux de cartes : .card et blocs internes .kpi/.rb/.ci/.fi-box/.reset-info ; 4 tailles de texte : .7/.8/.9/1.05rem), bloc CSS autonome « V0.26 » en fin de feuille de style, affichage uniquement, aucun balisage/donnée/calcul/synchro/droit modifié. Précédemment V0.25 : simplification emojis — retrait des emojis décoratifs (boutons, titres, titres de modales, lignes, libellés) ; conservés : onglets, statuts (✅ ❌ ⚠️ ⏳ 🟢🟠🔴⚪ 🔒), icônes seules (✏️ 🗑️ ➕ ✕ 🖨️ 👁) ; dictionnaire FR/EN/FF aligné, affichage uniquement. Précédemment V0.24 05-10-2026 : menu ⋯ pour les actions secondaires des en-têtes (Commandes, Activités, Stock, Perso, Dépenses, Historique, Corbeille), boutons et fonctions inchangés. Précédemment V0.23 05-10-2026 : Commandes — alertes stock simplifiées (1 cadre, 2 lignes par produit, nom non répété) et titre en double masqué, rendu seul. Précédemment V0.22 05-10-2026 : compactage vertical global (Z1 titres/boutons d'onglet, Z3 filtres, Z4 modales, Z5 tableau de bord, Z6 recherche globale, Z7 bilan) — CSS d'affichage uniquement. Précédemment V0.21 05-10-2026 : Alertes Stock Faible — 2e passe de compactage (marges/paddings résiduels, affichage uniquement). Précédemment V0.20 05-10-2026 : Commandes › Alertes Stock Faible — affichage compact (cartes, espacements, 4 compteurs sur une ligne, fiche fournisseur resserrée), CSS/markup d'affichage uniquement, aucune logique ni donnée modifiée. Précédemment V0.19 04-10-2026 : Affichage — nouveau réglage « Taille des onglets » (− / curseur / +, 80–140 %, indépendant de la taille du texte, mémorisé). Précédemment V0.18 03-10-2026 : English (US) complété — 1 227 phrases ajoutées au dictionnaire I18N centralisé (I18N.phrases.en), aucune modification de la logique métier. Précédemment V0.17 : Affichage — ajout du Pular/Fulfulde de Guinée (Conakry) en véritable écriture Adlam Unicode (tous les textes statiques et dynamiques, placeholders, infobulles, boîtes de dialogue, impression), police Adlam embarquée ; Français et English (US) inchangés, règles par rôle inchangées. Précédemment V0.16 — choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
 var APP_VERSION_DATE = '2026-10-06T22:10:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
@@ -12552,6 +12584,36 @@ function doChangerPass() {
       setTimeout(ramenerChampActifDansLaVue,120); setTimeout(ramenerChampActifDansLaVue,350); setTimeout(ramenerChampActifDansLaVue,650);
     }
   });
+})();
+/**
+ * CORRECTIF UI (06-10-2026 — "aucune zone de saisie masquée dans les boîtes de
+ * dialogue") : adjustForKeyboard() ne s'exécutait qu'à un événement clavier /
+ * redimensionnement. Conséquences : une hauteur "clavier" restée sur un .ov
+ * fermé était réutilisée telle quelle à la réouverture suivante (fenêtre trop
+ * petite), et la rotation de l'écran n'était pas rejouée.
+ * Ici : (1) à l'ouverture d'un .ov on recale sa hauteur sur la zone réellement
+ * visible ; (2) à la fermeture on retire la hauteur/position en ligne ;
+ * (3) on rejoue aussi sur rotation / redimensionnement de la fenêtre.
+ * Aucune logique métier, donnée ni calcul modifié ; om()/cm() inchangées.
+ */
+(function(){
+  function recaler(){
+    if(typeof window.adjustForKeyboard==='function') window.adjustForKeyboard();
+  }
+  var obs=new MutationObserver(function(muts){
+    muts.forEach(function(m){
+      var ov=m.target;
+      if(!ov.classList) return;
+      if(ov.classList.contains('open')) recaler();
+      else { ov.style.removeProperty('height'); ov.style.removeProperty('top'); }
+    });
+  });
+  document.querySelectorAll('.ov').forEach(function(ov){
+    obs.observe(ov,{attributes:true,attributeFilter:['class']});
+  });
+  function apresRotation(){ setTimeout(recaler,100); setTimeout(recaler,400); }
+  window.addEventListener('orientationchange',apresRotation);
+  window.addEventListener('resize',recaler);
 })();
 document.addEventListener('DOMContentLoaded',function(){
  appliquerPreferencesAffichage();
@@ -14240,6 +14302,39 @@ function mergeAppData(cloudData, localData, cloudIsNewer, cloudDate, localDate) 
         }
       }
       if(bItem && pItem){
+        /**
+         * CORRECTIF (06-10-2026 — "une annulation volontaire faite hors
+         * ligne était annulée par la synchronisation") — cause exacte : la
+         * protection anti-recul ci-dessous garde TOUJOURS la plus grande
+         * quantité des deux versions, donc une baisse VOLONTAIRE (annulation
+         * d'un ajout, suppression d'une fiche Stock Perso → retrait du Stock
+         * Entreprise) était remontée par une ancienne valeur cloud, laissant
+         * des unités fantômes. Exception strictement limitée : si l'un des
+         * deux côtés porte _baisseVoulueAt (posé uniquement par une
+         * annulation/suppression volontaire) ET que cette baisse est plus
+         * récente que la DERNIÈRE modification de l'autre côté, ce côté-là
+         * est la vérité — on adopte sa quantité (et, pour une fiche perso,
+         * ses montants liés). Si l'autre côté a été modifié après la baisse,
+         * ou si aucun marqueur n'existe, la protection anti-recul s'applique
+         * exactement comme avant. Aucun calcul, stock, vente ni paiement modifié.
+         */
+        var baisseVoulue=null;
+        [[bItem,pItem],[pItem,bItem]].forEach(function(c){
+          var x=c[0], autre=c[1];
+          if(x._baisseVoulueAt && x._baisseVoulueAt > (autre._localTouchedAt||0) &&
+             (!baisseVoulue || x._baisseVoulueAt > baisseVoulue._baisseVoulueAt)) baisseVoulue=x;
+        });
+        if(baisseVoulue){
+          item.qteInitiale = Number(baisseVoulue.qteInitiale)||0;
+          if(f==='stock'){
+            item.origPerso = Number(baisseVoulue.origPerso)||0;
+            item.qteRestante = Math.max(0, item.qteInitiale - (Number(item.qteVendue)||0));
+          } else {
+            ['prixRevient','commission','totalDu','dernierAjoutQte','dernierAjoutDate','dernierAjoutRevient','dernierAjoutCommission','derniereModifDate'].forEach(function(champ){ item[champ]=baisseVoulue[champ]; });
+          }
+          item._baisseVoulueAt = baisseVoulue._baisseVoulueAt;
+          item._localTouchedAt = Math.max(item._localTouchedAt||0, baisseVoulue._localTouchedAt||0);
+        } else {
         var maxQte = Math.max(Number(bItem.qteInitiale)||0, Number(pItem.qteInitiale)||0);
         if((Number(item.qteInitiale)||0) < maxQte){
           item.qteInitiale = maxQte;
@@ -14247,6 +14342,7 @@ function mergeAppData(cloudData, localData, cloudIsNewer, cloudDate, localDate) 
             item.origPerso = Math.max(Number(bItem.origPerso)||0, Number(pItem.origPerso)||0);
             item.qteRestante = Math.max(0, maxQte - (Number(item.qteVendue)||0));
           }
+        }
         }
         /**
          * CORRECTIF (10-09-2026 — audit multi-appareils : "un prix
