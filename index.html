@@ -824,6 +824,21 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 #ma .modal>.fr>.fg:has(>textarea),#md .modal>.fr>.fg:has(>textarea),#mc .modal>.fr>.fg:has(>textarea){flex:1 1 auto !important;}
 @media (max-height:480px) and (orientation:landscape){.modal .fg textarea{padding:4px 8px;min-height:30px;}}
 /* ===== /V0.52 ===== */
+/* ===== V0.53 — Commandes : produits à commander par catégorie (N° | Désignation | Quantité) ; bouton « Infos » (Bilan, Patrimoine) — affichage uniquement ===== */
+#alertes-stock .ast-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-bottom:6px;}
+#alertes-stock .ast-top .ch{margin:0;}
+#alertes-stock table.ast-t{width:100%;border-collapse:collapse;font-size:.8rem;}
+#alertes-stock .ast-t th{text-align:left;font-size:.62rem;text-transform:uppercase;letter-spacing:.04em;color:var(--tx2);padding:3px 6px;border-bottom:1px solid var(--bd);}
+#alertes-stock .ast-t td{padding:4px 6px;border-top:1px solid var(--bd);line-height:1.3;}
+#alertes-stock .ast-t .ast-no{width:34px;color:var(--tx2);}
+#alertes-stock .ast-t th.ast-q,#alertes-stock .ast-t td.ast-q{width:78px;text-align:right;}
+#alertes-stock .ast-t td.ast-q{font-weight:700;color:var(--go);}
+#alertes-stock .ast-t tr.ast-cat td{background:var(--bg4);border-top:0;color:var(--ac);font-weight:700;font-size:.7rem;letter-spacing:.04em;padding:4px 6px;}
+.btn.btn-infos{display:inline-flex;align-items:center;gap:5px;background:transparent;border:1px solid var(--ac);color:var(--ac);border-radius:999px;padding:3px 10px 3px 5px;font-weight:600;}
+.btn.btn-infos::before{content:"i";flex:none;width:14px;height:14px;border-radius:50%;background:var(--ac);color:var(--bg);font:italic 700 .64rem/14px Georgia,serif;text-align:center;}
+.btn.btn-infos.on{background:var(--ac);color:var(--bg);}
+.btn.btn-infos.on::before{background:var(--bg);color:var(--ac);}
+/* ===== /V0.53 ===== */
 </style>
 </head>
 <body>
@@ -1243,7 +1258,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 
 <!-- BILAN -->
 <div id="tab-bilan" class="tab-panel">
-  <div class="sh"><div><div class="st" data-i18n="titre.bilan">Bilan & Répartition</div></div><div style="display:flex;gap:6px"><button class="btn bg bsm" onclick="calculerBilan()" data-i18n="btn.calculer">Calculer</button><button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-bilan-note',this)">En savoir plus</button></div></div>
+  <div class="sh"><div><div class="st" data-i18n="titre.bilan">Bilan & Répartition</div></div><div style="display:flex;gap:6px"><button class="btn bg bsm" onclick="calculerBilan()" data-i18n="btn.calculer">Calculer</button><button class="btn bh bxs no-print btn-infos" data-lbl="Infos" onclick="toggleInfoTech('fm-bilan-note',this)">Infos</button></div></div>
   <div class="al als" id="fm-bilan-note" style="font-size:.77rem;display:none">✅ Bénéfice calculé uniquement sur montants <strong>ENCAISSÉS (PAYÉS)</strong>. Aucune saisie manuelle.</div>
   <!-- Tableau des formules : masqué par défaut à l'écran (réglage
        Paramètres > Bilan > "Afficher le tableau des formules"), mais
@@ -1251,7 +1266,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
        calculerBilan()...) ne dépendent en rien de cet affichage et
        continuent normalement, que ce bloc soit visible ou non. Voir
        appliquerVisibiliteFormulesBilan(). -->
-  <button class="btn bh bxs no-print" onclick="toggleInfoTech('card-formules-bilan',this)" style="margin-bottom:8px">En savoir plus</button>
+  <button class="btn bh bxs no-print btn-infos" data-lbl="Infos" onclick="toggleInfoTech('card-formules-bilan',this)" style="margin-bottom:8px">Infos</button>
   <div class="card" id="card-formules-bilan" style="border-color:rgba(79,142,247,.25);margin-bottom:12px">
     <div class="ch"><span class="dot" style="background:var(--ac2)"></span>Formules de calcul</div>
     <div class="g3">
@@ -1457,8 +1472,8 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 
 <!-- PATRIMOINE (biens et matériels de l'Administrateur, visibles par le compte Visiteur) -->
 <div id="tab-patrimoine" class="tab-panel">
-  <div class="ch"><span class="dot" style="background:var(--go)"></span>Patrimoine — Biens &amp; Matériels</div>
-  <div class="al ali" style="font-size:.77rem">Enregistre uniquement les biens réellement existants. Cette liste est visible par le compte Visiteur (avec le total des avoirs).</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-bottom:6px"><div class="ch" style="margin:0"><span class="dot" style="background:var(--go)"></span>Patrimoine — Biens &amp; Matériels</div><button class="btn bh bxs no-print btn-infos" data-lbl="Infos" onclick="toggleInfoTech('fm-patrimoine',this)">Infos</button></div>
+  <div class="al ali" id="fm-patrimoine" style="font-size:.77rem;display:none">Enregistre uniquement les biens réellement existants. Cette liste est visible par le compte Visiteur (avec le total des avoirs).</div>
   <div class="card" style="margin-bottom:14px">
     <div style="font-weight:700;margin-bottom:10px">Ajouter un bien</div>
     <div class="fr">
@@ -2496,7 +2511,10 @@ function toggleInfoTech(id,btn){
   if(!el) return;
   var masque = (el.style.display==='none');
   el.style.display = masque ? '' : 'none';
-  if(btn) btn.textContent = masque ? 'Masquer' : 'En savoir plus';
+  if(btn){
+    btn.textContent = masque ? 'Masquer' : (btn.getAttribute('data-lbl') || 'En savoir plus');
+    if(btn.classList.contains('btn-infos')) btn.classList.toggle('on', masque);
+  }
 }
 /* V0.24 — Menu ⋯ des en-têtes d'onglet (affichage seul : ouvre/ferme un panneau qui contient les boutons existants, leurs fonctions sont inchangées) */
 function closeAllMM(){
@@ -4562,6 +4580,9 @@ var I18N={
     "PART ASSOCIÉ (base)":"PARTNER SHARE (base)",
     "🔽 Masquer":"🔽 Hide",
     "Masquer":"Hide",
+    "Infos":"Info",
+    "Produits à commander":"Products to order",
+    "N°":"No.",
     "🖥️ Gestion de l'affichage":"🖥️ Display management",
     "Gestion de l'affichage":"Display management",
     "🖨️ Imprimer":"🖨️ Print",
@@ -5982,6 +6003,7 @@ var I18N={
     "PART ASSOCIÉ (base)":"🔵 𞤊𞤉𞤐𞥆𞤁𞤌 𞤅𞤉𞤖𞤋𞤂 (𞤬𞤵𞤯𞥆𞤮𞥅𞤣𞤫)",
     "🔽 Masquer":"🔽 𞤅𞤵𞥅𞤯𞤵",
     "Masquer":"🔽 𞤅𞤵𞥅𞤯𞤵",
+    "Infos":"𞤀𞤲𞥆𞤣𞤵 𞤩𞤵𞤪𞤭",
     "🖥️ Gestion de l'affichage":"🖥️ 𞤖𞤢𞤳𞥆𞤭𞤤𞤵𞤺𞤮𞤤 𞤥𞤦𞤢𞥄𞤣𞤭",
     "Gestion de l'affichage":"🖥️ 𞤖𞤢𞤳𞥆𞤭𞤤𞤵𞤺𞤮𞤤 𞤥𞤦𞤢𞥄𞤣𞤭",
     "🖨️ Imprimer":"🖨️ 𞤐𞤣𞤢𞥄𞤪𞤵",
@@ -9116,22 +9138,29 @@ function rAlertesStock(){
     return restant<=(s.seuil||3);
   });
   if(!faibles.length){ el.innerHTML=''; return; }
-  var html='<div class="card" style="border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.03);margin-bottom:12px">';
-  html+='<div class="ch"><span class="dot" style="background:var(--re)"></span>Alertes Stock Faible — Fiches Commande Fournisseur</div>';
+  /* V0.53 — affichage par catégorie (même regroupement que texteCmdFournisseurGroupe) : N° | Désignation | Quantité à commander.
+     Seuil et quantité suggérée sont calculés exactement comme avant ; seul l'affichage change. */
+  var groupes={}, autres=[];
   faibles.forEach(function(s){
-    var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
     var seuil=s.seuil||3;
-    var niv=niveauStock(restant,seuil);
-    var qteCmd=Math.max(seuil*3,10);
-    html+='<div class="ast-r">';
-    html+='<div class="ast-h">';
-    html+='<div><strong style="font-size:.88rem">'+echap(s.nom)+'</strong> <span class="badge bdr" style="margin-left:6px">'+niv.label+' ('+restant+')</span></div>';
-    html+='<button class="btn bo bxs" onclick="genererCmdFournisseurAuto()">Ajouter à la commande fournisseur</button>';
-    html+='</div>';
-    html+='<div class="ast-s">Restant <b style="color:'+niv.color+'">'+restant+'</b> · Seuil <b>'+seuil+'</b> · Qté suggérée <b style="color:var(--go)">'+qteCmd+'</b></div>';
-    html+='</div>';
+    var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
+    var ligne={nom:s.nom, restant:restant, seuil:seuil, qteCmd:Math.max(seuil*3,10)};
+    var cat=(s.categorie ? String(s.categorie).trim() : '').toUpperCase();
+    if(cat){ (groupes[cat]=groupes[cat]||[]).push(ligne); } else autres.push(ligne);
   });
-  html+='</div>';
+  var html='<div class="card" style="border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.03);margin-bottom:12px">';
+  html+='<div class="ast-top"><div class="ch"><span class="dot" style="background:var(--re)"></span>Produits à commander</div>';
+  html+='<button class="btn bo bxs" onclick="genererCmdFournisseurAuto()">Ajouter à la commande fournisseur</button></div>';
+  html+='<table class="ast-t"><thead><tr><th class="ast-no">N°</th><th>Désignation</th><th class="ast-q">Quantité</th></tr></thead><tbody>';
+  var bloc=function(titre,lignes){
+    html+='<tr class="ast-cat"><td colspan="3">'+echap(titre)+'</td></tr>';
+    lignes.forEach(function(l,i){
+      html+='<tr title="Restant '+l.restant+' · Seuil '+l.seuil+'"><td class="ast-no">'+(i+1)+'</td><td>'+echap(l.nom)+'</td><td class="ast-q">'+l.qteCmd+'</td></tr>';
+    });
+  };
+  Object.keys(groupes).sort().forEach(function(cat){ bloc(cat,groupes[cat]); });
+  if(autres.length) bloc('AUTRES',autres);
+  html+='</tbody></table></div>';
   el.innerHTML=html;
 }
 
@@ -11841,8 +11870,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.52'; // 07-10-2026 22:01 : champs de texte long (Description, Note, Motif, Adresse, Panne…) en zones multilignes, contenu 100 % visible — affichage uniquement. Précédemment V0.51 : 07-10-2026 21:40 : zones de saisie ajustées au contenu (texte jamais coupé, largeur dynamique, responsive) — affichage uniquement. Précédemment V0.50 : 07-10-2026 21:00 : Activité/Dépense/Commande (champs texte extensibles, Qté réduit, Téléphone obligatoire), Patrimoine (bouton à côté de la date), Bilan (hauteurs réduites). Précédemment V0.49 : 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
-var APP_VERSION_DATE = '2026-10-07T22:01:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.53'; // 07-10-2026 22:25 : Commandes — produits à commander affichés par catégorie en liste N° | Désignation | Quantité ; Patrimoine — note masquée par défaut, affichée via le bouton « Infos » ; Bilan — boutons « En savoir plus » remplacés par « Infos » (présentation distincte) — affichage uniquement. Précédemment V0.52 : 07-10-2026 22:01 : champs de texte long (Description, Note, Motif, Adresse, Panne…) en zones multilignes, contenu 100 % visible — affichage uniquement. Précédemment V0.51 : 07-10-2026 21:40 : zones de saisie ajustées au contenu (texte jamais coupé, largeur dynamique, responsive) — affichage uniquement. Précédemment V0.50 : 07-10-2026 21:00 : Activité/Dépense/Commande (champs texte extensibles, Qté réduit, Téléphone obligatoire), Patrimoine (bouton à côté de la date), Bilan (hauteurs réduites). Précédemment V0.49 : 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
+var APP_VERSION_DATE = '2026-10-07T22:25:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
