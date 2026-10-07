@@ -253,13 +253,30 @@ thead th{background:var(--bg4);color:var(--tx2);padding:8px 10px;text-align:left
 tbody td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle;}
 tbody tr:hover td{background:rgba(79,142,247,.04);}
 tbody tr:last-child td{border-bottom:none;}
-/* --- Commandes : lignes compactes au maximum pour afficher le plus de commandes possible à l'écran (sans perte d'info, sans casser les actions) --- */
-#tab-commandes thead th{padding:2px 6px;font-size:.6rem;}
-#tab-commandes tbody td{padding:0px 6px;line-height:1.05;font-size:.72rem;}
-#tab-commandes tbody tr .badge{padding:0px 5px;line-height:1.2;font-size:.63rem;}
-#tab-commandes tbody tr select{padding:0px 4px !important;font-size:.68rem !important;}
-#tab-commandes tbody tr .ac{gap:1px;}
-#tab-commandes tbody tr .btn.bxs{padding:0px 4px;min-height:18px;line-height:18px;}
+/* --- Commandes : cartes simples (1 carte = 1 commande, produits sur lignes séparées) --- */
+#tab-commandes > .sh .ss{display:none;}
+#tbl-cmd{display:flex;flex-direction:column;gap:10px;}
+#tbl-cmd .cmd-empty{text-align:center;color:var(--tx2);padding:24px 10px;font-size:.82rem;}
+#tbl-cmd .cmd-card{background:var(--bg4);border:1px solid var(--bd);border-left:4px solid var(--tx3);border-radius:10px;padding:10px 12px;}
+#tbl-cmd .cmd-card.st-attente{border-left-color:var(--go);}
+#tbl-cmd .cmd-card.st-cours{border-left-color:var(--ac);}
+#tbl-cmd .cmd-card.st-livre{border-left-color:var(--gr);}
+#tbl-cmd .cmd-card.st-annule{border-left-color:var(--re);opacity:.65;}
+#tbl-cmd .cmd-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+#tbl-cmd .cmd-client{font-size:.95rem;font-weight:700;color:var(--tx);word-break:break-word;}
+#tbl-cmd .cmd-top select{background:var(--bg3);border:1px solid var(--bd2);border-radius:7px;padding:4px 8px;color:var(--tx);font-size:.76rem;}
+#tbl-cmd .cmd-meta{display:flex;flex-wrap:wrap;gap:2px 12px;margin-top:3px;font-size:.74rem;color:var(--tx2);}
+#tbl-cmd .cmd-meta a{color:var(--gr);text-decoration:none;font-weight:600;}
+#tbl-cmd .cmd-prods{margin-top:8px;border-top:1px solid var(--bd);}
+#tbl-cmd .cmd-p{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dashed var(--bd);font-size:.82rem;color:var(--tx);}
+#tbl-cmd .cmd-p:last-child{border-bottom:none;}
+#tbl-cmd .cmd-p b{color:var(--tx2);font-weight:700;white-space:nowrap;}
+#tbl-cmd .cmd-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;padding-top:8px;border-top:1px solid var(--bd);}
+#tbl-cmd .cmd-total{font-size:.95rem;font-weight:800;color:var(--go);}
+#tbl-cmd .cmd-foot .ac{gap:6px;}
+#tbl-cmd .cmd-foot .btn.bxs{padding:6px 10px;min-height:32px;}
+#tbl-cmd .cmd-sum{display:flex;justify-content:space-between;padding:8px 12px;font-size:.82rem;font-weight:700;color:var(--tx2);}
+#tbl-cmd .cmd-sum span:last-child{color:var(--go);}
 .badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:.67rem;font-weight:600;}
 .bgr{background:rgba(34,197,94,.15);color:var(--gr);}.bdr{background:rgba(239,68,68,.15);color:var(--re);}
 .bbr{background:rgba(79,142,247,.15);color:var(--ac);}.bor{background:rgba(240,180,41,.15);color:var(--go);}
@@ -362,7 +379,7 @@ tbody tr:last-child td{border-bottom:none;}
 #bilan-result .card > div[style*="margin-bottom:11px"]{margin-bottom:7px !important;}
 #bilan-result .card > div[style*="padding:12px"]{padding-top:9px !important;padding-bottom:9px !important;}
 /* /Z7 */
-/* V0.23 — Commandes : titre masqué car déjà affiché par l'onglet actif (sous-titre conservé) */
+/* V0.23 — Commandes : titre masqué car déjà affiché par l'onglet actif */
 #tab-commandes > .sh .st{display:none;}
 /* /V0.23 */
 /* V0.24 — Menu ⋯ (actions secondaires des en-têtes d'onglet) */
@@ -1280,10 +1297,8 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
       </span>
       <button class="btn bo bsm" onclick="rCF();om('mc')" data-i18n="btn.nouvelle.commande">+ Commande</button>
     </div>
-    <div class="tw"><table>
-    <thead><tr><th>#</th><th>Date</th><th>N° Cmd</th><th>Client</th><th>Téléphone</th><th>Produits</th><th>Total</th><th>Statut</th><th>Actions</th></tr></thead>
-    <tbody id="tbl-cmd"><tr><td colspan="9" style="text-align:center;color:var(--tx2);padding:20px">Aucune commande</td></tr></tbody>
-  </table></div></div>
+    <div id="tbl-cmd"><div class="cmd-empty">Aucune commande</div></div>
+  </div>
 </div>
 
 <!-- HISTORIQUE -->
@@ -8974,11 +8989,10 @@ function rAlertesCommandesDisponibles(){
   if(!dispo.length){ el.innerHTML=''; return; }
   var html='<div class="card" style="border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.03);margin-bottom:12px">';
   html+='<div class="ch"><span class="dot" style="background:var(--gr)"></span>Commandes clients disponibles — à faire savoir</div>';
-  html+='<div class="al alg" style="font-size:.77rem">✅ Ces commandes sont maintenant entièrement en stock. Prévenez le client.</div>';
   dispo.forEach(function(c){
     html+='<div class="fi-box">';
     html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">';
-    html+='<div><strong style="font-size:.88rem">'+c.client+'</strong> <span class="badge bgr" style="margin-left:6px">'+c.num+'</span></div>';
+    html+='<div><strong style="font-size:.88rem">'+echap(c.client)+'</strong> <span class="badge bgr" style="margin-left:6px">'+echap(c.num)+'</span></div>';
     html+='<div style="display:flex;gap:6px">';
     html+='<button class="btn bg bxs" onclick="notifierClientDisponible('+c.id+')" title="Message WhatsApp pré-rempli">Prévenir (WhatsApp)</button>';
     if(c.tel) html+='<button class="btn bs bxs" onclick="appelClientById('+c.id+')" title="Appeler">Appeler</button>';
@@ -8998,7 +9012,6 @@ function rAlertesStock(){
   if(!faibles.length){ el.innerHTML=''; return; }
   var html='<div class="card" style="border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.03);margin-bottom:12px">';
   html+='<div class="ch"><span class="dot" style="background:var(--re)"></span>Alertes Stock Faible — Fiches Commande Fournisseur</div>';
-  html+='<div class="ast-n">Ces produits ont atteint leur seuil d\'alerte. Commandez auprès de votre fournisseur.</div>';
   faibles.forEach(function(s){
     var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
     var seuil=s.seuil||3;
@@ -9009,8 +9022,7 @@ function rAlertesStock(){
     html+='<div><strong style="font-size:.88rem">'+echap(s.nom)+'</strong> <span class="badge bdr" style="margin-left:6px">'+niv.label+' ('+restant+')</span></div>';
     html+='<button class="btn bo bxs" onclick="genererCmdFournisseurAuto()">Ajouter à la commande fournisseur</button>';
     html+='</div>';
-    html+='<div class="ast-s">Restant <b style="color:'+niv.color+'">'+restant+'</b> · Seuil <b>'+seuil+'</b> · Initial <b>'+s.qteInitiale+'</b> · Vendu <b style="color:var(--or)">'+(s.qteVendue||0)+'</b></div>';
-    html+='<div class="ast-s">Qté suggérée <b style="color:var(--go)">'+qteCmd+'</b> · Dernier P.Achat <b>'+fmt(s.achat)+'</b></div>';
+    html+='<div class="ast-s">Restant <b style="color:'+niv.color+'">'+restant+'</b> · Seuil <b>'+seuil+'</b> · Qté suggérée <b style="color:var(--go)">'+qteCmd+'</b></div>';
     html+='</div>';
   });
   html+='</div>';
@@ -10055,31 +10067,29 @@ function rCmd(){
     var prodMatch=(c.produits||[]).some(function(l){ return normSearch(l.produit).indexOf(fs)>-1; });
     return normSearch(c.client).indexOf(fs)>-1||normSearch(c.num).indexOf(fs)>-1||normSearch(c.tel).indexOf(fs)>-1||prodMatch;
   });
-  if(!items.length){ tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--tx2);padding:20px">'+(D.commandes.length?'Aucun résultat':'Aucune commande')+'</td></tr>'; return; }
+  if(!items.length){ tb.innerHTML='<div class="cmd-empty">'+(D.commandes.length?'Aucun résultat':'Aucune commande')+'</div>'; return; }
   // DEMANDE ("bouton A-Z pour trier par nom") : purement un ordre
   // d'affichage — aucune donnée, aucun total, aucun calcul modifié.
   if(triAZ.cmd) items=items.slice().sort(function(a,b){ return normSearch(a.client).localeCompare(normSearch(b.client)); });
-  var sc={'En attente':'bnr','En cours':'bbr','Livré':'bgr','Annulé':'bdr'};
+  var cl={'En attente':'st-attente','En cours':'st-cours','Livré':'st-livre','Annulé':'st-annule'};
   var html='';
-  items.forEach(function(c,idx){
-    html+='<tr>';
-    html+='<td style="color:var(--tx3)">'+(idx+1)+'</td>';
-    html+='<td>'+fmtDateHeure(c.date,c.heure)+'</td>';
-    html+='<td><span class="badge bpr">'+c.num+'</span></td>';
-    html+='<td><strong>'+c.client+'</strong></td>';
-    html+='<td>'+(c.tel?'<a href="tel:'+c.tel+'" style="color:var(--gr);font-size:.76rem;text-decoration:none">'+c.tel+'</a>':'<span style="color:var(--tx3)">—</span>')+'</td>';
-    html+='<td style="font-size:.75rem;color:var(--tx2)">'+c.produits.map(function(p){ return p.produit+' ×'+p.qte; }).join(', ')+'</td>';
-    html+='<td style="color:var(--go)">'+fmt(c.total)+'</td>';
-    html+='<td><select onchange="cStatCmd('+c.id+',this.value)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:5px;padding:2px 7px;color:var(--tx);font-size:.74rem">';
+  items.forEach(function(c){
+    html+='<div class="cmd-card '+(cl[c.statut]||'')+'">';
+    html+='<div class="cmd-top"><span class="cmd-client">'+echap(c.client)+'</span>';
+    html+='<select onchange="cStatCmd('+c.id+',this.value)">';
     ['En attente','En cours','Livré','Annulé'].forEach(function(s){ html+='<option value="'+s+'"'+(c.statut===s?' selected':'')+'>'+s+'</option>'; });
-    html+='</select></td>';
-    html+='<td class="ac"><button class="btn bh bxs" onclick="editCmd('+c.id+')">✏️</button>'+(c.client==='FOURNISSEUR'?'<button class="btn bg bxs" onclick="envoyerCmdFournisseurWhatsApp('+c.id+')" title="Envoyer au fournisseur sur WhatsApp, groupé par catégorie">📲</button>':'')+(c.tel?'<button class="btn bs bxs" onclick="appelClientById('+c.id+')" title="Appeler">📞</button>':'')+'<button class="btn bd bxs" onclick="delCmd('+c.id+')">🗑️</button></td>';
-    html+='</tr>';
+    html+='</select></div>';
+    html+='<div class="cmd-meta"><span>'+echap(c.num)+'</span><span>'+fmtDateHeure(c.date,c.heure)+'</span>'+(c.tel?'<a href="tel:'+echap(c.tel)+'">'+echap(c.tel)+'</a>':'')+'</div>';
+    html+='<div class="cmd-prods">'+(c.produits||[]).map(function(p){ return '<div class="cmd-p"><span>'+echap(p.produit)+'</span><b>× '+p.qte+'</b></div>'; }).join('')+'</div>';
+    html+='<div class="cmd-foot"><span class="cmd-total">'+fmt(c.total)+'</span><div class="ac">';
+    html+='<button class="btn bh bxs" onclick="editCmd('+c.id+')" title="Modifier">✏️</button>';
+    if(c.client==='FOURNISSEUR') html+='<button class="btn bg bxs" onclick="envoyerCmdFournisseurWhatsApp('+c.id+')" title="Envoyer au fournisseur sur WhatsApp, groupé par catégorie">📲</button>';
+    if(c.tel) html+='<button class="btn bs bxs" onclick="appelClientById('+c.id+')" title="Appeler">📞</button>';
+    html+='<button class="btn bd bxs" onclick="delCmd('+c.id+')" title="Supprimer">🗑️</button>';
+    html+='</div></div></div>';
   });
   var totCmd=items.reduce(function(s,c){ return s+(c.total||0); },0);
-  html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
-  html+='<td>—</td><td colspan="5">TOTAL ('+items.length+' commande'+(items.length>1?'s':'')+')</td><td style="color:var(--go)">'+fmt(totCmd)+'</td><td>—</td><td>—</td>';
-  html+='</tr>';
+  html+='<div class="cmd-sum"><span>Total · '+items.length+' commande'+(items.length>1?'s':'')+'</span><span>'+fmt(totCmd)+'</span></div>';
   tb.innerHTML=html;
 }
 
@@ -11725,8 +11735,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.42'; // 07-10-2026 14:30 : onglet Rapport — seul le tableau « Historique clôture » est conservé (retrait de « Rapport de gestion », « Stock actuel », « Activités », affichage uniquement ; aucun calcul touché). Précédemment V0.41 07-10-2026 10:50 : synchronisation des quantités (Stock Entreprise + Stock Perso) — un appareil resté sur une ancienne quantité (2e Administrateur) ne peut plus réécrire l'ancienne valeur ni annuler une diminution récente faite ailleurs : chaque fiche mémorise la dernière quantité sur laquelle l'appareil et le serveur étaient d'accord ; une copie inchangée depuis cet accord n'est plus prise pour une modification (elle adopte la valeur du serveur, plus basse comme plus haute), une vraie modification locale est conservée et envoyée, deux modifications simultanées sont cumulées ; l'envoi du stock relit d'abord les quantités du serveur (Administrateur). Aucun calcul, vente, paiement, prix ni droit modifié ; les fiches sans base (d'avant V0.41) gardent l'ancien comportement jusqu'au premier accord. Précédemment V0.40 — 07-10-2026 09:40 : Stock Entreprise — bouton ➖ « Diminuer une quantité » (quantité saisie retirée directement ; jamais négatif, jamais dans la part du Stock Perso ; synchronisation en ligne/hors ligne protégée comme l'annulation d'ajout ; ventes, Stock Perso, calculs et droits inchangés). Précédemment V0.39 — 07-10-2026 09:10 : Stock Perso — la diminution manuelle ➖ ne peut plus être appliquée deux fois par un double-tap/double appel (garde anti double-déclenchement ; aucun calcul modifié). Précédemment V0.38 — 07-10-2026 08:10 : Stock Perso — bouton ➖ « Diminuer une quantité » (retire aussi du Stock Entreprise, jamais négatif, jamais plus que le non vendu ; synchronisation protégée). Précédemment V0.37 — 07-10-2026 07:25 : appareil Associé — une baisse/annulation légitime de l'Administrateur n'est plus écrasée par l'ancienne quantité plus haute (le serveur fait foi pour le stock en lecture seule de l'Associé ; protection Administrateur inchangée). Précédemment V0.36 — 07-10-2026 07:10 : correction unique Anticasse KK A12 (−31 sur la fiche Entreprise 60/22/38 → 29/22/7, appliquée une seule fois, administrateur) + protection de la baisse volontaire sur le chemin « tables serveur » (marqueur _baisseAEnvoyer). Précédemment V0.35 — 06-10-2026 23:55 : synchronisation — une annulation/suppression volontaire (Stock Perso → Stock Entreprise) plus récente que le cloud n'est plus écrasée par une ancienne quantité (exception ciblée dans la protection anti-recul de mergeAppData ; marqueur _baisseVoulueAt). Précédemment V0.34 — 06-10-2026 23:20 : Stock Perso — annuler le dernier ajout d'une saisie fusionnée par nom restitue aussi prixRevient/commission/totalDu et pose _localTouchedAt (aucune formule modifiée). Précédemment V0.33 — 06-10-2026 22:45 : boîtes de dialogue — aucune zone de saisie masquée (hauteur dvh, scroll-padding sous le pied collant, recalage à l'ouverture/rotation ; CSS + recalage d'affichage uniquement). Précédemment V0.32 — 06-10-2026 22:10 : onglet Rapport de nouveau affiché (balise </div> manquante avant le bloc Rapport — structure HTML uniquement). Précédemment V0.31 — 06-10-2026 21:40 : champ Recherche agrandi à la saisie (affichage uniquement). Précédemment V0.30 — 06-10-2026 21:15 : tous les boutons de chaque onglet sur une seule ligne, nom du client dans Paiement partiel (affichage uniquement). Précédemment V0.29 — 06-10-2026 13:10 : barres de filtres harmonisées sur toutes les vues (CSS/libellés d'affichage uniquement). Précédemment V0.28 — 06-10-2026 10:15 : logo/badge raccourcis et filtres plus compacts (CSS d'affichage uniquement). Précédemment V0.27 — 06-10-2026 09:40 : boutons plus courts à l'horizontale (CSS d'affichage uniquement, bloc V0.27 de la feuille de style). Précédemment V0.26 — 06-10-2026 : simplification 5 — harmonisation visuelle (3 niveaux de boutons : principal .bp/.bg, secondaire .bh/.bs/.bt/.bo, danger .bd ; 2 niveaux de cartes : .card et blocs internes .kpi/.rb/.ci/.fi-box/.reset-info ; 4 tailles de texte : .7/.8/.9/1.05rem), bloc CSS autonome « V0.26 » en fin de feuille de style, affichage uniquement, aucun balisage/donnée/calcul/synchro/droit modifié. Précédemment V0.25 : simplification emojis — retrait des emojis décoratifs (boutons, titres, titres de modales, lignes, libellés) ; conservés : onglets, statuts (✅ ❌ ⚠️ ⏳ 🟢🟠🔴⚪ 🔒), icônes seules (✏️ 🗑️ ➕ ✕ 🖨️ 👁) ; dictionnaire FR/EN/FF aligné, affichage uniquement. Précédemment V0.24 05-10-2026 : menu ⋯ pour les actions secondaires des en-têtes (Commandes, Activités, Stock, Perso, Dépenses, Historique, Corbeille), boutons et fonctions inchangés. Précédemment V0.23 05-10-2026 : Commandes — alertes stock simplifiées (1 cadre, 2 lignes par produit, nom non répété) et titre en double masqué, rendu seul. Précédemment V0.22 05-10-2026 : compactage vertical global (Z1 titres/boutons d'onglet, Z3 filtres, Z4 modales, Z5 tableau de bord, Z6 recherche globale, Z7 bilan) — CSS d'affichage uniquement. Précédemment V0.21 05-10-2026 : Alertes Stock Faible — 2e passe de compactage (marges/paddings résiduels, affichage uniquement). Précédemment V0.20 05-10-2026 : Commandes › Alertes Stock Faible — affichage compact (cartes, espacements, 4 compteurs sur une ligne, fiche fournisseur resserrée), CSS/markup d'affichage uniquement, aucune logique ni donnée modifiée. Précédemment V0.19 04-10-2026 : Affichage — nouveau réglage « Taille des onglets » (− / curseur / +, 80–140 %, indépendant de la taille du texte, mémorisé). Précédemment V0.18 03-10-2026 : English (US) complété — 1 227 phrases ajoutées au dictionnaire I18N centralisé (I18N.phrases.en), aucune modification de la logique métier. Précédemment V0.17 : Affichage — ajout du Pular/Fulfulde de Guinée (Conakry) en véritable écriture Adlam Unicode (tous les textes statiques et dynamiques, placeholders, infobulles, boîtes de dialogue, impression), police Adlam embarquée ; Français et English (US) inchangés, règles par rôle inchangées. Précédemment V0.16 — choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
-var APP_VERSION_DATE = '2026-10-07T14:30:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.43'; // 07-10-2026 15:10 : onglet Commandes — affichage en cartes (1 carte = 1 commande, produits sur lignes séparées), alertes simplifiées (affichage uniquement, logique inchangée). Précédemment V0.42 : onglet Rapport — seul le tableau « Historique clôture » est conservé.
+var APP_VERSION_DATE = '2026-10-07T15:10:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
