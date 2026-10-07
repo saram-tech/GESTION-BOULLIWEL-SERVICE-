@@ -819,6 +819,11 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 .fg textarea{resize:none;overflow:hidden;}
 .fg input,.fg select{text-overflow:clip;}
 /* ===== /V0.51 ===== */
+/* ===== V0.52 — Champs de texte long (Description, Note, Motif, Adresse, Panne…) : zones multilignes, contenu toujours entièrement visible — affichage uniquement ===== */
+.fg textarea:focus{border-color:var(--ac);background:var(--bg5);}
+#ma .modal>.fr>.fg:has(>textarea),#md .modal>.fr>.fg:has(>textarea),#mc .modal>.fr>.fg:has(>textarea){flex:1 1 auto !important;}
+@media (max-height:480px) and (orientation:landscape){.modal .fg textarea{padding:4px 8px;min-height:30px;}}
+/* ===== /V0.52 ===== */
 </style>
 </head>
 <body>
@@ -1523,7 +1528,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
         <input type="text" id="a-desig" placeholder="" oninput="autoPA()" onblur="capitaliserChamp('a-desig')" list="dl-prod">
         <datalist id="dl-prod"></datalist>
       </div>
-      <div class="fg" id="fg-a-panne"><label id="lbl-a-panne">Panne</label><input type="text" id="a-panne" placeholder=""></div>
+      <div class="fg" id="fg-a-panne"><label id="lbl-a-panne">Panne</label><textarea id="a-panne" placeholder="" rows="1"></textarea></div>
     </div>
     <div class="fr">
       <div class="fg" id="fg-a-achat"><label>Prix achat</label><input type="number" id="a-achat" placeholder="0" oninput="pAct()"></div>
@@ -1841,7 +1846,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
       <div class="fg"><label>Montant *</label><input type="number" id="ca-montant" placeholder="0" min="0" oninput="majApercuAugmentationCapital()"></div>
     </div>
     <div class="fr">
-      <div class="fg"><label>Motif</label><input type="text" id="ca-motif" placeholder=""></div>
+      <div class="fg"><label>Motif</label><textarea id="ca-motif" placeholder="" rows="1"></textarea></div>
     </div>
     <div style="font-size:.8rem;color:var(--tx2);margin:6px 0">Nouveau capital total après ajout : <strong id="ca-capital-nouveau" style="color:var(--gr)">—</strong></div>
     <div style="font-size:.8rem;color:var(--tx2);margin:6px 0">Part de chaque associé (50 %) : <strong id="ca-part-associe">0 GNF</strong></div>
@@ -1865,7 +1870,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
       <div class="fg"><label>Montant *</label><input type="number" id="cr-montant" placeholder="0" min="0"></div>
     </div>
     <div class="fr">
-      <div class="fg"><label>Motif *</label><input type="text" id="cr-motif" placeholder=""></div>
+      <div class="fg"><label>Motif *</label><textarea id="cr-motif" placeholder="" rows="1"></textarea></div>
     </div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mcr')">Annuler</button>
@@ -1916,7 +1921,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
       <div class="fg"><label>Type</label><select id="det-type"><option value="directe">Directe</option><option value="femme">Femme</option></select></div>
     </div>
     <div class="fr">
-      <div class="fg" style="flex:2"><label>Description *</label><input type="text" id="det-desc" placeholder=""></div>
+      <div class="fg" style="flex:2"><label>Description *</label><textarea id="det-desc" placeholder="" rows="1"></textarea></div>
       <div class="fg"><label>Montant *</label><input type="number" id="det-montant" placeholder="0"></div>
     </div>
     <div class="mft">
@@ -1941,7 +1946,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
       </div>
     </div>
     <div class="fr">
-      <div class="fg"><label>Note</label><input type="text" id="paym-n" placeholder=""></div>
+      <div class="fg"><label>Note</label><textarea id="paym-n" placeholder="" rows="1"></textarea></div>
       <div class="fg" style="display:none"><label>Date *</label><input type="date" id="paym-d"></div>
     </div>
     <div class="mft">
@@ -1958,7 +1963,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     <input type="hidden" id="dep-eid">
     <div class="fr">
       <div class="fg"><label>Catégorie <button type="button" onclick="ouvrirGestionCategories()" style="background:none;border:none;color:var(--ac);cursor:pointer;font-size:.68rem;text-decoration:underline;padding:0;margin-left:5px" title="Ajouter, renommer ou supprimer une catégorie">Gérer</button></label><input type="text" id="dep-cat" list="dep-cat-list" placeholder="Nouvelle ou existante..." autocomplete="off"><datalist id="dep-cat-list"></datalist></div>
-      <div class="fg"><label>Description *</label><input type="text" id="dep-desc" placeholder=""></div>
+      <div class="fg"><label>Description *</label><textarea id="dep-desc" placeholder="" rows="1"></textarea></div>
     </div>
     <div class="fr">
       <div class="fg"><label>Qté</label><input type="number" id="dep-qte" value="1" min="1" oninput="cDepTot()"></div>
@@ -2006,7 +2011,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
           <button type="button" class="btn bs bsm" onclick="appelClient()" style="padding:8px 10px" title="Appeler">📞</button>
         </div>
       </div>
-      <div class="fg"><label>Adresse</label><input type="text" id="c-adr" placeholder=""></div>
+      <div class="fg"><label>Adresse</label><textarea id="c-adr" placeholder="" rows="1"></textarea></div>
     </div>
     <div class="dv">Produits</div>
     <div id="c-lignes"></div>
@@ -2016,7 +2021,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     </div>
     <div class="fr">
       <div class="fg"><label>Statut</label><select id="c-st"><option>En attente</option><option>En cours</option><option>Livré</option><option>Annulé</option></select></div>
-      <div class="fg"><label>Note</label><input type="text" id="c-note" placeholder=""></div>
+      <div class="fg"><label>Note</label><textarea id="c-note" placeholder="" rows="1"></textarea></div>
     </div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mc');rCF()">Annuler</button>
@@ -11836,8 +11841,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.51'; // 07-10-2026 21:40 : zones de saisie ajustées au contenu (texte jamais coupé, largeur dynamique, responsive) — affichage uniquement. Précédemment V0.50 : 07-10-2026 21:00 : Activité/Dépense/Commande (champs texte extensibles, Qté réduit, Téléphone obligatoire), Patrimoine (bouton à côté de la date), Bilan (hauteurs réduites). Précédemment V0.49 : 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
-var APP_VERSION_DATE = '2026-10-07T21:40:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.52'; // 07-10-2026 22:01 : champs de texte long (Description, Note, Motif, Adresse, Panne…) en zones multilignes, contenu 100 % visible — affichage uniquement. Précédemment V0.51 : 07-10-2026 21:40 : zones de saisie ajustées au contenu (texte jamais coupé, largeur dynamique, responsive) — affichage uniquement. Précédemment V0.50 : 07-10-2026 21:00 : Activité/Dépense/Commande (champs texte extensibles, Qté réduit, Téléphone obligatoire), Patrimoine (bouton à côté de la date), Bilan (hauteurs réduites). Précédemment V0.49 : 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
+var APP_VERSION_DATE = '2026-10-07T22:01:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
@@ -15398,7 +15403,11 @@ function testSupabaseConnection() {
 /* ===== V0.51 — Ajustement des zones de saisie : chaque zone affiche l'intégralité de son contenu (affichage uniquement) =====
    Aucune valeur n'est lue pour être modifiée, aucune donnée ni logique métier touchée : le module mesure seulement le texte
    présent dans chaque zone (.fg) et règle sa largeur minimale (ou sa hauteur pour les zones multilignes). Si le texte dépasse
-   la largeur disponible de la ligne, la police est réduite légèrement (jusqu'à 72 %) pour que le contenu reste visible. */
+   la largeur disponible de la ligne, la police est réduite légèrement (jusqu'à 72 %) pour que le contenu reste visible.
+   Une zone VIDE garde sa taille d'origine : elle ne s'adapte (ne s'agrandit) que lorsqu'une donnée est présente, et reste
+   adaptée tant que cette donnée existe ; si la zone est vidée, elle retrouve aussitôt sa taille d'origine.
+   V0.52 : les champs de texte long (Description, Note, Motif, Adresse, Panne…) sont des zones multilignes : le texte passe à
+   la ligne et la hauteur suit le contenu, sans jamais rien couper. Entrée ne crée pas de saut de ligne (valeur sur une ligne). */
 (function(){
   'use strict';
   try{
@@ -15414,18 +15423,37 @@ function testSupabaseConnection() {
         if(SKIP[t])return;
         var fg=el.closest('.fg');if(!fg)return;
         if(tag==='TEXTAREA'){
-          var sg=el.value+'|'+el.clientWidth;if(el.__fs===sg)return;
-          el.style.height='auto';el.style.height=(el.scrollHeight+2)+'px';el.__fs=sg;return;
+          /* Zone multiligne : vide = taille d'origine ; avec donnée = largeur ajustée (jusqu'à la ligne), puis retour à la ligne
+             et hauteur égale au contenu complet (100 % du texte visible, police inchangée). */
+          if(!el.value){if(el.__fs!=='vide'){el.style.height='';fg.style.minWidth='';el.__fs='vide';}return;}
+          var ct1=container(fg),cc1=getComputedStyle(ct1);
+          var cap1=Math.floor(ct1.clientWidth-px(cc1.paddingLeft)-px(cc1.paddingRight));
+          var sg=el.value+'|'+cap1+'|'+el.clientWidth;if(el.__fs===sg)return;
+          var cs1=getComputedStyle(el);
+          cv.font=cs1.fontStyle+' '+cs1.fontWeight+' '+cs1.fontSize+' '+cs1.fontFamily;
+          var need1=Math.ceil(cv.measureText(el.value).width+px(cs1.paddingLeft)+px(cs1.paddingRight)+px(cs1.borderLeftWidth)+px(cs1.borderRightWidth)+4);
+          if(fg.dataset.fitFl===undefined){var m1=px(getComputedStyle(fg).minWidth);fg.dataset.fitFl=String(m1);}
+          var des1=Math.max(px(fg.dataset.fitFl),need1);
+          if(cap1>0&&des1>cap1)des1=cap1;
+          fg.style.minWidth=des1+'px';
+          el.style.height='auto';el.style.height=(el.scrollHeight+2)+'px';
+          el.__fs=el.value+'|'+cap1+'|'+el.clientWidth;return;
         }
         var ct=container(fg),cc=getComputedStyle(ct);
         var cap=Math.floor(ct.clientWidth-px(cc.paddingLeft)-px(cc.paddingRight));
         var sig=(tag==='SELECT'?el.selectedIndex+'|'+el.options.length:el.value)+'|'+el.placeholder+'|'+cap;
         if(el.__fs===sig)return;
         el.style.fontSize='';
+        if(el.value===''||el.value==null){
+          var pris=false;
+          Array.prototype.forEach.call(fg.querySelectorAll(SEL),function(o){if(o!==el&&o.value!==''&&!SKIP[(o.type||'').toLowerCase()])pris=true;});
+          if(!pris)fg.style.minWidth='';
+          el.__fs=sig;return;
+        }
         var cs=getComputedStyle(el);
         var txt;
         if(tag==='SELECT'){var o=el.options[el.selectedIndex];txt=o?o.text:'';}
-        else{txt=el.value||'';if(!txt&&el.placeholder)txt=el.placeholder.slice(0,28);}
+        else{txt=el.value;}
         cv.font=cs.fontStyle+' '+cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;
         var w=cv.measureText(txt).width;
         var chrome=px(cs.paddingLeft)+px(cs.paddingRight)+px(cs.borderLeftWidth)+px(cs.borderRightWidth)+4+(tag==='SELECT'?24:0)+(t==='number'?16:0);
@@ -15454,6 +15482,16 @@ function testSupabaseConnection() {
     function fitAll(root){Array.prototype.forEach.call((root||document).querySelectorAll(SEL),fitOne);}
     var pend=0;
     function later(){if(pend)return;pend=setTimeout(function(){pend=0;fitAll(document);},60);}
+    document.addEventListener('keydown',function(e){
+      var t=e.target;if(t&&t.tagName==='TEXTAREA'&&e.key==='Enter'&&t.closest&&t.closest('.fg'))e.preventDefault();
+    },true);
+    document.addEventListener('input',function(e){
+      var t=e.target;
+      if(!t||t.tagName!=='TEXTAREA'||!t.closest||!t.closest('.fg')||!/[\r\n]/.test(t.value))return;
+      var rep=e.inputType==='insertLineBreak'?'':' ',p=t.selectionStart,np=t.value.slice(0,p).replace(/[\r\n]+/g,rep).length;
+      t.value=t.value.replace(/[\r\n]+/g,rep);
+      try{t.setSelectionRange(np,np);}catch(x){}
+    },true);
     ['input','change','blur','focusin','click'].forEach(function(ev){
       document.addEventListener(ev,function(e){var t=e.target;if(t&&t.matches&&t.matches(SEL)){t.__fs=null;fitOne(t);}later();},true);
     });
