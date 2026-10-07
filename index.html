@@ -737,6 +737,35 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
   .modal .mft .btn{min-height:32px;padding:5px 12px;}
 }
 /* ===== /V0.45 ===== */
+/* ===== V0.46 — Zones de saisie : largeur adaptée à l'intitulé, champs sur une même ligne (affichage uniquement) ===== */
+.fr{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:flex-end;}
+.fr>.fg{flex:1 1 150px;min-width:0;}
+.fr>.fg:has(>input[type="number"]){flex:1 1 92px;max-width:150px;}
+.fr>.fg:has(>input[type="date"]),.fr>.fg:has(>input[type="time"]),.fr>.fg:has(>input[type="month"]){flex:1 1 138px;max-width:190px;}
+.fr>.fg:has(>select){flex:1 1 130px;max-width:230px;}
+.fr>.fg:has(>textarea){flex:1 1 100%;max-width:none;}
+.fr>.fg[style*="flex:2"]{flex:2 1 220px;max-width:none;}
+.modal .fr{display:flex;flex-wrap:wrap;gap:6px 8px;}
+.modal .fr>.fg[style*="flex:2"]{grid-column:auto;}
+@media (max-height:480px) and (orientation:landscape){
+  .modal .fr{display:flex;gap:4px 6px;}
+  .fr>.fg:has(>input[type="number"]){flex-basis:84px;}
+  .fr>.fg{flex-basis:130px;}
+}
+/* ===== /V0.46 ===== */
+/* ===== V0.47 — Toutes les boîtes de dialogue : lignes à champ unique regroupées, champs courts (mot de passe, code, numéro) à largeur adaptée — affichage uniquement ===== */
+.modal .fr:has(>.fg):not(:has(>.fg~.fg)):has(>.fg>input[type="number"],>.fg>input[type="date"],>.fg>input[type="time"],>.fg>select){display:inline-flex;vertical-align:top;width:min(150px,calc(50% - 6px));margin-right:4px;}
+.modal .fr:has(>.fg):not(:has(>.fg~.fg)):has(>.fg>input[type="number"],>.fg>input[type="date"],>.fg>input[type="time"],>.fg>select)>.fg{max-width:none;flex:1 1 auto;}
+.modal .fg:has(input[type="password"]){max-width:300px;}
+.modal .fg:has(#pr-fourn){max-width:240px;}
+.modal .fg:has(#pr-visiteur-pin){max-width:170px;}
+.modal .fg:has(#pr-recup-tel){max-width:200px;}
+.modal .fg:has(#c-tel){max-width:230px;}
+.modal #c-lignes .fr{flex-wrap:nowrap;gap:5px;}
+.modal #c-lignes .fr>.fg:first-child{flex:1 1 90px;min-width:70px;}
+.modal #c-lignes .fr>.fg:not(:first-child){flex:0 0 auto;}
+.modal #c-lignes .fr>.fg:not(:first-child) input{width:100%;min-width:56px;}
+/* ===== /V0.47 ===== */
 </style>
 </head>
 <body>
@@ -11750,8 +11779,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.45'; // 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
-var APP_VERSION_DATE = '2026-10-07T16:20:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.47'; // 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
+var APP_VERSION_DATE = '2026-10-07T18:40:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
