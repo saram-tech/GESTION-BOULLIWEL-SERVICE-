@@ -813,6 +813,12 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 #bilan-result div[style*="margin-top:2px"]{margin-top:0 !important;font-size:.6rem !important;}
 #bilan-result div[style*="margin-bottom:11px"]{margin-bottom:5px !important;}
 /* ===== /V0.50 ===== */
+/* ===== V0.51 — Zones de saisie : largeur ajustée au contenu (voir module « Ajustement des zones de saisie ») — affichage uniquement ===== */
+#mc #c-lignes .fr{flex-wrap:wrap !important;}
+#c-lignes .fg{max-width:none !important;}
+.fg textarea{resize:none;overflow:hidden;}
+.fg input,.fg select{text-overflow:clip;}
+/* ===== /V0.51 ===== */
 </style>
 </head>
 <body>
@@ -11830,8 +11836,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.50'; // 07-10-2026 21:00 : Activité/Dépense/Commande (champs texte extensibles, Qté réduit, Téléphone obligatoire), Patrimoine (bouton à côté de la date), Bilan (hauteurs réduites). Précédemment V0.49 : 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
-var APP_VERSION_DATE = '2026-10-07T21:00:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.51'; // 07-10-2026 21:40 : zones de saisie ajustées au contenu (texte jamais coupé, largeur dynamique, responsive) — affichage uniquement. Précédemment V0.50 : 07-10-2026 21:00 : Activité/Dépense/Commande (champs texte extensibles, Qté réduit, Téléphone obligatoire), Patrimoine (bouton à côté de la date), Bilan (hauteurs réduites). Précédemment V0.49 : 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
+var APP_VERSION_DATE = '2026-10-07T21:40:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
@@ -15388,5 +15394,78 @@ function testSupabaseConnection() {
   logique ni donnée changée.
 -->
 <div id="print-area"></div>
+<script>
+/* ===== V0.51 — Ajustement des zones de saisie : chaque zone affiche l'intégralité de son contenu (affichage uniquement) =====
+   Aucune valeur n'est lue pour être modifiée, aucune donnée ni logique métier touchée : le module mesure seulement le texte
+   présent dans chaque zone (.fg) et règle sa largeur minimale (ou sa hauteur pour les zones multilignes). Si le texte dépasse
+   la largeur disponible de la ligne, la police est réduite légèrement (jusqu'à 72 %) pour que le contenu reste visible. */
+(function(){
+  'use strict';
+  try{
+    var cv=document.createElement('canvas').getContext('2d');
+    var SEL='.fg input,.fg select,.fg textarea';
+    var SKIP={hidden:1,checkbox:1,radio:1,range:1,file:1,button:1,submit:1,color:1,date:1,time:1,month:1,'datetime-local':1};
+    function px(v){return parseFloat(v)||0;}
+    function container(fg){var a=fg.parentElement;while(a&&a!==document.body&&getComputedStyle(a).display==='contents')a=a.parentElement;return a||document.body;}
+    function fitOne(el){
+      try{
+        if(!el.offsetParent||el.closest('.login-box'))return;
+        var tag=el.tagName,t=(el.type||'').toLowerCase();
+        if(SKIP[t])return;
+        var fg=el.closest('.fg');if(!fg)return;
+        if(tag==='TEXTAREA'){
+          var sg=el.value+'|'+el.clientWidth;if(el.__fs===sg)return;
+          el.style.height='auto';el.style.height=(el.scrollHeight+2)+'px';el.__fs=sg;return;
+        }
+        var ct=container(fg),cc=getComputedStyle(ct);
+        var cap=Math.floor(ct.clientWidth-px(cc.paddingLeft)-px(cc.paddingRight));
+        var sig=(tag==='SELECT'?el.selectedIndex+'|'+el.options.length:el.value)+'|'+el.placeholder+'|'+cap;
+        if(el.__fs===sig)return;
+        el.style.fontSize='';
+        var cs=getComputedStyle(el);
+        var txt;
+        if(tag==='SELECT'){var o=el.options[el.selectedIndex];txt=o?o.text:'';}
+        else{txt=el.value||'';if(!txt&&el.placeholder)txt=el.placeholder.slice(0,28);}
+        cv.font=cs.fontStyle+' '+cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;
+        var w=cv.measureText(txt).width;
+        var chrome=px(cs.paddingLeft)+px(cs.paddingRight)+px(cs.borderLeftWidth)+px(cs.borderRightWidth)+4+(tag==='SELECT'?24:0)+(t==='number'?16:0);
+        var extra=0;
+        if(el.parentElement!==fg){
+          Array.prototype.forEach.call(el.parentElement.children,function(c){
+            if(c===el||!c.offsetParent)return;
+            if(getComputedStyle(c).position==='absolute')return;
+            extra+=c.getBoundingClientRect().width+6;
+          });
+        }
+        var need=Math.ceil(w+chrome+extra);
+        if(fg.dataset.fitFl===undefined){var m=px(getComputedStyle(fg).minWidth);fg.dataset.fitFl=String(m);}
+        var floor=px(fg.dataset.fitFl);
+        var desired=Math.max(floor,need);
+        if(cap>0&&desired>cap){
+          var room=cap-chrome-extra,s=room>0&&w>0?room/w:1;
+          s=Math.max(.72,Math.min(1,s));
+          if(s<1)el.style.fontSize=(px(cs.fontSize)*s)+'px';
+          desired=cap;
+        }
+        fg.style.minWidth=desired+'px';
+        el.__fs=sig;
+      }catch(e){}
+    }
+    function fitAll(root){Array.prototype.forEach.call((root||document).querySelectorAll(SEL),fitOne);}
+    var pend=0;
+    function later(){if(pend)return;pend=setTimeout(function(){pend=0;fitAll(document);},60);}
+    ['input','change','blur','focusin','click'].forEach(function(ev){
+      document.addEventListener(ev,function(e){var t=e.target;if(t&&t.matches&&t.matches(SEL)){t.__fs=null;fitOne(t);}later();},true);
+    });
+    new MutationObserver(function(ms){
+      for(var i=0;i<ms.length;i++){var m=ms[i];if(m.type==='childList'||(m.target.classList&&(m.target.classList.contains('open')||m.target.classList.contains('active')))){later();return;}}
+    }).observe(document.body,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
+    window.addEventListener('resize',function(){Array.prototype.forEach.call(document.querySelectorAll(SEL),function(e){e.__fs=null;});later();});
+    window.addEventListener('orientationchange',function(){setTimeout(function(){Array.prototype.forEach.call(document.querySelectorAll(SEL),function(e){e.__fs=null;});later();},250);});
+    setInterval(function(){fitAll(document);},600);
+    later();
+  }catch(e){}
+})();
+</script>
 </body>
 </html>
