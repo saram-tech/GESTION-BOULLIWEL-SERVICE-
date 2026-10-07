@@ -652,6 +652,18 @@ select[id^="f-"]{-webkit-appearance:none !important;appearance:none !important;b
 .barre-add-sticky:has(> input[id^="f-search"]:focus),.sh > div:has(> input[id^="f-search"]:focus){flex-wrap:wrap !important;}
 input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;font-size:.88rem !important;}
 /* /V0.31 */
+/* V0.42 — Rapport : tableau « Historique clôture » lisible en portrait comme en paysage (AFFICHAGE UNIQUEMENT) */
+#rapport-historique-clotures .tw{max-height:none;overflow-x:auto;}
+#rapport-historique-clotures table{width:100%;table-layout:auto;}
+#rapport-historique-clotures th,#rapport-historique-clotures td{text-align:center;white-space:nowrap;}
+@media(max-width:600px){
+  #rapport-historique-clotures th,#rapport-historique-clotures td{padding:5px 2px !important;font-size:.62rem !important;white-space:normal !important;word-break:break-word;}
+  #rapport-historique-clotures td[style*="1.35rem"]{font-size:.85rem !important;}
+}
+@media(max-height:480px) and (orientation:landscape){
+  #rapport-historique-clotures th,#rapport-historique-clotures td{padding:5px 8px !important;}
+}
+/* /V0.42 */
 
 
 /* =====================================================================
@@ -1305,49 +1317,11 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 <div id="tab-rapport" class="tab-panel">
   <div class="sh"><div class="st" data-i18n="titre.rapport">Rapport des activités</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <!-- AJOUT (21-09-2026) : sélection de la période à afficher — la
-           période active (comportement inchangé, D.activites en direct)
-           ou l'une des 2 dernières périodes CLÔTURÉES (données figées par
-           enregistrerDetailPeriodeCloturee(), voir executerCloture()).
-           Options remplies par rRemplirSelecteurPeriodesRapport(),
-           appelée par renderAll()/rRapport() — jamais codées en dur, pour
-           refléter exactement D.periodesCloturees à tout moment. -->
-      <select id="f-rapport-periode-cloturee" onchange="rRapport()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;font-weight:600">
-        <option value="">🟢 Période active (en cours)</option>
-      </select>
-      <input type="text" id="f-search-rapport" placeholder="🔍 Rechercher..." oninput="deb('rapport',rRapport)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;min-width:160px;outline:none">
-      <select id="f-rapport-auteur" onchange="rRapport()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Auteur</option>
-        <option value="Administrateur">Administrateur uniquement</option>
-        <option value="Associé">Associé uniquement</option>
-      </select>
-      <select id="f-periode-rapport" onchange="togglePeriodeCustom('f-periode-rapport');rRapport()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
-        <option value="">Période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
-      </select>
-      <span id="f-periode-rapport-range" style="display:none;gap:5px;align-items:center">
-        <input type="date" id="f-periode-rapport-start" onchange="rRapport()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
-        <span style="color:var(--tx3);font-size:.7rem">→</span>
-        <input type="date" id="f-periode-rapport-end" onchange="rRapport()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
-      </span>
       <button class="btn bh bsm no-print" onclick="imprimerSection('tab-rapport','Rapport des activités')" title="Imprimer ce rapport">Imprimer</button>
     </div>
   </div>
-  <div id="rapport-synthese"></div>
-  <!-- AJOUT (31-08-2026) : affichage historique simple des 2 dernières
-       clôtures (Date | Capital Ent | Val. Ent | Val. Perso | Reste Perso),
-       indépendant de Supabase — voir rHistoriqueClotures(). -->
+  <!-- V0.42 : seul le tableau « Historique clôture » est conservé dans cet onglet -->
   <div id="rapport-historique-clotures"></div>
-  <div class="card"><div class="tw"><table>
-    <thead><tr><th>Date</th><th>Heure</th><th>Auteur</th><th>Type</th><th>Produit</th><th>Qté</th><th>Client</th><th>Montant Payé</th><th>Statut</th></tr></thead>
-    <tbody id="tbl-rapport"><tr><td colspan="9" style="text-align:center;color:var(--tx2);padding:20px">Aucune activité</td></tr></tbody>
-  </table></div></div>
-  <!-- AJOUT (21-09-2026) : Dettes/Paiements/Dépenses de la période
-       CLÔTURÉE sélectionnée ci-dessus (voir rRapportDetailPeriode()).
-       Vide et masqué pour la période active — ces 3 catégories ont déjà
-       leurs propres onglets (Associé, Dépenses) pour la période en
-       cours ; ce bloc ne sert qu'à retrouver les données d'une période
-       déjà refermée. -->
-  <div id="rapport-detail-periode-cloturee"></div>
 </div>
 
 <!-- PATRIMOINE (biens et matériels de l'Administrateur, visibles par le compte Visiteur) -->
@@ -4374,6 +4348,8 @@ var I18N={
     "📦 Générer commande fournisseur":"📦 Generate supplier order",
     "Générer commande fournisseur":"Generate supplier order",
     "📦 Stock actuel":"📦 Current stock",
+    "Historique clôture":"Closing history",
+    "Aucune clôture enregistrée":"No closing recorded",
     "Stock actuel":"Current stock",
     "📦 Vue d'ensemble du Stock":"📦 Stock overview",
     "Vue d'ensemble du Stock":"Stock overview",
@@ -9524,6 +9500,31 @@ function executerCloture(){
     p.derniereModifDate=maintenantCloture;
   });
   /**
+   * CORRECTIF (clôture du Stock Entreprise — Initial / Vendu) : jusqu'ici la
+   * clôture ne touchait jamais D.stock, donc "Initial" et "Vendu" restaient
+   * cumulés depuis la création du produit. Désormais, à chaque clôture, chaque
+   * fiche du Stock Entreprise repart pour la nouvelle période avec
+   * Initial = stock réellement restant (Initial − Vendu, jamais négatif) et
+   * Vendu = 0 ; le Restant est inchangé. Le Vendu de l'ancienne période n'est
+   * pas conservé dans le stock. Le marquage (_baisseVoulueAt / _baisseAEnvoyer /
+   * _localTouchedAt) est le même que pour une diminution volontaire de
+   * quantité, afin que la synchronisation n'annule pas cette remise à zéro.
+   * Prix, seuil, catégorie, dates et Stock Perso : inchangés.
+   */
+  D.stock.forEach(function(s){
+    if(!s) return;
+    var vendu=Number(s.qteVendue)||0;
+    if(vendu<=0) return;
+    var restant=Math.max(0,(Number(s.qteInitiale)||0)-vendu);
+    s.qteInitiale=restant;
+    s.qteVendue=0;
+    s.qteRestante=restant;
+    if((Number(s.origPerso)||0)>restant) s.origPerso=restant;
+    s._localTouchedAt=Date.now();
+    s._baisseVoulueAt=s._localTouchedAt;
+    s._baisseAEnvoyer=true;
+  });
+  /**
    * CORRECTIF (activités de l'Associé qui réapparaissent après clôture) :
    * cause exacte trouvée — les tombstones ci-dessous (markDeleted) ne
    * masquent la réapparition QUE sur les appareils qui reçoivent D._del,
@@ -10116,9 +10117,9 @@ function rHistoriqueClotures(){
   var el=document.getElementById('rapport-historique-clotures');
   if(!el) return;
   var lignes=D.historiqueClotures||[];
-  if(!lignes.length){ el.innerHTML=''; return; }
+  if(!lignes.length){ el.innerHTML='<div class="card" style="margin-bottom:12px"><div class="ch"><span class="dot" style="background:var(--gr)"></span>Historique clôture</div><div style="text-align:center;color:var(--tx2);padding:20px">Aucune clôture enregistrée</div></div>'; return; }
   var bStyle='border:1.5px solid var(--bd2)';
-  var html='<div class="card" style="margin-bottom:12px"><div class="tw"><table style="border-collapse:collapse">'+
+  var html='<div class="card" style="margin-bottom:12px"><div class="ch"><span class="dot" style="background:var(--gr)"></span>Historique clôture</div><div class="tw"><table style="border-collapse:collapse">'+
     '<thead><tr><th style="'+bStyle+';font-weight:700">Date</th><th style="'+bStyle+';font-weight:700">Capital Ent</th><th style="'+bStyle+';font-weight:700">Val. Ent</th><th style="'+bStyle+';font-weight:700">Val. Perso</th><th style="'+bStyle+';font-weight:700">Reste Perso</th></tr></thead><tbody>';
   lignes.forEach(function(l){
     html+='<tr><td rowspan="2" style="'+bStyle+';font-weight:700;vertical-align:middle">'+fmtDateJour(l.date)+'</td>'+
@@ -10201,40 +10202,8 @@ function rRapportDetailPeriode(periodeCloture){
   el.innerHTML=html;
 }
 function rRapport(){
-  var tb=document.getElementById('tbl-rapport');
-  if(!tb) return;
+  // V0.42 : l'onglet Rapport n'affiche plus que le tableau « Historique clôture »
   rHistoriqueClotures();
-  rRemplirSelecteurPeriodesRapport();
-  var periodeClotureeVal=v('f-rapport-periode-cloturee');
-  var periodeCloture=periodeClotureeVal?(D.periodesCloturees||[]).find(function(pc){ return pc.dateHeure===periodeClotureeVal; }):null;
-  rRapportDetailPeriode(periodeCloture);
-  var q=normSearch(v('f-search-rapport'));
-  var auteurFiltre=v('f-rapport-auteur');
-  var items=(periodeCloture?periodeCloture.activites:D.activites).slice().reverse();
-  if(auteurFiltre) items=items.filter(function(a){ return (a.auteur||'Administrateur')===auteurFiltre; });
-  items=items.filter(function(a){ return matchPeriodeFull(a.date,'f-periode-rapport'); });
-  if(q){
-    items=items.filter(function(a){
-      var champs=[a.desig,a.client,a.type,a.date,a.heure,String(a.qte||''),String(a.achat||''),
-        String(a.paye||''),String(a.apayer||''),(a.reste>0?'partiel':'payé'),a.auteur||'Administrateur',a.ticket||''];
-      return champs.some(function(c){ return normSearch(String(c||'')).indexOf(q)>-1; });
-    });
-  }
-  // La synthèse reflète exactement ce que montre le tableau ci-dessous
-  // (mêmes filtres appliqués : auteur, période, recherche) — jamais de
-  // donnée recalculée séparément, pour rester cohérente avec le reste
-  // de l'onglet.
-  rSyntheseRapport(items);
-  if(!items.length){ tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--tx2);padding:20px">Aucune activité ne correspond</td></tr>'; return; }
-  var html='';
-  items.forEach(function(a){
-    var estAssocie=a.auteur==='Associé';
-    html+='<tr><td>'+fmtDateJour(a.date)+'</td><td>'+(a.heure||'—')+'</td>'+
-      '<td><span class="badge '+(estAssocie?'bpr':'bbr')+'">'+(estAssocie?'Associé':'Admin')+'</span></td>'+
-      '<td>'+a.type+'</td><td>'+echap(a.desig)+'</td><td>'+(a.qte||1)+'</td><td>'+echap(a.client||'—')+'</td>'+
-      '<td>'+fmt(a.paye)+'</td><td><span class="badge '+(a.reste>0?'bor':'bgr')+'">'+(a.reste>0?'Partiel':'Payé')+'</span></td></tr>';
-  });
-  tb.innerHTML=html;
 }
 /**
  * Construit le véritable "rapport de gestion" au-dessus du tableau :
@@ -11756,8 +11725,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.41'; // 07-10-2026 10:50 : synchronisation des quantités (Stock Entreprise + Stock Perso) — un appareil resté sur une ancienne quantité (2e Administrateur) ne peut plus réécrire l'ancienne valeur ni annuler une diminution récente faite ailleurs : chaque fiche mémorise la dernière quantité sur laquelle l'appareil et le serveur étaient d'accord ; une copie inchangée depuis cet accord n'est plus prise pour une modification (elle adopte la valeur du serveur, plus basse comme plus haute), une vraie modification locale est conservée et envoyée, deux modifications simultanées sont cumulées ; l'envoi du stock relit d'abord les quantités du serveur (Administrateur). Aucun calcul, vente, paiement, prix ni droit modifié ; les fiches sans base (d'avant V0.41) gardent l'ancien comportement jusqu'au premier accord. Précédemment V0.40 — 07-10-2026 09:40 : Stock Entreprise — bouton ➖ « Diminuer une quantité » (quantité saisie retirée directement ; jamais négatif, jamais dans la part du Stock Perso ; synchronisation en ligne/hors ligne protégée comme l'annulation d'ajout ; ventes, Stock Perso, calculs et droits inchangés). Précédemment V0.39 — 07-10-2026 09:10 : Stock Perso — la diminution manuelle ➖ ne peut plus être appliquée deux fois par un double-tap/double appel (garde anti double-déclenchement ; aucun calcul modifié). Précédemment V0.38 — 07-10-2026 08:10 : Stock Perso — bouton ➖ « Diminuer une quantité » (retire aussi du Stock Entreprise, jamais négatif, jamais plus que le non vendu ; synchronisation protégée). Précédemment V0.37 — 07-10-2026 07:25 : appareil Associé — une baisse/annulation légitime de l'Administrateur n'est plus écrasée par l'ancienne quantité plus haute (le serveur fait foi pour le stock en lecture seule de l'Associé ; protection Administrateur inchangée). Précédemment V0.36 — 07-10-2026 07:10 : correction unique Anticasse KK A12 (−31 sur la fiche Entreprise 60/22/38 → 29/22/7, appliquée une seule fois, administrateur) + protection de la baisse volontaire sur le chemin « tables serveur » (marqueur _baisseAEnvoyer). Précédemment V0.35 — 06-10-2026 23:55 : synchronisation — une annulation/suppression volontaire (Stock Perso → Stock Entreprise) plus récente que le cloud n'est plus écrasée par une ancienne quantité (exception ciblée dans la protection anti-recul de mergeAppData ; marqueur _baisseVoulueAt). Précédemment V0.34 — 06-10-2026 23:20 : Stock Perso — annuler le dernier ajout d'une saisie fusionnée par nom restitue aussi prixRevient/commission/totalDu et pose _localTouchedAt (aucune formule modifiée). Précédemment V0.33 — 06-10-2026 22:45 : boîtes de dialogue — aucune zone de saisie masquée (hauteur dvh, scroll-padding sous le pied collant, recalage à l'ouverture/rotation ; CSS + recalage d'affichage uniquement). Précédemment V0.32 — 06-10-2026 22:10 : onglet Rapport de nouveau affiché (balise </div> manquante avant le bloc Rapport — structure HTML uniquement). Précédemment V0.31 — 06-10-2026 21:40 : champ Recherche agrandi à la saisie (affichage uniquement). Précédemment V0.30 — 06-10-2026 21:15 : tous les boutons de chaque onglet sur une seule ligne, nom du client dans Paiement partiel (affichage uniquement). Précédemment V0.29 — 06-10-2026 13:10 : barres de filtres harmonisées sur toutes les vues (CSS/libellés d'affichage uniquement). Précédemment V0.28 — 06-10-2026 10:15 : logo/badge raccourcis et filtres plus compacts (CSS d'affichage uniquement). Précédemment V0.27 — 06-10-2026 09:40 : boutons plus courts à l'horizontale (CSS d'affichage uniquement, bloc V0.27 de la feuille de style). Précédemment V0.26 — 06-10-2026 : simplification 5 — harmonisation visuelle (3 niveaux de boutons : principal .bp/.bg, secondaire .bh/.bs/.bt/.bo, danger .bd ; 2 niveaux de cartes : .card et blocs internes .kpi/.rb/.ci/.fi-box/.reset-info ; 4 tailles de texte : .7/.8/.9/1.05rem), bloc CSS autonome « V0.26 » en fin de feuille de style, affichage uniquement, aucun balisage/donnée/calcul/synchro/droit modifié. Précédemment V0.25 : simplification emojis — retrait des emojis décoratifs (boutons, titres, titres de modales, lignes, libellés) ; conservés : onglets, statuts (✅ ❌ ⚠️ ⏳ 🟢🟠🔴⚪ 🔒), icônes seules (✏️ 🗑️ ➕ ✕ 🖨️ 👁) ; dictionnaire FR/EN/FF aligné, affichage uniquement. Précédemment V0.24 05-10-2026 : menu ⋯ pour les actions secondaires des en-têtes (Commandes, Activités, Stock, Perso, Dépenses, Historique, Corbeille), boutons et fonctions inchangés. Précédemment V0.23 05-10-2026 : Commandes — alertes stock simplifiées (1 cadre, 2 lignes par produit, nom non répété) et titre en double masqué, rendu seul. Précédemment V0.22 05-10-2026 : compactage vertical global (Z1 titres/boutons d'onglet, Z3 filtres, Z4 modales, Z5 tableau de bord, Z6 recherche globale, Z7 bilan) — CSS d'affichage uniquement. Précédemment V0.21 05-10-2026 : Alertes Stock Faible — 2e passe de compactage (marges/paddings résiduels, affichage uniquement). Précédemment V0.20 05-10-2026 : Commandes › Alertes Stock Faible — affichage compact (cartes, espacements, 4 compteurs sur une ligne, fiche fournisseur resserrée), CSS/markup d'affichage uniquement, aucune logique ni donnée modifiée. Précédemment V0.19 04-10-2026 : Affichage — nouveau réglage « Taille des onglets » (− / curseur / +, 80–140 %, indépendant de la taille du texte, mémorisé). Précédemment V0.18 03-10-2026 : English (US) complété — 1 227 phrases ajoutées au dictionnaire I18N centralisé (I18N.phrases.en), aucune modification de la logique métier. Précédemment V0.17 : Affichage — ajout du Pular/Fulfulde de Guinée (Conakry) en véritable écriture Adlam Unicode (tous les textes statiques et dynamiques, placeholders, infobulles, boîtes de dialogue, impression), police Adlam embarquée ; Français et English (US) inchangés, règles par rôle inchangées. Précédemment V0.16 — choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
-var APP_VERSION_DATE = '2026-10-07T10:50:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.42'; // 07-10-2026 14:30 : onglet Rapport — seul le tableau « Historique clôture » est conservé (retrait de « Rapport de gestion », « Stock actuel », « Activités », affichage uniquement ; aucun calcul touché). Précédemment V0.41 07-10-2026 10:50 : synchronisation des quantités (Stock Entreprise + Stock Perso) — un appareil resté sur une ancienne quantité (2e Administrateur) ne peut plus réécrire l'ancienne valeur ni annuler une diminution récente faite ailleurs : chaque fiche mémorise la dernière quantité sur laquelle l'appareil et le serveur étaient d'accord ; une copie inchangée depuis cet accord n'est plus prise pour une modification (elle adopte la valeur du serveur, plus basse comme plus haute), une vraie modification locale est conservée et envoyée, deux modifications simultanées sont cumulées ; l'envoi du stock relit d'abord les quantités du serveur (Administrateur). Aucun calcul, vente, paiement, prix ni droit modifié ; les fiches sans base (d'avant V0.41) gardent l'ancien comportement jusqu'au premier accord. Précédemment V0.40 — 07-10-2026 09:40 : Stock Entreprise — bouton ➖ « Diminuer une quantité » (quantité saisie retirée directement ; jamais négatif, jamais dans la part du Stock Perso ; synchronisation en ligne/hors ligne protégée comme l'annulation d'ajout ; ventes, Stock Perso, calculs et droits inchangés). Précédemment V0.39 — 07-10-2026 09:10 : Stock Perso — la diminution manuelle ➖ ne peut plus être appliquée deux fois par un double-tap/double appel (garde anti double-déclenchement ; aucun calcul modifié). Précédemment V0.38 — 07-10-2026 08:10 : Stock Perso — bouton ➖ « Diminuer une quantité » (retire aussi du Stock Entreprise, jamais négatif, jamais plus que le non vendu ; synchronisation protégée). Précédemment V0.37 — 07-10-2026 07:25 : appareil Associé — une baisse/annulation légitime de l'Administrateur n'est plus écrasée par l'ancienne quantité plus haute (le serveur fait foi pour le stock en lecture seule de l'Associé ; protection Administrateur inchangée). Précédemment V0.36 — 07-10-2026 07:10 : correction unique Anticasse KK A12 (−31 sur la fiche Entreprise 60/22/38 → 29/22/7, appliquée une seule fois, administrateur) + protection de la baisse volontaire sur le chemin « tables serveur » (marqueur _baisseAEnvoyer). Précédemment V0.35 — 06-10-2026 23:55 : synchronisation — une annulation/suppression volontaire (Stock Perso → Stock Entreprise) plus récente que le cloud n'est plus écrasée par une ancienne quantité (exception ciblée dans la protection anti-recul de mergeAppData ; marqueur _baisseVoulueAt). Précédemment V0.34 — 06-10-2026 23:20 : Stock Perso — annuler le dernier ajout d'une saisie fusionnée par nom restitue aussi prixRevient/commission/totalDu et pose _localTouchedAt (aucune formule modifiée). Précédemment V0.33 — 06-10-2026 22:45 : boîtes de dialogue — aucune zone de saisie masquée (hauteur dvh, scroll-padding sous le pied collant, recalage à l'ouverture/rotation ; CSS + recalage d'affichage uniquement). Précédemment V0.32 — 06-10-2026 22:10 : onglet Rapport de nouveau affiché (balise </div> manquante avant le bloc Rapport — structure HTML uniquement). Précédemment V0.31 — 06-10-2026 21:40 : champ Recherche agrandi à la saisie (affichage uniquement). Précédemment V0.30 — 06-10-2026 21:15 : tous les boutons de chaque onglet sur une seule ligne, nom du client dans Paiement partiel (affichage uniquement). Précédemment V0.29 — 06-10-2026 13:10 : barres de filtres harmonisées sur toutes les vues (CSS/libellés d'affichage uniquement). Précédemment V0.28 — 06-10-2026 10:15 : logo/badge raccourcis et filtres plus compacts (CSS d'affichage uniquement). Précédemment V0.27 — 06-10-2026 09:40 : boutons plus courts à l'horizontale (CSS d'affichage uniquement, bloc V0.27 de la feuille de style). Précédemment V0.26 — 06-10-2026 : simplification 5 — harmonisation visuelle (3 niveaux de boutons : principal .bp/.bg, secondaire .bh/.bs/.bt/.bo, danger .bd ; 2 niveaux de cartes : .card et blocs internes .kpi/.rb/.ci/.fi-box/.reset-info ; 4 tailles de texte : .7/.8/.9/1.05rem), bloc CSS autonome « V0.26 » en fin de feuille de style, affichage uniquement, aucun balisage/donnée/calcul/synchro/droit modifié. Précédemment V0.25 : simplification emojis — retrait des emojis décoratifs (boutons, titres, titres de modales, lignes, libellés) ; conservés : onglets, statuts (✅ ❌ ⚠️ ⏳ 🟢🟠🔴⚪ 🔒), icônes seules (✏️ 🗑️ ➕ ✕ 🖨️ 👁) ; dictionnaire FR/EN/FF aligné, affichage uniquement. Précédemment V0.24 05-10-2026 : menu ⋯ pour les actions secondaires des en-têtes (Commandes, Activités, Stock, Perso, Dépenses, Historique, Corbeille), boutons et fonctions inchangés. Précédemment V0.23 05-10-2026 : Commandes — alertes stock simplifiées (1 cadre, 2 lignes par produit, nom non répété) et titre en double masqué, rendu seul. Précédemment V0.22 05-10-2026 : compactage vertical global (Z1 titres/boutons d'onglet, Z3 filtres, Z4 modales, Z5 tableau de bord, Z6 recherche globale, Z7 bilan) — CSS d'affichage uniquement. Précédemment V0.21 05-10-2026 : Alertes Stock Faible — 2e passe de compactage (marges/paddings résiduels, affichage uniquement). Précédemment V0.20 05-10-2026 : Commandes › Alertes Stock Faible — affichage compact (cartes, espacements, 4 compteurs sur une ligne, fiche fournisseur resserrée), CSS/markup d'affichage uniquement, aucune logique ni donnée modifiée. Précédemment V0.19 04-10-2026 : Affichage — nouveau réglage « Taille des onglets » (− / curseur / +, 80–140 %, indépendant de la taille du texte, mémorisé). Précédemment V0.18 03-10-2026 : English (US) complété — 1 227 phrases ajoutées au dictionnaire I18N centralisé (I18N.phrases.en), aucune modification de la logique métier. Précédemment V0.17 : Affichage — ajout du Pular/Fulfulde de Guinée (Conakry) en véritable écriture Adlam Unicode (tous les textes statiques et dynamiques, placeholders, infobulles, boîtes de dialogue, impression), police Adlam embarquée ; Français et English (US) inchangés, règles par rôle inchangées. Précédemment V0.16 — choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
+var APP_VERSION_DATE = '2026-10-07T14:30:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
