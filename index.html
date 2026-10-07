@@ -783,6 +783,36 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 .modal>.fr>.fg>input,.modal>.fr>.fg>select,.modal>.fg>input,.modal>.fg>select{width:100%;}
 @media (max-height:480px) and (orientation:landscape){.modal>.mft{flex:0 0 calc(100% + 24px) !important;}}
 /* ===== /V0.48 ===== */
+/* ===== V0.50 — Activité / Dépense / Commande : champs texte extensibles, Qté réduit ; Patrimoine : bouton à côté ; Bilan : hauteurs réduites (affichage uniquement) ===== */
+#ma .modal>.fr>.fg:has(>input[type="text"]),#md .modal>.fr>.fg:has(>input[type="text"]),#mc .modal>.fr>.fg:has(>input[type="text"]){flex:1 1 auto !important;}
+#mc .modal>.fr>.fg:has(>div>input[type="tel"]){flex:1 1 auto !important;}
+.modal>.fr>.fg:has(#a-qte),.modal>.fr>.fg:has(#dep-qte){min-width:44px;}
+.modal>.fr>.fg:has(#a-type){min-width:134px;}
+.card:has(#pt-nom){display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px 8px;}
+.card:has(#pt-nom)>*{flex:0 0 100%;min-width:0;}
+.card:has(#pt-nom)>.fr{display:contents;}
+.card:has(#pt-nom)>.fr>.fg{flex:0 0 auto;width:min-content;min-width:60px;}
+.card:has(#pt-nom)>.fr>.fg>label{white-space:nowrap;padding-right:8px;}
+.card:has(#pt-nom)>.fr>.fg:has(#pt-nom){flex:1 1 140px;width:auto;}
+.card:has(#pt-nom)>.fr>.fg:has(#pt-date){min-width:130px;}
+.card:has(#pt-nom)>div:last-child{flex:0 0 auto;margin-left:auto;}
+#bilan-result .card{padding:7px 10px;margin-bottom:7px;}
+#bilan-result .ch{margin-bottom:5px;font-size:.8rem;}
+#bilan-result .g5,#bilan-result .g2{gap:5px;}
+#bilan-result .kpi{padding:5px 8px;}
+#bilan-result .kpi:hover{transform:none;}
+#bilan-result .kl{font-size:.56rem;margin-bottom:1px;}
+#bilan-result .kv{font-size:.86rem;line-height:1.15;}
+#bilan-result .rb{padding:5px 8px;}
+#bilan-result .rl{font-size:.56rem;margin-bottom:1px;}
+#bilan-result .rv{font-size:.9rem;line-height:1.15;}
+#bilan-result hr.sep{margin:3px 0;}
+#bilan-result .dv{margin:5px 0 3px;}
+#bilan-result div[style*="padding:12px"]{padding:5px 9px !important;margin-bottom:6px !important;}
+#bilan-result div[style*="justify-content:space-between"]{margin-bottom:1px !important;font-size:.76rem;line-height:1.25;gap:8px;}
+#bilan-result div[style*="margin-top:2px"]{margin-top:0 !important;font-size:.6rem !important;}
+#bilan-result div[style*="margin-bottom:11px"]{margin-bottom:5px !important;}
+/* ===== /V0.50 ===== */
 </style>
 </head>
 <body>
@@ -1964,7 +1994,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     </div>
     <div class="fr">
       <div class="fg">
-        <label>Téléphone</label>
+        <label>Téléphone *</label>
         <div style="display:flex;gap:6px;align-items:center">
           <input type="tel" id="c-tel" placeholder="" style="flex:1">
           <button type="button" class="btn bs bsm" onclick="appelClient()" style="padding:8px 10px" title="Appeler">📞</button>
@@ -3865,6 +3895,8 @@ var I18N={
     "Type *":"Type *",
     "Télécharger une sauvegarde complète des données (.json)":"Download a complete backup of the data (.json)",
     "Téléphone":"Phone",
+    "Téléphone *":"Phone *",
+    "⚠️ Téléphone obligatoire":"⚠️ Phone required",
     "Téléphone client":"Customer phone",
     "Téléphone de récupération":"Recovery phone",
     "VENDU":"SOLD",
@@ -5242,6 +5274,7 @@ var I18N={
     "Type *":"𞤅𞤭𞤬𞤢𞥄 *",
     "Télécharger une sauvegarde complète des données (.json)":"𞤋𞤼𞥆𞤵 𞤸𞤮𞥅𞤧𞤵𞤺𞤮𞤤 𞤳𞤫𞤩𞤢𞤤 𞤼𞤭𞤥𞥆𞤵𞤯𞤮 (.json)",
     "Téléphone":"𞤚𞤫𞤤𞥆𞤫𞤬𞤮𞤲",
+    "Téléphone *":"𞤚𞤫𞤤𞥆𞤫𞤬𞤮𞤲 *",
     "Téléphone client":"𞤚𞤫𞤤𞥆𞤫𞤬𞤮𞤲 𞤳𞤭𞤤𞤭𞤴𞤢𞥄𞤲",
     "Téléphone de récupération":"𞤚𞤫𞤤𞥆𞤫𞤬𞤮𞤲 𞤪𞤵𞤼𞥆𞤭𞤼𞤵𞤺𞤮𞤤",
     "VENDU":"𞤐𞤔𞤉𞤒𞤀𞥄𞤃𞤀",
@@ -8375,6 +8408,7 @@ function uCT(){
 function enrCmd(){
   var date=v('c-date'),client=v('c-client').trim(),tel=v('c-tel').trim();
   if(!date||!client){ notif('⚠️ Date et client obligatoires'); return; }
+  if(!tel){ notif('⚠️ Téléphone obligatoire'); return; }
   if(!cmdLignes.length){ notif('⚠️ Ajoutez au moins un produit'); return; }
   var qteTotale=cmdLignes.reduce(function(s,l){ return s+(l.qte||0); },0);
   if(qteTotale<=0){ notif('⚠️ La commande ne peut pas contenir uniquement des quantités à 0. Saisissez au moins une quantité valide.'); return; }
@@ -11796,8 +11830,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.49'; // 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
-var APP_VERSION_DATE = '2026-10-07T20:10:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.50'; // 07-10-2026 21:00 : Activité/Dépense/Commande (champs texte extensibles, Qté réduit, Téléphone obligatoire), Patrimoine (bouton à côté de la date), Bilan (hauteurs réduites). Précédemment V0.49 : 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
+var APP_VERSION_DATE = '2026-10-07T21:00:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
