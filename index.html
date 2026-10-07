@@ -1481,6 +1481,36 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
   </div>
 </div>
 
+<!-- DIMINUER UNE QUANTITÉ (Stock Perso → retire aussi du Stock Entreprise) — V0.38 -->
+<div class="ov" id="mdq">
+  <div class="modal" style="max-width:420px">
+    <div class="mhd">Diminuer une quantité<button class="mcl" onclick="cm('mdq')">✕</button></div>
+    <input type="hidden" id="dq-id">
+    <div id="dq-inf" style="background:var(--bg4);border-radius:7px;padding:8px;margin-bottom:9px;font-size:.79rem"></div>
+    <div class="fr"><div class="fg"><label>Quantité à retirer *</label><input type="number" id="dq-qte" placeholder="0" min="1" step="1" inputmode="numeric"></div></div>
+    <div class="al ali" style="font-size:.74rem">Cette quantité est retirée du Stock Perso et du Stock Entreprise. Elle ne peut pas dépasser ce qui reste (non vendu) ; aucune quantité négative n'est possible.</div>
+    <div class="mft">
+      <button class="btn bh" onclick="cm('mdq')">Annuler</button>
+      <button class="btn bs js-tap-fast" onclick="enrDiminutionQte()">✓ Diminuer</button>
+    </div>
+  </div>
+</div>
+
+<!-- DIMINUER UNE QUANTITÉ (Stock Entreprise) — V0.40 -->
+<div class="ov" id="mdqe">
+  <div class="modal" style="max-width:420px">
+    <div class="mhd">Diminuer une quantité<button class="mcl" onclick="cm('mdqe')">✕</button></div>
+    <input type="hidden" id="dqe-id">
+    <div id="dqe-inf" style="background:var(--bg4);border-radius:7px;padding:8px;margin-bottom:9px;font-size:.79rem"></div>
+    <div class="fr"><div class="fg"><label>Quantité à retirer *</label><input type="number" id="dqe-qte" placeholder="0" min="1" step="1" inputmode="numeric"></div></div>
+    <div class="al ali" style="font-size:.74rem">Cette quantité est retirée du Stock Entreprise. Elle ne peut pas dépasser le restant disponible ; aucune quantité négative n'est possible. Les unités apportées par le Stock Perso se retirent depuis le Stock Perso.</div>
+    <div class="mft">
+      <button class="btn bh" onclick="cm('mdqe')">Annuler</button>
+      <button class="btn bs js-tap-fast" onclick="enrDiminutionStock()">✓ Diminuer</button>
+    </div>
+  </div>
+</div>
+
 <!-- AFFICHAGE — taille du texte, thème, langue (accessible à tous les rôles, y compris avant connexion) -->
 <div class="ov" id="maffichage">
   <div class="modal" style="max-width:460px">
@@ -2063,6 +2093,7 @@ function load(){
     if(s){ const d=JSON.parse(s); D=Object.assign({activites:[],stock:[],perso:[],depenses:[],dettes:[],dettesClot:0,detteVerrou:false,paiements:[],commandes:[],histo:[],corbeille:[],_o:1,_co:1,_del:{},auth:null,entDejaDeduit:0,entDoitBase:0,capitalStockSupprime:0,capitalReductions:[],capitalAugmentations:[],historiqueClotures:[],periodesCloturees:[],params:{reinvest:20,stockPerso:15,fournisseurTel:''}},d); if(!D._del) D._del={}; }
   }catch(e){}
   migrerEntDoitBaseStockPerso();
+  appliquerCorrectionsUniquesStock(); // V0.36 : correction unique (idempotente)
 }
 /**
  * MIGRATION UNIQUE (01-09-2026 — sécurisation de l'introduction de
@@ -2149,9 +2180,161 @@ function markDeleted(field, id){
   if(!D._del[field]) D._del[field]=[];
   if(D._del[field].indexOf(id)===-1) D._del[field].push(id);
 }
+/**
+ * V0.41 — CORRECTIF SYNCHRONISATION DES QUANTITÉS (Stock Entreprise + Stock Perso) :
+ * « un appareil resté sur une ancienne quantité ne doit jamais réécrire une ancienne
+ * valeur et annuler une diminution récente faite sur un autre appareil ».
+ *
+ * CAUSE : jusqu'ici, deux règles seulement départageaient deux quantités différentes : garder
+ * la PLUS GRANDE (anti-recul) ou, si une baisse volontaire était plus récente que la dernière
+ * modification de l'autre côté, garder cette baisse. Une ancienne valeur obsolète (appareil
+ * resté hors ligne, qui n'a rien modifié) ne se distinguait donc pas d'une vraie hausse :
+ *  - à la reconnexion, l'appareil obsolète ENVOYAIT d'abord tout son stock au serveur (avant
+ *    de le relire), réécrivant l'ancienne quantité par-dessus la diminution ;
+ *  - la moindre vente faite sur l'appareil obsolète rafraîchissait son _localTouchedAt et
+ *    suffisait à « battre » la baisse volontaire ; ensuite la règle « plus grande quantité »
+ *    remontait l'ancienne valeur.
+ *
+ * PRINCIPE : on ne compare plus seulement deux valeurs, on mémorise pour chaque fiche la
+ * DERNIÈRE QUANTITÉ SUR LAQUELLE L'APPAREIL ET LE SERVEUR ÉTAIENT D'ACCORD (_qteBase, avec son
+ * heure _qteBaseAt). Une copie dont la quantité est encore égale à sa base n'a RIEN modifié :
+ * ce n'est pas une modification, c'est une ancienne valeur, qui ne peut jamais l'emporter sur
+ * une vraie modification faite ailleurs (baisse comme hausse). Une copie qui diffère de sa base
+ * porte une modification réelle. Si les deux côtés ont réellement modifié (simultané), les deux
+ * variations sont cumulées (base + variation A + variation B) : aucune n'est perdue.
+ * Deux jeux de champs distincts, pour ne jamais mélanger les deux canaux de synchronisation :
+ *   _qteBase / _qteBaseAt   → canal « table stock » (Stock Entreprise uniquement) ;
+ *   _qteBaseC / _qteBaseCAt → canal « app_data » (Stock Entreprise et Stock Perso).
+ * _qteSnap (dernière quantité vue par persist), _qteAt et _qteDev (heure et appareil de la
+ * dernière modification locale de la quantité) servent à ne jamais compter deux fois la
+ * propre ancienne copie d'un appareil. Fiche sans base (données d'avant V0.41) : l'ancien
+ * comportement (baisse volontaire / plus grande quantité) s'applique exactement comme avant,
+ * jusqu'au premier accord observé. Ventes, paiements, prix, calculs, droits : inchangés.
+ */
+function _qteNb(v){ return Number(v)||0; }
+function _qteBaseOk(v){ return v!==undefined && v!==null && v!=='' && isFinite(Number(v)); }
+function idAppareilQte(){
+  try{
+    var k=KEY+'_qtedev', v=localStorage.getItem(k);
+    if(!v){ v='d'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); localStorage.setItem(k,v); }
+    return v;
+  }catch(e){ return 'd-inconnu'; }
+}
+/** Appelée par persist() : repère toute modification LOCALE de qteInitiale (aucune modification inventée au premier passage). */
+function suivreQuantitesLocales(){
+  if(typeof D==='undefined' || !D) return;
+  var now=Date.now(), dev=null;
+  ['stock','perso'].forEach(function(f){
+    (D[f]||[]).forEach(function(it){
+      if(!it || typeof it!=='object') return;
+      var q=_qteNb(it.qteInitiale);
+      if(it._qteSnap===undefined){ it._qteSnap=q; return; }
+      if(it._qteSnap!==q){ it._qteSnap=q; it._qteAt=now; it._qteDev=dev||(dev=idAppareilQte()); }
+    });
+  });
+}
+/**
+ * Canal « app_data » : départage les quantités de DEUX copies d'une même fiche (x, y).
+ * Retourne {qte, cote, cumul} ou null (→ ancien comportement inchangé, fiche sans base).
+ * cote = la copie dont les champs liés (origPerso, montants Stock Perso) font foi ; null si cumul.
+ */
+function fusionnerQteDeuxCopies(x, y){
+  if(!x || !y) return null;
+  var qx=_qteNb(x.qteInitiale), qy=_qteNb(y.qteInitiale);
+  if(qx===qy) return {qte:qx, cote:null, cumul:false, identique:true};
+  if(!_qteBaseOk(x._qteBaseC) || !_qteBaseOk(y._qteBaseC)) return null;
+  var bx=_qteNb(x._qteBaseC), by=_qteNb(y._qteBaseC), ax=_qteNb(x._qteBaseCAt), ay=_qteNb(y._qteBaseCAt);
+  var cx=(qx!==bx), cy=(qy!==by);
+  // une copie dont la base est EXACTEMENT la quantité de l'autre s'est construite sur celle-ci :
+  // la modification de l'autre y est déjà comprise (successeur direct, jamais un cumul).
+  var xSurY=(bx===qy), ySurX=(by===qx);
+  if(xSurY && !ySurX) return {qte:qx, cote:x, cumul:false};
+  if(ySurX && !xSurY) return {qte:qy, cote:y, cumul:false};
+  if(!cx && !cy){                                   // aucune n'a modifié : la plus ancienne est obsolète
+    if(ax===ay) return null;
+    return ax>ay ? {qte:qx, cote:x, cumul:false} : {qte:qy, cote:y, cumul:false};
+  }
+  if(x._qteDev && x._qteDev===y._qteDev){           // même appareil : l'une est l'ancienne copie de l'autre
+    return _qteNb(x._qteAt)>=_qteNb(y._qteAt) ? {qte:qx, cote:x, cumul:false} : {qte:qy, cote:y, cumul:false};
+  }
+  if(ax===ay && bx!==by) return null;
+  var partage=(ax>=ay)?bx:by;                       // dernier accord connu
+  return {qte:Math.max(0, partage+(qx-bx)+(qy-by)), cote:null, cumul:true};
+}
+/**
+ * Canal « table stock » : local (copie de l'appareil, avec sa base _qteBase) face à la ligne
+ * serveur (srv). Retourne {qte, origPerso} ou null (fiche sans base → ancien comportement).
+ */
+function fusionnerQteAvecServeur(loc, srv){
+  if(!loc || !srv) return null;
+  var l=_qteNb(loc.qteInitiale), s=_qteNb(srv.qteInitiale);
+  var ol=_qteNb(loc.origPerso), os=_qteNb(srv.origPerso), q, o;
+  // fiche sans base (données d'avant V0.41) : seul un accord constaté (quantités égales) crée la base ; sinon ancien comportement
+  if(!_qteBaseOk(loc._qteBase)) return (l===s) ? {qte:l, origPerso:os} : null;
+  var b=_qteNb(loc._qteBase);
+  if(l===s){ q=l; o=os; }
+  else if(l===b){ q=s; o=os; }                      // seul le serveur a changé : valeur plus récente (baisse OU hausse)
+  else if(s===b){ q=l; o=ol; }                      // seul cet appareil a modifié : à envoyer
+  else { q=Math.max(0,l+s-b); o=Math.min(q,Math.max(ol,os)); }   // simultané : les deux variations sont cumulées
+  return {qte:q, origPerso:o};
+}
+/** Applique un résultat de fusion « table » sur une fiche et mémorise l'accord avec le serveur. */
+function appliquerQteServeurSurFiche(it, r, srv){
+  it.qteInitiale=r.qte; it.origPerso=r.origPerso;
+  it.qteRestante=Math.max(0, r.qte-_qteNb(it.qteVendue));
+  it._qteBase=_qteNb(srv.qteInitiale); it._qteBaseAt=Date.now(); it._qteSnap=r.qte;
+}
+var _stockEnvoiEnCours=0; // envois « table stock » en vol : pendant ce temps on ne relit pas les quantités pour ne pas les compter deux fois
 function persist(){
+  try{ suivreQuantitesLocales(); }catch(e){}
   localStorage.setItem(KEY,JSON.stringify(D));
   localStorage.setItem(KEY+'_ts', new Date().toISOString());
+}
+/**
+ * CORRECTION UNIQUE (07-10-2026 — anciennes annulations Stock Perso restées sans
+ * effet sur Stock Entreprise, avant V0.35). Cas constaté et confirmé par
+ * l'utilisateur : « Anticasse KK A12 » — reste réel 7 ; 31 ajoutés au Stock
+ * Perso puis annulés, mais la fiche Entreprise (la PREMIÈRE, 60/22/38) n'avait
+ * pas été diminuée. Sécurité "une seule fois, jamais deux" : la correction ne
+ * s'applique QUE si la fiche Entreprise est exactement dans l'état constaté
+ * (initiale 60, vendue 22, restante 38, dont perso 60) et qu'UNE SEULE fiche
+ * correspond ; dès qu'elle est appliquée la fiche passe à 29/22/7 et ne
+ * correspond plus jamais. Les autres fiches (dont la 2e « ANTICASSE KK A12 »
+ * 14/12/2), ventes, paiements, historiques et calculs ne sont pas touchés.
+ * Administrateur uniquement. Marqueurs _baisse* posés pour que la
+ * synchronisation ne la remonte pas (voir mergeAppData et
+ * chargerActivitesEtStockDepuisTables).
+ */
+var CORRECTIONS_UNIQUES_STOCK = [
+  { nom:'Anticasse KK A12', retrait:31, avant:{ qteInitiale:60, qteVendue:22, qteRestante:38, origPerso:60 } }
+];
+function appliquerCorrectionsUniquesStock(){
+  try{
+    var se=getSession(); if(!se || se.role!=='admin') return false;
+    if(!D || !Array.isArray(D.stock)) return false;
+    var nb=0;
+    CORRECTIONS_UNIQUES_STOCK.forEach(function(c){
+      var cand=D.stock.filter(function(s){
+        return s && normNom(s.nom)===normNom(c.nom) && Number(s.qteInitiale)===c.avant.qteInitiale &&
+          Number(s.qteVendue)===c.avant.qteVendue && Number(s.qteRestante)===c.avant.qteRestante &&
+          Number(s.origPerso)===c.avant.origPerso;
+      });
+      if(cand.length!==1) return;
+      var s=cand[0];
+      s.qteInitiale=s.qteInitiale-c.retrait;
+      s.origPerso=Math.max(0,(s.origPerso||0)-c.retrait);
+      s.qteRestante=Math.max(0,s.qteInitiale-(s.qteVendue||0));
+      s._localTouchedAt=Date.now(); s._baisseVoulueAt=s._localTouchedAt; s._baisseAEnvoyer=true;
+      nb++;
+    });
+    if(nb){
+      persist();
+      console.log('[correction unique] '+nb+' fiche(s) Stock Entreprise corrigée(s).');
+      setTimeout(function(){ try{ if(typeof renderAll==='function') renderAll(); if(typeof notif==='function') notif('✅ Stock Entreprise corrigé (ancienne annulation) — Anticasse KK A12 : −31', 6000); }catch(e){} },1200);
+      if(typeof syncActivitesEtStockVersNouvellesTables==='function') setTimeout(syncActivitesEtStockVersNouvellesTables,1500);
+    }
+    return nb>0;
+  }catch(e){ console.error('[correction unique]', e); return false; }
 }
 function save(){
   persist(); renderAll();
@@ -2976,6 +3159,11 @@ var I18N={
   },
   phrases:{
   en:{
+    "Diminuer une quantité":"Decrease a quantity",
+    "Quantité à retirer *":"Quantity to remove *",
+    "Cette quantité est retirée du Stock Entreprise. Elle ne peut pas dépasser le restant disponible ; aucune quantité négative n'est possible. Les unités apportées par le Stock Perso se retirent depuis le Stock Perso.":"This quantity is removed from the Company Stock. It cannot exceed the remaining available quantity; no negative quantity is possible. Units contributed by Personal Stock are removed from Personal Stock.",
+    "Diminuer la quantité":"Decrease the quantity",
+    "✓ Diminuer":"✓ Decrease",
     "🎨 Affichage":"🎨 Display",
     "Affichage":"Display",
     "🔠 Taille du texte":"🔠 Text size",
@@ -6857,6 +7045,7 @@ function retirerDeStockEnt(nom, qte){
   s.qteRestante=Math.max(0,s.qteInitiale-(s.qteVendue||0));
   s._localTouchedAt=Date.now();
   s._baisseVoulueAt=s._localTouchedAt; // V0.35 : baisse VOLONTAIRE (annulation/suppression) — voir mergeAppData(), protection anti-recul
+  s._baisseAEnvoyer=true; // V0.36 : retirée dès que le serveur (table stock) a reçu cette quantité — voir chargerActivitesEtStockDepuisTables()
 }
 /**
  * Ouvre le formulaire d'ajout rapide de quantité pour une fiche du Stock
@@ -6935,6 +7124,130 @@ function enrAjoutQte(){
   }
 }
 /**
+ * V0.38 — DIMINUER MANUELLEMENT une quantité du Stock Perso (symétrique de
+ * enrAjoutQte). Retire la même quantité du Stock Entreprise (retirerDeStockEnt,
+ * qui pose _localTouchedAt/_baisseVoulueAt/_baisseAEnvoyer : la synchronisation
+ * en ligne, hors ligne et côté Associé ne la remonte pas). Garde-fous :
+ *  - quantité entière > 0 ;
+ *  - jamais plus que le RESTANT non vendu de la fiche perso (restant >= 0) ;
+ *  - jamais plus que le restant de la fiche Stock Entreprise correspondante
+ *    (qteInitiale >= qteVendue) ; produit introuvable côté Entreprise = refus.
+ * Montants : exactement l'inverse de enrAjoutQte (prixRevient/commission/totalDu
+ * diminuent de achat*q et de sa commission, jamais sous 0). Les ventes
+ * (_venduReel, activités, qteVendue), les autres fiches et les formules ne sont
+ * pas touchés. Le dernier ajout annulable (dernierAjout*) est réduit au prorata
+ * pour qu'« Annuler le dernier ajout » ne retire jamais plus que ce qui reste.
+ */
+function ouvrirDiminutionQte(id){
+  var p=D.perso.find(function(x){ return x.id===id; });
+  if(!p) return;
+  var cv=calcPersoVenduRestant(p);
+  var s=D.stock.find(function(x){ return normNom(x.nom)===normNom(p.nom); });
+  var restEnt=s?Math.max(0,(s.qteInitiale||0)-(s.qteVendue||0)):0;
+  sv('dq-id',id); sv('dq-qte','');
+  document.getElementById('dq-inf').innerHTML='<strong>'+p.nom+'</strong> — Perso : actuelle <strong>'+p.qteInitiale+'</strong>, vendue '+cv.vendu+', restante <strong>'+cv.restant+'</strong> · Stock Entreprise restant : <strong>'+restEnt+'</strong>';
+  om('mdq');
+}
+function enrDiminutionQte(){
+  var btnDq=document.querySelector('#mdq .btn.bs');
+  if(btnDq && btnDq.disabled) return;
+  if(btnDq) btnDq.disabled=true;
+  try{
+    // V0.39 : garde anti double-déclenchement (double-tap / clic fantôme) — l'identifiant est vidé après une
+    // diminution réussie ; un 2e appel immédiat ne trouve plus rien à traiter et sort sans rien modifier.
+    if(!v('dq-id')) return;
+    var id=v('dq-id'), q=Number(v('dq-qte'));
+    if(!isFinite(q) || q<=0 || Math.floor(q)!==q){ notif('⚠️ Entrez une quantité entière valide (> 0)'); return; }
+    var p=D.perso.find(function(x){ return x.id==id; }); if(!p) return;
+    var cv=calcPersoVenduRestant(p);
+    if(q>cv.restant){ notif('⚠️ Impossible : il ne reste que '+cv.restant+' unité(s) non vendue(s) dans ce Stock Perso'); return; }
+    var s=D.stock.find(function(x){ return normNom(x.nom)===normNom(p.nom); });
+    if(!s){ notif('⚠️ Impossible : produit introuvable dans Stock Entreprise'); return; }
+    var restEnt=Math.max(0,(s.qteInitiale||0)-(s.qteVendue||0));
+    if(q>restEnt){ notif('⚠️ Impossible : Stock Entreprise n\'a que '+restEnt+' unité(s) restante(s) pour ce produit'); return; }
+    var maintenant=new Date().toISOString();
+    var retRevient=(p.achat||0)*q, retCommission=retRevient*(getParams().stockPerso/100);
+    p.qteInitiale=Math.max(0,(p.qteInitiale||0)-q);
+    p.prixRevient=Math.max(0,(p.prixRevient||0)-retRevient);
+    p.commission=Math.max(0,(p.commission||0)-retCommission);
+    p.totalDu=Math.max(0,(p.totalDu||0)-retRevient-retCommission);
+    retirerDeStockEnt(p.nom,q);
+    if((p.dernierAjoutQte||0)>0){
+      var ancienLot=p.dernierAjoutQte, nouveauLot=Math.max(0,ancienLot-q);
+      if(nouveauLot===0){ p.dernierAjoutQte=0; p.dernierAjoutDate=null; p.dernierAjoutRevient=0; p.dernierAjoutCommission=0; }
+      else { var ratio=nouveauLot/ancienLot; p.dernierAjoutQte=nouveauLot; p.dernierAjoutRevient=(p.dernierAjoutRevient||0)*ratio; p.dernierAjoutCommission=(p.dernierAjoutCommission||0)*ratio; }
+    }
+    p.derniereModifDate=maintenant;
+    p._localTouchedAt=Date.now();
+    p._baisseVoulueAt=p._localTouchedAt; // baisse volontaire : voir mergeAppData()
+    ah('perso','Diminution quantité perso: '+p.nom+' -'+q,0,td());
+    sv('dq-id',''); sv('dq-qte',''); // V0.39 : voir la garde en début de fonction
+    save(); cm('mdq'); rPerso(); notif('✅ '+p.nom+' : -'+q+' unité(s) (retirée(s) aussi du stock entreprise)');
+  } finally {
+    if(btnDq) btnDq.disabled=false;
+  }
+}
+/**
+ * V0.40 — DIMINUER DIRECTEMENT une quantité du Stock Entreprise (symétrique du ➕
+ * « Ajouter une quantité » : on saisit la quantité à RETIRER). Garde-fous :
+ *  - quantité entière > 0 ;
+ *  - jamais plus que le restant de la fiche (qteInitiale >= qteVendue : aucune quantité négative) ;
+ *  - jamais dans la part apportée par le Stock Perso (restant non vendu des fiches Perso du même
+ *    produit) : celle-ci se retire depuis le Stock Perso (➖), qui répercute lui-même sur l'Entreprise.
+ * Ne touche NI les ventes (qteVendue, activités), NI le Stock Perso, NI les autres fiches, NI
+ * origPerso, NI aucune formule. Synchronisation : mêmes marqueurs de « baisse volontaire » que
+ * l'annulation d'ajout (_baisseVoulueAt / _baisseAEnvoyer) → ni la synchro en ligne, ni la reprise
+ * hors ligne, ni la fusion cloud ne remontent l'ancienne quantité. Le dernier ajout annulable
+ * (dernierAjout*) est réduit de la même quantité (jamais négatif) pour que ↩️ ne retire jamais trop.
+ */
+function persoRestantPourStock(s){
+  // Les fiches Perso sont fusionnées dans la PREMIÈRE fiche Entreprise de même nom (voir fusionnerDansStockEnt).
+  var premiere=D.stock.find(function(x){ return normNom(x.nom)===normNom(s.nom); });
+  if(premiere!==s) return 0;
+  return D.perso.reduce(function(t,p){
+    return normNom(p.nom)===normNom(s.nom) ? t+(calcPersoVenduRestant(p).restant||0) : t;
+  },0);
+}
+function ouvrirDiminutionStock(id){
+  var s=D.stock.find(function(x){ return x.id===id; });
+  if(!s) return;
+  var restant=Math.max(0,(s.qteInitiale||0)-(s.qteVendue||0));
+  var persoRest=persoRestantPourStock(s);
+  var dispo=Math.max(0,restant-persoRest);
+  sv('dqe-id',id); sv('dqe-qte','');
+  document.getElementById('dqe-inf').innerHTML='<strong>'+echap(s.nom)+'</strong> — actuelle <strong>'+(s.qteInitiale||0)+'</strong>, vendue '+(s.qteVendue||0)+', restante <strong>'+restant+'</strong> · Retirable maintenant : <strong>'+dispo+'</strong>'+(persoRest>0?' (dont '+persoRest+' unité(s) du Stock Perso à retirer depuis le Stock Perso)':'');
+  om('mdqe');
+}
+function enrDiminutionStock(){
+  var btn=document.querySelector('#mdqe .btn.bs');
+  if(btn && btn.disabled) return;
+  if(btn) btn.disabled=true;
+  try{
+    if(!v('dqe-id')) return; // garde anti double-déclenchement (id vidé après succès)
+    var id=v('dqe-id'), q=Number(v('dqe-qte'));
+    if(!isFinite(q) || q<=0 || Math.floor(q)!==q){ notif('⚠️ Entrez une quantité entière valide (> 0)'); return; }
+    var s=D.stock.find(function(x){ return x.id==id; }); if(!s) return;
+    var restant=Math.max(0,(s.qteInitiale||0)-(s.qteVendue||0));
+    if(q>restant){ notif('⚠️ Impossible : il ne reste que '+restant+' unité(s) dans ce Stock Entreprise'); return; }
+    var persoRest=persoRestantPourStock(s);
+    if(q>restant-persoRest){ notif('⚠️ Impossible : '+persoRest+' unité(s) restante(s) viennent du Stock Perso — retirez-les depuis le Stock Perso (maximum ici : '+Math.max(0,restant-persoRest)+')'); return; }
+    s.qteInitiale=Math.max(0,(s.qteInitiale||0)-q);
+    s.qteRestante=Math.max(0,s.qteInitiale-(s.qteVendue||0));
+    if((s.dernierAjoutQte||0)>0){
+      s.dernierAjoutQte=Math.max(0,s.dernierAjoutQte-q);
+      if(s.dernierAjoutQte===0) s.dernierAjoutDate=null;
+    }
+    s._localTouchedAt=Date.now();
+    s._baisseVoulueAt=s._localTouchedAt; // baisse volontaire : voir mergeAppData()
+    s._baisseAEnvoyer=true; // retiré dès que le serveur a reçu la quantité : voir chargerActivitesEtStockDepuisTables()
+    ah('stock','Diminution quantité: '+s.nom+' -'+q,0,td());
+    sv('dqe-id',''); sv('dqe-qte','');
+    save(); cm('mdqe'); rStock(); notif('✅ '+s.nom+' : -'+q+' unité(s) retirée(s)');
+  } finally {
+    if(btn) btn.disabled=false;
+  }
+}
+/**
  * Annule UNIQUEMENT la dernière opération d'ajout de quantité (via le
  * bouton ➕) sur une fiche du Stock Entreprise ou du Stock Perso — pas
  * l'ajout initial de la fiche elle-même (qui reste modifiable/
@@ -6952,6 +7265,7 @@ function annulerDernierAjout(id, type){
     s.dernierAjoutQte=0; s.dernierAjoutDate=null;
     s._localTouchedAt=Date.now();
     s._baisseVoulueAt=s._localTouchedAt; // V0.35 : baisse volontaire (voir mergeAppData)
+    s._baisseAEnvoyer=true; // V0.36 : voir chargerActivitesEtStockDepuisTables()
     ah('stock','Annulation ajout: '+s.nom+' -'+qte,0,td());
     save(); rStock(); notif('↩️ Dernier ajout annulé sur '+s.nom+' (-'+qte+')');
   } else {
@@ -9575,7 +9889,7 @@ function rStock(){
     html+='<td>'+fmt(s.vente||0)+'</td>';
     html+='<td>'+fmt(restant*s.achat)+'</td>';
     html+='<td>'+fmtDateHeure(s.date,s.heure)+(s.dernierAjoutQte>0?'<br><span class="badge bor" style="font-size:.62rem" title="Dernière modification">+'+s.dernierAjoutQte+' le '+fmtDateHeureISO(s.dernierAjoutDate)+'</span>':'')+'</td>';
-    html+='<td class="ac"><button class="btn bs bxs" onclick="ouvrirAjoutQte('+s.id+',\'stock\')" title="Ajouter une quantité (s\'additionne au stock existant)">➕</button>'+(s.dernierAjoutQte>0?'<button class="btn bh bxs" onclick="annulerDernierAjout('+s.id+',\'stock\')" title="Annuler le dernier ajout (+'+s.dernierAjoutQte+')">↩️</button>':'')+'<button class="btn bh bxs" onclick="editStock('+s.id+')">✏️</button><button class="btn bd bxs" onclick="delStock('+s.id+')">🗑️</button></td>';
+    html+='<td class="ac"><button class="btn bs bxs" onclick="ouvrirAjoutQte('+s.id+',\'stock\')" title="Ajouter une quantité (s\'additionne au stock existant)">➕</button><button class="btn bh bxs" onclick="ouvrirDiminutionStock('+s.id+')" title="Diminuer la quantité">➖</button>'+(s.dernierAjoutQte>0?'<button class="btn bh bxs" onclick="annulerDernierAjout('+s.id+',\'stock\')" title="Annuler le dernier ajout (+'+s.dernierAjoutQte+')">↩️</button>':'')+'<button class="btn bh bxs" onclick="editStock('+s.id+')">✏️</button><button class="btn bd bxs" onclick="delStock('+s.id+')">🗑️</button></td>';
     html+='</tr>';
   });
   html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
@@ -9635,7 +9949,7 @@ function rPerso(){
     html+='<td style="color:var(--go)">'+fmt(p.totalDu)+'</td>';
     html+='<td><span class="badge '+(r>0?'bor':'bgr')+'">'+(r>0?'En attente':'Remboursé')+'</span></td>';
     html+='<td style="font-size:.72rem;color:var(--tx2)">'+(p.derniereModifDate?fmtDateHeureISO(p.derniereModifDate):'—')+'</td>';
-    html+='<td class="ac"><button class="btn bs bxs" onclick="ouvrirAjoutQte('+p.id+',\'perso\')" title="Ajouter une quantité (s\'additionne au stock existant)">➕</button>'+(p.dernierAjoutQte>0?'<button class="btn bh bxs" onclick="annulerDernierAjout('+p.id+',\'perso\')" title="Annuler le dernier ajout (+'+p.dernierAjoutQte+')">↩️</button>':'')+'<button class="btn bh bxs" onclick="editPerso('+p.id+')">✏️</button><button class="btn bd bxs" onclick="delPerso('+p.id+')">🗑️</button></td>';
+    html+='<td class="ac"><button class="btn bs bxs" onclick="ouvrirAjoutQte('+p.id+',\'perso\')" title="Ajouter une quantité (s\'additionne au stock existant)">➕</button><button class="btn bh bxs" onclick="ouvrirDiminutionQte('+p.id+')" title="Diminuer la quantité (retire aussi du stock entreprise)">➖</button>'+(p.dernierAjoutQte>0?'<button class="btn bh bxs" onclick="annulerDernierAjout('+p.id+',\'perso\')" title="Annuler le dernier ajout (+'+p.dernierAjoutQte+')">↩️</button>':'')+'<button class="btn bh bxs" onclick="editPerso('+p.id+')">✏️</button><button class="btn bd bxs" onclick="delPerso('+p.id+')">🗑️</button></td>';
     html+='</tr>';
   });
   html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
@@ -11442,8 +11756,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.35'; // 06-10-2026 23:55 : synchronisation — une annulation/suppression volontaire (Stock Perso → Stock Entreprise) plus récente que le cloud n'est plus écrasée par une ancienne quantité (exception ciblée dans la protection anti-recul de mergeAppData ; marqueur _baisseVoulueAt). Précédemment V0.34 — 06-10-2026 23:20 : Stock Perso — annuler le dernier ajout d'une saisie fusionnée par nom restitue aussi prixRevient/commission/totalDu et pose _localTouchedAt (aucune formule modifiée). Précédemment V0.33 — 06-10-2026 22:45 : boîtes de dialogue — aucune zone de saisie masquée (hauteur dvh, scroll-padding sous le pied collant, recalage à l'ouverture/rotation ; CSS + recalage d'affichage uniquement). Précédemment V0.32 — 06-10-2026 22:10 : onglet Rapport de nouveau affiché (balise </div> manquante avant le bloc Rapport — structure HTML uniquement). Précédemment V0.31 — 06-10-2026 21:40 : champ Recherche agrandi à la saisie (affichage uniquement). Précédemment V0.30 — 06-10-2026 21:15 : tous les boutons de chaque onglet sur une seule ligne, nom du client dans Paiement partiel (affichage uniquement). Précédemment V0.29 — 06-10-2026 13:10 : barres de filtres harmonisées sur toutes les vues (CSS/libellés d'affichage uniquement). Précédemment V0.28 — 06-10-2026 10:15 : logo/badge raccourcis et filtres plus compacts (CSS d'affichage uniquement). Précédemment V0.27 — 06-10-2026 09:40 : boutons plus courts à l'horizontale (CSS d'affichage uniquement, bloc V0.27 de la feuille de style). Précédemment V0.26 — 06-10-2026 : simplification 5 — harmonisation visuelle (3 niveaux de boutons : principal .bp/.bg, secondaire .bh/.bs/.bt/.bo, danger .bd ; 2 niveaux de cartes : .card et blocs internes .kpi/.rb/.ci/.fi-box/.reset-info ; 4 tailles de texte : .7/.8/.9/1.05rem), bloc CSS autonome « V0.26 » en fin de feuille de style, affichage uniquement, aucun balisage/donnée/calcul/synchro/droit modifié. Précédemment V0.25 : simplification emojis — retrait des emojis décoratifs (boutons, titres, titres de modales, lignes, libellés) ; conservés : onglets, statuts (✅ ❌ ⚠️ ⏳ 🟢🟠🔴⚪ 🔒), icônes seules (✏️ 🗑️ ➕ ✕ 🖨️ 👁) ; dictionnaire FR/EN/FF aligné, affichage uniquement. Précédemment V0.24 05-10-2026 : menu ⋯ pour les actions secondaires des en-têtes (Commandes, Activités, Stock, Perso, Dépenses, Historique, Corbeille), boutons et fonctions inchangés. Précédemment V0.23 05-10-2026 : Commandes — alertes stock simplifiées (1 cadre, 2 lignes par produit, nom non répété) et titre en double masqué, rendu seul. Précédemment V0.22 05-10-2026 : compactage vertical global (Z1 titres/boutons d'onglet, Z3 filtres, Z4 modales, Z5 tableau de bord, Z6 recherche globale, Z7 bilan) — CSS d'affichage uniquement. Précédemment V0.21 05-10-2026 : Alertes Stock Faible — 2e passe de compactage (marges/paddings résiduels, affichage uniquement). Précédemment V0.20 05-10-2026 : Commandes › Alertes Stock Faible — affichage compact (cartes, espacements, 4 compteurs sur une ligne, fiche fournisseur resserrée), CSS/markup d'affichage uniquement, aucune logique ni donnée modifiée. Précédemment V0.19 04-10-2026 : Affichage — nouveau réglage « Taille des onglets » (− / curseur / +, 80–140 %, indépendant de la taille du texte, mémorisé). Précédemment V0.18 03-10-2026 : English (US) complété — 1 227 phrases ajoutées au dictionnaire I18N centralisé (I18N.phrases.en), aucune modification de la logique métier. Précédemment V0.17 : Affichage — ajout du Pular/Fulfulde de Guinée (Conakry) en véritable écriture Adlam Unicode (tous les textes statiques et dynamiques, placeholders, infobulles, boîtes de dialogue, impression), police Adlam embarquée ; Français et English (US) inchangés, règles par rôle inchangées. Précédemment V0.16 — choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
-var APP_VERSION_DATE = '2026-10-06T22:10:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.41'; // 07-10-2026 10:50 : synchronisation des quantités (Stock Entreprise + Stock Perso) — un appareil resté sur une ancienne quantité (2e Administrateur) ne peut plus réécrire l'ancienne valeur ni annuler une diminution récente faite ailleurs : chaque fiche mémorise la dernière quantité sur laquelle l'appareil et le serveur étaient d'accord ; une copie inchangée depuis cet accord n'est plus prise pour une modification (elle adopte la valeur du serveur, plus basse comme plus haute), une vraie modification locale est conservée et envoyée, deux modifications simultanées sont cumulées ; l'envoi du stock relit d'abord les quantités du serveur (Administrateur). Aucun calcul, vente, paiement, prix ni droit modifié ; les fiches sans base (d'avant V0.41) gardent l'ancien comportement jusqu'au premier accord. Précédemment V0.40 — 07-10-2026 09:40 : Stock Entreprise — bouton ➖ « Diminuer une quantité » (quantité saisie retirée directement ; jamais négatif, jamais dans la part du Stock Perso ; synchronisation en ligne/hors ligne protégée comme l'annulation d'ajout ; ventes, Stock Perso, calculs et droits inchangés). Précédemment V0.39 — 07-10-2026 09:10 : Stock Perso — la diminution manuelle ➖ ne peut plus être appliquée deux fois par un double-tap/double appel (garde anti double-déclenchement ; aucun calcul modifié). Précédemment V0.38 — 07-10-2026 08:10 : Stock Perso — bouton ➖ « Diminuer une quantité » (retire aussi du Stock Entreprise, jamais négatif, jamais plus que le non vendu ; synchronisation protégée). Précédemment V0.37 — 07-10-2026 07:25 : appareil Associé — une baisse/annulation légitime de l'Administrateur n'est plus écrasée par l'ancienne quantité plus haute (le serveur fait foi pour le stock en lecture seule de l'Associé ; protection Administrateur inchangée). Précédemment V0.36 — 07-10-2026 07:10 : correction unique Anticasse KK A12 (−31 sur la fiche Entreprise 60/22/38 → 29/22/7, appliquée une seule fois, administrateur) + protection de la baisse volontaire sur le chemin « tables serveur » (marqueur _baisseAEnvoyer). Précédemment V0.35 — 06-10-2026 23:55 : synchronisation — une annulation/suppression volontaire (Stock Perso → Stock Entreprise) plus récente que le cloud n'est plus écrasée par une ancienne quantité (exception ciblée dans la protection anti-recul de mergeAppData ; marqueur _baisseVoulueAt). Précédemment V0.34 — 06-10-2026 23:20 : Stock Perso — annuler le dernier ajout d'une saisie fusionnée par nom restitue aussi prixRevient/commission/totalDu et pose _localTouchedAt (aucune formule modifiée). Précédemment V0.33 — 06-10-2026 22:45 : boîtes de dialogue — aucune zone de saisie masquée (hauteur dvh, scroll-padding sous le pied collant, recalage à l'ouverture/rotation ; CSS + recalage d'affichage uniquement). Précédemment V0.32 — 06-10-2026 22:10 : onglet Rapport de nouveau affiché (balise </div> manquante avant le bloc Rapport — structure HTML uniquement). Précédemment V0.31 — 06-10-2026 21:40 : champ Recherche agrandi à la saisie (affichage uniquement). Précédemment V0.30 — 06-10-2026 21:15 : tous les boutons de chaque onglet sur une seule ligne, nom du client dans Paiement partiel (affichage uniquement). Précédemment V0.29 — 06-10-2026 13:10 : barres de filtres harmonisées sur toutes les vues (CSS/libellés d'affichage uniquement). Précédemment V0.28 — 06-10-2026 10:15 : logo/badge raccourcis et filtres plus compacts (CSS d'affichage uniquement). Précédemment V0.27 — 06-10-2026 09:40 : boutons plus courts à l'horizontale (CSS d'affichage uniquement, bloc V0.27 de la feuille de style). Précédemment V0.26 — 06-10-2026 : simplification 5 — harmonisation visuelle (3 niveaux de boutons : principal .bp/.bg, secondaire .bh/.bs/.bt/.bo, danger .bd ; 2 niveaux de cartes : .card et blocs internes .kpi/.rb/.ci/.fi-box/.reset-info ; 4 tailles de texte : .7/.8/.9/1.05rem), bloc CSS autonome « V0.26 » en fin de feuille de style, affichage uniquement, aucun balisage/donnée/calcul/synchro/droit modifié. Précédemment V0.25 : simplification emojis — retrait des emojis décoratifs (boutons, titres, titres de modales, lignes, libellés) ; conservés : onglets, statuts (✅ ❌ ⚠️ ⏳ 🟢🟠🔴⚪ 🔒), icônes seules (✏️ 🗑️ ➕ ✕ 🖨️ 👁) ; dictionnaire FR/EN/FF aligné, affichage uniquement. Précédemment V0.24 05-10-2026 : menu ⋯ pour les actions secondaires des en-têtes (Commandes, Activités, Stock, Perso, Dépenses, Historique, Corbeille), boutons et fonctions inchangés. Précédemment V0.23 05-10-2026 : Commandes — alertes stock simplifiées (1 cadre, 2 lignes par produit, nom non répété) et titre en double masqué, rendu seul. Précédemment V0.22 05-10-2026 : compactage vertical global (Z1 titres/boutons d'onglet, Z3 filtres, Z4 modales, Z5 tableau de bord, Z6 recherche globale, Z7 bilan) — CSS d'affichage uniquement. Précédemment V0.21 05-10-2026 : Alertes Stock Faible — 2e passe de compactage (marges/paddings résiduels, affichage uniquement). Précédemment V0.20 05-10-2026 : Commandes › Alertes Stock Faible — affichage compact (cartes, espacements, 4 compteurs sur une ligne, fiche fournisseur resserrée), CSS/markup d'affichage uniquement, aucune logique ni donnée modifiée. Précédemment V0.19 04-10-2026 : Affichage — nouveau réglage « Taille des onglets » (− / curseur / +, 80–140 %, indépendant de la taille du texte, mémorisé). Précédemment V0.18 03-10-2026 : English (US) complété — 1 227 phrases ajoutées au dictionnaire I18N centralisé (I18N.phrases.en), aucune modification de la logique métier. Précédemment V0.17 : Affichage — ajout du Pular/Fulfulde de Guinée (Conakry) en véritable écriture Adlam Unicode (tous les textes statiques et dynamiques, placeholders, infobulles, boîtes de dialogue, impression), police Adlam embarquée ; Français et English (US) inchangés, règles par rôle inchangées. Précédemment V0.16 — choix réservé au compte Administrateur (Associé, Visiteur et écran de connexion : Français uniquement) ; taille du texte, thème et langue strictement locaux à l'appareil. Précédemment V0.15 — 22-09-2026 : nouveau bouton "🎨 Affichage" (visible dès l'écran de connexion, tous rôles) : (1) taille du texte réglable par −/curseur/+, effet immédiat sur toute l'application (le CSS existant utilise déjà des unités "rem" partout, aucune règle modifiée) ; (2) 4 thèmes fonctionnels — Sombre (identique à l'ancien réglage par défaut), Noir, Gris, Blanc — ne redéfinissent que les variables de couleur déjà utilisées par tout le CSS existant ; (3) 2 langues — Français (défaut), English (US) — via attributs data-i18n sur la navigation principale, les titres d'écrans, les boutons d'action les plus utilisés et l'écran de connexion (~50 éléments ; pas la totalité des libellés de détail). Les réglages sont mémorisés par appareil (localStorage) et réappliqués dès le chargement, y compris avant connexion. Aucune donnée, calcul, Stock, capital, synchronisation ni permission modifiés.
+var APP_VERSION_DATE = '2026-10-07T10:50:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
@@ -12987,6 +13301,7 @@ function chargerActivitesEtStockDepuisTables(session){
       return r.text().then(function(corps){ enregistrerDiagnostic('Lecture stock (serveur)', false, extraireDetailErreur(corps, r.status)); return []; });
     })
   ]).then(function(res){
+    appliquerCorrectionsUniquesStock(); // V0.36 : avant toute fusion, pour que le marqueur protège la correction (idempotente)
     var serverAct = Array.isArray(res[0]) ? res[0].map(mapRowVersActivite) : null;
     var serverStock = Array.isArray(res[1]) ? res[1].map(mapRowVersStock) : null;
     /**
@@ -13286,10 +13601,60 @@ function chargerActivitesEtStockDepuisTables(session){
        * synchronisation. Rien d'autre n'est changé.
        */
       var avantParId={}; stockAvant.forEach(function(s){ if(s&&s.id!=null) avantParId[s.id]=s; });
+      // V0.41 : lignes serveur par id + résultats de la fusion à trois valeurs (voir fusionnerQteAvecServeur)
+      var srvParId={}; serverStock.forEach(function(r){ if(r&&r.id!=null) srvParId[r.id]=r; });
+      var resQte={};
       D.stock.forEach(function(item){
         if(!item || item.id==null) return;
+        /**
+         * V0.37 — Appareil ASSOCIÉ : le stock y est en LECTURE SEULE (jamais
+         * envoyé au serveur, qteInitiale jamais modifiée localement — voir
+         * syncActivitesEtStockVersNouvellesTables : payloadStock = null hors
+         * Administrateur). La protection anti-recul ci-dessous n'y protège donc
+         * aucune saisie locale et ne faisait que garder l'ANCIENNE quantité plus
+         * haute après une baisse/annulation légitime de l'Administrateur. Ici le
+         * serveur fait foi (baisses ET hausses venues de l'Administrateur sont
+         * reprises). Administrateur : protection inchangée, ligne pour ligne.
+         */
+        if(session && session.role==='associe') return;
         var av=avantParId[item.id];
-        if(av){
+        /**
+         * V0.41 — une ancienne quantité obsolète ne peut plus remonter : si cette fiche n'a PAS été
+         * modifiée ici depuis le dernier accord avec le serveur (quantité = _qteBase), c'est la valeur du
+         * serveur qui fait foi, qu'elle soit plus basse (diminution faite ailleurs) ou plus haute (hausse
+         * légitime). Si seule cette copie a modifié, elle est conservée (et sera envoyée). Si les deux ont
+         * modifié, les deux variations sont cumulées. Fiche sans base : ancien comportement ci-dessous.
+         * Envoi en cours : on garde la quantité locale (pas de relecture pendant que l'envoi est en vol).
+         */
+        var srvLigne=srvParId[item.id];
+        if(av && srvLigne){
+          var enVol = _stockEnvoiEnCours>0 && _qteBaseOk(av._qteBase);
+          var r3 = enVol ? {qte:_qteNb(av.qteInitiale), origPerso:_qteNb(av.origPerso)} : fusionnerQteAvecServeur(av, srvLigne);
+          if(r3){
+            appliquerQteServeurSurFiche(item, r3, srvLigne);
+            if(enVol){ item._qteBase=_qteNb(av._qteBase); item._qteBaseAt=_qteNb(av._qteBaseAt); }
+            ['_qteBaseC','_qteBaseCAt','_qteAt','_qteDev'].forEach(function(c){ if(av[c]!==undefined) item[c]=av[c]; });
+            if(av._baisseAEnvoyer && r3.qte===_qteNb(av.qteInitiale)){ item._baisseAEnvoyer=true; item._baisseVoulueAt=av._baisseVoulueAt; item._localTouchedAt=av._localTouchedAt; }
+            resQte[item.id]={r:r3, srv:srvLigne, keepBase:enVol, av:av};
+            return;
+          }
+        }
+        if(av && av._baisseAEnvoyer){
+          /**
+           * V0.36 — même cause que dans mergeAppData() (voir V0.35) mais sur le
+           * chemin "tables serveur" (démarrage + ~15 s) : une baisse VOLONTAIRE
+           * (annulation / suppression Stock Perso → Stock Entreprise, ou
+           * correction unique) pas encore reçue par le serveur ne doit pas être
+           * remontée par l'ancienne quantité serveur. Le marqueur disparaît
+           * dès que l'envoi vers la table stock réussit (voir
+           * syncActivitesEtStockVersNouvellesTables) ; sans marqueur, la
+           * protection anti-recul ci-dessous s'applique exactement comme avant.
+           */
+          item.qteInitiale=Number(av.qteInitiale)||0;
+          item.origPerso=Number(av.origPerso)||0;
+          item.qteRestante=Math.max(0, item.qteInitiale-(Number(item.qteVendue)||0));
+          item._baisseAEnvoyer=true; item._baisseVoulueAt=av._baisseVoulueAt; item._localTouchedAt=av._localTouchedAt;
+        } else if(av){
           var maxQte=Math.max(Number(av.qteInitiale)||0, Number(item.qteInitiale)||0);
           if((Number(item.qteInitiale)||0) < maxQte){
             item.qteInitiale=maxQte;
@@ -13303,6 +13668,19 @@ function chargerActivitesEtStockDepuisTables(session){
       // dessus le temps que son envoi aboutisse, en plus de la protection
       // de quantité ci-dessus (qui reste active au-delà de cette fenêtre).
       D.stock = protegerEditionsRecentes(D.stock, stockAvant);
+      // V0.41 : la protection « modification locale < 30 s » ci-dessus peut ramener la fiche locale ENTIÈRE
+      // (avec son ancienne quantité) ; la quantité décidée par la fusion à trois valeurs est ré-appliquée par
+      // dessus (ventes et autres champs locaux conservés).
+      D.stock.forEach(function(it){
+        var rq=it && it.id!=null ? resQte[it.id] : null;
+        if(!rq) return;
+        if(_qteNb(it.qteInitiale)!==rq.r.qte || _qteNb(it.origPerso)!==rq.r.origPerso){
+          appliquerQteServeurSurFiche(it, rq.r, rq.srv);
+          if(rq.keepBase){ it._qteBase=_qteNb(rq.av._qteBase); it._qteBaseAt=_qteNb(rq.av._qteBaseAt); }
+        }
+        it._qteBase = rq.keepBase ? _qteNb(rq.av._qteBase) : _qteNb(rq.srv.qteInitiale);
+        it._qteSnap = _qteNb(it.qteInitiale);
+      });
     }
     persist();
     enregistrerDiagnostic('Synchro activités/stock', true, 'Chargement réussi — '+D.activites.length+' activité(s), '+D.stock.length+' article(s).');
@@ -13371,7 +13749,44 @@ function chargerDonneesAssocie(session){
  * une autre ligne est rejetée par Supabase lui-même, pas seulement par
  * l'interface.
  */
+/**
+ * V0.41 — Envoi Activités + Stock : pour l'ADMINISTRATEUR, les quantités du serveur sont relues AVANT
+ * d'envoyer le stock. Cause corrigée : à la reconnexion (et à chaque sauvegarde), un appareil resté
+ * sur une ancienne quantité envoyait tout son stock tel quel et réécrivait l'ancienne valeur par-dessus
+ * une diminution faite sur un autre appareil. Désormais la fusion à trois valeurs (voir
+ * fusionnerQteAvecServeur) est appliquée d'abord : une copie non modifiée adopte la valeur du serveur
+ * au lieu de l'écraser ; seule une vraie modification locale est envoyée. Si le serveur ne peut pas être
+ * relu, les Activités partent comme avant mais le STOCK n'est pas envoyé (plutôt que de risquer
+ * d'écraser) ; il repart au prochain cycle. Associé : inchangé (jamais d'envoi de stock).
+ */
 function syncActivitesEtStockVersNouvellesTables(){
+  var session = getSession();
+  if (!session || !session.access_token) return;   // Solution A pas encore activée sur cet appareil
+  if (!navigator.onLine) return;
+  if (session.role !== 'admin' || !D.stock || !D.stock.length) return _envoyerActivitesEtStockVersTables();
+  supabaseTable('/rest/v1/stock?select=*&order=id.asc', {}, session.access_token).then(function(r){
+    if(!r.ok) throw new Error('lecture stock '+r.status);
+    return r.json();
+  }).then(function(rows){
+    if(!Array.isArray(rows)) throw new Error('réponse stock invalide');
+    var srv={}; rows.forEach(function(x){ if(x&&x.id!=null) srv[x.id]=mapRowVersStock(x); });
+    var change=false;
+    D.stock.forEach(function(it){
+      if(!it || it.id==null || !srv[it.id]) return;
+      var r3=fusionnerQteAvecServeur(it, srv[it.id]);
+      if(r3){
+        if(_qteNb(it.qteInitiale)!==r3.qte || _qteNb(it.origPerso)!==r3.origPerso) change=true;
+        appliquerQteServeurSurFiche(it, r3, srv[it.id]);
+      }
+    });
+    if(change){ try{ persist(); if(typeof renderAll==='function') renderAll(); }catch(e){} }
+    _envoyerActivitesEtStockVersTables();
+  }).catch(function(e){
+    console.warn('[sync] stock : relecture du serveur impossible, stock non envoyé (activités seules) —', e && e.message);
+    _envoyerActivitesEtStockVersTables({ sansStock:true });
+  });
+}
+function _envoyerActivitesEtStockVersTables(opts){
   var session = getSession();
   if (!session || !session.access_token) return;   // Solution A pas encore activée sur cet appareil
   if (!navigator.onLine) return;
@@ -13433,7 +13848,7 @@ function syncActivitesEtStockVersNouvellesTables(){
       return !(a.auteur==='Associé' && a.creePar===undefined);
     })
     .map(function(a){ return mapActiviteVersRow(a, session); });
-  var payloadStock = session.role === 'admin' ? D.stock.map(mapStockVersRow) : null;
+  var payloadStock = (session.role === 'admin' && !(opts && opts.sansStock)) ? D.stock.map(mapStockVersRow) : null;
   // CORRECTIF ("le compte Associé ne synchronise pas ses Activités") :
   // cette fonction envoyait déjà réellement les données vers Supabase,
   // mais ne mettait JAMAIS à jour le badge de statut (#sync-status) —
@@ -13487,15 +13902,30 @@ function syncActivitesEtStockVersNouvellesTables(){
       .catch(function(e){ console.error('[sync activites] pending, retenté à la prochaine occasion —', e); echecAct = true; termine(); });
   }
   if (payloadStock && payloadStock.length) {
+    // V0.36 : quantités "baisse volontaire" envoyées dans CET envoi (pour n'effacer le marqueur que si elles n'ont pas changé depuis)
+    var qteBaisseEnvoyee = {};
+    D.stock.forEach(function(st){ if(st && st._baisseAEnvoyer) qteBaisseEnvoyee[st.id]=st.qteInitiale; });
+    // V0.41 : quantités réellement envoyées dans CET envoi (nouvel accord avec le serveur si l'envoi réussit)
+    var qteEnvoyeeV41 = {};
+    D.stock.forEach(function(st){ if(st && st.id!=null) qteEnvoyeeV41[st.id]=_qteNb(st.qteInitiale); });
+    _stockEnvoiEnCours++;
     console.log('[sync] stock: '+payloadStock.length+' en attente d\'envoi…');
     supabaseTable('/rest/v1/stock', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates'}, body:JSON.stringify(payloadStock) }, session.access_token)
       .then(function(r){
-        if (r.ok) { console.log('[sync] stock: synced ✅'); echecStock=false; termine(); return; }
+        _stockEnvoiEnCours=Math.max(0,_stockEnvoiEnCours-1);
+        if (r.ok) {
+          console.log('[sync] stock: synced ✅'); echecStock=false;
+          var _eff=false; D.stock.forEach(function(st){ if(st && st._baisseAEnvoyer && qteBaisseEnvoyee[st.id]===st.qteInitiale){ delete st._baisseAEnvoyer; _eff=true; } });
+          // V0.41 : le serveur contient maintenant exactement ces quantités → nouvel accord (base)
+          D.stock.forEach(function(st){ if(st && st.id!=null && qteEnvoyeeV41[st.id]!==undefined){ st._qteBase=qteEnvoyeeV41[st.id]; st._qteBaseAt=Date.now(); _eff=true; } });
+          if(_eff){ try{ persist(); }catch(e){} }
+          termine(); return;
+        }
         echecStock = true;
         r.text().then(function(corps){ console.error('[sync] stock: échec — '+r.status+' — '+corps); afficherErreurReelle('Stock', r, corps); termine(); })
           .catch(function(){ termine(); });
       })
-      .catch(function(e){ console.error('[sync stock] pending, retenté à la prochaine occasion —', e); echecStock = true; termine(); });
+      .catch(function(e){ _stockEnvoiEnCours=Math.max(0,_stockEnvoiEnCours-1); console.error('[sync stock] pending, retenté à la prochaine occasion —', e); echecStock = true; termine(); });
   }
 }
 // ================================================================
@@ -14303,6 +14733,33 @@ function mergeAppData(cloudData, localData, cloudIsNewer, cloudDate, localDate) 
       }
       if(bItem && pItem){
         /**
+         * V0.41 — quantité : ancienne valeur obsolète ≠ modification réellement plus récente
+         * (voir fusionnerQteDeuxCopies). Si la décision est prise ici, le bloc « baisse volontaire /
+         * plus grande quantité » ci-dessous (ancien comportement) est ignoré ; sinon (fiche sans
+         * base, données d'avant V0.41) il s'applique exactement comme avant.
+         */
+        var qteTranchee=false, qteAccord=false;
+        var dcQte=fusionnerQteDeuxCopies(bItem, pItem);
+        if(dcQte && dcQte.cumul && f==='perso') dcQte=null; // cumul impossible sur les montants liés du Stock Perso : ancien comportement
+        if(dcQte && dcQte.identique) qteAccord=true;         // mêmes quantités : rien à départager (le reste du traitement ci-dessous est inchangé)
+        else if(dcQte){
+          qteTranchee=true;
+          item.qteInitiale=dcQte.qte;
+          if(f==='stock'){
+            item.origPerso = dcQte.cote ? (Number(dcQte.cote.origPerso)||0) : Math.min(dcQte.qte, Math.max(Number(bItem.origPerso)||0, Number(pItem.origPerso)||0));
+            item.qteRestante=Math.max(0, item.qteInitiale-(Number(item.qteVendue)||0));
+          } else if(dcQte.cote){
+            ['prixRevient','commission','totalDu','dernierAjoutQte','dernierAjoutDate','dernierAjoutRevient','dernierAjoutCommission','derniereModifDate'].forEach(function(champ){ item[champ]=dcQte.cote[champ]; });
+          }
+          var _src=dcQte.cote||((_qteNb(bItem._qteAt)>=_qteNb(pItem._qteAt))?bItem:pItem);
+          if(_src._qteAt){ item._qteAt=_src._qteAt; item._qteDev=_src._qteDev; }
+          // accord mémorisé = ce que le cloud contient maintenant (la copie « cloud » est celle de cloudData)
+          var _cl=cloudIsNewer?pItem:bItem;
+          item._qteBaseC=_qteNb(_cl.qteInitiale); item._qteBaseCAt=Date.now();
+          item._qteSnap=_qteNb(item.qteInitiale);
+        }
+        if(!qteTranchee){
+        /**
          * CORRECTIF (06-10-2026 — "une annulation volontaire faite hors
          * ligne était annulée par la synchronisation") — cause exacte : la
          * protection anti-recul ci-dessous garde TOUJOURS la plus grande
@@ -14344,6 +14801,9 @@ function mergeAppData(cloudData, localData, cloudIsNewer, cloudDate, localDate) 
           }
         }
         }
+        item._qteSnap=_qteNb(item.qteInitiale);
+        if(qteAccord){ item._qteBaseC=_qteNb(item.qteInitiale); item._qteBaseCAt=Date.now(); }
+        } // fin « if(!qteTranchee) » (V0.41)
         /**
          * CORRECTIF (10-09-2026 — audit multi-appareils : "un prix
          * d'achat ajouté hors ligne sur un appareil peut disparaître du
