@@ -766,6 +766,23 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 .modal #c-lignes .fr>.fg:not(:first-child){flex:0 0 auto;}
 .modal #c-lignes .fr>.fg:not(:first-child) input{width:100%;min-width:56px;}
 /* ===== /V0.47 ===== */
+/* ===== V0.48 — Boîtes de dialogue : champs à largeur du libellé, tous sur une même ligne si possible (affichage uniquement) ===== */
+.modal{display:flex !important;flex-wrap:wrap;align-content:flex-start;align-items:flex-start;gap:6px 8px;}
+.modal>*:not(.fg):not(.fr){flex:0 0 100%;min-width:0;box-sizing:border-box;}
+.modal>.fr{display:contents !important;}
+.modal>.mft{flex:0 0 calc(100% + 28px) !important;}
+.modal .mft{margin-top:4px;}
+.modal>.fr>.fg,.modal>.fg{flex:0 0 auto !important;width:min-content;min-width:80px;max-width:100% !important;margin-bottom:0 !important;}
+.modal>.fr>.fg>label,.modal>.fg>label{white-space:nowrap;padding-right:10px;}
+.modal>.fr>.fg:has(>input[type="number"]),.modal>.fg:has(>input[type="number"]){min-width:84px;}
+.modal>.fr>.fg:has(>input[type="date"]),.modal>.fg:has(>input[type="date"]){min-width:128px;}
+.modal>.fr>.fg:has(>select),.modal>.fg:has(>select){min-width:108px;}
+.modal>.fr>.fg:has(input[type="password"]),.modal>.fg:has(input[type="password"]){min-width:150px;}
+.modal>.fr>.fg:has(>input[type="email"]),.modal>.fr>.fg:has(>input[type="tel"]),.modal>.fr>.fg:has(#c-tel),.modal>.fr>.fg:has(#pr-fourn){min-width:120px;}
+.modal>.fr>.fg:has(>div>input[type="tel"]){min-width:140px;}
+.modal>.fr>.fg>input,.modal>.fr>.fg>select,.modal>.fg>input,.modal>.fg>select{width:100%;}
+@media (max-height:480px) and (orientation:landscape){.modal>.mft{flex:0 0 calc(100% + 24px) !important;}}
+/* ===== /V0.48 ===== */
 </style>
 </head>
 <body>
@@ -1461,7 +1478,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     <div class="mhd"><span id="ma-t">Nouvelle Activité</span><button class="mcl" onclick="cm('ma');rAF()">✕</button></div>
     <input type="hidden" id="a-eid">
     <div class="fr">
-      <div class="fg"><label>Date *</label><input type="date" id="a-date"></div>
+      <div class="fg" style="display:none"><label>Date *</label><input type="date" id="a-date"></div>
       <div class="fg" id="fg-a-ticket"><label>Ticket</label><input type="text" id="a-ticket"></div>
       <div class="fg"><label>Type *</label><select id="a-type" onchange="basculerChampsSelonType()"><option>Vente</option><option>Réparation</option><option>Service</option></select></div>
     </div>
@@ -1504,7 +1521,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     <div id="pp-inf" style="background:var(--bg4);border-radius:7px;padding:8px;margin-bottom:9px;font-size:.79rem;display:none"></div>
     <div class="fr">
       <div class="fg"><label>Montant *</label><input type="number" id="pp-m" placeholder="0"></div>
-      <div class="fg"><label>Date</label><input type="date" id="pp-d"></div>
+      <div class="fg" style="display:none"><label>Date</label><input type="date" id="pp-d"></div>
     </div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mpp')">Annuler</button>
@@ -1770,7 +1787,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
       <div class="fg"><label>Seuil alerte</label><input type="number" id="s-seuil" placeholder="3" min="1" value="3"></div>
     </div>
     <div class="fr">
-      <div class="fg"><label>Date</label><input type="date" id="s-date"></div>
+      <div class="fg" style="display:none"><label>Date</label><input type="date" id="s-date"></div>
     </div>
     <div class="mft">
       <button class="btn bh" onclick="cm('ms');rSF()">Annuler</button>
@@ -1844,7 +1861,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
       <input type="hidden" id="p-vente" value="0">
     </div>
     <div class="fr">
-      <div class="fg"><label>Date</label><input type="date" id="p-date"></div>
+      <div class="fg" style="display:none"><label>Date</label><input type="date" id="p-date"></div>
     </div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mp');rPF()">Annuler</button>
@@ -1859,7 +1876,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     <div class="mhd"><span id="mdet-t">Ajouter une dette</span><button class="mcl" onclick="cm('mdet');rDF()">✕</button></div>
     <input type="hidden" id="det-eid">
     <div class="fr">
-      <div class="fg"><label>Date *</label><input type="date" id="det-date"></div>
+      <div class="fg" style="display:none"><label>Date *</label><input type="date" id="det-date"></div>
       <div class="fg"><label>Type</label><select id="det-type"><option value="directe">Directe</option><option value="femme">Femme</option></select></div>
     </div>
     <div class="fr">
@@ -1889,7 +1906,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     </div>
     <div class="fr">
       <div class="fg"><label>Note</label><input type="text" id="paym-n" placeholder=""></div>
-      <div class="fg"><label>Date *</label><input type="date" id="paym-d"></div>
+      <div class="fg" style="display:none"><label>Date *</label><input type="date" id="paym-d"></div>
     </div>
     <div class="mft">
       <button class="btn bh" onclick="cm('mpaym');rPAF()">Annuler</button>
@@ -1912,7 +1929,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
       <div class="fg"><label>Prix unitaire *</label><input type="number" id="dep-prix" placeholder="0" oninput="cDepTot()"></div>
       <div class="fg"><label>Total</label><input type="number" id="dep-tot" placeholder="0" readonly></div>
     </div>
-    <div class="fr"><div class="fg"><label>Date</label><input type="date" id="dep-date"></div></div>
+    <div class="fr"><div class="fg" style="display:none"><label>Date</label><input type="date" id="dep-date"></div></div>
     <div class="mft">
       <button class="btn bh" onclick="cm('md');rDepF()">Annuler</button>
       <button class="btn bp js-tap-fast" id="btn-sdep" onclick="enrDep()">✓ Enregistrer</button>
@@ -1941,7 +1958,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     <div class="mhd"><span id="mc-t">Nouvelle Commande</span><button class="mcl" onclick="cm('mc');rCF()">✕</button></div>
     <input type="hidden" id="c-eid">
     <div class="fr">
-      <div class="fg"><label>Date *</label><input type="date" id="c-date"></div>
+      <div class="fg" style="display:none"><label>Date *</label><input type="date" id="c-date"></div>
       <div class="fg"><label>N° commande</label><input type="text" id="c-num" placeholder=""></div>
       <div class="fg"><label>Client *</label><input type="text" id="c-client" placeholder="" list="dl-client" onblur="capitaliserChamp('c-client')"></div>
     </div>
@@ -11779,8 +11796,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.47'; // 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
-var APP_VERSION_DATE = '2026-10-07T18:40:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.49'; // 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
+var APP_VERSION_DATE = '2026-10-07T20:10:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
