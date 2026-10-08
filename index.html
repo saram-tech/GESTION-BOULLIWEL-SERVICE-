@@ -855,6 +855,36 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 #bilan-gs-slot #gs-results{left:0;right:0;top:100%;}
 #tab-bilan > .sh .btn-infos{padding:2px 8px 2px 4px;font-size:.68rem;}
 /* ===== /V0.55 ===== */
+/* ===== V0.56 — Mise en page compacte : boutons d'action sur la ligne de recherche, barres d'outils sur la ligne du titre, page ajustée à l'écran — affichage uniquement ===== */
+#gs-row{display:flex;align-items:center;gap:6px;max-width:640px;margin:0 auto 8px;}
+#gs-row > #gs-wrap{flex:1 1 auto;min-width:0;max-width:none;margin:0 !important;}
+#gs-actions{display:flex;align-items:center;gap:6px;flex:0 0 auto;}
+#gs-actions:empty{display:none;}
+#gs-actions > *{margin:0 !important;flex:0 0 auto;}
+#gs-actions .btn{white-space:nowrap;}
+#gs-row:not(:has(> #gs-wrap:not([style*="none"]))):not(:has(#gs-actions > *)){display:none;}
+:is(#tab-activites,#tab-stock,#tab-perso,#tab-depenses,#tab-corbeille,#tab-historique) > .sh,#tab-associe > .sh{flex-wrap:nowrap;align-items:center;gap:6px;}
+:is(#tab-activites,#tab-stock,#tab-perso,#tab-depenses,#tab-corbeille,#tab-historique) > .sh .ss{display:none;}
+:is(#tab-activites,#tab-stock,#tab-perso,#tab-depenses,#tab-corbeille,#tab-historique) > .sh > div:first-child,:is(#tab-activites,#tab-stock,#tab-perso,#tab-depenses,#tab-corbeille,#tab-historique) > .sh > .st{flex:0 0 auto;min-width:0;}
+:is(#tab-activites,#tab-stock,#tab-perso,#tab-depenses,#tab-corbeille,#tab-historique) > .sh .st,#tab-associe > .sh .st{font-size:.95rem;white-space:nowrap;}
+.tb-ligne{flex:1 1 0 !important;min-width:0 !important;display:flex;align-items:center;gap:4px !important;margin:0 !important;}
+.tb-ligne:not(:has(> [id$="-range"][style*="inline-flex"])){flex-wrap:nowrap !important;}
+.sh > .tb-ligne{position:static;box-shadow:none;background:transparent;}
+.tb-ligne > input[type="text"]{flex:1 1 36px !important;min-width:0 !important;}
+.tb-ligne > select{flex:0 1 auto;min-width:0;max-width:62px;font-size:.68rem !important;padding:4px 3px !important;text-overflow:ellipsis;}
+.tb-ligne > .btn{flex:0 0 auto;padding:4px 7px;font-size:.72rem;white-space:nowrap;}
+.tb-ligne > .mm{flex:0 0 auto;}
+:is(#tab-activites,#tab-stock,#tab-perso,#tab-depenses,#tab-corbeille,#tab-historique) > .sh:has(> .tb-ligne > input[type="text"]:focus){flex-wrap:wrap;}
+:is(#tab-activites,#tab-stock,#tab-perso,#tab-depenses,#tab-corbeille,#tab-historique) > .sh:has(> .tb-ligne > input[type="text"]:focus) > .tb-ligne{flex:1 1 100% !important;}
+.g2-dettes > .card{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:8px;align-items:center;}
+.g2-dettes > .card > *{grid-column:1 / -1;min-width:0;}
+.g2-dettes > .card > .ch{grid-column:1;margin-bottom:6px;}
+.g2-dettes > .card > .ch + div[style*="display:flex"]{grid-column:2;position:static;box-shadow:none;background:transparent;margin-bottom:6px !important;}
+.g2-dettes > .card > .ch + div[style*="display:flex"] > input[type="text"]{flex:1 1 36px !important;min-width:0 !important;}
+.g2-dettes > .card > .ch + div[style*="display:flex"] > select{max-width:62px;font-size:.68rem !important;padding:4px 3px !important;}
+.g2-dettes > .card > .ch + div[style*="display:flex"] > .btn{padding:4px 7px;font-size:.72rem;white-space:nowrap;}
+#corbeille-list{overflow-y:auto;}
+/* ===== /V0.56 ===== */
 </style>
 </head>
 <body>
@@ -1032,10 +1062,10 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 <main>
 
 <!-- BARRE DE RECHERCHE GLOBALE (Administrateur uniquement) -->
-<div style="position:relative;max-width:640px;margin:0 auto 12px" id="gs-wrap">
+<div id="gs-row"><div style="position:relative;max-width:640px;margin:0 auto 12px" id="gs-wrap">
   <input type="text" id="gs-input" placeholder="🔍 Rechercher un produit, client, dette, commande, dépense..." oninput="deb('gs',globalSearch)" onfocus="globalSearch()" style="width:100%;background:var(--bg3);border:1px solid var(--bd2);border-radius:20px;padding:10px 16px;color:var(--tx);font-family:var(--font-body);font-size:.83rem;outline:none">
   <div id="gs-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg3);border:1px solid var(--bd2);border-radius:10px;margin-top:5px;max-height:340px;overflow-y:auto;z-index:250;box-shadow:0 10px 26px rgba(0,0,0,.5)"></div>
-</div>
+</div><div id="gs-actions"></div></div>
 
 <!-- ================================================================
      VUE ASSOCIÉ — interface restreinte, affichée uniquement pour le
@@ -1320,9 +1350,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
     <div><div class="st" data-i18n="titre.associe">Associé & Dettes</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn bs bsm" onclick="om('mpaym')">Paiement</button>
-      <button class="btn bd bsm" onclick="viderDettes()" title="🔒 Mot de passe requis">Dettes</button>
-      <button class="btn bd bsm" onclick="viderPaiements()" title="🔒 Mot de passe requis">Paiements</button>
-    <button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-associe',this)">En savoir plus</button>
+      <div class="mm no-print"><button class="btn bh bsm mm-t" onclick="toggleMM(event,this)" aria-haspopup="true" aria-expanded="false" aria-label="Plus d'actions" title="Plus d'actions">⋯</button><div class="mm-p"><button class="btn bd bsm" onclick="viderDettes()" title="🔒 Mot de passe requis">Dettes</button><button class="btn bd bsm" onclick="viderPaiements()" title="🔒 Mot de passe requis">Paiements</button><button class="btn bh bxs no-print" onclick="toggleInfoTech('fm-associe',this)">En savoir plus</button></div></div>
     </div>
   </div>
   <div id="al-clot" class="al ald" style="display:none">🔒 Anomalie détectée : les dettes sont restées verrouillées d'une ancienne clôture. <button class="btn bh bxs" onclick="deverrouillerDettes()" style="margin-left:6px">🔓 Déverrouiller</button></div>
@@ -11424,7 +11452,7 @@ function gt(id, btn) {
   // d'onglet — comportement standard attendu, aucune fonctionnalité,
   // formulaire, calcul ni donnée modifiés.
   try{ window.scrollTo(0,0); }catch(e){}
-  placerBarreRecherche();
+  majDispositionOnglet();
 }
 
 // ================================================================
@@ -11630,6 +11658,70 @@ function placerBarreRecherche(){
   }
 }
 
+// V0.56 — Mise en page compacte (affichage uniquement ; aucun identifiant, gestionnaire ni calcul modifié) :
+//  1) barres d'outils (recherche / filtres / « + Ajouter ») remontées sur la ligne du titre de l'onglet ;
+//  2) boutons d'action de l'en-tête (⋯, Paiement partiel, Imprimer…) affichés au bout de la barre de recherche globale ;
+//  3) hauteur du tableau ajustée pour que la page tienne dans l'écran, le défilement restant à l'intérieur du tableau.
+var GS_ACT={}, FIT_TABS={activites:1,stock:1,perso:1,depenses:1,historique:1,associe:1,corbeille:1};
+function initDispositionOnglets(){
+  if(window.__dispoV056) return; window.__dispoV056=true;
+  try{
+    var $=function(id){ return document.getElementById('tab-'+id); };
+    ['activites','stock','perso','depenses','corbeille'].forEach(function(id){
+      var tab=$(id); if(!tab) return;
+      var sh=tab.querySelector(':scope > .sh'); if(!sh) return;
+      var tb=(id==='corbeille')
+        ? (document.getElementById('f-search-corbeille')||{}).parentNode
+        : tab.querySelector(':scope > .card > .barre-add-sticky');
+      var cl=sh.children[1];
+      if(id!=='corbeille' && cl){ GS_ACT[id]={el:cl, back:(function(c,h){ return function(){ h.appendChild(c); }; })(cl,sh)}; }
+      if(tb){ tb.classList.add('tb-ligne'); sh.insertBefore(tb, sh.children[1]||null); }
+    });
+    var dash=$('dashboard');
+    if(dash && dash.firstElementChild && dash.firstElementChild.querySelector('button')){
+      GS_ACT.dashboard={el:dash.firstElementChild, back:(function(c,t){ return function(){ t.insertBefore(c,t.firstChild); }; })(dash.firstElementChild,dash)};
+    }
+    var h=$('historique'); var tbh=h && h.querySelector(':scope > .sh > div[style*="display:flex"]'); if(tbh) tbh.classList.add('tb-ligne');
+  }catch(e){}
+}
+function placerActionsOnglet(){
+  var slot=document.getElementById('gs-actions'); if(!slot) return;
+  var act=document.querySelector('.tab-panel.active'), id=act?act.id.replace('tab-',''):'';
+  Object.keys(GS_ACT).forEach(function(k){
+    var o=GS_ACT[k];
+    if(k===id){ if(o.el.parentNode!==slot) slot.appendChild(o.el); }
+    else if(o.el.parentNode===slot){ o.back(); }
+  });
+}
+function ajusterHauteurPage(){
+  try{
+    var tab=document.querySelector('.tab-panel.active'); if(!tab) return;
+    var id=tab.id.replace('tab-',''); if(!FIT_TABS[id]) return;
+    var zones=[].filter.call(tab.querySelectorAll('.tw, #corbeille-list'),function(z){ return z.offsetParent!==null; });
+    if(!zones.length) return;
+    var MIN=96, tops=zones.map(function(z){ return z.scrollTop; });
+    zones.forEach(function(z){ z.style.maxHeight=MIN+'px'; });
+    var bas=tab.getBoundingClientRect().bottom+window.pageYOffset;
+    var libre=window.innerHeight-bas-24;
+    var hz=Math.floor(MIN+Math.max(0,libre)/zones.length);
+    zones.forEach(function(z,i){ z.style.maxHeight=hz+'px'; z.scrollTop=tops[i]; });
+  }catch(e){}
+}
+function majDispositionOnglet(){
+  initDispositionOnglets(); placerBarreRecherche(); placerActionsOnglet(); ajusterHauteurPage();
+  setTimeout(ajusterHauteurPage,250);
+}
+(function(){
+  var go=function(){ majDispositionOnglet(); };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',go); else go();
+  window.addEventListener('load',function(){ setTimeout(ajusterHauteurPage,150); });
+  window.addEventListener('resize',function(){ ajusterHauteurPage(); });
+  window.addEventListener('orientationchange',function(){ setTimeout(ajusterHauteurPage,250); });
+  document.addEventListener('focusin',function(){ setTimeout(ajusterHauteurPage,60); });
+  document.addEventListener('focusout',function(){ setTimeout(ajusterHauteurPage,60); });
+  document.addEventListener('click',function(){ setTimeout(ajusterHauteurPage,80); });
+})();
+
 function goBack() {
   if (navHistory.length > 0) {
     var prev = navHistory.pop();
@@ -11650,7 +11742,7 @@ function goBack() {
     });
     try{ localStorage.setItem('bpro_last_tab', 'dashboard'); }catch(e){}
   }
-  placerBarreRecherche();
+  majDispositionOnglet();
 }
 
 // ================================================================
@@ -11903,8 +11995,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.55'; // 08-10-2026 02:14 : Bilan — barre de recherche globale affichée sur la ligne du titre (entre le titre et les boutons « Infos »), à la place de l'ancien « Calculer » ; reprend sa place en haut sur les autres onglets — affichage uniquement. Précédemment V0.54 : 08-10-2026 00:23 : Bilan — bouton « Calculer » retiré (simple rafraîchissement déjà automatique via renderAll/save), second bouton « Infos » déplacé sur la ligne du titre, en-tête sur une seule ligne — affichage uniquement. Précédemment V0.53 : 07-10-2026 22:25 : Commandes — produits à commander affichés par catégorie en liste N° | Désignation | Quantité ; Patrimoine — note masquée par défaut, affichée via le bouton « Infos » ; Bilan — boutons « En savoir plus » remplacés par « Infos » (présentation distincte) — affichage uniquement. Précédemment V0.52 : 07-10-2026 22:01 : champs de texte long (Description, Note, Motif, Adresse, Panne…) en zones multilignes, contenu 100 % visible — affichage uniquement. Précédemment V0.51 : 07-10-2026 21:40 : zones de saisie ajustées au contenu (texte jamais coupé, largeur dynamique, responsive) — affichage uniquement. Précédemment V0.50 : 07-10-2026 21:00 : Activité/Dépense/Commande (champs texte extensibles, Qté réduit, Téléphone obligatoire), Patrimoine (bouton à côté de la date), Bilan (hauteurs réduites). Précédemment V0.49 : 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
-var APP_VERSION_DATE = '2026-10-08T02:14:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.56'; // 08-10-2026 02:41 : mise en page compacte — boutons d'action (⋯, Paiement partiel, Imprimer) au bout de la barre de recherche ; barres d'outils (recherche/filtres/ajout) remontées sur la ligne du titre (Activités, Stock Ent., Stock Perso, Dépenses, Historique, Corbeille, Associé) ; boutons secondaires de Associé regroupés dans ⋯ ; hauteur des tableaux ajustée à l'écran — affichage uniquement. Précédemment V0.55 : 08-10-2026 02:14 : Bilan — barre de recherche globale affichée sur la ligne du titre (entre le titre et les boutons « Infos »), à la place de l'ancien « Calculer » ; reprend sa place en haut sur les autres onglets — affichage uniquement. Précédemment V0.54 : 08-10-2026 00:23 : Bilan — bouton « Calculer » retiré (simple rafraîchissement déjà automatique via renderAll/save), second bouton « Infos » déplacé sur la ligne du titre, en-tête sur une seule ligne — affichage uniquement. Précédemment V0.53 : 07-10-2026 22:25 : Commandes — produits à commander affichés par catégorie en liste N° | Désignation | Quantité ; Patrimoine — note masquée par défaut, affichée via le bouton « Infos » ; Bilan — boutons « En savoir plus » remplacés par « Infos » (présentation distincte) — affichage uniquement. Précédemment V0.52 : 07-10-2026 22:01 : champs de texte long (Description, Note, Motif, Adresse, Panne…) en zones multilignes, contenu 100 % visible — affichage uniquement. Précédemment V0.51 : 07-10-2026 21:40 : zones de saisie ajustées au contenu (texte jamais coupé, largeur dynamique, responsive) — affichage uniquement. Précédemment V0.50 : 07-10-2026 21:00 : Activité/Dépense/Commande (champs texte extensibles, Qté réduit, Téléphone obligatoire), Patrimoine (bouton à côté de la date), Bilan (hauteurs réduites). Précédemment V0.49 : 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
+var APP_VERSION_DATE = '2026-10-08T02:41:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
