@@ -955,6 +955,117 @@ main{padding:6px 8px 8px !important;}
 #gs-wrap{margin-bottom:5px !important;}
 #tab-perso .tot-ligne{margin-top:2px !important;padding-top:3px !important;}
 /* ===== /V0.59 ===== */
+/* ===== V0.60 — Onglet Commandes simplifié : filtre rapide par statut, carte = client + total / infos / produits / statut + actions en texte ; « Produits à commander » repliable — affichage uniquement ===== */
+#tbl-cmd{gap:6px;}
+#tbl-cmd .cmd-chips{display:flex;gap:5px;overflow-x:auto;padding-bottom:2px;}
+#tbl-cmd .cmd-chip{flex:0 0 auto;background:var(--bg4);border:1px solid var(--bd);border-radius:20px;padding:4px 10px;color:var(--tx2);font-size:.72rem;font-family:inherit;cursor:pointer;white-space:nowrap;}
+#tbl-cmd .cmd-chip b{color:var(--tx);margin-left:3px;}
+#tbl-cmd .cmd-chip.on{background:var(--ac);border-color:var(--ac);color:#fff;}
+#tbl-cmd .cmd-chip.on b{color:#fff;}
+#tbl-cmd .cmd-card{padding:8px 10px;}
+#tbl-cmd .cmd-top{flex-wrap:nowrap;}
+#tbl-cmd .cmd-total{white-space:nowrap;font-size:.92rem;}
+#tbl-cmd .cmd-prods{margin-top:5px;}
+#tbl-cmd .cmd-p{padding:3px 0;}
+#tbl-cmd .cmd-foot{margin-top:4px;padding-top:6px;flex-wrap:nowrap;}
+#tbl-cmd .cmd-foot .ac{flex-wrap:wrap;justify-content:flex-end;}
+#tbl-cmd .cmd-foot .btn.bxs{padding:5px 8px;min-height:30px;font-size:.7rem;}
+#tbl-cmd .cmd-st{background:var(--bg3);border:1px solid var(--bd2);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.74rem;font-weight:600;}
+#tbl-cmd .st-attente .cmd-st{border-color:var(--go);color:var(--go);}
+#tbl-cmd .st-cours .cmd-st{border-color:var(--ac);color:var(--ac);}
+#tbl-cmd .st-livre .cmd-st{border-color:var(--gr);color:var(--gr);}
+#tbl-cmd .st-annule .cmd-st{border-color:var(--re);color:var(--re);}
+#tbl-cmd .st-annule .cmd-client{text-decoration:line-through;}
+#tbl-cmd .cmd-empty small{color:var(--tx3);}
+#alertes-stock .ast-det > summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:7px;font-family:var(--font-display);font-size:.88rem;font-weight:700;color:var(--tx);}
+#alertes-stock .ast-det > summary::-webkit-details-marker{display:none;}
+#alertes-stock .ast-det > summary::after{content:"▾";margin-left:auto;color:var(--tx2);transition:transform .15s;}
+#alertes-stock .ast-det[open] > summary::after{transform:rotate(180deg);}
+#alertes-stock .ast-det[open] > summary{margin-bottom:6px;}
+/* ===== /V0.60 ===== */
+/* ===== V0.61 — Commandes : 2 vues (Clients / Fournisseur), carte unique, modale épurée — affichage uniquement ===== */
+.cmd-seg{display:flex;gap:6px;margin:0 0 8px;}
+.cmd-sg{flex:1 1 0;background:var(--bg4);border:1px solid var(--bd);border-radius:10px;padding:9px 8px;color:var(--tx2);font-family:inherit;font-size:.86rem;font-weight:600;cursor:pointer;}
+.cmd-sg b{margin-left:6px;background:var(--bg3);color:var(--tx);border-radius:10px;padding:1px 7px;font-size:.74rem;}
+.cmd-sg.on{background:var(--ac);border-color:var(--ac);color:#fff;}
+.cmd-sg.on b{background:rgba(255,255,255,.25);color:#fff;}
+.cmd-sg b.warn{background:var(--re);color:#fff;}
+#tbl-cmd-f{display:flex;flex-direction:column;gap:6px;}
+.oc{background:var(--bg4);border:1px solid var(--bd);border-left:4px solid var(--tx3);border-radius:10px;padding:8px 10px;}
+.oc.st-attente{border-left-color:var(--go);}
+.oc.st-cours{border-left-color:var(--ac);}
+.oc.st-livre{border-left-color:var(--gr);}
+.oc.st-annule{border-left-color:var(--re);opacity:.65;}
+.oc.st-annule .oc-name{text-decoration:line-through;}
+.oc-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+.oc-name{font-size:.95rem;font-weight:700;color:var(--tx);word-break:break-word;}
+.oc-tot{font-weight:800;color:var(--go);white-space:nowrap;}
+.oc-pl{margin-top:4px;font-size:.82rem;color:var(--tx);line-height:1.4;}
+.oc-pl b{color:var(--tx2);}
+.oc-meta{display:flex;flex-wrap:wrap;gap:2px 12px;margin-top:3px;font-size:.74rem;color:var(--tx2);}
+.oc-meta a{color:var(--gr);font-weight:600;text-decoration:none;}
+.oc-ok{margin-top:5px;font-size:.76rem;font-weight:600;color:var(--gr);}
+.oc-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;padding-top:6px;border-top:1px solid var(--bd);}
+.oc-ac{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;}
+.oc-ac .btn.bxs{padding:5px 8px;min-height:30px;font-size:.7rem;}
+/* ===== V0.63 — Commandes : interface minimale (barre Clients|Fournisseur + Commande + Recherche, filtres/tri dans Filtres et ⋯, carte Client|Total|Statut|⋯ dépliable, vue Fournisseur Catégorie|Produit|Quantité + Générer) — affichage uniquement ===== */
+.cmd-bar{display:flex;gap:6px;align-items:center;margin:0 0 8px;}
+.cmd-bar input{flex:1 1 90px;min-width:0;background:var(--bg4);border:1px solid var(--bd);border-radius:9px;padding:7px 10px;color:var(--tx);font-family:'Outfit';font-size:.8rem;outline:none;}
+.cmd-bar .btn{white-space:nowrap;flex:0 0 auto;}
+#btn-cmd-filtres.on{border-color:var(--ac);color:var(--ac);}
+.cmd-filtres{background:var(--bg4);border:1px solid var(--bd);border-radius:10px;padding:7px 8px;margin:0 0 8px;}
+.cmd-filtres .cmd-chips{display:flex;gap:5px;flex-wrap:wrap;}
+.cmd-filtres .cmd-chip{background:var(--bg3);border:1px solid var(--bd);border-radius:20px;padding:4px 10px;color:var(--tx2);font-size:.72rem;font-family:inherit;cursor:pointer;white-space:nowrap;}
+.cmd-filtres .cmd-chip b{color:var(--tx);margin-left:3px;}
+.cmd-filtres .cmd-chip.on{background:var(--ac);border-color:var(--ac);color:#fff;}
+.cmd-filtres .cmd-chip.on b{color:#fff;}
+.cmd-fper{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px;}
+.cmd-fper select,.cmd-fper input{background:var(--bg3);border:1px solid var(--bd);border-radius:7px;padding:5px 8px;color:var(--tx);font-family:'Outfit';font-size:.76rem;}
+.cmd-empty{text-align:center;color:var(--tx2);padding:18px 8px;font-size:.84rem;}
+.oc.oc2{padding:0;margin-bottom:6px;}
+.oc2 .oc-row{display:flex;align-items:center;gap:8px;padding:6px 6px 6px 10px;cursor:pointer;}
+.oc2 .oc-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.9rem;}
+.oc2 .oc-car{display:inline-block;font-style:normal;color:var(--tx3);font-size:.7rem;margin-right:6px;transition:transform .15s;}
+.oc2.open .oc-car{transform:rotate(90deg);}
+.oc2 .oc-tot{flex:0 0 auto;font-size:.86rem;}
+.oc2 .oc-st{flex:0 0 auto;background:var(--bg3);border:1px solid var(--bd2);border-radius:7px;padding:3px 4px;color:var(--tx);font-size:.7rem;font-weight:600;max-width:92px;}
+.oc2.st-attente .oc-st{border-color:var(--go);color:var(--go);}
+.oc2.st-cours .oc-st{border-color:var(--ac);color:var(--ac);}
+.oc2.st-livre .oc-st{border-color:var(--gr);color:var(--gr);}
+.oc2.st-annule .oc-st{border-color:var(--re);color:var(--re);}
+.oc2 .oc-row .mm-t{min-width:30px;padding:4px 8px;}
+.oc-pret{display:inline-block;background:var(--gr);color:#fff;border-radius:8px;padding:0 6px;font-size:.62rem;font-weight:700;margin-left:6px;vertical-align:middle;}
+.oc2 .oc-det{display:none;padding:4px 10px 9px 24px;border-top:1px solid var(--bd);}
+.oc2.open .oc-det{display:block;}
+.oc-li{display:flex;justify-content:space-between;gap:8px;padding:2px 0;font-size:.82rem;color:var(--tx);}
+.oc-li b{color:var(--tx2);}
+.oc-li em{font-style:normal;color:var(--tx2);white-space:nowrap;}
+.oc-det .oc-meta{margin-top:5px;}
+.oc-send{margin-top:8px;width:100%;}
+.fo-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;font-weight:700;font-size:.9rem;}
+.fo-top b{background:var(--re);color:#fff;border-radius:10px;padding:1px 8px;font-size:.74rem;margin-left:6px;}
+.fo-t{width:100%;border-collapse:collapse;font-size:.82rem;}
+.fo-t th{text-align:left;font-weight:700;color:var(--tx2);padding:4px 6px;border-bottom:1px solid var(--bd);}
+.fo-t td{padding:5px 6px;border-bottom:1px solid var(--bd);}
+.fo-t .fo-c{font-weight:700;color:var(--tx2);white-space:nowrap;}
+.fo-t .fo-q{text-align:right;font-weight:700;white-space:nowrap;}
+.fo-t th.fo-q{text-align:right;}
+#alertes-stock{margin-bottom:8px;}
+/* ===== /V0.63 ===== */
+.oc-st{background:var(--bg3);border:1px solid var(--bd2);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.74rem;font-weight:600;}
+.oc-vide{text-align:center;color:var(--tx2);padding:18px 10px;font-size:.84rem;}
+.ast-hint{margin-top:6px;font-size:.72rem;color:var(--tx2);}
+.cmd-more{margin:2px 0 10px;}
+.cmd-more > summary{cursor:pointer;color:var(--ac);font-size:.8rem;font-weight:600;padding:4px 0;}
+/* ===== /V0.61 ===== */
+/* ===== V0.62 — Lignes de totaux fixes en bas de leur tableau, sur une seule ligne — affichage uniquement (aucun calcul modifié) ===== */
+.tw tbody tr:last-child[style*="border-top:2px"] > td{position:sticky !important;bottom:0 !important;z-index:3;background:var(--bg4) !important;white-space:nowrap !important;box-shadow:0 -2px 0 var(--bd);}
+.tot-fixe{position:sticky;bottom:env(safe-area-inset-bottom,0px);z-index:25;background:var(--bg2);white-space:nowrap;}
+.tot-fixe > *{white-space:nowrap;}
+.tot-fixe .tot-ligne{flex-wrap:nowrap !important;}
+body.printing-mode .tot-fixe,body.printing-mode .tw tbody tr:last-child[style*="border-top:2px"] > td{position:static !important;}
+@media print{.tot-fixe,.tw tbody tr:last-child[style*="border-top:2px"] > td{position:static !important;}}
+/* ===== /V0.62 ===== */
 </style>
 </head>
 <body>
@@ -1282,7 +1393,7 @@ main{padding:6px 8px 8px !important;}
       <thead><tr><th>Date</th><th>#</th><th>Ticket</th><th>Type</th><th>Désignation</th><th>Panne</th><th>P.Achat×Qté</th><th>À Payer</th><th>Payé</th><th>Reste</th><th>Client</th><th>Bénéfice</th><th>Actions</th></tr></thead>
       <tbody id="tbl-act"><tr><td colspan="13" style="text-align:center;color:var(--tx2);padding:20px">Aucune activité</td></tr></tbody>
     </table></div>
-    <div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--bd);display:flex;gap:14px;flex-wrap:wrap">
+    <div class="tot-fixe" style="margin-top:9px;padding-top:9px;border-top:1px solid var(--bd);display:flex;gap:14px;flex-wrap:wrap">
       <span style="font-size:.78rem;color:var(--tx2)">Encaissé : <strong style="color:var(--gr)" id="t-enc">0 GNF</strong></span>
       <span style="font-size:.78rem;color:var(--tx2)">Bénéfice : <strong style="color:var(--go)" id="t-ben">0 GNF</strong></span>
       <span style="font-size:.78rem;color:var(--tx2)">Reste : <strong style="color:var(--re)" id="t-rst">0 GNF</strong></span>
@@ -1362,6 +1473,7 @@ main{padding:6px 8px 8px !important;}
     <thead><tr><th>#</th><th>Produit</th><th>Initial</th><th>Vendu</th><th>Restant</th><th>Prix Unitaire</th><th>Prix Revient</th><th>+15%</th><th>Total Dû</th><th>Statut</th><th>Dernière modif</th><th>Actions</th></tr></thead>
     <tbody id="tbl-perso"><tr><td colspan="12" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr></tbody>
   </table></div>
+  <div class="tot-fixe">
   <div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--bd);display:flex;justify-content:space-between">
     <span style="color:var(--tx2)">Total que l'entreprise vous doit :</span>
     <span style="font-family:'Syne',sans-serif;font-size:1rem;color:var(--go)" id="t-perso">0 GNF</span>
@@ -1369,7 +1481,7 @@ main{padding:6px 8px 8px !important;}
   <div style="margin-top:6px;padding-top:9px;border-top:1px solid var(--bd);display:flex;justify-content:space-between">
     <span style="color:var(--tx2)">Reste que l'entreprise vous doit :</span>
     <span style="font-family:'Syne',sans-serif;font-size:1rem;color:var(--go)" id="t-perso-reste">0 GNF</span>
-  </div></div>
+  </div></div></div>
 </div>
 
 <!-- BILAN -->
@@ -1447,7 +1559,7 @@ main{padding:6px 8px 8px !important;}
         <thead><tr><th>#</th><th>Date</th><th>Description</th><th>Type</th><th>Montant</th><th>Actions</th></tr></thead>
         <tbody id="tbl-dettes"><tr><td colspan="6" style="text-align:center;color:var(--tx2);padding:14px">Aucune dette</td></tr></tbody>
       </table></div>
-      <div style="margin-top:9px;padding:9px;background:var(--bg4);border-radius:8px">
+      <div class="tot-fixe" style="margin-top:9px;padding:9px;background:var(--bg4);border-radius:8px">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--tx2);font-size:.8rem">Dettes actives :</span><span id="tot-da" style="color:var(--re)">0 GNF</span></div>
         <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--tx2);font-size:.8rem">Cumulé clôtures :</span><span id="tot-dc" style="color:var(--or)">0 GNF</span></div>
         <hr class="sep">
@@ -1472,7 +1584,7 @@ main{padding:6px 8px 8px !important;}
         <thead><tr><th>#</th><th>Date</th><th>Type</th><th>Note</th><th>Montant</th><th>Actions</th></tr></thead>
         <tbody id="tbl-paym"><tr><td colspan="6" style="text-align:center;color:var(--tx2);padding:12px">Aucun paiement</td></tr></tbody>
       </table></div>
-      <div style="margin-top:9px;padding:9px;background:var(--bg4);border-radius:8px">
+      <div class="tot-fixe" style="margin-top:9px;padding:9px;background:var(--bg4);border-radius:8px">
         <div style="display:flex;justify-content:space-between"><span style="font-weight:600">Total payé :</span><span id="tot-pp" style="color:var(--gr);font-family:'Syne',sans-serif;font-size:1rem">0 GNF</span></div>
       </div>
     </div>
@@ -1513,36 +1625,31 @@ main{padding:6px 8px 8px !important;}
 
 <!-- COMMANDES -->
 <div id="tab-commandes" class="tab-panel">
-  <div class="sh">
-    <div><div class="st" data-i18n="titre.commandes">Commandes</div><div class="ss" data-i18n="soustitre.commandes">Clients + Alertes stock faible → Fournisseurs</div></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bo bxs no-print" id="btn-cmd-auto" onclick="genererCmdFournisseurAuto()" style="display:none">Ajouter à la commande fournisseur</button>
-      <div class="mm no-print"><button class="btn bh bsm mm-t" onclick="toggleMM(event,this)" aria-haspopup="true" aria-expanded="false" aria-label="Plus d'actions" title="Plus d'actions">⋯</button><div class="mm-p"><button class="btn bg bsm" onclick="genererCmdFournisseurAuto()" title="Génère (ou met à jour) automatiquement une commande fournisseur à partir des produits en stock faible, groupée par catégorie, modifiable avant envoi">Générer commande fournisseur</button><button class="btn bh bsm" onclick="toggleTriAZ('cmd')" id="btn-az-cmd" title="Trier les commandes par nom de client, par ordre alphabétique">A-Z</button><button class="btn bh bsm no-print" onclick="toggleInfoTech('fm-commandes',this)">En savoir plus</button><div class="mm-sep"></div><button class="btn bd bsm" onclick="viderCommandes()" title="🔒 Mot de passe requis">Tout supprimer</button></div></div>
-    </div>
+  <div id="cmd-seg" class="cmd-seg"></div>
+  <div class="cmd-bar">
+    <input type="text" id="f-search-cmd" placeholder="🔍 Rechercher..." oninput="deb('cmd',rCmd)">
+    <button class="btn bo bsm" onclick="rCF();om('mc')" data-i18n="btn.nouvelle.commande">+ Commande</button>
+    <button type="button" class="btn bh bsm" id="btn-cmd-filtres" onclick="toggleCmdFiltres()">Filtres</button>
+    <div class="mm no-print"><button class="btn bh bsm mm-t" onclick="toggleMM(event,this)" aria-haspopup="true" aria-expanded="false" aria-label="Plus d'actions" title="Plus d'actions">⋯</button><div class="mm-p"><button class="btn bh bsm" onclick="toggleTriAZ('cmd')" id="btn-az-cmd" title="Trier les commandes par nom de client, par ordre alphabétique">A-Z</button><div class="mm-sep"></div><button class="btn bd bsm" onclick="viderCommandes()" title="🔒 Mot de passe requis">Tout supprimer</button></div></div>
   </div>
-  <div class="al alw" id="fm-commandes" style="font-size:.77rem;display:none">
-    📑 <strong>Commandes clients</strong> avec numéro de téléphone — appel direct depuis l'app quand la commande est prête.<br>
-    🔴 <strong>Alertes stock faible</strong> ci-dessous : fiches commande fournisseur générées automatiquement.
-  </div>
-  <!-- ALERTES STOCK FAIBLE -->
-  <div id="alertes-stock"></div>
-  <!-- ALERTES COMMANDES CLIENTS DISPONIBLES -->
-  <div id="alertes-cmd-dispo"></div>
-  <!-- COMMANDES CLIENTS -->
-  <div class="card">
-    <div class="barre-add-sticky" style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
-      <input type="text" id="f-search-cmd" placeholder="🔍 Rechercher..." oninput="deb('cmd',rCmd)" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem;flex:1;min-width:120px;outline:none">
-      <select id="f-periode-cmd" onchange="togglePeriodeCustom('f-periode-cmd');rCmd()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 9px;color:var(--tx);font-family:'Outfit';font-size:.78rem">
+  <div id="cmd-filtres" class="cmd-filtres" style="display:none">
+    <div id="cmd-chips" class="cmd-chips"></div>
+    <div class="cmd-fper">
+      <select id="f-periode-cmd" onchange="togglePeriodeCustom('f-periode-cmd');rCmd()">
         <option value="">Période</option><option value="jour">Aujourd'hui</option><option value="hier">Hier</option><option value="avanthier">Avant-hier</option><option value="semaine">Cette semaine</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="custom">Personnalisé</option>
       </select>
       <span id="f-periode-cmd-range" style="display:none;gap:5px;align-items:center">
-        <input type="date" id="f-periode-cmd-start" onchange="rCmd()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
+        <input type="date" id="f-periode-cmd-start" onchange="rCmd()">
         <span style="color:var(--tx3);font-size:.7rem">→</span>
-        <input type="date" id="f-periode-cmd-end" onchange="rCmd()" style="background:var(--bg4);border:1px solid var(--bd);border-radius:7px;padding:5px 7px;color:var(--tx);font-size:.75rem">
+        <input type="date" id="f-periode-cmd-end" onchange="rCmd()">
       </span>
-      <button class="btn bo bsm" onclick="rCF();om('mc')" data-i18n="btn.nouvelle.commande">+ Commande</button>
     </div>
-    <div id="tbl-cmd"><div class="cmd-empty">Aucune commande</div></div>
+  </div>
+  <div id="alertes-cmd-dispo"></div>
+  <div id="cmd-v-clients"><div id="tbl-cmd"><div class="cmd-empty">Aucune commande</div></div></div>
+  <div id="cmd-v-fourn" style="display:none">
+    <div id="alertes-stock"></div>
+    <div id="tbl-cmd-f"></div>
   </div>
 </div>
 
@@ -2128,11 +2235,7 @@ main{padding:6px 8px 8px !important;}
     <div class="mhd"><span id="mc-t">Nouvelle Commande</span><button class="mcl" onclick="cm('mc');rCF()">✕</button></div>
     <input type="hidden" id="c-eid">
     <div class="fr">
-      <div class="fg" style="display:none"><label>Date *</label><input type="date" id="c-date"></div>
-      <div class="fg"><label>N° commande</label><input type="text" id="c-num" placeholder=""></div>
       <div class="fg"><label>Client *</label><input type="text" id="c-client" placeholder="" list="dl-client" onblur="capitaliserChamp('c-client')"></div>
-    </div>
-    <div class="fr">
       <div class="fg">
         <label>Téléphone *</label>
         <div style="display:flex;gap:6px;align-items:center">
@@ -2140,7 +2243,6 @@ main{padding:6px 8px 8px !important;}
           <button type="button" class="btn bs bsm" onclick="appelClient()" style="padding:8px 10px" title="Appeler">📞</button>
         </div>
       </div>
-      <div class="fg"><label>Adresse</label><textarea id="c-adr" placeholder="" rows="1"></textarea></div>
     </div>
     <div class="dv">Produits</div>
     <div id="c-lignes"></div>
@@ -2148,10 +2250,18 @@ main{padding:6px 8px 8px !important;}
     <div style="background:var(--bg4);border-radius:8px;padding:9px;margin-bottom:10px;font-size:.8rem">
       Total : <strong style="color:var(--go)" id="c-tot">0 GNF</strong>
     </div>
-    <div class="fr">
-      <div class="fg"><label>Statut</label><select id="c-st"><option>En attente</option><option>En cours</option><option>Livré</option><option>Annulé</option></select></div>
-      <div class="fg"><label>Note</label><textarea id="c-note" placeholder="" rows="1"></textarea></div>
-    </div>
+    <details class="cmd-more">
+      <summary>Plus d'options</summary>
+      <div class="fr">
+        <div class="fg" style="display:none"><label>Date *</label><input type="date" id="c-date"></div>
+        <div class="fg"><label>N° commande</label><input type="text" id="c-num" placeholder=""></div>
+        <div class="fg"><label>Statut</label><select id="c-st"><option>En attente</option><option>En cours</option><option>Livré</option><option>Annulé</option></select></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label>Adresse</label><textarea id="c-adr" placeholder="" rows="1"></textarea></div>
+        <div class="fg"><label>Note</label><textarea id="c-note" placeholder="" rows="1"></textarea></div>
+      </div>
+    </details>
     <div class="mft">
       <button class="btn bh" onclick="cm('mc');rCF()">Annuler</button>
       <button class="btn bo js-tap-fast" id="btn-sc" onclick="enrCmd()">✓ Enregistrer</button>
@@ -3410,6 +3520,25 @@ var I18N={
     "Mon mot de passe":"My password",
     "+ Nouvelle":"+ New",
     "+ Nouvelle commande":"+ New order",
+    "Clients":"Customers",
+    "Fournisseur":"Supplier",
+    "À traiter":"To do",
+    "Livrées":"Delivered",
+    "Annulées":"Cancelled",
+    "Prévenir":"Notify",
+    "Envoyer":"Send",
+    "Plus d'options":"More options",
+    "Préparer la commande":"Prepare the order",
+    "Filtres":"Filters",
+    "Générer":"Generate",
+    "Prêt":"Ready",
+    "À commander":"To order",
+    "Toutes":"All",
+    "Commande fournisseur":"Supplier order",
+    "Produits en stock : prévenir le client":"Products in stock: notify the customer",
+    "Aucune commande à traiter":"No order to process",
+    "Rien à commander : le stock est suffisant.":"Nothing to order: stock is sufficient.",
+    "Quantités suggérées, modifiables avant l'envoi.":"Suggested quantities, editable before sending.",
     "⚙️ Paramètres":"⚙️ Settings",
     "Paramètres":"Settings",
     "🗑️ Tout":"🗑️ Clear all",
@@ -8555,7 +8684,7 @@ function uCT(){
 function enrCmd(){
   var date=v('c-date'),client=v('c-client').trim(),tel=v('c-tel').trim();
   if(!date||!client){ notif('⚠️ Date et client obligatoires'); return; }
-  if(!tel){ notif('⚠️ Téléphone obligatoire'); return; }
+  if(!tel && client!=='FOURNISSEUR'){ notif('⚠️ Téléphone obligatoire'); return; }
   if(!cmdLignes.length){ notif('⚠️ Ajoutez au moins un produit'); return; }
   var qteTotale=cmdLignes.reduce(function(s,l){ return s+(l.qte||0); },0);
   if(qteTotale<=0){ notif('⚠️ La commande ne peut pas contenir uniquement des quantités à 0. Saisissez au moins une quantité valide.'); return; }
@@ -8575,7 +8704,7 @@ function enrCmd(){
 }
 function rCF(){
   ['c-date','c-num','c-client','c-tel','c-adr','c-note','c-eid'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
-  sv('c-st','En attente'); cmdLignes=[]; rCL(); st('mc-t','Nouvelle Commande');
+  sv('c-st','En attente'); cmdLignes=[]; rCL(); st('mc-t','Nouvelle Commande'); var _mo=document.querySelector('#mc .cmd-more'); if(_mo) _mo.open=false;
   var b=document.getElementById('btn-sc'); b.textContent='✓ Enregistrer commande'; b.onclick=enrCmd;
 }
 function editCmd(id){
@@ -8702,7 +8831,7 @@ function genererCmdFournisseurAuto(){
     editCmd(nc.id);
     notif('✅ Commande fournisseur créée ('+lignes.length+' produits) — modifiable avant envoi');
   }
-  gt('commandes',null);
+  cmdVue='fourn'; gt('commandes',null);
 }
 /**
  * Regroupe une liste de lignes de commande par CATÉGORIE (en cherchant
@@ -9225,6 +9354,7 @@ function notifierClientDisponible(commandeId){
 }
 function rAlertesCommandesDisponibles(){
   var el=document.getElementById('alertes-cmd-dispo'); if(!el) return;
+  el.innerHTML=''; return; /* V0.61 : alerte intégrée à chaque carte (« Prévenir ») */
   var dispo=D.commandes.filter(function(c){
     return c.client!=='FOURNISSEUR' && c.statut!=='Livré' && c.statut!=='Annulé' && commandeEstDisponible(c);
   });
@@ -9251,33 +9381,30 @@ function rAlertesStock(){
     var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
     return restant<=(s.seuil||3);
   });
-  var bAuto=document.getElementById('btn-cmd-auto'); if(bAuto) bAuto.style.display=faibles.length?'':'none';
-  if(!faibles.length){ el.innerHTML=''; return; }
-  /* V0.53 — affichage par catégorie (même regroupement que texteCmdFournisseurGroupe) : N° | Désignation | Quantité à commander.
-     Seuil et quantité suggérée sont calculés exactement comme avant ; seul l'affichage change. */
+  if(!faibles.length){ el.innerHTML='<div class="oc-vide">Rien à commander : le stock est suffisant.</div>'; return; }
+  var fs=normSearch((document.getElementById('f-search-cmd')||{}).value||'');
   var groupes={}, autres=[];
   faibles.forEach(function(s){
     var seuil=s.seuil||3;
     var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
-    var ligne={nom:s.nom, restant:restant, seuil:seuil, qteCmd:Math.max(seuil*3,10)};
     var cat=(s.categorie ? String(s.categorie).trim() : '').toUpperCase();
+    if(fs && normSearch(s.nom).indexOf(fs)<0 && normSearch(cat).indexOf(fs)<0) return;
+    var ligne={nom:s.nom, restant:restant, seuil:seuil, qteCmd:Math.max(seuil*3,10)};
     if(cat){ (groupes[cat]=groupes[cat]||[]).push(ligne); } else autres.push(ligne);
   });
-  var html='<div class="card" style="border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.03);margin-bottom:12px">';
-  html+='<div class="ast-top"><div class="ch"><span class="dot" style="background:var(--re)"></span>Produits à commander</div>';
-  html+='</div>';
-  html+='<div class="tw"><table class="ast-t"><thead><tr><th class="ast-no">N°</th><th>Désignation</th><th class="ast-q">Quantité</th></tr></thead><tbody>';
+  var html='<div class="fo-top"><span>À commander<b>'+faibles.length+'</b></span><button class="btn bo bsm" onclick="genererCmdFournisseurAuto()">Générer</button></div>';
+  html+='<div class="tw"><table class="fo-t"><thead><tr><th>Catégorie</th><th>Produit</th><th class="fo-q">Quantité</th></tr></thead><tbody>';
   var bloc=function(titre,lignes){
-    html+='<tr class="ast-cat"><td colspan="3">'+echap(titre)+'</td></tr>';
     lignes.forEach(function(l,i){
-      html+='<tr title="Restant '+l.restant+' · Seuil '+l.seuil+'"><td class="ast-no">'+(i+1)+'</td><td>'+echap(l.nom)+'</td><td class="ast-q">'+l.qteCmd+'</td></tr>';
+      html+='<tr title="Restant '+l.restant+' · Seuil '+l.seuil+'"><td class="fo-c">'+(i===0?echap(titre):'')+'</td><td>'+echap(l.nom)+'</td><td class="fo-q">'+l.qteCmd+'</td></tr>';
     });
   };
   Object.keys(groupes).sort().forEach(function(cat){ bloc(cat,groupes[cat]); });
   if(autres.length) bloc('AUTRES',autres);
-  html+='</tbody></table></div></div>';
+  html+='</tbody></table></div>';
   el.innerHTML=html;
 }
+var alertesStockOuvert=false;
 
 // ================================================================
 // CORBEILLE
@@ -10309,38 +10436,83 @@ function rDep(){
   tb.innerHTML=html; st('k-dt',fmt(tot)); st('k-dm',fmt(mois));
 }
 
+var cmdStatutFiltre='todo', cmdVue='clients';
+function setCmdStatut(s){ cmdStatutFiltre=s||''; rCmd(); }
+function setCmdVue(x){ cmdVue=x; rCmd(); }
+function cmdEstActive(c){ return c.statut!=='Livré' && c.statut!=='Annulé'; }
+function cmdNbFaibles(){ return D.stock.filter(function(s){ var r=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale; return r<=(s.seuil||3); }).length; }
+/* V0.63 — carte : Client | Total | Statut | ⋯ ; détails à l'ouverture (mêmes données, mêmes fonctions métier) */
+var cmdOuv={};
+function toggleCmdFiltres(){ var p=document.getElementById('cmd-filtres'); if(p) p.style.display=(p.style.display==='block')?'none':'block'; }
+function cmdTog(id){ var el=document.getElementById('oc-'+id); if(!el) return; var o=!el.classList.contains('open'); el.classList.toggle('open',o); cmdOuv[id]=o; }
+function cmdRow(ev,id){ if(ev.target.closest && ev.target.closest('select,.mm')) return; cmdTog(id); }
+function cmdCarte(c,fourn){
+  var STS=['En attente','En cours','Livré','Annulé'];
+  var cl={'En attente':'st-attente','En cours':'st-cours','Livré':'st-livre','Annulé':'st-annule'};
+  var actif=cmdEstActive(c), dispo=!fourn && actif && commandeEstDisponible(c);
+  var ouv=cmdOuv[c.id]!==undefined?cmdOuv[c.id]:(fourn&&actif);
+  var h='<div class="oc oc2 '+(cl[c.statut]||'')+(ouv?' open':'')+'" id="oc-'+c.id+'">';
+  h+='<div class="oc-row" onclick="cmdRow(event,'+c.id+')"><span class="oc-name"><i class="oc-car">▸</i>'+(fourn?'Commande fournisseur':echap(c.client))+(dispo?'<span class="oc-pret">Prêt</span>':'')+'</span>';
+  h+='<span class="oc-tot">'+fmt(c.total)+'</span>';
+  h+='<select class="oc-st" onchange="cStatCmd('+c.id+',this.value)">';
+  STS.forEach(function(s){ h+='<option value="'+s+'"'+(c.statut===s?' selected':'')+'>'+s+'</option>'; });
+  h+='</select>';
+  h+='<div class="mm no-print"><button class="btn bh bsm mm-t" onclick="toggleMM(event,this)" aria-haspopup="true" aria-expanded="false" aria-label="Plus d\'actions">⋯</button><div class="mm-p">';
+  if(fourn){ if(actif) h+='<button class="btn bg bsm" onclick="envoyerCmdFournisseurWhatsApp('+c.id+')">Envoyer</button>'; }
+  else {
+    if(dispo) h+='<button class="btn bg bsm" onclick="notifierClientDisponible('+c.id+')">Prévenir</button>';
+    if(actif && c.tel) h+='<button class="btn bs bsm" onclick="appelClientById('+c.id+')">Appeler</button>';
+  }
+  h+='<button class="btn bh bsm" onclick="editCmd('+c.id+')">Modifier</button><div class="mm-sep"></div><button class="btn bd bsm" onclick="delCmd('+c.id+')">Supprimer</button>';
+  h+='</div></div></div>';
+  h+='<div class="oc-det">';
+  (c.produits||[]).forEach(function(l){ h+='<div class="oc-li"><span>'+echap(l.produit)+' <b>×'+l.qte+'</b></span>'+(l.prix>0?'<em>'+fmt(l.qte*l.prix)+'</em>':'')+'</div>'; });
+  h+='<div class="oc-meta"><span>'+fmtDateHeure(c.date,c.heure)+'</span>'+(c.num?'<span>'+echap(c.num)+'</span>':'')+((!fourn&&c.tel)?'<a href="tel:'+echap(c.tel)+'">'+echap(c.tel)+'</a>':'')+'</div>';
+  if(!fourn && (c.adresse||c.note)) h+='<div class="oc-meta">'+(c.adresse?'<span>'+echap(c.adresse)+'</span>':'')+(c.note?'<span>'+echap(c.note)+'</span>':'')+'</div>';
+  if(dispo) h+='<div class="oc-ok">Produits en stock : prévenir le client</div>';
+  if(fourn && actif) h+='<button class="btn bg bsm oc-send" onclick="envoyerCmdFournisseurWhatsApp('+c.id+')">Envoyer</button>';
+  return h+'</div></div>';
+}
 function rCmd(){
-  var tb=document.getElementById('tbl-cmd');
+  var tb=document.getElementById('tbl-cmd'); if(!tb) return;
+  var clients=D.commandes.filter(function(c){ return c.client!=='FOURNISSEUR'; });
+  var fourn=D.commandes.filter(function(c){ return c.client==='FOURNISSEUR'; });
+  var nF=cmdNbFaibles(), nTodo=clients.filter(cmdEstActive).length;
+  var seg=document.getElementById('cmd-seg');
+  if(seg) seg.innerHTML='<button type="button" class="cmd-sg'+(cmdVue==='clients'?' on':'')+'" onclick="setCmdVue(\'clients\')">Clients <b>'+nTodo+'</b></button><button type="button" class="cmd-sg'+(cmdVue==='fourn'?' on':'')+'" onclick="setCmdVue(\'fourn\')">Fournisseur <b class="'+(nF?'warn':'')+'">'+nF+'</b></button>';
+  var vc=document.getElementById('cmd-v-clients'), vf=document.getElementById('cmd-v-fourn');
+  if(vc) vc.style.display=cmdVue==='clients'?'':'none';
+  if(vf) vf.style.display=cmdVue==='fourn'?'':'none';
+  var bf=document.getElementById('btn-cmd-filtres'), pf=document.getElementById('cmd-filtres');
+  if(bf){ bf.style.display=cmdVue==='clients'?'':'none'; bf.classList.toggle('on', cmdStatutFiltre!=='todo' || !!v('f-periode-cmd')); }
+  if(pf && cmdVue!=='clients') pf.style.display='none';
+  var tf=document.getElementById('tbl-cmd-f');
+  if(tf) tf.innerHTML=fourn.slice().reverse().map(function(c){ return cmdCarte(c,true); }).join('');
   var fs=normSearch(v('f-search-cmd'));
-  var items=D.commandes.slice().reverse().filter(function(c){ return matchPeriodeFull(c.date,'f-periode-cmd'); });
+  var items=clients.slice().reverse().filter(function(c){ return matchPeriodeFull(c.date,'f-periode-cmd'); });
   if(fs) items=items.filter(function(c){
     var prodMatch=(c.produits||[]).some(function(l){ return normSearch(l.produit).indexOf(fs)>-1; });
     return normSearch(c.client).indexOf(fs)>-1||normSearch(c.num).indexOf(fs)>-1||normSearch(c.tel).indexOf(fs)>-1||prodMatch;
   });
-  if(!items.length){ tb.innerHTML='<div class="cmd-empty">'+(D.commandes.length?'Aucun résultat':'Aucune commande')+'</div>'; return; }
-  // DEMANDE ("bouton A-Z pour trier par nom") : purement un ordre
-  // d'affichage — aucune donnée, aucun total, aucun calcul modifié.
+  var cnt={todo:0,livre:0,annule:0};
+  items.forEach(function(c){ if(c.statut==='Livré') cnt.livre++; else if(c.statut==='Annulé') cnt.annule++; else cnt.todo++; });
+  var chipsEl=document.getElementById('cmd-chips');
+  if(chipsEl) chipsEl.innerHTML=[['todo','À traiter'],['livre','Livrées'],['annule','Annulées'],['','Toutes']].map(function(f){
+    return '<button type="button" class="cmd-chip'+(cmdStatutFiltre===f[0]?' on':'')+'" onclick="setCmdStatut(\''+f[0]+'\')">'+f[1]+' <b>'+(f[0]===''?items.length:cnt[f[0]])+'</b></button>';
+  }).join('');
+  if(cmdStatutFiltre==='todo') items=items.filter(cmdEstActive);
+  else if(cmdStatutFiltre==='livre') items=items.filter(function(c){ return c.statut==='Livré'; });
+  else if(cmdStatutFiltre==='annule') items=items.filter(function(c){ return c.statut==='Annulé'; });
+  if(!items.length){
+    tb.innerHTML='<div class="cmd-empty">'+(!clients.length?'Aucune commande<br><small>Touchez « + Commande » pour en créer une.</small>':(cmdStatutFiltre==='todo'&&!fs?'Aucune commande à traiter':'Aucun résultat'))+'</div>';
+    rAlertesStock(); return;
+  }
   if(triAZ.cmd) items=items.slice().sort(function(a,b){ return normSearch(a.client).localeCompare(normSearch(b.client)); });
-  var cl={'En attente':'st-attente','En cours':'st-cours','Livré':'st-livre','Annulé':'st-annule'};
-  var html='';
-  items.forEach(function(c){
-    html+='<div class="cmd-card '+(cl[c.statut]||'')+'">';
-    html+='<div class="cmd-top"><span class="cmd-client">'+echap(c.client)+'</span>';
-    html+='<select onchange="cStatCmd('+c.id+',this.value)">';
-    ['En attente','En cours','Livré','Annulé'].forEach(function(s){ html+='<option value="'+s+'"'+(c.statut===s?' selected':'')+'>'+s+'</option>'; });
-    html+='</select></div>';
-    html+='<div class="cmd-meta"><span>'+echap(c.num)+'</span><span>'+fmtDateHeure(c.date,c.heure)+'</span>'+(c.tel?'<a href="tel:'+echap(c.tel)+'">'+echap(c.tel)+'</a>':'')+'</div>';
-    html+='<div class="cmd-prods">'+(c.produits||[]).map(function(p){ return '<div class="cmd-p"><span>'+echap(p.produit)+'</span><b>× '+p.qte+'</b></div>'; }).join('')+'</div>';
-    html+='<div class="cmd-foot"><span class="cmd-total">'+fmt(c.total)+'</span><div class="ac">';
-    html+='<button class="btn bh bxs" onclick="editCmd('+c.id+')" title="Modifier">✏️</button>';
-    if(c.client==='FOURNISSEUR') html+='<button class="btn bg bxs" onclick="envoyerCmdFournisseurWhatsApp('+c.id+')" title="Envoyer au fournisseur sur WhatsApp, groupé par catégorie">📲</button>';
-    if(c.tel) html+='<button class="btn bs bxs" onclick="appelClientById('+c.id+')" title="Appeler">📞</button>';
-    html+='<button class="btn bd bxs" onclick="delCmd('+c.id+')" title="Supprimer">🗑️</button>';
-    html+='</div></div></div>';
-  });
+  var html=items.map(function(c){ return cmdCarte(c,false); }).join('');
   var totCmd=items.reduce(function(s,c){ return s+(c.total||0); },0);
   html+='<div class="cmd-sum"><span>Total · '+items.length+' commande'+(items.length>1?'s':'')+'</span><span>'+fmt(totCmd)+'</span></div>';
   tb.innerHTML=html;
+  rAlertesStock();
 }
 
 function rHisto(){
@@ -10437,7 +10609,7 @@ function rRapportDetailPeriode(periodeCloture){
       total+=it.montant||0;
       html+='<tr>'; cols.forEach(function(c){ html+='<td>'+c[1](it)+'</td>'; }); html+='</tr>';
     });
-    html+='</tbody></table></div><div style="text-align:right;font-weight:700;margin-top:8px">'+totalLabel+' : '+fmt(total)+'</div></div>';
+    html+='</tbody></table></div><div class="tot-fixe" style="text-align:right;font-weight:700;margin-top:8px;padding-bottom:4px">'+totalLabel+' : '+fmt(total)+'</div></div>';
     return html;
   }
   var html='<div class="al ali" style="font-size:.77rem;margin-bottom:10px">🔒 Ci-dessous, les Dettes, Paiements et Dépenses tels qu\'ils existaient au moment de la clôture du '+fmtDateJour(periodeCloture.date)+' — figés, non modifiables (ils ont déjà été retirés de leurs onglets habituels par cette clôture).</div>';
@@ -12121,8 +12293,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.59'; // 08-10-2026 11:33 : espaces inutiles réduits à tous les niveaux (marges, cartes, grilles, formulaires) ; Stock Perso — tableau étendu jusqu'en bas, totaux descendus — affichage uniquement. Précédemment V0.58 : 08-10-2026 11:20 : Bilan — « Résumé période » compact (plus de case vide) ; barre de recherche globale et totaux Dépenses masqués au défilement vertical (réaffichés en remontant) ; Associé — bloc des totaux de dettes réduit ; Stock Ent. — lignes sans retour à la ligne ; Stock Perso — totaux « l'entreprise vous doit » sur une ligne — affichage uniquement. Précédemment V0.57 : 08-10-2026 10:12 : compact — totaux sur une seule ligne (police adaptée à la largeur), ligne TOTAL des dépenses toujours visible, tableaux/cartes/espacements réduits, formulaire Patrimoine compacté, bouton « Ajouter à la commande fournisseur » près de la recherche, Associé : barre de « Dettes enregistrées » sur la ligne du titre — affichage uniquement. Précédemment V0.56 : 08-10-2026 02:41 : mise en page compacte — boutons d'action (⋯, Paiement partiel, Imprimer) au bout de la barre de recherche ; barres d'outils (recherche/filtres/ajout) remontées sur la ligne du titre (Activités, Stock Ent., Stock Perso, Dépenses, Historique, Corbeille, Associé) ; boutons secondaires de Associé regroupés dans ⋯ ; hauteur des tableaux ajustée à l'écran — affichage uniquement. Précédemment V0.55 : 08-10-2026 02:14 : Bilan — barre de recherche globale affichée sur la ligne du titre (entre le titre et les boutons « Infos »), à la place de l'ancien « Calculer » ; reprend sa place en haut sur les autres onglets — affichage uniquement. Précédemment V0.54 : 08-10-2026 00:23 : Bilan — bouton « Calculer » retiré (simple rafraîchissement déjà automatique via renderAll/save), second bouton « Infos » déplacé sur la ligne du titre, en-tête sur une seule ligne — affichage uniquement. Précédemment V0.53 : 07-10-2026 22:25 : Commandes — produits à commander affichés par catégorie en liste N° | Désignation | Quantité ; Patrimoine — note masquée par défaut, affichée via le bouton « Infos » ; Bilan — boutons « En savoir plus » remplacés par « Infos » (présentation distincte) — affichage uniquement. Précédemment V0.52 : 07-10-2026 22:01 : champs de texte long (Description, Note, Motif, Adresse, Panne…) en zones multilignes, contenu 100 % visible — affichage uniquement. Précédemment V0.51 : 07-10-2026 21:40 : zones de saisie ajustées au contenu (texte jamais coupé, largeur dynamique, responsive) — affichage uniquement. Précédemment V0.50 : 07-10-2026 21:00 : Activité/Dépense/Commande (champs texte extensibles, Qté réduit, Téléphone obligatoire), Patrimoine (bouton à côté de la date), Bilan (hauteurs réduites). Précédemment V0.49 : 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
-var APP_VERSION_DATE = '2026-10-08T11:33:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.63'; // 08-10-2026 13:50 : onglet Commandes — interface minimale : barre Clients | Fournisseur + « + Commande » + Recherche ; filtres/période/tri A-Z/suppression dans « Filtres » et ⋯ ; carte Client | Total | Statut | ⋯ avec détails dépliables ; vue Fournisseur Catégorie | Produit | Quantité + « Générer » (une seule commande fournisseur, modifiable avant Envoyer) — affichage uniquement, logique métier inchangée. Précédemment V0.62 : 08-10-2026 12:51 : lignes de totaux fixes en bas de leur tableau à tous les niveaux (Activités, Stock Ent., Stock Perso, Dépenses, Associé, Rapport, vue Associé) — une seule ligne, sans retour à la ligne, calculs inchangés — affichage uniquement. Précédemment V0.61 : 08-10-2026 : onglet Commandes simplifié — 2 vues (Clients / Fournisseur), carte unique, bouton « Prévenir » intégré, modale épurée (« Plus d'options »), téléphone non exigé pour la commande FOURNISSEUR. Précédemment V0.60 : // 08-10-2026 12:11 : onglet Commandes simplifié — filtre rapide par statut (Toutes / En attente / En cours / Livré / Annulé), carte claire (client + total, infos, produits, statut + actions en texte), « Produits à commander » repliable avec compteur, message d'aide si vide — affichage uniquement, logique métier inchangée. Précédemment V0.59 : 08-10-2026 11:33 : espaces inutiles réduits à tous les niveaux (marges, cartes, grilles, formulaires) ; Stock Perso — tableau étendu jusqu'en bas, totaux descendus — affichage uniquement. Précédemment V0.58 : 08-10-2026 11:20 : Bilan — « Résumé période » compact (plus de case vide) ; barre de recherche globale et totaux Dépenses masqués au défilement vertical (réaffichés en remontant) ; Associé — bloc des totaux de dettes réduit ; Stock Ent. — lignes sans retour à la ligne ; Stock Perso — totaux « l'entreprise vous doit » sur une ligne — affichage uniquement. Précédemment V0.57 : 08-10-2026 10:12 : compact — totaux sur une seule ligne (police adaptée à la largeur), ligne TOTAL des dépenses toujours visible, tableaux/cartes/espacements réduits, formulaire Patrimoine compacté, bouton « Ajouter à la commande fournisseur » près de la recherche, Associé : barre de « Dettes enregistrées » sur la ligne du titre — affichage uniquement. Précédemment V0.56 : 08-10-2026 02:41 : mise en page compacte — boutons d'action (⋯, Paiement partiel, Imprimer) au bout de la barre de recherche ; barres d'outils (recherche/filtres/ajout) remontées sur la ligne du titre (Activités, Stock Ent., Stock Perso, Dépenses, Historique, Corbeille, Associé) ; boutons secondaires de Associé regroupés dans ⋯ ; hauteur des tableaux ajustée à l'écran — affichage uniquement. Précédemment V0.55 : 08-10-2026 02:14 : Bilan — barre de recherche globale affichée sur la ligne du titre (entre le titre et les boutons « Infos »), à la place de l'ancien « Calculer » ; reprend sa place en haut sur les autres onglets — affichage uniquement. Précédemment V0.54 : 08-10-2026 00:23 : Bilan — bouton « Calculer » retiré (simple rafraîchissement déjà automatique via renderAll/save), second bouton « Infos » déplacé sur la ligne du titre, en-tête sur une seule ligne — affichage uniquement. Précédemment V0.53 : 07-10-2026 22:25 : Commandes — produits à commander affichés par catégorie en liste N° | Désignation | Quantité ; Patrimoine — note masquée par défaut, affichée via le bouton « Infos » ; Bilan — boutons « En savoir plus » remplacés par « Infos » (présentation distincte) — affichage uniquement. Précédemment V0.52 : 07-10-2026 22:01 : champs de texte long (Description, Note, Motif, Adresse, Panne…) en zones multilignes, contenu 100 % visible — affichage uniquement. Précédemment V0.51 : 07-10-2026 21:40 : zones de saisie ajustées au contenu (texte jamais coupé, largeur dynamique, responsive) — affichage uniquement. Précédemment V0.50 : 07-10-2026 21:00 : Activité/Dépense/Commande (champs texte extensibles, Qté réduit, Téléphone obligatoire), Patrimoine (bouton à côté de la date), Bilan (hauteurs réduites). Précédemment V0.49 : 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
+var APP_VERSION_DATE = '2026-10-08T13:50:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
