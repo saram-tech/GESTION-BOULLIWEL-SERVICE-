@@ -2062,6 +2062,7 @@ body.printing-mode .tot-fixe,body.printing-mode .tw tbody tr:last-child[style*="
     <div class="fr">
       <input type="hidden" id="s-vente" value="0">
       <div class="fg"><label>Seuil alerte</label><input type="number" id="s-seuil" placeholder="3" min="1" value="3"></div>
+      <div class="fg"><label>Cmd</label><input type="number" id="s-cmd" placeholder="Qté à commander" min="1"></div>
     </div>
     <div class="fr">
       <div class="fg" style="display:none"><label>Date</label><input type="date" id="s-date"></div>
@@ -2424,6 +2425,7 @@ function load(){
   }catch(e){}
   migrerEntDoitBaseStockPerso();
   appliquerCorrectionsUniquesStock(); // V0.36 : correction unique (idempotente)
+  try{ if(migrerCmdStock()) persist(); }catch(e){} // Cmd : valeur par défaut mémorisée pour les anciens produits
 }
 /**
  * MIGRATION UNIQUE (01-09-2026 — sécurisation de l'introduction de
@@ -7948,8 +7950,25 @@ function ajouterHistoriquePrix(item, prix, qte, date){
   item.historiquePrix.push({prix:Number(prix)||0, qte:Number(qte)||0, date:date||td(), heure:nowHM()});
 }
 
+/** MIGRATION (Cmd) : un produit sans Cmd reçoit UNE FOIS une valeur par défaut
+ *  (reprise de l'ancien calcul seuil × 3, minimum 10) qui est ensuite mémorisée
+ *  sur le produit et modifiable via ✏️ Édition. Idempotent : ne touche jamais
+ *  un Cmd déjà renseigné, ni le stock. Retourne true si au moins un produit a été migré. */
+function migrerCmdStock(){
+  var change=false;
+  (D.stock||[]).forEach(function(s){
+    if(!s || (parseInt(s.cmd)||0)>0) return;
+    s.cmd=Math.max((s.seuil||3)*3,10); change=true;
+  });
+  return change;
+}
+/** Quantité proposée à la commande fournisseur = Cmd du produit (toujours mémorisé). */
+function cmdQteFournisseur(s){
+  if(s && (parseInt(s.cmd)||0)<=0){ s.cmd=Math.max((s.seuil||3)*3,10); }
+  return parseInt(s&&s.cmd)||10;
+}
 function enrStock(){
-  var nom=v('s-nom').trim(),qte=parseInt(v('s-qte'))||0,achat=fl('s-achat'),vente=fl('s-vente'),date=v('s-date'),seuil=parseInt(v('s-seuil'))||3,categorie=v('s-categorie').trim();
+  var nom=v('s-nom').trim(),qte=parseInt(v('s-qte'))||0,achat=fl('s-achat'),vente=fl('s-vente'),date=v('s-date'),seuil=parseInt(v('s-seuil'))||3,categorie=v('s-categorie').trim(),cmd=parseInt(v('s-cmd'))||0;
   var eid=v('s-eid');
   // CORRECTIF (diminution de quantité en édition) : en édition (eid présent),
   // une quantité de 0 est désormais acceptée (permet de diminuer jusqu'à 0),
@@ -7966,7 +7985,7 @@ function enrStock(){
       // correction de prix (qte:0) séparément d'un vrai réassort.
       var qteAjoutee=Math.max(0, qte-(s.qteInitiale||0));
       if(qteAjoutee>0 || s.achat!==achat) ajouterHistoriquePrix(s, achat, qteAjoutee, date);
-      s.nom=nom;s.qteInitiale=qte;s.achat=achat;s.vente=vente;s.seuil=seuil;s.categorie=categorie;s.qteRestante=Math.max(0,qte-(s.qteVendue||0)); s._localTouchedAt=Date.now();
+      s.nom=nom;s.qteInitiale=qte;s.achat=achat;s.vente=vente;s.seuil=seuil;s.cmd=cmd>0?cmd:(parseInt(s.cmd)>0?parseInt(s.cmd):Math.max(seuil*3,10));s.categorie=categorie;s.qteRestante=Math.max(0,qte-(s.qteVendue||0)); s._localTouchedAt=Date.now();
     }
     ah('stock','Modif stock: '+nom,achat*qte,date);
   } else {
@@ -7989,11 +8008,11 @@ function enrStock(){
       // avant (aucun calcul existant changé), mais le prix de CE lot est
       // désormais aussi conservé dans le journal avant l'écrasement.
       ajouterHistoriquePrix(ex, achat, qte, date);
-      ex.qteInitiale+=qte;ex.achat=achat;ex.vente=vente;ex.seuil=seuil;if(categorie)ex.categorie=categorie;ex.qteRestante=Math.max(0,ex.qteInitiale-(ex.qteVendue||0)); ex._localTouchedAt=Date.now();
+      ex.qteInitiale+=qte;ex.achat=achat;ex.vente=vente;ex.seuil=seuil;if(cmd>0)ex.cmd=cmd;if(categorie)ex.categorie=categorie;ex.qteRestante=Math.max(0,ex.qteInitiale-(ex.qteVendue||0)); ex._localTouchedAt=Date.now();
       ex.dernierAjoutQte=qte; ex.dernierAjoutDate=new Date().toISOString();
     }
     else {
-      var nsS={id:Date.now(),nom:nom,qteInitiale:qte,qteVendue:0,qteRestante:qte,achat:achat,vente:vente,seuil:seuil,categorie:categorie,date:date,heure:nowHM()};
+      var nsS={id:Date.now(),nom:nom,qteInitiale:qte,qteVendue:0,qteRestante:qte,achat:achat,vente:vente,seuil:seuil,cmd:(cmd>0?cmd:Math.max(seuil*3,10)),categorie:categorie,date:date,heure:nowHM()};
       ajouterHistoriquePrix(nsS, achat, qte, date);
       D.stock.push(nsS);
     }
@@ -8013,7 +8032,7 @@ function fillDLCategoriesStock(){
   });
 }
 function rSF(){
-  ['s-nom','s-qte','s-achat','s-eid','s-categorie'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+  ['s-nom','s-qte','s-achat','s-eid','s-categorie','s-cmd'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
   // CORRECTIF (nouveau produit prenant une ancienne date au lieu
   // d'aujourd'hui) : le champ Date n'était jamais réinitialisé à
   // l'ouverture de "+ Entrée stock" — il gardait la dernière valeur
@@ -8029,7 +8048,7 @@ function rSF(){
 }
 function editStock(id){
   var s=D.stock.find(function(x){ return x.id===id; }); if(!s) return;
-  sv('s-eid',id);sv('s-nom',s.nom);sv('s-qte',s.qteInitiale);sv('s-achat',s.achat);sv('s-vente',s.vente||'');sv('s-date',s.date||'');sv('s-seuil',s.seuil||3);sv('s-categorie',s.categorie||'');
+  sv('s-eid',id);sv('s-nom',s.nom);sv('s-qte',s.qteInitiale);sv('s-achat',s.achat);sv('s-vente',s.vente||'');sv('s-date',s.date||'');sv('s-seuil',s.seuil||3);sv('s-cmd',s.cmd>0?s.cmd:'');sv('s-categorie',s.categorie||'');
   fillDLCategoriesStock();
   st('ms-t','Modifier Stock');
   var b=document.getElementById('btn-ss'); b.textContent='✓ Modifier'; b.onclick=enrStock; om('ms');
@@ -8809,7 +8828,7 @@ function genererCmdFournisseurAuto(){
     var dejaPresent=lignes.some(function(l){ return normNom(l.produit)===normNom(s.nom); });
     if(dejaPresent) return;
     var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
-    var qteCmd=Math.max((s.seuil||3)*3,10);
+    var qteCmd=cmdQteFournisseur(s);
     lignes.push({produit:s.nom,qte:qteCmd,prix:s.achat});
     ajoutes++;
   });
@@ -9389,7 +9408,7 @@ function rAlertesStock(){
     var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
     var cat=(s.categorie ? String(s.categorie).trim() : '').toUpperCase();
     if(fs && normSearch(s.nom).indexOf(fs)<0 && normSearch(cat).indexOf(fs)<0) return;
-    var ligne={nom:s.nom, restant:restant, seuil:seuil, qteCmd:Math.max(seuil*3,10)};
+    var ligne={nom:s.nom, restant:restant, seuil:seuil, qteCmd:cmdQteFournisseur(s)};
     if(cat){ (groupes[cat]=groupes[cat]||[]).push(ligne); } else autres.push(ligne);
   });
   var html='<div class="fo-top"><span>À commander<b>'+faibles.length+'</b></span><button class="btn bo bsm" onclick="genererCmdFournisseurAuto()">Générer</button></div>';
