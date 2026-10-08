@@ -1051,6 +1051,15 @@ main{padding:6px 8px 8px !important;}
 .fo-t .fo-q{text-align:right;font-weight:700;white-space:nowrap;}
 .fo-t th.fo-q{text-align:right;}
 #alertes-stock{margin-bottom:8px;}
+/* ===== V0.65 — Commande fournisseur : Date / CATÉGORIE / n. Produit........Qté (sans prix) — affichage uniquement ===== */
+.fg-d{font-size:.78rem;font-weight:700;color:var(--tx2);margin:2px 0 6px;}
+.fg-c{font-size:.8rem;font-weight:800;color:var(--ac);text-transform:uppercase;margin:7px 0 2px;letter-spacing:.02em;}
+.fg-l{display:flex;align-items:baseline;gap:4px;padding:1px 0;font-size:.84rem;color:var(--tx);line-height:1.35;}
+.fg-l .fg-n{word-break:break-word;}
+.fg-l i{flex:1 1 12px;min-width:12px;border-bottom:1px dotted var(--tx3);transform:translateY(-3px);}
+.fg-l b{flex:0 0 auto;font-weight:800;white-space:nowrap;}
+.fg-sc{margin-top:7px;}
+/* ===== /V0.65 ===== */
 /* ===== /V0.63 ===== */
 .oc-st{background:var(--bg3);border:1px solid var(--bd2);border-radius:7px;padding:4px 6px;color:var(--tx);font-size:.74rem;font-weight:600;}
 .oc-vide{text-align:center;color:var(--tx2);padding:18px 10px;font-size:.84rem;}
@@ -9394,6 +9403,35 @@ function rAlertesCommandesDisponibles(){
   html+='</div>';
   el.innerHTML=html;
 }
+/* V0.65 — Présentation « Date / CATÉGORIE / 1. Produit........Qté » (affichage uniquement, aucune donnée modifiée) */
+function htmlCmdFournGroupe(lignes, dateStr){
+  var groupes={}, sans=[];
+  (lignes||[]).forEach(function(l){
+    if(!l || !l.produit) return;
+    var cat=l.cat;
+    if(cat===undefined){
+      var st=D.stock.find(function(x){ return normNom(x.nom)===normNom(l.produit); });
+      cat=(st && st.categorie ? String(st.categorie).trim() : '');
+    }
+    cat=String(cat||'').trim().toUpperCase();
+    if(cat){ (groupes[cat]=groupes[cat]||[]).push(l); } else sans.push(l);
+  });
+  var h='<div class="fg">'+(dateStr?'<div class="fg-d">'+echap(fmtDateJour(dateStr))+'</div>':'');
+  Object.keys(groupes).sort().forEach(function(cat){
+    h+='<div class="fg-c">'+echap(cat)+'</div>';
+    groupes[cat].forEach(function(l,i){
+      h+='<div class="fg-l"><span class="fg-n">'+(i+1)+'. '+echap(l.produit)+'</span><i></i><b>'+l.qte+'</b></div>';
+    });
+  });
+  if(sans.length){
+    h+='<div class="fg-sc">';
+    sans.forEach(function(l){
+      h+='<div class="fg-l"><span class="fg-n">'+echap(l.produit)+'</span><i></i><b>'+l.qte+'</b></div>';
+    });
+    h+='</div>';
+  }
+  return h+'</div>';
+}
 function rAlertesStock(){
   var el=document.getElementById('alertes-stock'); if(!el) return;
   var faibles=D.stock.filter(function(s){
@@ -9402,25 +9440,14 @@ function rAlertesStock(){
   });
   if(!faibles.length){ el.innerHTML='<div class="oc-vide">Rien à commander : le stock est suffisant.</div>'; return; }
   var fs=normSearch((document.getElementById('f-search-cmd')||{}).value||'');
-  var groupes={}, autres=[];
+  var lignesF=[];
   faibles.forEach(function(s){
-    var seuil=s.seuil||3;
-    var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
     var cat=(s.categorie ? String(s.categorie).trim() : '').toUpperCase();
     if(fs && normSearch(s.nom).indexOf(fs)<0 && normSearch(cat).indexOf(fs)<0) return;
-    var ligne={nom:s.nom, restant:restant, seuil:seuil, qteCmd:cmdQteFournisseur(s)};
-    if(cat){ (groupes[cat]=groupes[cat]||[]).push(ligne); } else autres.push(ligne);
+    lignesF.push({produit:s.nom, qte:cmdQteFournisseur(s), cat:cat});
   });
   var html='<div class="fo-top"><span>À commander<b>'+faibles.length+'</b></span><button class="btn bo bsm" onclick="genererCmdFournisseurAuto()">Générer</button></div>';
-  html+='<div class="tw"><table class="fo-t"><thead><tr><th>Catégorie</th><th>Produit</th><th class="fo-q">Quantité</th></tr></thead><tbody>';
-  var bloc=function(titre,lignes){
-    lignes.forEach(function(l,i){
-      html+='<tr title="Restant '+l.restant+' · Seuil '+l.seuil+'"><td class="fo-c">'+(i===0?echap(titre):'')+'</td><td>'+echap(l.nom)+'</td><td class="fo-q">'+l.qteCmd+'</td></tr>';
-    });
-  };
-  Object.keys(groupes).sort().forEach(function(cat){ bloc(cat,groupes[cat]); });
-  if(autres.length) bloc('AUTRES',autres);
-  html+='</tbody></table></div>';
+  html+=htmlCmdFournGroupe(lignesF, td());
   el.innerHTML=html;
 }
 var alertesStockOuvert=false;
@@ -10472,7 +10499,7 @@ function cmdCarte(c,fourn){
   var ouv=cmdOuv[c.id]!==undefined?cmdOuv[c.id]:(fourn&&actif);
   var h='<div class="oc oc2 '+(cl[c.statut]||'')+(ouv?' open':'')+'" id="oc-'+c.id+'">';
   h+='<div class="oc-row" onclick="cmdRow(event,'+c.id+')"><span class="oc-name"><i class="oc-car">▸</i>'+(fourn?'Commande fournisseur':echap(c.client))+(dispo?'<span class="oc-pret">Prêt</span>':'')+'</span>';
-  h+='<span class="oc-tot">'+fmt(c.total)+'</span>';
+  if(!fourn) h+='<span class="oc-tot">'+fmt(c.total)+'</span>';
   h+='<select class="oc-st" onchange="cStatCmd('+c.id+',this.value)">';
   STS.forEach(function(s){ h+='<option value="'+s+'"'+(c.statut===s?' selected':'')+'>'+s+'</option>'; });
   h+='</select>';
@@ -10485,8 +10512,11 @@ function cmdCarte(c,fourn){
   h+='<button class="btn bh bsm" onclick="editCmd('+c.id+')">Modifier</button><div class="mm-sep"></div><button class="btn bd bsm" onclick="delCmd('+c.id+')">Supprimer</button>';
   h+='</div></div></div>';
   h+='<div class="oc-det">';
-  (c.produits||[]).forEach(function(l){ h+='<div class="oc-li"><span>'+echap(l.produit)+' <b>×'+l.qte+'</b></span>'+(l.prix>0?'<em>'+fmt(l.qte*l.prix)+'</em>':'')+'</div>'; });
-  h+='<div class="oc-meta"><span>'+fmtDateHeure(c.date,c.heure)+'</span>'+(c.num?'<span>'+echap(c.num)+'</span>':'')+((!fourn&&c.tel)?'<a href="tel:'+echap(c.tel)+'">'+echap(c.tel)+'</a>':'')+'</div>';
+  if(fourn){ h+=htmlCmdFournGroupe(c.produits, c.date); }
+  else {
+    (c.produits||[]).forEach(function(l){ h+='<div class="oc-li"><span>'+echap(l.produit)+' <b>×'+l.qte+'</b></span>'+(l.prix>0?'<em>'+fmt(l.qte*l.prix)+'</em>':'')+'</div>'; });
+    h+='<div class="oc-meta"><span>'+fmtDateHeure(c.date,c.heure)+'</span>'+(c.num?'<span>'+echap(c.num)+'</span>':'')+((!fourn&&c.tel)?'<a href="tel:'+echap(c.tel)+'">'+echap(c.tel)+'</a>':'')+'</div>';
+  }
   if(!fourn && (c.adresse||c.note)) h+='<div class="oc-meta">'+(c.adresse?'<span>'+echap(c.adresse)+'</span>':'')+(c.note?'<span>'+echap(c.note)+'</span>':'')+'</div>';
   if(dispo) h+='<div class="oc-ok">Produits en stock : prévenir le client</div>';
   if(fourn && actif) h+='<button class="btn bg bsm oc-send" onclick="envoyerCmdFournisseurWhatsApp('+c.id+')">Envoyer</button>';
@@ -12312,7 +12342,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.64'; // 08-10-2026 16:51 : Stock Entreprise — champ « Cmd » par produit (ajout/modification, mémorisé comme le Seuil) utilisé comme quantité proposée dans Commandes → Fournisseur (valeur par défaut mémorisée pour les anciens produits, modifiable via ✏️ Édition). Précédemment V0.63 08-10-2026 13:50 : onglet Commandes — interface minimale : barre Clients | Fournisseur + « + Commande » + Recherche ; filtres/période/tri A-Z/suppression dans « Filtres » et ⋯ ; carte Client | Total | Statut | ⋯ avec détails dépliables ; vue Fournisseur Catégorie | Produit | Quantité + « Générer » (une seule commande fournisseur, modifiable avant Envoyer) — affichage uniquement, logique métier inchangée. Précédemment V0.62 : 08-10-2026 12:51 : lignes de totaux fixes en bas de leur tableau à tous les niveaux (Activités, Stock Ent., Stock Perso, Dépenses, Associé, Rapport, vue Associé) — une seule ligne, sans retour à la ligne, calculs inchangés — affichage uniquement. Précédemment V0.61 : 08-10-2026 : onglet Commandes simplifié — 2 vues (Clients / Fournisseur), carte unique, bouton « Prévenir » intégré, modale épurée (« Plus d'options »), téléphone non exigé pour la commande FOURNISSEUR. Précédemment V0.60 : // 08-10-2026 12:11 : onglet Commandes simplifié — filtre rapide par statut (Toutes / En attente / En cours / Livré / Annulé), carte claire (client + total, infos, produits, statut + actions en texte), « Produits à commander » repliable avec compteur, message d'aide si vide — affichage uniquement, logique métier inchangée. Précédemment V0.59 : 08-10-2026 11:33 : espaces inutiles réduits à tous les niveaux (marges, cartes, grilles, formulaires) ; Stock Perso — tableau étendu jusqu'en bas, totaux descendus — affichage uniquement. Précédemment V0.58 : 08-10-2026 11:20 : Bilan — « Résumé période » compact (plus de case vide) ; barre de recherche globale et totaux Dépenses masqués au défilement vertical (réaffichés en remontant) ; Associé — bloc des totaux de dettes réduit ; Stock Ent. — lignes sans retour à la ligne ; Stock Perso — totaux « l'entreprise vous doit » sur une ligne — affichage uniquement. Précédemment V0.57 : 08-10-2026 10:12 : compact — totaux sur une seule ligne (police adaptée à la largeur), ligne TOTAL des dépenses toujours visible, tableaux/cartes/espacements réduits, formulaire Patrimoine compacté, bouton « Ajouter à la commande fournisseur » près de la recherche, Associé : barre de « Dettes enregistrées » sur la ligne du titre — affichage uniquement. Précédemment V0.56 : 08-10-2026 02:41 : mise en page compacte — boutons d'action (⋯, Paiement partiel, Imprimer) au bout de la barre de recherche ; barres d'outils (recherche/filtres/ajout) remontées sur la ligne du titre (Activités, Stock Ent., Stock Perso, Dépenses, Historique, Corbeille, Associé) ; boutons secondaires de Associé regroupés dans ⋯ ; hauteur des tableaux ajustée à l'écran — affichage uniquement. Précédemment V0.55 : 08-10-2026 02:14 : Bilan — barre de recherche globale affichée sur la ligne du titre (entre le titre et les boutons « Infos »), à la place de l'ancien « Calculer » ; reprend sa place en haut sur les autres onglets — affichage uniquement. Précédemment V0.54 : 08-10-2026 00:23 : Bilan — bouton « Calculer » retiré (simple rafraîchissement déjà automatique via renderAll/save), second bouton « Infos » déplacé sur la ligne du titre, en-tête sur une seule ligne — affichage uniquement. Précédemment V0.53 : 07-10-2026 22:25 : Commandes — produits à commander affichés par catégorie en liste N° | Désignation | Quantité ; Patrimoine — note masquée par défaut, affichée via le bouton « Infos » ; Bilan — boutons « En savoir plus » remplacés par « Infos » (présentation distincte) — affichage uniquement. Précédemment V0.52 : 07-10-2026 22:01 : champs de texte long (Description, Note, Motif, Adresse, Panne…) en zones multilignes, contenu 100 % visible — affichage uniquement. Précédemment V0.51 : 07-10-2026 21:40 : zones de saisie ajustées au contenu (texte jamais coupé, largeur dynamique, responsive) — affichage uniquement. Précédemment V0.50 : 07-10-2026 21:00 : Activité/Dépense/Commande (champs texte extensibles, Qté réduit, Téléphone obligatoire), Patrimoine (bouton à côté de la date), Bilan (hauteurs réduites). Précédemment V0.49 : 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
+var APP_VERSION = 'V0.65'; // 08-10-2026 : Commande fournisseur — présentation Date / CATÉGORIE / « n. Produit........Qté » (sans prix, affichage uniquement). Précédemment V0.64 08-10-2026 16:51 : Stock Entreprise — champ « Cmd » par produit (ajout/modification, mémorisé comme le Seuil) utilisé comme quantité proposée dans Commandes → Fournisseur (valeur par défaut mémorisée pour les anciens produits, modifiable via ✏️ Édition). Précédemment V0.63 08-10-2026 13:50 : onglet Commandes — interface minimale : barre Clients | Fournisseur + « + Commande » + Recherche ; filtres/période/tri A-Z/suppression dans « Filtres » et ⋯ ; carte Client | Total | Statut | ⋯ avec détails dépliables ; vue Fournisseur Catégorie | Produit | Quantité + « Générer » (une seule commande fournisseur, modifiable avant Envoyer) — affichage uniquement, logique métier inchangée. Précédemment V0.62 : 08-10-2026 12:51 : lignes de totaux fixes en bas de leur tableau à tous les niveaux (Activités, Stock Ent., Stock Perso, Dépenses, Associé, Rapport, vue Associé) — une seule ligne, sans retour à la ligne, calculs inchangés — affichage uniquement. Précédemment V0.61 : 08-10-2026 : onglet Commandes simplifié — 2 vues (Clients / Fournisseur), carte unique, bouton « Prévenir » intégré, modale épurée (« Plus d'options »), téléphone non exigé pour la commande FOURNISSEUR. Précédemment V0.60 : // 08-10-2026 12:11 : onglet Commandes simplifié — filtre rapide par statut (Toutes / En attente / En cours / Livré / Annulé), carte claire (client + total, infos, produits, statut + actions en texte), « Produits à commander » repliable avec compteur, message d'aide si vide — affichage uniquement, logique métier inchangée. Précédemment V0.59 : 08-10-2026 11:33 : espaces inutiles réduits à tous les niveaux (marges, cartes, grilles, formulaires) ; Stock Perso — tableau étendu jusqu'en bas, totaux descendus — affichage uniquement. Précédemment V0.58 : 08-10-2026 11:20 : Bilan — « Résumé période » compact (plus de case vide) ; barre de recherche globale et totaux Dépenses masqués au défilement vertical (réaffichés en remontant) ; Associé — bloc des totaux de dettes réduit ; Stock Ent. — lignes sans retour à la ligne ; Stock Perso — totaux « l'entreprise vous doit » sur une ligne — affichage uniquement. Précédemment V0.57 : 08-10-2026 10:12 : compact — totaux sur une seule ligne (police adaptée à la largeur), ligne TOTAL des dépenses toujours visible, tableaux/cartes/espacements réduits, formulaire Patrimoine compacté, bouton « Ajouter à la commande fournisseur » près de la recherche, Associé : barre de « Dettes enregistrées » sur la ligne du titre — affichage uniquement. Précédemment V0.56 : 08-10-2026 02:41 : mise en page compacte — boutons d'action (⋯, Paiement partiel, Imprimer) au bout de la barre de recherche ; barres d'outils (recherche/filtres/ajout) remontées sur la ligne du titre (Activités, Stock Ent., Stock Perso, Dépenses, Historique, Corbeille, Associé) ; boutons secondaires de Associé regroupés dans ⋯ ; hauteur des tableaux ajustée à l'écran — affichage uniquement. Précédemment V0.55 : 08-10-2026 02:14 : Bilan — barre de recherche globale affichée sur la ligne du titre (entre le titre et les boutons « Infos »), à la place de l'ancien « Calculer » ; reprend sa place en haut sur les autres onglets — affichage uniquement. Précédemment V0.54 : 08-10-2026 00:23 : Bilan — bouton « Calculer » retiré (simple rafraîchissement déjà automatique via renderAll/save), second bouton « Infos » déplacé sur la ligne du titre, en-tête sur une seule ligne — affichage uniquement. Précédemment V0.53 : 07-10-2026 22:25 : Commandes — produits à commander affichés par catégorie en liste N° | Désignation | Quantité ; Patrimoine — note masquée par défaut, affichée via le bouton « Infos » ; Bilan — boutons « En savoir plus » remplacés par « Infos » (présentation distincte) — affichage uniquement. Précédemment V0.52 : 07-10-2026 22:01 : champs de texte long (Description, Note, Motif, Adresse, Panne…) en zones multilignes, contenu 100 % visible — affichage uniquement. Précédemment V0.51 : 07-10-2026 21:40 : zones de saisie ajustées au contenu (texte jamais coupé, largeur dynamique, responsive) — affichage uniquement. Précédemment V0.50 : 07-10-2026 21:00 : Activité/Dépense/Commande (champs texte extensibles, Qté réduit, Téléphone obligatoire), Patrimoine (bouton à côté de la date), Bilan (hauteurs réduites). Précédemment V0.49 : 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
 var APP_VERSION_DATE = '2026-10-08T16:51:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
