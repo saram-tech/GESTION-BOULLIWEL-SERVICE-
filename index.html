@@ -1457,7 +1457,7 @@ body.printing-mode .tot-fixe,body.printing-mode .tw tbody tr:last-child[style*="
   </div>
   <div class="al ali" id="fm-stock" style="font-size:.77rem;display:none">
     📦 <strong>Stock Restant = Initial − Vendu</strong> (mis à jour automatiquement à chaque vente).<br>
-    🔴 Quand Stock Restant ≤ Seuil → alerte + fiche commande fournisseur dans l'onglet <strong>Commandes</strong>.
+    🔴 Quand Stock Restant ≤ Seuil → le produit apparaît automatiquement dans <strong>Commandes › Fournisseur › À commander</strong> (quantité = Cmd − stock restant).
   </div>
   <div class="card">
     <div class="barre-add-sticky" style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
@@ -2107,7 +2107,7 @@ body.printing-mode .tot-fixe,body.printing-mode .tw tbody tr:last-child[style*="
     </div>
     <div class="fr">
       <input type="hidden" id="s-vente" value="0">
-      <div class="fg"><label>Seuil alerte</label><input type="number" id="s-seuil" placeholder="3" min="1" value="3"></div>
+      <div class="fg"><label>Seuil alerte</label><input type="number" id="s-seuil" placeholder="3" min="0" value="3"></div>
       <div class="fg"><label>Cmd</label><input type="number" id="s-cmd" placeholder="Qté à commander" min="1"></div>
     </div>
     <div class="fr">
@@ -8188,6 +8188,14 @@ function enrPP(){
 // ================================================================
 // STOCK
 // ================================================================
+/* V0.76 — Seuil / Cmd : le seuil 0 est une vraie valeur (≠ champ vide). Vide (null) = pas d'alerte ; ancien produit sans champ = 3. */
+function seuilStock(s){ var x=s?s.seuil:undefined; if(x===undefined) return 3; if(x===null||x===''||isNaN(Number(x))) return null; return Number(x); }
+function qteRestanteStock(s){ return s.qteRestante!==undefined?s.qteRestante:s.qteInitiale; }
+function estSousSeuil(s){ var t=seuilStock(s); return t!==null && qteRestanteStock(s)<=t; }
+/** Quantité à commander = Cmd (stock cible) − stock restant, seulement si restant ≤ seuil et résultat positif. */
+function qteACommander(s){ if(!estSousSeuil(s)) return 0; var c=parseInt(s.cmd)||0; if(c<=0){ var _t=seuilStock(s); c=Math.max((_t>0?_t:3)*3,10); } return Math.max(0,c-qteRestanteStock(s)); }
+/** Liste unique « À commander », recalculée à chaque appel depuis le stock actuel (aucun historique, aucune donnée enregistrée). */
+function listeACommander(){ var r=[]; (D.stock||[]).forEach(function(s){ if(!s||!s.nom) return; var q=qteACommander(s); if(q>0) r.push({s:s,qte:q}); }); return r; }
 function niveauStock(restant,seuil){
   if(restant===0) return {label:'Rupture',color:'var(--re)',lvl:0};
   if(restant<=seuil) return {label:'Faible',color:'var(--or)',lvl:1};
@@ -8240,17 +8248,17 @@ function migrerCmdStock(){
   var change=false;
   (D.stock||[]).forEach(function(s){
     if(!s || (parseInt(s.cmd)||0)>0) return;
-    s.cmd=Math.max((s.seuil||3)*3,10); change=true;
+    var _t=seuilStock(s); s.cmd=Math.max((_t>0?_t:3)*3,10); change=true;
   });
   return change;
 }
 /** Quantité proposée à la commande fournisseur = Cmd du produit (toujours mémorisé). */
 function cmdQteFournisseur(s){
-  if(s && (parseInt(s.cmd)||0)<=0){ s.cmd=Math.max((s.seuil||3)*3,10); }
+  if(s && (parseInt(s.cmd)||0)<=0){ var _t=seuilStock(s); s.cmd=Math.max((_t>0?_t:3)*3,10); }
   return parseInt(s&&s.cmd)||10;
 }
 function enrStock(){
-  var nom=v('s-nom').trim(),qte=parseInt(v('s-qte'))||0,achat=fl('s-achat'),vente=fl('s-vente'),date=v('s-date'),seuil=parseInt(v('s-seuil'))||3,categorie=v('s-categorie').trim(),cmd=parseInt(v('s-cmd'))||0;
+  var nom=v('s-nom').trim(),qte=parseInt(v('s-qte'))||0,achat=fl('s-achat'),vente=fl('s-vente'),date=v('s-date'),seuil=(String(v('s-seuil')).trim()===''?null:Math.max(0,parseInt(v('s-seuil'))||0)),categorie=v('s-categorie').trim(),cmd=parseInt(v('s-cmd'))||0;
   var eid=v('s-eid');
   // CORRECTIF (diminution de quantité en édition) : en édition (eid présent),
   // une quantité de 0 est désormais acceptée (permet de diminuer jusqu'à 0),
@@ -8267,7 +8275,7 @@ function enrStock(){
       // correction de prix (qte:0) séparément d'un vrai réassort.
       var qteAjoutee=Math.max(0, qte-(s.qteInitiale||0));
       if(qteAjoutee>0 || s.achat!==achat) ajouterHistoriquePrix(s, achat, qteAjoutee, date);
-      s.nom=nom;s.qteInitiale=qte;s.achat=achat;s.vente=vente;s.seuil=seuil;s.cmd=cmd>0?cmd:(parseInt(s.cmd)>0?parseInt(s.cmd):Math.max(seuil*3,10));_poserCategorie(s,categorie);s.qteRestante=Math.max(0,qte-(s.qteVendue||0)); s._localTouchedAt=Date.now();
+      s.nom=nom;s.qteInitiale=qte;s.achat=achat;s.vente=vente;s.seuil=seuil;s.cmd=cmd>0?cmd:(parseInt(s.cmd)>0?parseInt(s.cmd):Math.max((seuil>0?seuil:3)*3,10));_poserCategorie(s,categorie);s.qteRestante=Math.max(0,qte-(s.qteVendue||0)); s._localTouchedAt=Date.now();
     }
     ah('stock','Modif stock: '+nom,achat*qte,date);
   } else {
@@ -8294,7 +8302,7 @@ function enrStock(){
       ex.dernierAjoutQte=qte; ex.dernierAjoutDate=new Date().toISOString();
     }
     else {
-      var nsS={id:Date.now(),nom:nom,qteInitiale:qte,qteVendue:0,qteRestante:qte,achat:achat,vente:vente,seuil:seuil,cmd:(cmd>0?cmd:Math.max(seuil*3,10)),categorie:categorie,categorieAt:(categorie?Date.now():0),date:date,heure:nowHM()};
+      var nsS={id:Date.now(),nom:nom,qteInitiale:qte,qteVendue:0,qteRestante:qte,achat:achat,vente:vente,seuil:seuil,cmd:(cmd>0?cmd:Math.max((seuil>0?seuil:3)*3,10)),categorie:categorie,categorieAt:(categorie?Date.now():0),date:date,heure:nowHM()};
       ajouterHistoriquePrix(nsS, achat, qte, date);
       D.stock.push(nsS);
     }
@@ -8330,7 +8338,7 @@ function rSF(){
 }
 function editStock(id){
   var s=D.stock.find(function(x){ return x.id===id; }); if(!s) return;
-  sv('s-eid',id);sv('s-nom',s.nom);sv('s-qte',s.qteInitiale);sv('s-achat',s.achat);sv('s-vente',s.vente||'');sv('s-date',s.date||'');sv('s-seuil',s.seuil||3);sv('s-cmd',s.cmd>0?s.cmd:'');sv('s-categorie',s.categorie||'');
+  sv('s-eid',id);sv('s-nom',s.nom);sv('s-qte',s.qteInitiale);sv('s-achat',s.achat);sv('s-vente',s.vente||'');sv('s-date',s.date||'');sv('s-seuil',(s.seuil===null||s.seuil==='')?'':(s.seuil===undefined?3:s.seuil));sv('s-cmd',s.cmd>0?s.cmd:'');sv('s-categorie',s.categorie||'');
   fillDLCategoriesStock();
   st('ms-t','Modifier Stock');
   var b=document.getElementById('btn-ss'); b.textContent='✓ Modifier'; b.onclick=enrStock; om('ms');
@@ -9084,55 +9092,26 @@ function appelClientById(id){
   else notif('⚠️ Aucun numéro pour cette commande');
 }
 
-// Fiche commande fournisseur depuis alerte
-/**
- * GÉNÉRATION AUTOMATIQUE DE LA COMMANDE FOURNISSEUR
- * -------------------------------------------------------------
- * Regroupe TOUS les produits en stock faible/rupture dans UNE SEULE
- * commande fournisseur (client = "FOURNISSEUR"), réutilisant le même
- * système de commandes déjà existant (donc immédiatement modifiable :
- * quantités, ajout/suppression de lignes, via le formulaire habituel).
- * Si une commande fournisseur est déjà "ouverte" (pas encore Livrée/
- * Annulée), on la MET À JOUR (ajoute les nouveaux produits en rupture
- * sans dupliquer ni écraser les quantités déjà ajustées manuellement).
- */
-function genererCmdFournisseurAuto(){
-  var faibles=D.stock.filter(function(s){
-    var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
-    return restant<=(s.seuil||3);
-  });
-  if(!faibles.length){ notif('✅ Aucun produit en stock faible pour le moment'); return; }
-
-  var existante=D.commandes.find(function(c){ return c.client==='FOURNISSEUR' && c.statut!=='Livré' && c.statut!=='Annulé'; });
-  var lignes = existante ? existante.produits.slice() : [];
-  var ajoutes=0;
-  faibles.forEach(function(s){
-    var dejaPresent=lignes.some(function(l){ return normNom(l.produit)===normNom(s.nom); });
-    if(dejaPresent) return;
-    var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
-    var qteCmd=cmdQteFournisseur(s);
-    lignes.push({produit:s.nom,qte:qteCmd,prix:s.achat});
-    ajoutes++;
-  });
-
-  if(existante){
-    var c=D.commandes.find(function(x){ return x.id===existante.id; });
-    c.produits=lignes; c.total=lignes.reduce(function(s,l){ return s+l.qte*l.prix; },0);
-    save();
-    editCmd(c.id);
-    notif(ajoutes>0 ? ('✅ Commande fournisseur mise à jour (+'+ajoutes+' produit(s))') : 'ℹ️ Commande fournisseur déjà à jour, ouverte pour modification');
+/* V0.76 — Liste « À commander » unique et automatique (voir listeACommander()). Plus de bouton « Générer » ni de fiche enregistrée :
+   l'envoi WhatsApp utilise directement la liste actuelle (stock restant ≤ seuil ; quantité = Cmd − stock restant). */
+function lignesListeACommander(){
+  return listeACommander().map(function(x){ return {produit:x.s.nom, qte:x.qte, catFiche:(x.s.categorie?String(x.s.categorie).trim():'').toUpperCase()}; });
+}
+function envoyerListeACommander(){
+  var lignes=lignesListeACommander();
+  if(!lignes.length){ notif('✅ Rien à commander : le stock est suffisant'); return; }
+  var txt=texteCmdFournisseurGroupe(lignes,'COMMANDE FOURNISSEUR',null);
+  var tel=(getParams().fournisseurTel||'').trim().replace(/[^0-9]/g,'');
+  var envoyer=function(){ window.open(tel?('https://wa.me/'+tel+'?text='+encodeURIComponent(txt)):('https://wa.me/?text='+encodeURIComponent(txt)),'_blank'); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){ notif('✅ Liste copiée — ouverture de WhatsApp…'); envoyer(); })
+      .catch(function(){ notif('⚠️ Copie impossible, ouverture directe de WhatsApp…'); envoyer(); });
   } else {
-    D._co++;
-    var num='CMD-'+String(D._co).padStart(3,'0');
-    var total=lignes.reduce(function(s,l){ return s+l.qte*l.prix; },0);
-    var nc={id:Date.now(),date:td(),heure:nowHM(),num:num,client:'FOURNISSEUR',tel:(getParams().fournisseurTel||''),adresse:'',produits:lignes,total:total,statut:'En attente',note:'Générée automatiquement depuis les alertes de stock faible'};
-    D.commandes.push(nc);
-    ah('commande','Commande fournisseur générée automatiquement ('+lignes.length+' produits)',total,td());
-    save();
-    editCmd(nc.id);
-    notif('✅ Commande fournisseur créée ('+lignes.length+' produits) — modifiable avant envoi');
+    var ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try{ document.execCommand('copy'); notif('✅ Liste copiée — ouverture de WhatsApp…'); }catch(e){ notif('⚠️ Copie impossible, ouverture directe de WhatsApp…'); }
+    document.body.removeChild(ta); envoyer();
   }
-  cmdVue='fourn'; gt('commandes',null);
 }
 /**
  * Regroupe une liste de lignes de commande par CATÉGORIE (en cherchant
@@ -9164,20 +9143,76 @@ function _sansPrefixeCat(nom, cat){
  * Le produit de la commande est retrouvé dans le stock par son nom exact (sinon avec/sans le nom de catégorie devant).
  * Une catégorie = un seul titre (casse/accents/espaces ignorés). Tri A → Z ; sans catégorie : seuls, à la fin, A → Z.
  */
-function blocsCmdFournisseur(produits){
-  var exact={}, alt={};
+/**
+ * V0.74 — Ensembles de noms (normalisés) utilisés pour la commande fournisseur :
+ *  - vivants   : produits qui existent ACTUELLEMENT dans le Stock Entreprise ;
+ *  - supprimes : produits supprimés du Stock Entreprise (présents dans la Corbeille) et qui n'existent plus.
+ * Lecture seule : aucune fiche, aucune commande, aucune corbeille n'est modifiée.
+ */
+function _nomsStockCmdV074(){
+  var vivants={}, supprimes={};
+  (D.stock||[]).forEach(function(x){
+    if(!x || !x.nom) return;
+    vivants[_cleNomCmd(x.nom)]=true;
+    var c=(x.categorie ? String(x.categorie).trim() : '');
+    if(c){ var sp=_cleNomCmd(_sansPrefixeCat(x.nom,c)); if(sp) vivants[sp]=true; } // « KK A12 » dans ANTICASSE = « Anticasse KK A12 »
+  });
+  (D.corbeille||[]).forEach(function(e){
+    if(!e || e.type!=='stock') return;
+    var n=(e.data && e.data.nom) || e.label; if(!n) return;
+    var k=_cleNomCmd(n); if(k && !vivants[k]) supprimes[k]=true;
+  });
+  return {vivants:vivants, supprimes:supprimes};
+}
+/** V0.74 — vrai si ce produit a été supprimé du Stock Entreprise (Corbeille) et n'y existe plus : il ne doit plus figurer dans une commande fournisseur. */
+function _produitSupprimeStockCmd(nom){
+  var k=_cleNomCmd(nom); if(!k) return false;
+  var e=_nomsStockCmdV074(); return !!e.supprimes[k] && !e.vivants[k];
+}
+/**
+ * V0.75 — Une ligne de commande fournisseur est OBSOLÈTE (à ne plus afficher ni envoyer) si son produit n'existe plus
+ * dans le Stock Entreprise ET :
+ *  - il se trouve dans la Corbeille (suppression connue), OU
+ *  - la commande est une commande « Générée automatiquement » depuis les alertes de stock : sa liste n'est que le reflet
+ *    du stock, donc une ligne dont la fiche a disparu est périmée même si la Corbeille a été vidée depuis (cas « RESTE »).
+ * Une commande saisie à la main (note modifiée) n'est jamais filtrée sur ce second critère. Lecture seule.
+ */
+function _cmdFournisseurAuto(c){ return !!c && c.client==='FOURNISSEUR' && /^\s*g[ée]n[ée]r[ée]e automatiquement/i.test(String(c.note||'')); }
+function _ligneCmdObsolete(nom, cmd, ens){
+  var k=_cleNomCmd(nom); if(!k) return false;
+  ens=ens||_nomsStockCmdV074();
+  if(ens.vivants[k]) return false;
+  return !!ens.supprimes[k] || _cmdFournisseurAuto(cmd);
+}
+function blocsCmdFournisseur(produits, cmd){
+  var exact={}, alt={}, cats={};
+  var ens=_nomsStockCmdV074();
   (D.stock||[]).forEach(function(x){
     var c=(x && x.categorie ? String(x.categorie).trim() : ''); if(!c || !x.nom) return;
     var k1=_cleNomCmd(x.nom); if(!exact[k1]) exact[k1]=c;
     var sans=_sansPrefixeCat(x.nom,c);
     [_cleNomCmd(sans), _cleNomCmd(c+' '+sans)].forEach(function(k){ if(k && !alt[k]) alt[k]=c; });
+    var cc=c.replace(/\s+/g,' ').trim().toUpperCase(); if(cc && !cats[_cleCatTolerante(cc)]) cats[_cleCatTolerante(cc)]=cc;
   });
+  /* V0.74 — produit SANS catégorie dans sa fiche : repli à l'affichage seulement (aucune fiche modifiée). Si le début de son nom
+     est exactement le nom d'une catégorie déjà utilisée par d'autres fiches (« Anticasse A12 » → ANTICASSE), il est rangé dedans. */
+  var deduire=function(nom){
+    var tk=String(nom||'').trim().split(/\s+/);
+    for(var n=Math.min(3,tk.length-1); n>=1; n--){
+      var c=cats[_cleCatTolerante(tk.slice(0,n).join(' '))]; if(c) return c;
+    }
+    return '';
+  };
   var blocs=[], index={};
   (produits||[]).forEach(function(l){
     if(!l || !l.produit || !l.qte) return;
     var k=_cleNomCmd(l.produit);
-    var cat=(l.cat!==undefined && String(l.cat).trim()) ? String(l.cat).trim() : (exact[k]||alt[k]||'');
+    if(_ligneCmdObsolete(l.produit, cmd, ens)) return; // V0.74/V0.75 : produit qui n'existe plus dans l'application → n'apparaît plus (la commande enregistrée n'est pas modifiée)
+    /* V0.74 : la catégorie vient de la fiche ACTUELLE du produit (« catFiche » = ligne construite à l'instant depuis le stock).
+       L'ancien champ « cat » conservé dans d'anciennes lignes enregistrées est ignoré : il ressortait même après suppression/changement de la catégorie. */
+    var cat=(l.catFiche!==undefined && String(l.catFiche).trim()) ? String(l.catFiche).trim() : (exact[k]||alt[k]||'');
     cat=cat.replace(/\s+/g,' ').trim().toUpperCase();
+    if(!cat) cat=deduire(l.produit);
     if(!cat){ blocs.push({cat:'',items:[{produit:l.produit,qte:l.qte,aff:String(l.produit).trim()}]}); return; }
     var kc=_cleNomCmd(cat);
     if(index[kc]===undefined){ index[kc]=blocs.length; blocs.push({cat:cat,items:[]}); }
@@ -9189,9 +9224,9 @@ function blocsCmdFournisseur(produits){
   return blocs;
 }
 /** Texte WhatsApp : DATE / CATÉGORIE / « 1. Produit........Qté » ; produit sans catégorie = une ligne seule. */
-function texteCmdFournisseurGroupe(produits, titre){
+function texteCmdFournisseurGroupe(produits, titre, cmd){
   var txt=fmtDateJour(td())+'\n';
-  blocsCmdFournisseur(produits).forEach(function(bl){
+  blocsCmdFournisseur(produits, cmd).forEach(function(bl){
     if(!bl.cat){ txt+='\n'+bl.items[0].aff+'........'+bl.items[0].qte+'\n'; return; }
     txt+='\n*'+bl.cat+'*\n';
     bl.items.forEach(function(l,i){ txt+=(i+1)+'. '+l.aff+'........'+l.qte+'\n'; });
@@ -9202,7 +9237,7 @@ function texteCmdFournisseurGroupe(produits, titre){
 function envoyerCmdFournisseurWhatsApp(commandeId){
   var c=D.commandes.find(function(x){ return x.id===commandeId; }); if(!c) return;
   if(!c.produits || !c.produits.length){ notif('⚠️ Cette commande ne contient aucun produit'); return; }
-  var txt=texteCmdFournisseurGroupe(c.produits, 'COMMANDE FOURNISSEUR');
+  var txt=texteCmdFournisseurGroupe(c.produits, 'COMMANDE FOURNISSEUR', c);
   var envoyer=function(){
     var tel=(c.tel||getParams().fournisseurTel||'').trim().replace(/[^0-9]/g,'');
     var url=tel? ('https://wa.me/'+tel+'?text='+encodeURIComponent(txt)) : ('https://wa.me/?text='+encodeURIComponent(txt));
@@ -9714,9 +9749,9 @@ function rAlertesCommandesDisponibles(){
   el.innerHTML=html;
 }
 /* V0.65 — Présentation « Date / CATÉGORIE / 1. Produit........Qté » (affichage uniquement, aucune donnée modifiée) */
-function htmlCmdFournGroupe(lignes, dateStr){
+function htmlCmdFournGroupe(lignes, dateStr, cmd){
   var h='<div class="fg">'+(dateStr?'<div class="fg-d">'+echap(fmtDateJour(dateStr))+'</div>':'');
-  blocsCmdFournisseur(lignes).forEach(function(bl){
+  blocsCmdFournisseur(lignes, cmd).forEach(function(bl){
     if(!bl.cat){
       h+='<div class="fg-l fg-sc"><span class="fg-n">'+echap(bl.items[0].aff)+'</span><i></i><b>'+bl.items[0].qte+'</b></div>';
       return;
@@ -9730,19 +9765,11 @@ function htmlCmdFournGroupe(lignes, dateStr){
 }
 function rAlertesStock(){
   var el=document.getElementById('alertes-stock'); if(!el) return;
-  var faibles=D.stock.filter(function(s){
-    var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
-    return restant<=(s.seuil||3);
-  });
-  if(!faibles.length){ el.innerHTML='<div class="oc-vide">Rien à commander : le stock est suffisant.</div>'; return; }
+  var tous=lignesListeACommander();
+  if(!tous.length){ el.innerHTML='<div class="oc-vide">Rien à commander : le stock est suffisant.</div>'; return; }
   var fs=normSearch((document.getElementById('f-search-cmd')||{}).value||'');
-  var lignesF=[];
-  faibles.forEach(function(s){
-    var cat=(s.categorie ? String(s.categorie).trim() : '').toUpperCase();
-    if(fs && normSearch(s.nom).indexOf(fs)<0 && normSearch(cat).indexOf(fs)<0) return;
-    lignesF.push({produit:s.nom, qte:cmdQteFournisseur(s), cat:cat});
-  });
-  var html='<div class="fo-top"><span>À commander<b>'+faibles.length+'</b></span><button class="btn bo bsm" onclick="genererCmdFournisseurAuto()">Générer</button></div>';
+  var lignesF=tous.filter(function(l){ return !fs || normSearch(l.produit).indexOf(fs)>=0 || normSearch(l.catFiche).indexOf(fs)>=0; });
+  var html='<div class="fo-top"><span>À commander<b>'+tous.length+'</b></span><button class="btn bg bsm" onclick="envoyerListeACommander()">Envoyer</button></div>';
   html+=htmlCmdFournGroupe(lignesF, td());
   el.innerHTML=html;
 }
@@ -10605,8 +10632,8 @@ function rStock(){
   var totInit=0,totVendu=0,totRestant=0,totValeur=0,totAchatU=0,totVenteU=0;
   items.forEach(function(s,idx){
     var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
-    var seuil=s.seuil||3;
-    var niv=niveauStock(restant,seuil);
+    var seuil=seuilStock(s);
+    var niv=niveauStock(restant,seuil===null?-1:seuil);
     totInit+=s.qteInitiale||0; totVendu+=s.qteVendue||0; totRestant+=restant; totValeur+=restant*s.achat;
     totAchatU+=s.achat||0; totVenteU+=s.vente||0;
     html+='<tr>';
@@ -10616,7 +10643,7 @@ function rStock(){
     html+='<td style="color:var(--or)">'+(s.qteVendue||0)+'</td>';
     html+='<td><strong style="color:'+niv.color+'">'+restant+'</strong></td>';
     html+='<td><span class="badge" style="background:'+niv.color+'20;color:'+niv.color+'">'+niv.label+'</span></td>';
-    html+='<td style="color:var(--tx2)">'+seuil+'</td>';
+    html+='<td style="color:var(--tx2)">'+(seuil===null?'—':seuil)+'</td>';
     html+='<td>'+fmt(s.achat)+'</td>';
     html+='<td>'+fmt(s.vente||0)+'</td>';
     html+='<td>'+fmt(restant*s.achat)+'</td>';
@@ -10782,7 +10809,7 @@ var cmdStatutFiltre='todo', cmdVue='clients';
 function setCmdStatut(s){ cmdStatutFiltre=s||''; rCmd(); }
 function setCmdVue(x){ cmdVue=x; rCmd(); }
 function cmdEstActive(c){ return c.statut!=='Livré' && c.statut!=='Annulé'; }
-function cmdNbFaibles(){ return D.stock.filter(function(s){ var r=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale; return r<=(s.seuil||3); }).length; }
+function cmdNbFaibles(){ return listeACommander().length; }
 /* V0.63 — carte : Client | Total | Statut | ⋯ ; détails à l'ouverture (mêmes données, mêmes fonctions métier) */
 var cmdOuv={};
 function toggleCmdFiltres(){ var p=document.getElementById('cmd-filtres'); if(p) p.style.display=(p.style.display==='block')?'none':'block'; }
@@ -10808,7 +10835,7 @@ function cmdCarte(c,fourn){
   h+='<button class="btn bh bsm" onclick="editCmd('+c.id+')">Modifier</button><div class="mm-sep"></div><button class="btn bd bsm" onclick="delCmd('+c.id+')">Supprimer</button>';
   h+='</div></div></div>';
   h+='<div class="oc-det">';
-  if(fourn){ h+=htmlCmdFournGroupe(c.produits, c.date); }
+  if(fourn){ h+=htmlCmdFournGroupe(c.produits, c.date, c); }
   else {
     (c.produits||[]).forEach(function(l){ h+='<div class="oc-li"><span>'+echap(l.produit)+' <b>×'+l.qte+'</b></span>'+(l.prix>0?'<em>'+fmt(l.qte*l.prix)+'</em>':'')+'</div>'; });
     h+='<div class="oc-meta"><span>'+fmtDateHeure(c.date,c.heure)+'</span>'+(c.num?'<span>'+echap(c.num)+'</span>':'')+((!fourn&&c.tel)?'<a href="tel:'+echap(c.tel)+'">'+echap(c.tel)+'</a>':'')+'</div>';
@@ -10820,6 +10847,7 @@ function cmdCarte(c,fourn){
 }
 function rCmd(){
   var tb=document.getElementById('tbl-cmd'); if(!tb) return;
+  purgerCmdFournisseurObsoletes();
   var clients=D.commandes.filter(function(c){ return c.client!=='FOURNISSEUR'; });
   var fourn=D.commandes.filter(function(c){ return c.client==='FOURNISSEUR'; });
   var nF=cmdNbFaibles(), nTodo=clients.filter(cmdEstActive).length;
@@ -10832,7 +10860,7 @@ function rCmd(){
   if(bf){ bf.style.display=cmdVue==='clients'?'':'none'; bf.classList.toggle('on', cmdStatutFiltre!=='todo' || !!v('f-periode-cmd')); }
   if(pf && cmdVue!=='clients') pf.style.display='none';
   var tf=document.getElementById('tbl-cmd-f');
-  if(tf) tf.innerHTML=fourn.slice().reverse().map(function(c){ return cmdCarte(c,true); }).join('');
+  if(tf) tf.innerHTML='';
   var fs=normSearch(v('f-search-cmd'));
   var items=clients.slice().reverse().filter(function(c){ return matchPeriodeFull(c.date,'f-periode-cmd'); });
   if(fs) items=items.filter(function(c){
@@ -10860,6 +10888,45 @@ function rCmd(){
   rAlertesStock();
 }
 
+/* V0.76 — tout appel à rStock() (vente, entrée, ajout/diminution, transfert, synchro…) actualise aussi la liste « À commander » et son compteur. */
+(function(){ var _rs=rStock; rStock=function(){ var r=_rs.apply(this,arguments); try{ rCmd(); }catch(e){} return r; }; })();
+/* V0.77 — Suppression DÉFINITIVE des anciennes commandes fournisseur (client « FOURNISSEUR »), devenues inutiles depuis la liste « À commander » automatique.
+   - retirées de D.commandes (donc du localStorage via persist() et du JSON envoyé à Supabase, table app_data) + de leurs copies en Corbeille ;
+   - un tombstone (D._del) est posé pour chaque id : la fusion multi-appareils / cloud les empêche de réapparaître ;
+   - NE TOUCHE PAS : commandes clients, fiches produits, historique (D.histo, mouvements de stock), compteurs.
+   Idempotente : ne fait rien (et ne synchronise rien) quand il n'en reste plus. Appelée à chaque rendu de l'onglet Commandes, donc aussi après une synchronisation
+   qui aurait rapporté d'anciennes lignes depuis un autre appareil. */
+var _purgeCmdFournTimer=null;
+function purgerCmdFournisseurObsoletes(){
+  try{
+    if(!D || !Array.isArray(D.commandes)) return 0;
+    var ids=[], cids=[];
+    D.commandes=D.commandes.filter(function(c){ if(c && c.client==='FOURNISSEUR'){ ids.push(c.id); return false; } return true; });
+    D.corbeille=(D.corbeille||[]).filter(function(e){ if(e && e.type==='commande' && e.data && e.data.client==='FOURNISSEUR'){ cids.push(e.id); return false; } return true; });
+    if(!ids.length && !cids.length) return 0;
+    ids.forEach(function(id){ markDeleted('commandes',id); });
+    cids.forEach(function(id){ markDeleted('corbeille',id); });
+    persist();
+    if(_purgeCmdFournTimer) clearTimeout(_purgeCmdFournTimer);
+    _purgeCmdFournTimer=setTimeout(function(){ _purgeCmdFournTimer=null; envoyerEtVerifierPurgeCmdFourn(); },0);
+    return ids.length+cids.length;
+  }catch(e){ console.error('[V0.77] purge commandes fournisseur :',e); return 0; }
+}
+/** Envoie D à Supabase (Administrateur connecté seulement, comme save()) puis relit app_data pour vérifier qu'aucune commande FOURNISSEUR n'y subsiste. */
+function envoyerEtVerifierPurgeCmdFourn(){
+  try{
+    var se=getSession();
+    if(!SUPABASE_CONFIG.enabled || !navigator.onLine || !se || se.role!=='admin' || typeof syncToCloud!=='function') return;
+    Promise.resolve(syncToCloud()).then(function(){
+      return fetch(SUPABASE_CONFIG.url+'/rest/v1/app_data?id=eq.'+encodeURIComponent(ROW_ID)+'&select=data',{headers:{'apikey':SUPABASE_CONFIG.anonKey,'Authorization':'Bearer '+jetonActuel()}}).then(function(r){ return r.json(); });
+    }).then(function(rows){
+      var d=rows&&rows[0]&&rows[0].data; if(!d) return;
+      var reste=(d.commandes||[]).filter(function(c){ return c&&c.client==='FOURNISSEUR'; }).length;
+      console.log('[V0.77] commandes fournisseur restantes dans Supabase :',reste);
+      if(reste) notif('⚠️ '+reste+' ancienne(s) commande(s) fournisseur encore présente(s) dans le cloud — nouvelle tentative à la prochaine synchronisation',7000);
+    }).catch(function(e){ console.error('[V0.77] vérification cloud :',e); });
+  }catch(e){}
+}
 function rHisto(){
   var tb=document.getElementById('tbl-histo');
   var ft=v('f-histo'),fs=normSearch(v('f-search-histo'));
@@ -11056,7 +11123,7 @@ function rSyntheseRapport(items){
     var totRestantStock=D.stock.reduce(function(s,p){ return s+(p.qteRestante!==undefined?p.qteRestante:p.qteInitiale); },0);
     var totVenduStock=D.stock.reduce(function(s,p){ return s+(p.qteVendue||0); },0);
     var valeurAchatStock=D.stock.reduce(function(s,p){ var r=(p.qteRestante!==undefined?p.qteRestante:p.qteInitiale); return s+r*(p.achat||0); },0);
-    var faibles=D.stock.filter(function(p){ var r=(p.qteRestante!==undefined?p.qteRestante:p.qteInitiale); return r<=(p.seuil||3); });
+    var faibles=D.stock.filter(function(p){ return estSousSeuil(p); });
     html+='<div class="card" style="margin-bottom:12px">';
     html+='<div class="ch"><span class="dot" style="background:var(--ac)"></span>Stock actuel</div>';
     html+='<div class="g4">';
@@ -11117,7 +11184,7 @@ function updateKPIs(){
   D.stock.forEach(function(s){
     var restant=s.qteRestante!==undefined?s.qteRestante:s.qteInitiale;
     valeurStock+=restant*(s.achat||0);
-    var niv=niveauStock(restant,s.seuil||3);
+    var niv=niveauStock(restant,seuilStock(s)===null?-1:seuilStock(s));
     if(niv.lvl===0) nbRupture++; else if(niv.lvl===1) nbFaible++;
   });
   st('k-stock-valeur',fmt(valeurStock));
@@ -11766,7 +11833,7 @@ function hImportExcel(e){
             var qInit=parseInt(row['Qté initiale'])||0, qVendu=parseInt(row['Qté vendue'])||0;
             return {id:Date.now()+1000+i,nom:String(row['Nom']||''),qteInitiale:qInit,qteVendue:qVendu,
               qteRestante:Math.max(0,qInit-qVendu),origPerso:parseInt(row['Dont apporté perso'])||0,
-              seuil:parseInt(row['Seuil alerte'])||3,achat:num(row['Prix achat']),vente:num(row['Prix vente']),
+              seuil:(function(x){var n=parseInt(x);return isNaN(n)?3:Math.max(0,n);})(row['Seuil alerte']),achat:num(row['Prix achat']),vente:num(row['Prix vente']),
               date:parseDateExcel(row['Date']),heure:nowHM()};
           }),
           perso:(shPerso||[]).map(function(row,i){
@@ -12679,8 +12746,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.73'; // 08-10-2026 : en-tête — en paysage sur téléphone, tous les boutons (⟳, Affichage, Paramètres, 🔑, Export, Excel, Import, Clôture, Tout, Déconnexion) tiennent à l'écran sans défilement : libellés remplacés par des icônes + infobulle à appui long (CSS/affichage uniquement, portrait et ordinateur inchangés). Précédemment V0.72 08-10-2026 : catégories du Stock Entreprise synchronisées entre appareils via Supabase (colonnes categorie + categorie_at, la modification la plus récente gagne ; SQL supabase_v072_categories_stock.sql). Précédemment V0.71 08-10-2026 : catégories du Stock Entreprise enregistrées dans les fiches (207 produits, une seule fois), nom de catégorie retiré à l'affichage même avec une faute (Enticasse, Blutooth). Précédemment V0.70 08-10-2026 : commande fournisseur — regroupement par catégorie enregistrée (une seule fois), nom de catégorie retiré devant les produits, catégorie/Cmd conservées à la fusion cloud. Précédemment V0.69 08-10-2026 : commande fournisseur — produits sans catégorie placés à la fin (A → Z). Précédemment V0.68 08-10-2026 : commande fournisseur triée A → Z (catégories puis produits). Précédemment V0.67 08-10-2026 : la synchro du stock conserve aussi le champ « Cmd » (comme la catégorie). Précédemment V0.66 08-10-2026 : texte de la commande fournisseur au modèle Date / CATÉGORIE / « n. Produit........Qté » ; la synchro du stock ne perd plus la catégorie. Précédemment V0.65 08-10-2026 : Commande fournisseur — présentation Date / CATÉGORIE / « n. Produit........Qté » (sans prix, affichage uniquement). Précédemment V0.64 08-10-2026 16:51 : Stock Entreprise — champ « Cmd » par produit (ajout/modification, mémorisé comme le Seuil) utilisé comme quantité proposée dans Commandes → Fournisseur (valeur par défaut mémorisée pour les anciens produits, modifiable via ✏️ Édition). Précédemment V0.63 08-10-2026 13:50 : onglet Commandes — interface minimale : barre Clients | Fournisseur + « + Commande » + Recherche ; filtres/période/tri A-Z/suppression dans « Filtres » et ⋯ ; carte Client | Total | Statut | ⋯ avec détails dépliables ; vue Fournisseur Catégorie | Produit | Quantité + « Générer » (une seule commande fournisseur, modifiable avant Envoyer) — affichage uniquement, logique métier inchangée. Précédemment V0.62 : 08-10-2026 12:51 : lignes de totaux fixes en bas de leur tableau à tous les niveaux (Activités, Stock Ent., Stock Perso, Dépenses, Associé, Rapport, vue Associé) — une seule ligne, sans retour à la ligne, calculs inchangés — affichage uniquement. Précédemment V0.61 : 08-10-2026 : onglet Commandes simplifié — 2 vues (Clients / Fournisseur), carte unique, bouton « Prévenir » intégré, modale épurée (« Plus d'options »), téléphone non exigé pour la commande FOURNISSEUR. Précédemment V0.60 : // 08-10-2026 12:11 : onglet Commandes simplifié — filtre rapide par statut (Toutes / En attente / En cours / Livré / Annulé), carte claire (client + total, infos, produits, statut + actions en texte), « Produits à commander » repliable avec compteur, message d'aide si vide — affichage uniquement, logique métier inchangée. Précédemment V0.59 : 08-10-2026 11:33 : espaces inutiles réduits à tous les niveaux (marges, cartes, grilles, formulaires) ; Stock Perso — tableau étendu jusqu'en bas, totaux descendus — affichage uniquement. Précédemment V0.58 : 08-10-2026 11:20 : Bilan — « Résumé période » compact (plus de case vide) ; barre de recherche globale et totaux Dépenses masqués au défilement vertical (réaffichés en remontant) ; Associé — bloc des totaux de dettes réduit ; Stock Ent. — lignes sans retour à la ligne ; Stock Perso — totaux « l'entreprise vous doit » sur une ligne — affichage uniquement. Précédemment V0.57 : 08-10-2026 10:12 : compact — totaux sur une seule ligne (police adaptée à la largeur), ligne TOTAL des dépenses toujours visible, tableaux/cartes/espacements réduits, formulaire Patrimoine compacté, bouton « Ajouter à la commande fournisseur » près de la recherche, Associé : barre de « Dettes enregistrées » sur la ligne du titre — affichage uniquement. Précédemment V0.56 : 08-10-2026 02:41 : mise en page compacte — boutons d'action (⋯, Paiement partiel, Imprimer) au bout de la barre de recherche ; barres d'outils (recherche/filtres/ajout) remontées sur la ligne du titre (Activités, Stock Ent., Stock Perso, Dépenses, Historique, Corbeille, Associé) ; boutons secondaires de Associé regroupés dans ⋯ ; hauteur des tableaux ajustée à l'écran — affichage uniquement. Précédemment V0.55 : 08-10-2026 02:14 : Bilan — barre de recherche globale affichée sur la ligne du titre (entre le titre et les boutons « Infos »), à la place de l'ancien « Calculer » ; reprend sa place en haut sur les autres onglets — affichage uniquement. Précédemment V0.54 : 08-10-2026 00:23 : Bilan — bouton « Calculer » retiré (simple rafraîchissement déjà automatique via renderAll/save), second bouton « Infos » déplacé sur la ligne du titre, en-tête sur une seule ligne — affichage uniquement. Précédemment V0.53 : 07-10-2026 22:25 : Commandes — produits à commander affichés par catégorie en liste N° | Désignation | Quantité ; Patrimoine — note masquée par défaut, affichée via le bouton « Infos » ; Bilan — boutons « En savoir plus » remplacés par « Infos » (présentation distincte) — affichage uniquement. Précédemment V0.52 : 07-10-2026 22:01 : champs de texte long (Description, Note, Motif, Adresse, Panne…) en zones multilignes, contenu 100 % visible — affichage uniquement. Précédemment V0.51 : 07-10-2026 21:40 : zones de saisie ajustées au contenu (texte jamais coupé, largeur dynamique, responsive) — affichage uniquement. Précédemment V0.50 : 07-10-2026 21:00 : Activité/Dépense/Commande (champs texte extensibles, Qté réduit, Téléphone obligatoire), Patrimoine (bouton à côté de la date), Bilan (hauteurs réduites). Précédemment V0.49 : 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
-var APP_VERSION_DATE = '2026-10-08T23:30:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.77'; // 09-10-2026 : suppression définitive des anciennes commandes fournisseur (local + Supabase, avec tombstones anti-réapparition). Précédemment V0.76 : 09-10-2026 : liste « À commander » automatique unique (stock restant ≤ seuil, seuil 0 autorisé et distinct du vide, quantité = Cmd − stock restant, envoi WhatsApp direct, sans bouton « Générer » ni historique). Précédemment V0.75 : 09-10-2026 : commande fournisseur — « RESTE » ne dépend plus de la Corbeille : une ligne dont le produit n'existe plus dans le stock est ignorée (affichage, envoi WhatsApp, génération) dans une commande générée automatiquement, et retirée à la génération avec annonce du nom retiré. Précédemment V0.74 08-10-2026 : commande fournisseur — « RESTE » (et tout produit supprimé du stock) ne réapparaît plus ; catégorie lue dans la fiche actuelle seulement (plus dans d'anciennes lignes enregistrées) ; commande fournisseur horodatée pour la synchronisation ; « Anticasse A12 » / « Pochette Original A04 S » rangés dans leur catégorie à l'affichage (aucune fiche modifiée). Précédemment V0.73 08-10-2026 : en-tête — en paysage sur téléphone, tous les boutons (⟳, Affichage, Paramètres, 🔑, Export, Excel, Import, Clôture, Tout, Déconnexion) tiennent à l'écran sans défilement : libellés remplacés par des icônes + infobulle à appui long (CSS/affichage uniquement, portrait et ordinateur inchangés). Précédemment V0.72 08-10-2026 : catégories du Stock Entreprise synchronisées entre appareils via Supabase (colonnes categorie + categorie_at, la modification la plus récente gagne ; SQL supabase_v072_categories_stock.sql). Précédemment V0.71 08-10-2026 : catégories du Stock Entreprise enregistrées dans les fiches (207 produits, une seule fois), nom de catégorie retiré à l'affichage même avec une faute (Enticasse, Blutooth). Précédemment V0.70 08-10-2026 : commande fournisseur — regroupement par catégorie enregistrée (une seule fois), nom de catégorie retiré devant les produits, catégorie/Cmd conservées à la fusion cloud. Précédemment V0.69 08-10-2026 : commande fournisseur — produits sans catégorie placés à la fin (A → Z). Précédemment V0.68 08-10-2026 : commande fournisseur triée A → Z (catégories puis produits). Précédemment V0.67 08-10-2026 : la synchro du stock conserve aussi le champ « Cmd » (comme la catégorie). Précédemment V0.66 08-10-2026 : texte de la commande fournisseur au modèle Date / CATÉGORIE / « n. Produit........Qté » ; la synchro du stock ne perd plus la catégorie. Précédemment V0.65 08-10-2026 : Commande fournisseur — présentation Date / CATÉGORIE / « n. Produit........Qté » (sans prix, affichage uniquement). Précédemment V0.64 08-10-2026 16:51 : Stock Entreprise — champ « Cmd » par produit (ajout/modification, mémorisé comme le Seuil) utilisé comme quantité proposée dans Commandes → Fournisseur (valeur par défaut mémorisée pour les anciens produits, modifiable via ✏️ Édition). Précédemment V0.63 08-10-2026 13:50 : onglet Commandes — interface minimale : barre Clients | Fournisseur + « + Commande » + Recherche ; filtres/période/tri A-Z/suppression dans « Filtres » et ⋯ ; carte Client | Total | Statut | ⋯ avec détails dépliables ; vue Fournisseur Catégorie | Produit | Quantité + « Générer » (une seule commande fournisseur, modifiable avant Envoyer) — affichage uniquement, logique métier inchangée. Précédemment V0.62 : 08-10-2026 12:51 : lignes de totaux fixes en bas de leur tableau à tous les niveaux (Activités, Stock Ent., Stock Perso, Dépenses, Associé, Rapport, vue Associé) — une seule ligne, sans retour à la ligne, calculs inchangés — affichage uniquement. Précédemment V0.61 : 08-10-2026 : onglet Commandes simplifié — 2 vues (Clients / Fournisseur), carte unique, bouton « Prévenir » intégré, modale épurée (« Plus d'options »), téléphone non exigé pour la commande FOURNISSEUR. Précédemment V0.60 : // 08-10-2026 12:11 : onglet Commandes simplifié — filtre rapide par statut (Toutes / En attente / En cours / Livré / Annulé), carte claire (client + total, infos, produits, statut + actions en texte), « Produits à commander » repliable avec compteur, message d'aide si vide — affichage uniquement, logique métier inchangée. Précédemment V0.59 : 08-10-2026 11:33 : espaces inutiles réduits à tous les niveaux (marges, cartes, grilles, formulaires) ; Stock Perso — tableau étendu jusqu'en bas, totaux descendus — affichage uniquement. Précédemment V0.58 : 08-10-2026 11:20 : Bilan — « Résumé période » compact (plus de case vide) ; barre de recherche globale et totaux Dépenses masqués au défilement vertical (réaffichés en remontant) ; Associé — bloc des totaux de dettes réduit ; Stock Ent. — lignes sans retour à la ligne ; Stock Perso — totaux « l'entreprise vous doit » sur une ligne — affichage uniquement. Précédemment V0.57 : 08-10-2026 10:12 : compact — totaux sur une seule ligne (police adaptée à la largeur), ligne TOTAL des dépenses toujours visible, tableaux/cartes/espacements réduits, formulaire Patrimoine compacté, bouton « Ajouter à la commande fournisseur » près de la recherche, Associé : barre de « Dettes enregistrées » sur la ligne du titre — affichage uniquement. Précédemment V0.56 : 08-10-2026 02:41 : mise en page compacte — boutons d'action (⋯, Paiement partiel, Imprimer) au bout de la barre de recherche ; barres d'outils (recherche/filtres/ajout) remontées sur la ligne du titre (Activités, Stock Ent., Stock Perso, Dépenses, Historique, Corbeille, Associé) ; boutons secondaires de Associé regroupés dans ⋯ ; hauteur des tableaux ajustée à l'écran — affichage uniquement. Précédemment V0.55 : 08-10-2026 02:14 : Bilan — barre de recherche globale affichée sur la ligne du titre (entre le titre et les boutons « Infos »), à la place de l'ancien « Calculer » ; reprend sa place en haut sur les autres onglets — affichage uniquement. Précédemment V0.54 : 08-10-2026 00:23 : Bilan — bouton « Calculer » retiré (simple rafraîchissement déjà automatique via renderAll/save), second bouton « Infos » déplacé sur la ligne du titre, en-tête sur une seule ligne — affichage uniquement. Précédemment V0.53 : 07-10-2026 22:25 : Commandes — produits à commander affichés par catégorie en liste N° | Désignation | Quantité ; Patrimoine — note masquée par défaut, affichée via le bouton « Infos » ; Bilan — boutons « En savoir plus » remplacés par « Infos » (présentation distincte) — affichage uniquement. Précédemment V0.52 : 07-10-2026 22:01 : champs de texte long (Description, Note, Motif, Adresse, Panne…) en zones multilignes, contenu 100 % visible — affichage uniquement. Précédemment V0.51 : 07-10-2026 21:40 : zones de saisie ajustées au contenu (texte jamais coupé, largeur dynamique, responsive) — affichage uniquement. Précédemment V0.50 : 07-10-2026 21:00 : Activité/Dépense/Commande (champs texte extensibles, Qté réduit, Téléphone obligatoire), Patrimoine (bouton à côté de la date), Bilan (hauteurs réduites). Précédemment V0.49 : 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
+var APP_VERSION_DATE = '2026-10-09T18:40:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
@@ -14198,7 +14265,7 @@ function _posterStock(payload, accessToken){
 function mapRowVersStock(r){
   return { id:r.id, nom:r.nom, qteInitiale:Number(r.qte_initiale)||0, qteVendue:Number(r.qte_vendue)||0,
     qteRestante:Number(r.qte_restante)||0, achat:Number(r.achat)||0, vente:Number(r.vente)||0,
-    seuil:Number(r.seuil)||3, date:r.date, heure:r.heure, origPerso:Number(r.orig_perso)||0,
+    seuil:(r.seuil===null||r.seuil===undefined||r.seuil===''||isNaN(Number(r.seuil)))?3:(Number(r.seuil)<0?null:Number(r.seuil)), date:r.date, heure:r.heure, origPerso:Number(r.orig_perso)||0,
     categorie:(r.categorie?String(r.categorie):''), categorieAt:(r.categorie_at?(Date.parse(r.categorie_at)||0):0) }; // V0.72 : colonnes categorie / categorie_at (absentes = vide / 0)
 }
 /** Convertit une activité de l'app (camelCase) vers une ligne pour la table "activites". */
@@ -14245,7 +14312,7 @@ function mapStockVersRow(s){
   return { id:s.id, nom:(s.nom!==undefined?s.nom:null),
     qte_initiale:(s.qteInitiale!==undefined?s.qteInitiale:null), qte_vendue:(s.qteVendue!==undefined?s.qteVendue:null),
     qte_restante:(s.qteRestante!==undefined?s.qteRestante:null), achat:(s.achat!==undefined?s.achat:null),
-    vente:(s.vente!==undefined?s.vente:null), seuil:(s.seuil!==undefined?s.seuil:null),
+    vente:(s.vente!==undefined?s.vente:null), seuil:(s.seuil===null?-1:(s.seuil!==undefined?s.seuil:null)),
     date:(s.date!==undefined?s.date:null), heure:(s.heure!==undefined?s.heure:null), orig_perso:s.origPerso||0,
     categorie:(s.categorie?String(s.categorie).trim()||null:null), categorie_at:(Number(s.categorieAt)>0?new Date(Number(s.categorieAt)).toISOString():null) }; // V0.72 : toujours les 2 clés (PostgREST)
 }
