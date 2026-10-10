@@ -25,7 +25,7 @@
    s'accompagner d'un incrément de CACHE_VERSION ci-dessous.
    ===================================================================== */
 
-const CACHE_VERSION = 'v265'; // 10-10-2026 : index.html V1.00 — compte Associé : tableau compact + en-tête portrait.
+const CACHE_VERSION = 'v267'; // 10-10-2026 : index.html V1.02 — impression PDF Visiteur : montants agrandis, Total des avoirs en évidence. (avant v266 : index.html V1.01 — Associé/Visiteur : plus de boutons Admin ; tableau Visiteur compact.)
 const CACHE_NAME = 'boulliwel-pro-' + CACHE_VERSION;
 
 // Fichiers constituant l'app shell : nécessaires au fonctionnement hors ligne

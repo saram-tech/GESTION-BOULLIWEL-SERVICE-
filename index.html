@@ -1411,6 +1411,14 @@ html.fs-xl .barre-add-sticky{flex-wrap:wrap;max-width:100%;justify-content:flex-
 }
 /* ===== /V1.00 ===== */
 
+/* ===== V1.01 — COMPTES ASSOCIE ET VISITEUR : LA RANGEE D'ACTIONS ADMIN (« PAIEMENT PARTIEL », « ⋯ », « IMPRIMER » DU TABLEAU DE BORD…) N'EST JAMAIS AFFICHEE ; TABLEAU VISITEUR : DATE SUR UNE LIGNE (AFFICHAGE UNIQUEMENT) ===== */
+body:has(#vue-visiteur:not([style*="none"])) #gs-row,
+body:has(#vue-associe:not([style*="none"])) #gs-row{display:none !important;}
+#vue-visiteur .tw table td .dj-b{display:inline;white-space:nowrap;}
+#vue-visiteur .tw table td .dj-j,#vue-visiteur .tw table td .dj-d{display:inline;}
+#vue-visiteur .tw table td .dj-j{margin-right:4px;}
+/* ===== /V1.01 ===== */
+
 </style>
 </head>
 <body>
@@ -11593,6 +11601,19 @@ function imprimerSection(elementId, titre){
   clone.querySelectorAll('button, select, input, .no-print, .btn-refresh').forEach(function(el){ el.remove(); });
   clone.classList.remove('active');
   var doc = fenetre.document;
+  // V1.02 — mise en page d'impression du compte Visiteur UNIQUEMENT (aucun autre compte/onglet concerné)
+  var estVisiteurImp = (elementId==='vue-visiteur');
+  var cssVisiteurImp = estVisiteurImp ? (
+    '.pv .vv-grid{display:block;margin:0 0 5mm;}'+
+    '.pv .vv-card{display:block;width:auto;box-sizing:border-box;border:1px solid #666;border-radius:3mm;padding:3mm 5mm;margin:0 0 3.5mm;page-break-inside:avoid;}'+
+    '.pv .vv-card .kl{font-size:10.5pt;font-weight:700;margin:0 0 1mm;}'+
+    '.pv .vv-card .kv{display:block;font-size:24pt;font-weight:800;line-height:1.1;white-space:nowrap;margin:1mm 0 1.5mm;}'+
+    '.pv .vv-card .ks{display:block;font-size:8.5pt;font-weight:400;line-height:1.3;margin:0;}'+
+    '.pv .vv-total{border:2.5pt solid #000;border-radius:3mm;padding:5mm 6mm;background:#e4e4e4 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'+
+    '.pv .vv-total .kl{font-size:12.5pt;font-weight:800;}'+
+    '.pv .vv-total .kv{font-size:40pt;font-weight:900;line-height:1.05;margin:2mm 0 2mm;}'+
+    '.pv .vv-total .ks{font-size:9pt;font-weight:600;}'
+  ) : '';
   doc.open();
   doc.write(
     '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>'+titre+' — GESTION-BOULLIWEL-SERVICE.app</title>'+
@@ -11605,11 +11626,12 @@ function imprimerSection(elementId, titre){
       'thead{display:table-header-group;} tfoot{display:table-footer-group;} tr{page-break-inside:avoid;}'+
       '.kpi{border:1px solid #999;border-radius:4px;padding:8px;margin-bottom:8px;page-break-inside:avoid;display:inline-block;}'+
       '* {color:#000 !important;background:transparent !important;box-shadow:none !important;max-height:none !important;overflow:visible !important;}'+
-      '@page{margin:14mm;}'+
+      cssVisiteurImp+
+      '@page{'+(estVisiteurImp?'size:A4;':'')+'margin:14mm;}'+
     '</style></head><body>'+
     '<h1>GESTION-BOULLIWEL-SERVICE.app — '+titre+'</h1>'+
     '<div class="print-meta">Imprimé le '+fmtDateJour(td())+' à '+nowHM()+'</div>'+
-    clone.innerHTML+
+    (estVisiteurImp?'<div class="pv">':'')+clone.innerHTML+(estVisiteurImp?'</div>':'')+
     '</body></html>'
   );
   doc.close();
@@ -13062,8 +13084,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V1.00'; // 10-10-2026 : compte Associé — lignes du tableau plus compactes (jour et date sur une seule ligne, badge et bouton 🗑 réduits) et, en portrait, bande de boutons de l'en-tête (⟳, Affichage, Mon mot de passe) passée sur sa propre ligne pour être entièrement visible ; affichage uniquement.
-var APP_VERSION_DATE = '2026-10-10T19:40:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V1.02'; // 10-10-2026 : impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
+var APP_VERSION_DATE = '2026-10-10T23:30:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 
 /* ===== V0.82 — OBSERVATEUR UNIQUE DES TABLEAUX (AFFICHAGE UNIQUEMENT) =====
    Remplace les 3 observateurs séparés (V0.79, V0.80, V0.81) par un seul, groupé (40 ms), qui prévient
