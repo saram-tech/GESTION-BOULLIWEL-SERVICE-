@@ -1348,6 +1348,69 @@ nav{top:calc(46px*var(--fs,1));}
 #vue-visiteur .vv-total{border-color:rgba(59,130,246,.45);background:linear-gradient(135deg,var(--bg3),rgba(59,130,246,.10));}
 #vue-visiteur .vv-total .kv{font-size:calc(var(--t4) * 1.25);font-weight:800;}
 /* ===== /V0.93 ===== */
+
+/* ===== V0.94 — TEXTE TRES GRAND (>=130 %) : LES BARRES D'OUTILS PASSENT A LA LIGNE AU LIEU DE DEBORDER (AFFICHAGE UNIQUEMENT) ===== */
+html.fs-xl .sh{flex-wrap:wrap}
+html.fs-xl .barre-add-sticky{flex-wrap:wrap;max-width:100%;justify-content:flex-end}
+/* ===== /V0.94 ===== */
+
+/* ===== V0.95 — COMPTE VISITEUR : TOUS LES TEXTES DE LA VUE EN GRAS, DONNEES SAISIES COMPRISES (AFFICHAGE UNIQUEMENT) ===== */
+#vue-visiteur .vv-card .kl{font-weight:700;}
+#vue-visiteur,#vue-visiteur *{font-weight:700;}
+#vue-visiteur .vv-total .kv{font-weight:800;}
+/* ===== /V0.95 ===== */
+
+/* ===== V0.97 — COMPTE VISITEUR : TABLEAU « BIENS & MATERIELS » ET CARTES COMPACTS, PLUS DE LIGNES VISIBLES (AFFICHAGE UNIQUEMENT) ===== */
+#vue-visiteur .tw table td{padding:2px 6px;line-height:1.2;}
+#vue-visiteur .tw table th{padding:3px 6px;line-height:1.2;}
+#vue-visiteur .tw table tbody tr{height:auto;}
+#vue-visiteur .tw table td[colspan]{padding:12px 6px;}
+#vue-visiteur .card{padding:8px 10px;}
+#vue-visiteur .card > div:nth-child(1){margin-bottom:4px !important;}
+#vue-visiteur .card > div:nth-child(2){margin-bottom:4px !important;line-height:1.25;}
+#vue-visiteur .vv-grid{gap:3px;margin-bottom:4px;}
+#vue-visiteur .vv-card{padding:3px 9px !important;row-gap:0;border-radius:9px;}
+#vue-visiteur .vv-card .kl{line-height:1.15;}
+#vue-visiteur .vv-card .kv{line-height:1.05;}
+#vue-visiteur .vv-more{line-height:1.15;padding:0 8px;}
+#vue-visiteur .vv-card .ks{margin:2px 0 0;padding-top:3px;line-height:1.25;}
+/* ===== /V0.97 ===== */
+/* ===== V0.99 — COMPTE ASSOCIE : MEMES MODELES QUE LE VISITEUR (CARTES COMPACTES + « PLUS D'INFOS », TEXTES EN GRAS, TABLEAU COMPACT) — AFFICHAGE UNIQUEMENT ===== */
+#vue-associe .vv-grid{display:grid;grid-template-columns:1fr;gap:3px;margin-bottom:4px !important;}
+@media(min-width:700px){#vue-associe .vv-grid{grid-template-columns:1fr 1fr;}}
+#vue-associe .vv-card{display:grid;grid-template-columns:1fr auto;grid-template-areas:"kl kv" "kl more" "ks ks";column-gap:10px;row-gap:0;align-items:center;padding:3px 9px !important;border-radius:9px;}
+#vue-associe .vv-card .kl{grid-area:kl;margin:0 !important;line-height:1.15;font-size:calc(var(--t1) * .92);}
+#vue-associe .vv-card .kv{grid-area:kv;justify-self:end;text-align:right;line-height:1.05;white-space:nowrap;}
+#vue-associe .vv-more{grid-area:more;justify-self:end;font:inherit;font-size:calc(var(--t1) * .9);line-height:1.15;color:var(--ac);background:transparent;border:1px solid var(--bd);border-radius:999px;padding:0 8px;cursor:pointer;margin:0;}
+#vue-associe .vv-card .vv-more[aria-expanded]::after{content:"\25BE";display:inline-block;margin-left:4px;transition:transform .2s;}
+#vue-associe .vv-card.open .vv-more::after{transform:rotate(180deg);}
+#vue-associe .vv-card .ks{grid-area:ks;display:none;margin:2px 0 0;padding-top:3px;border-top:1px dashed var(--bd);line-height:1.25;}
+#vue-associe .vv-card.open .ks{display:block;}
+#vue-associe,#vue-associe *{font-weight:700;}
+#vue-associe .tw table td{padding:2px 6px;line-height:1.2;}
+#vue-associe .tw table th{padding:3px 6px;line-height:1.2;}
+#vue-associe .tw table tbody tr{height:auto;}
+#vue-associe .tw table td[colspan]{padding:12px 6px;}
+#vue-associe .card{padding:8px 10px;}
+#vue-associe .card > div:nth-child(1){margin-bottom:4px !important;}
+#vue-associe .card > div:nth-child(2){margin-bottom:4px !important;}
+/* ===== /V0.99 ===== */
+/* ===== V1.00 — COMPTE ASSOCIE : LIGNES DU TABLEAU PLUS COMPACTES (DATE SUR UNE LIGNE) + « MON MOT DE PASSE » ENTIEREMENT VISIBLE EN PORTRAIT (EN-TETE SUR 2 LIGNES) (AFFICHAGE UNIQUEMENT) ===== */
+#vue-associe .tw table td{padding:1px 5px;line-height:1.15;vertical-align:middle;}
+#vue-associe .tw table td .badge{padding:0 6px;line-height:1.2;font-size:.66rem;min-height:0;}
+#vue-associe .tw table td .btn.bxs{padding:1px 6px;min-height:0;line-height:1.1;font-size:.66rem;border-radius:5px;}
+#vue-associe .tw table td.ac{padding:1px 4px;}
+#vue-associe .tw table td .dj-b{display:inline;white-space:nowrap;}
+#vue-associe .tw table td .dj-j,#vue-associe .tw table td .dj-d{display:inline;}
+#vue-associe .tw table td .dj-j{margin-right:4px;}
+#vue-associe .tw table td[colspan]{padding:12px 6px;}
+@media (max-width:600px) and (orientation:portrait){
+  header:has(#hbts-associe:not([style*="none"])){flex-wrap:wrap;height:auto;min-height:46px;padding-top:2px;padding-bottom:3px;row-gap:2px;overflow:visible;align-items:center;}
+  header:has(#hbts-associe:not([style*="none"])) > #hbts-associe{order:5;flex:1 0 100%;width:100%;margin-left:0;justify-content:flex-start;gap:4px !important;}
+  header:has(#hbts-associe:not([style*="none"])) > #btn-logout,header:has(#hbts-associe:not([style*="none"])) > button.btn:last-of-type{margin-left:auto;}
+}
+/* ===== /V1.00 ===== */
+
 </style>
 </head>
 <body>
@@ -1539,11 +1602,11 @@ nav{top:calc(46px*var(--fs,1));}
      principe que "Reste que vous devez" → En savoir plus).
      ================================================================ -->
 <div id="vue-associe" style="display:none">
-  <div class="g4" style="margin-bottom:14px" id="va-dashboard">
-    <div class="kpi" data-vk="as-capital"><div class="kl">Votre capital actuel</div><div class="kv g" id="va-capital">0 GNF</div><div class="ks">Produits saisis directement en Stock Ent. ÷ 2</div></div>
-    <div class="kpi" data-vk="as-interet"><div class="kl">Votre part d'intérêt actuelle</div><div class="kv" id="va-interet">0 GNF</div><div class="ks">Votre part = Bénéfice total ÷ 2 (partage 50/50)</div></div>
-    <div class="kpi" data-vk="as-reste"><div class="kl">Reste que vous devez à votre associé</div><div class="kv r" id="va-reste">0 GNF</div><button class="btn bh bxs no-print" style="margin-top:6px" onclick="ouvrirDetailDette()">En savoir plus</button></div>
-    <div class="kpi" data-vk="as-depenses"><div class="kl">Total dépenses</div><div class="kv r" id="va-depenses">0 GNF</div><button class="btn bh bxs no-print" style="margin-top:6px" onclick="ouvrirDetailDepenses()">En savoir plus</button></div>
+  <div class="g4 vv-grid" style="margin-bottom:14px" id="va-dashboard">
+    <div class="kpi vv-card" data-vk="as-capital"><div class="kl">Votre capital actuel</div><div class="kv g" id="va-capital">0 GNF</div><button type="button" class="vv-more no-print" onclick="vvToggleInfo(this)" aria-expanded="false">Plus d'infos</button><div class="ks">Produits saisis directement en Stock Ent. ÷ 2</div></div>
+    <div class="kpi vv-card" data-vk="as-interet"><div class="kl">Votre part d'intérêt actuelle</div><div class="kv" id="va-interet">0 GNF</div><button type="button" class="vv-more no-print" onclick="vvToggleInfo(this)" aria-expanded="false">Plus d'infos</button><div class="ks">Votre part = Bénéfice total ÷ 2 (partage 50/50)</div></div>
+    <div class="kpi vv-card" data-vk="as-reste"><div class="kl">Reste que vous devez à votre associé</div><div class="kv r" id="va-reste">0 GNF</div><button type="button" class="vv-more no-print" onclick="ouvrirDetailDette()">En savoir plus</button></div>
+    <div class="kpi vv-card" data-vk="as-depenses"><div class="kl">Total dépenses</div><div class="kv r" id="va-depenses">0 GNF</div><button type="button" class="vv-more no-print" onclick="ouvrirDetailDepenses()">En savoir plus</button></div>
   </div>
   <div class="card" data-vk="as-activites">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
@@ -6937,6 +7000,7 @@ function changerTaillePolice(delta){
 function appliquerTaillePolice(pct){
   pct=Math.max(80,Math.min(150,parseInt(pct,10)||100));
   document.documentElement.style.fontSize=pct+'%';
+  try{ document.documentElement.classList.toggle('fs-xl', pct>=130); }catch(e){}
   try{ localStorage.setItem('bpro_taille_police',String(pct)); }catch(e){}
   var slider=document.getElementById('rg-taille-police'); if(slider) slider.value=pct;
   st('lbl-taille-police',pct+'%');
@@ -7152,6 +7216,7 @@ function appliquerPreferencesAffichage(){
   document.documentElement.style.setProperty('--nav-z',String(lireTailleOnglets()/100));
   var pct=parseInt(localStorage.getItem('bpro_taille_police')||'100',10);
   document.documentElement.style.fontSize=(isNaN(pct)?100:Math.max(80,Math.min(150,pct)))+'%';
+  try{ document.documentElement.classList.toggle('fs-xl', !isNaN(pct)&&pct>=130); }catch(e){}
   var theme=localStorage.getItem('bpro_theme')||'sombre';
   if(theme!=='sombre') document.documentElement.setAttribute('data-theme',theme);
   // Nettoyage : toute langue mémorisée autre que fr/en/ff revient au Français.
@@ -12997,8 +13062,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.93'; // 10-10-2026 09:07 : panneau « Affichage » — aperçu en direct de la taille des onglets (onglet sélectionné + onglet normal) : le réglage était déjà appliqué mais invisible tant que le panneau recouvrait la barre d'onglets (affichage uniquement). Précédemment V0.91 : 10-10-2026 08:36 : taille des onglets indépendante de la taille du texte (affichage uniquement). Précédemment V0.90 : 10-10-2026 08:32 : taille du texte/onglets — hauteur d'en-tête et position de la barre d'onglets suivent la taille du texte, recalcul des mises en page après chaque changement (affichage uniquement). Précédemment V0.89 : 10-10-2026 08:26 : « Dernières opérations » sous « Actions rapides » (pleine largeur) ; viewport minimum-scale=1 (la page ne se réduit plus quand un élément déborde) — affichage uniquement. Précédemment V0.88 : 10-10-2026 07:20 : boîte « Affichage » stable (calée sur la zone visible, alignée en haut, curseurs sans défilement de page, colonnes thème/langue contenues) — affichage uniquement. Précédemment V0.87 : 10-10-2026 02:50 : dates sur 3 lignes au plus (jour / JJ-MM-AAAA / heure, jamais coupées), champs des boîtes de dialogue réellement adaptés au texte (pleine largeur puis police réduite) — affichage uniquement. Précédemment V0.86 : 10-10-2026 02:25 : colonne Date réduite à sa largeur réelle (jour/date dans un bloc, plus dans un élément en ligne), pastille « Reste » sous le montant, Rapport entièrement visible en portrait (aucune largeur minimale, police jusqu'à 6 px au besoin) — affichage uniquement. Précédemment V0.85 : 10-10-2026 02:07 : noms de produits entièrement visibles dans les champs des dialogues (zone pleine largeur), réajustement des tableaux avant affichage + défilement conservé après synchro, colonne Date plus étroite, numéros de téléphone en gras et en couleur (affichage uniquement). Précédemment V0.84 : 10-10-2026 01:40 : tableaux dynamiques — colonne texte principale absorbe l'espace restant, autres colonnes au plus juste, lignes à la hauteur du contenu, réajustement après chaque modification/filtre/synchro (affichage uniquement). Précédemment V0.83 : 10-10-2026 01:17 : en-tête sans « Gestion Intégrée » (version seule), colonne Actions remise en vraie cellule de tableau (lignes alignées, montant plus recouvert), pastille de dernier ajout à la ligne, marges de colonnes réduites — affichage uniquement. Précédemment V0.82 : 10-10-2026 00:42 : Patrimoine (formulaire en édition corrigé), séparateurs horizontaux, colonnes vides (« — » compris) masquées dynamiquement, Rapport en police maximale, en-tête compact « BS.app » sans heure, onglet actif réduit, performances (totaux, hauteur de page, synchro auto, observateur unique) — affichage/performances uniquement. Précédemment V0.81 09-10-2026 23:30 : contenu toujours lisible — plus de points de suspension (logo, badge de synchro, titre Bilan, clients des Commandes), longs textes de tableau à la ligne, Patrimoine : Nom multiligne (Entrée = saut de ligne) et tableau lisible en portrait sans coupure (affichage uniquement, aucune donnée/calcul/synchro modifié). Précédemment V0.80 — 09-10-2026 : tableaux — en-têtes sur plusieurs lignes centrés, colonnes dont toutes les cellules de données sont vides masquées automatiquement (réaffichées dès qu'une donnée apparaît), aucune donnée/calcul/export modifié — affichage uniquement. Précédemment V0.79 : 09-10-2026 : dates de tous les tableaux sur deux lignes centrées (jour puis JJ-MM-AAAA, via un petit utilitaire d'affichage qui entoure le jour et la date de <span>, texte inchangé), Rapport — Historique clôture entièrement visible en portrait sans défilement horizontal — affichage uniquement. Précédemment V0.78 : 09-10-2026 : tableaux — colonnes ajustées au contenu, aucun retour à la ligne (portrait et paysage), défilement horizontal si nécessaire, séparateurs verticaux entre toutes les colonnes — affichage uniquement. Précédemment V0.77 : 09-10-2026 : suppression définitive des anciennes commandes fournisseur (local + Supabase, avec tombstones anti-réapparition). Précédemment V0.76 : 09-10-2026 : liste « À commander » automatique unique (stock restant ≤ seuil, seuil 0 autorisé et distinct du vide, quantité = Cmd − stock restant, envoi WhatsApp direct, sans bouton « Générer » ni historique). Précédemment V0.75 : 09-10-2026 : commande fournisseur — « RESTE » ne dépend plus de la Corbeille : une ligne dont le produit n'existe plus dans le stock est ignorée (affichage, envoi WhatsApp, génération) dans une commande générée automatiquement, et retirée à la génération avec annonce du nom retiré. Précédemment V0.74 08-10-2026 : commande fournisseur — « RESTE » (et tout produit supprimé du stock) ne réapparaît plus ; catégorie lue dans la fiche actuelle seulement (plus dans d'anciennes lignes enregistrées) ; commande fournisseur horodatée pour la synchronisation ; « Anticasse A12 » / « Pochette Original A04 S » rangés dans leur catégorie à l'affichage (aucune fiche modifiée). Précédemment V0.73 08-10-2026 : en-tête — en paysage sur téléphone, tous les boutons (⟳, Affichage, Paramètres, 🔑, Export, Excel, Import, Clôture, Tout, Déconnexion) tiennent à l'écran sans défilement : libellés remplacés par des icônes + infobulle à appui long (CSS/affichage uniquement, portrait et ordinateur inchangés). Précédemment V0.72 08-10-2026 : catégories du Stock Entreprise synchronisées entre appareils via Supabase (colonnes categorie + categorie_at, la modification la plus récente gagne ; SQL supabase_v072_categories_stock.sql). Précédemment V0.71 08-10-2026 : catégories du Stock Entreprise enregistrées dans les fiches (207 produits, une seule fois), nom de catégorie retiré à l'affichage même avec une faute (Enticasse, Blutooth). Précédemment V0.70 08-10-2026 : commande fournisseur — regroupement par catégorie enregistrée (une seule fois), nom de catégorie retiré devant les produits, catégorie/Cmd conservées à la fusion cloud. Précédemment V0.69 08-10-2026 : commande fournisseur — produits sans catégorie placés à la fin (A → Z). Précédemment V0.68 08-10-2026 : commande fournisseur triée A → Z (catégories puis produits). Précédemment V0.67 08-10-2026 : la synchro du stock conserve aussi le champ « Cmd » (comme la catégorie). Précédemment V0.66 08-10-2026 : texte de la commande fournisseur au modèle Date / CATÉGORIE / « n. Produit........Qté » ; la synchro du stock ne perd plus la catégorie. Précédemment V0.65 08-10-2026 : Commande fournisseur — présentation Date / CATÉGORIE / « n. Produit........Qté » (sans prix, affichage uniquement). Précédemment V0.64 08-10-2026 16:51 : Stock Entreprise — champ « Cmd » par produit (ajout/modification, mémorisé comme le Seuil) utilisé comme quantité proposée dans Commandes → Fournisseur (valeur par défaut mémorisée pour les anciens produits, modifiable via ✏️ Édition). Précédemment V0.63 08-10-2026 13:50 : onglet Commandes — interface minimale : barre Clients | Fournisseur + « + Commande » + Recherche ; filtres/période/tri A-Z/suppression dans « Filtres » et ⋯ ; carte Client | Total | Statut | ⋯ avec détails dépliables ; vue Fournisseur Catégorie | Produit | Quantité + « Générer » (une seule commande fournisseur, modifiable avant Envoyer) — affichage uniquement, logique métier inchangée. Précédemment V0.62 : 08-10-2026 12:51 : lignes de totaux fixes en bas de leur tableau à tous les niveaux (Activités, Stock Ent., Stock Perso, Dépenses, Associé, Rapport, vue Associé) — une seule ligne, sans retour à la ligne, calculs inchangés — affichage uniquement. Précédemment V0.61 : 08-10-2026 : onglet Commandes simplifié — 2 vues (Clients / Fournisseur), carte unique, bouton « Prévenir » intégré, modale épurée (« Plus d'options »), téléphone non exigé pour la commande FOURNISSEUR. Précédemment V0.60 : // 08-10-2026 12:11 : onglet Commandes simplifié — filtre rapide par statut (Toutes / En attente / En cours / Livré / Annulé), carte claire (client + total, infos, produits, statut + actions en texte), « Produits à commander » repliable avec compteur, message d'aide si vide — affichage uniquement, logique métier inchangée. Précédemment V0.59 : 08-10-2026 11:33 : espaces inutiles réduits à tous les niveaux (marges, cartes, grilles, formulaires) ; Stock Perso — tableau étendu jusqu'en bas, totaux descendus — affichage uniquement. Précédemment V0.58 : 08-10-2026 11:20 : Bilan — « Résumé période » compact (plus de case vide) ; barre de recherche globale et totaux Dépenses masqués au défilement vertical (réaffichés en remontant) ; Associé — bloc des totaux de dettes réduit ; Stock Ent. — lignes sans retour à la ligne ; Stock Perso — totaux « l'entreprise vous doit » sur une ligne — affichage uniquement. Précédemment V0.57 : 08-10-2026 10:12 : compact — totaux sur une seule ligne (police adaptée à la largeur), ligne TOTAL des dépenses toujours visible, tableaux/cartes/espacements réduits, formulaire Patrimoine compacté, bouton « Ajouter à la commande fournisseur » près de la recherche, Associé : barre de « Dettes enregistrées » sur la ligne du titre — affichage uniquement. Précédemment V0.56 : 08-10-2026 02:41 : mise en page compacte — boutons d'action (⋯, Paiement partiel, Imprimer) au bout de la barre de recherche ; barres d'outils (recherche/filtres/ajout) remontées sur la ligne du titre (Activités, Stock Ent., Stock Perso, Dépenses, Historique, Corbeille, Associé) ; boutons secondaires de Associé regroupés dans ⋯ ; hauteur des tableaux ajustée à l'écran — affichage uniquement. Précédemment V0.55 : 08-10-2026 02:14 : Bilan — barre de recherche globale affichée sur la ligne du titre (entre le titre et les boutons « Infos »), à la place de l'ancien « Calculer » ; reprend sa place en haut sur les autres onglets — affichage uniquement. Précédemment V0.54 : 08-10-2026 00:23 : Bilan — bouton « Calculer » retiré (simple rafraîchissement déjà automatique via renderAll/save), second bouton « Infos » déplacé sur la ligne du titre, en-tête sur une seule ligne — affichage uniquement. Précédemment V0.53 : 07-10-2026 22:25 : Commandes — produits à commander affichés par catégorie en liste N° | Désignation | Quantité ; Patrimoine — note masquée par défaut, affichée via le bouton « Infos » ; Bilan — boutons « En savoir plus » remplacés par « Infos » (présentation distincte) — affichage uniquement. Précédemment V0.52 : 07-10-2026 22:01 : champs de texte long (Description, Note, Motif, Adresse, Panne…) en zones multilignes, contenu 100 % visible — affichage uniquement. Précédemment V0.51 : 07-10-2026 21:40 : zones de saisie ajustées au contenu (texte jamais coupé, largeur dynamique, responsive) — affichage uniquement. Précédemment V0.50 : 07-10-2026 21:00 : Activité/Dépense/Commande (champs texte extensibles, Qté réduit, Téléphone obligatoire), Patrimoine (bouton à côté de la date), Bilan (hauteurs réduites). Précédemment V0.49 : 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
-var APP_VERSION_DATE = '2026-10-10T08:36:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V1.00'; // 10-10-2026 : compte Associé — lignes du tableau plus compactes (jour et date sur une seule ligne, badge et bouton 🗑 réduits) et, en portrait, bande de boutons de l'en-tête (⟳, Affichage, Mon mot de passe) passée sur sa propre ligne pour être entièrement visible ; affichage uniquement.
+var APP_VERSION_DATE = '2026-10-10T19:40:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 
 /* ===== V0.82 — OBSERVATEUR UNIQUE DES TABLEAUX (AFFICHAGE UNIQUEMENT) =====
    Remplace les 3 observateurs séparés (V0.79, V0.80, V0.81) par un seul, groupé (40 ms), qui prévient
