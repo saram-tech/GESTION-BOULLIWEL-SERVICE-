@@ -788,14 +788,6 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 #mc .modal>.fr>.fg:has(>div>input[type="tel"]){flex:1 1 auto !important;}
 .modal>.fr>.fg:has(#a-qte),.modal>.fr>.fg:has(#dep-qte){min-width:44px;}
 .modal>.fr>.fg:has(#a-type){min-width:134px;}
-.card:has(#pt-nom){display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px 8px;}
-.card:has(#pt-nom)>*{flex:0 0 100%;min-width:0;}
-.card:has(#pt-nom)>.fr{display:contents;}
-.card:has(#pt-nom)>.fr>.fg{flex:0 0 auto;width:min-content;min-width:60px;}
-.card:has(#pt-nom)>.fr>.fg>label{white-space:nowrap;padding-right:8px;}
-.card:has(#pt-nom)>.fr>.fg:has(#pt-nom){flex:1 1 140px;width:auto;}
-.card:has(#pt-nom)>.fr>.fg:has(#pt-date){min-width:130px;}
-.card:has(#pt-nom)>div:last-child{flex:0 0 auto;margin-left:auto;}
 #bilan-result .card{padding:7px 10px;margin-bottom:7px;}
 #bilan-result .ch{margin-bottom:5px;font-size:.8rem;}
 #bilan-result .g5,#bilan-result .g2{gap:5px;}
@@ -904,16 +896,8 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 #btn-cmd-auto{font-size:.62rem;padding:3px 6px;line-height:1.1;white-space:normal !important;text-align:center;max-width:136px;}
 #alertes-stock .tw{margin:0;}
 #tab-patrimoine > div:first-child{margin-bottom:4px !important;}
-#fm-patrimoine + .card{display:grid !important;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;align-items:end;}
-#fm-patrimoine + .card > div:first-child{display:none;}
-#fm-patrimoine + .card > .fr{margin:0 !important;gap:6px !important;}
-#fm-patrimoine + .card > div:first-child + .fr{grid-column:1 / -1;}
-#fm-patrimoine + .card > .fr + .fr{grid-column:1;}
-#fm-patrimoine + .card > div:last-child{grid-column:2;margin:0 !important;}
-#fm-patrimoine + .card .fg{margin:0 !important;}
 #fm-patrimoine + .card label{font-size:.58rem !important;line-height:1 !important;margin:0 0 2px !important;}
 #fm-patrimoine + .card input{padding:5px 8px !important;}
-#fm-patrimoine + .card > div:first-child + .fr .fg:nth-child(2){flex:0 0 64px !important;max-width:64px;}
 #fm-patrimoine + .card + .card > div:first-child{margin-bottom:5px !important;flex-wrap:nowrap !important;}
 .tot-ligne{margin-top:3px !important;padding-top:4px !important;}
 :is(#tab-activites,#tab-stock,#tab-perso,#tab-depenses,#tab-associe,#tab-historique,#tab-corbeille,#tab-commandes,#tab-patrimoine) .tw td:is(:nth-child(1),:nth-child(2)):has(> span[style*="color:var(--tx3);font-size:.6"]){white-space:nowrap;}
@@ -1213,6 +1197,41 @@ body:not(.printing-mode) #tbl-patrimoine td:not(.pt-n){vertical-align:middle;}
   body:not(.printing-mode) #tab-patrimoine .tw th{font-size:.58rem;}
 }
 /* ===== /V0.81 ===== */
+/* =====================================================================
+   V0.82 — AFFICHAGE UNIQUEMENT (aucune donnée, calcul, synchronisation ni permission modifié)
+   - Patrimoine : formulaire en grille unique (Nom pleine largeur ; Quantité + Date ; boutons qui passent à la ligne sans déborder).
+   - Tableaux : séparateurs horizontaux visibles entre toutes les lignes.
+   - Rapport (portrait) : police ajustée au maximum (variable --rf calculée par script) ; « GNF » peut passer sous le nombre.
+   - En-tête compact et épuré ; onglet actif réduit.
+   - Bloc autonome : le supprimer rétablit l'affichage V0.81.
+   ===================================================================== */
+#fm-patrimoine + .card{display:grid !important;grid-template-columns:auto minmax(0,1fr);gap:6px 8px;align-items:end;}
+#fm-patrimoine + .card > div:first-child{display:none;}
+#fm-patrimoine + .card > .fr{display:contents;}
+#fm-patrimoine + .card .fg{margin:0 !important;width:auto;min-width:0;}
+#fm-patrimoine + .card .fg:has(#pt-nom){grid-column:1 / -1;}
+#fm-patrimoine + .card .fg:has(#pt-qte){grid-column:1;width:76px;}
+#fm-patrimoine + .card .fg:has(#pt-date){grid-column:2;}
+#fm-patrimoine + .card > div:last-child{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;margin:0 !important;}
+#fm-patrimoine + .card > div:last-child .btn{flex:1 1 auto;white-space:normal;}
+body:not(.printing-mode) table:not(.ast-t):not(.fo-t) tbody tr:not(:last-child) > :is(td,th){border-bottom:1px solid var(--bd2);}
+@media(max-width:600px){
+  body:not(.printing-mode) #rapport-historique-clotures table{width:100%;}
+  body:not(.printing-mode) #rapport-historique-clotures :is(th,td){padding:4px 2px !important;font-size:var(--rf,.62rem) !important;white-space:normal !important;word-break:normal !important;}
+  body:not(.printing-mode) #rapport-historique-clotures :is(th,td) *{white-space:normal !important;}
+  body:not(.printing-mode) #rapport-historique-clotures th{font-size:calc(var(--rf,.62rem)*.8) !important;}
+  body:not(.printing-mode) #rapport-historique-clotures td[style*="1.35rem"]{font-size:calc(var(--rf,.62rem)*1.2) !important;}
+  body:not(.printing-mode) #rapport-historique-clotures .dj-b,body:not(.printing-mode) #rapport-historique-clotures .dj-j,body:not(.printing-mode) #rapport-historique-clotures .dj-d{white-space:nowrap !important;}
+}
+header{height:46px;padding:0 10px;gap:6px;background:linear-gradient(180deg,rgba(14,20,36,.98),rgba(7,11,20,.98));backdrop-filter:none;box-shadow:0 6px 16px -14px rgba(0,0,0,.9);}
+nav{top:46px;}
+.logo{font-size:1rem;letter-spacing:.02em;max-width:none;white-space:nowrap;overflow:visible;}
+.logo small{font-size:.58rem;white-space:nowrap;}
+header .sync-badge{font-size:.6rem;padding:3px 8px;line-height:1.1;max-width:36vw;}
+.ni{padding-top:4px;}
+.nb{padding-top:calc(5px*var(--nav-z,1));padding-bottom:calc(5px*var(--nav-z,1));}
+.nb.active{font-size:calc(1rem*var(--nav-z,1));padding:calc(6px*var(--nav-z,1)) calc(14px*var(--nav-z,1));}
+/* ===== /V0.82 ===== */
 </style>
 </head>
 <body>
@@ -1330,7 +1349,7 @@ body:not(.printing-mode) #tbl-patrimoine td:not(.pt-n){vertical-align:middle;}
 </div>
 
 <header>
-  <div class="logo">GESTION-BOULLIWEL-SERVICE.app <small>Gestion Intégrée <span id="hdr-version" onclick="ouvrirAPropos()" style="cursor:pointer;text-decoration:underline dotted" title="Voir les détails de la dernière mise à jour">v—</span></small></div>
+  <div class="logo" title="GESTION-BOULLIWEL-SERVICE.app">BS.app <small>Gestion Intégrée <span id="hdr-version" onclick="ouvrirAPropos()" style="cursor:pointer;text-decoration:underline dotted" title="Voir les détails de la dernière mise à jour">v—</span></small></div>
   <div id="sync-status" class="sync-badge sync-offline" title="Statut de synchronisation — Toucher pour voir le diagnostic détaillé" onclick="diagnosticConnexion()" style="cursor:pointer">⚪ Vérification…</div>
   <div id="hbts-admin" class="hbts">
     <button id="btn-refresh-admin" class="btn-refresh" onclick="rafraichirDonnees()" title="Rafraîchir les données affichées">⟳</button>
@@ -12507,11 +12526,13 @@ function ajusterHauteurPage(){
     var id=tab.id.replace('tab-',''); if(!FIT_TABS[id]) return;
     var zones=[].filter.call(tab.querySelectorAll('.tw, #corbeille-list'),function(z){ return z.offsetParent!==null; });
     if(!zones.length) return;
+    /* V0.82 : rien n'a changé depuis le dernier ajustement → aucune remesure (évite de remettre en page tout le tableau à chaque clic/focus). */
+    var sig=function(){ return id+'|'+window.innerHeight+'|'+Math.round(tab.getBoundingClientRect().bottom+window.pageYOffset)+'|'+zones.map(function(z){ return z.scrollHeight+':'+z.clientHeight; }).join(','); };
+    if(ajusterHauteurPage.__sg===sig()) return;
     var MIN=96, tops=zones.map(function(z){ return z.scrollTop; });
     zones.forEach(function(z){ z.style.maxHeight=MIN+'px'; });
     var bas=tab.getBoundingClientRect().bottom+window.pageYOffset;
     var reste=Math.max(0,window.innerHeight-bas-8);
-    // répartition : un tableau court garde sa hauteur naturelle, le surplus va aux tableaux plus longs
     var extra=zones.map(function(z){ return Math.max(0,z.scrollHeight-MIN); });
     var alloc=zones.map(function(){ return 0; }), ouverts=zones.map(function(z,i){ return i; });
     while(ouverts.length && reste>0.5){
@@ -12521,15 +12542,24 @@ function ajusterHauteurPage(){
       ouverts=ouverts.filter(function(i){ return petits.indexOf(i)<0; });
     }
     zones.forEach(function(z,i){ z.style.maxHeight=Math.floor(MIN+alloc[i])+'px'; z.scrollTop=tops[i]; });
+    ajusterHauteurPage.__sg=sig();
   }catch(e){}
 }
 function ajusterTotaux(){
   try{
     [].forEach.call(document.querySelectorAll('.tab-panel.active .tot-ligne'),function(r){
-      var kids=[].slice.call(r.children), s=1;
+      var kids=[].slice.call(r.children);
+      var sg=function(){ return r.clientWidth+'|'+r.textContent+'|'+getComputedStyle(r).fontSize; };
+      if(r.__sgT && r.__sgT===sg()) return;
       kids.forEach(function(k){ k.style.zoom=''; });
       if(!r.clientWidth) return;
-      while(r.scrollWidth>r.clientWidth+0.5 && s>0.5){ s=Math.round((s-0.03)*100)/100; kids.forEach(function(k){ k.style.zoom=s; }); }
+      /* V0.82 : une seule mesure pour estimer le zoom, puis au plus 4 corrections (avant : jusqu'à ~16 remises en page de toute la page) */
+      var s=1, sw=r.scrollWidth, cw=r.clientWidth, n=0;
+      if(sw>cw+0.5){
+        s=Math.max(0.5,Math.floor(cw/sw*100)/100); kids.forEach(function(k){ k.style.zoom=s; });
+        while(r.scrollWidth>r.clientWidth+0.5 && s>0.5 && n<4){ s=Math.max(0.5,Math.round((s-0.03)*100)/100); kids.forEach(function(k){ k.style.zoom=s; }); n++; }
+      }
+      r.__sgT=sg();
     });
   }catch(e){}
 }
@@ -12847,9 +12877,46 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V0.81'; // 09-10-2026 23:30 : contenu toujours lisible — plus de points de suspension (logo, badge de synchro, titre Bilan, clients des Commandes), longs textes de tableau à la ligne, Patrimoine : Nom multiligne (Entrée = saut de ligne) et tableau lisible en portrait sans coupure (affichage uniquement, aucune donnée/calcul/synchro modifié). Précédemment V0.80 — 09-10-2026 : tableaux — en-têtes sur plusieurs lignes centrés, colonnes dont toutes les cellules de données sont vides masquées automatiquement (réaffichées dès qu'une donnée apparaît), aucune donnée/calcul/export modifié — affichage uniquement. Précédemment V0.79 : 09-10-2026 : dates de tous les tableaux sur deux lignes centrées (jour puis JJ-MM-AAAA, via un petit utilitaire d'affichage qui entoure le jour et la date de <span>, texte inchangé), Rapport — Historique clôture entièrement visible en portrait sans défilement horizontal — affichage uniquement. Précédemment V0.78 : 09-10-2026 : tableaux — colonnes ajustées au contenu, aucun retour à la ligne (portrait et paysage), défilement horizontal si nécessaire, séparateurs verticaux entre toutes les colonnes — affichage uniquement. Précédemment V0.77 : 09-10-2026 : suppression définitive des anciennes commandes fournisseur (local + Supabase, avec tombstones anti-réapparition). Précédemment V0.76 : 09-10-2026 : liste « À commander » automatique unique (stock restant ≤ seuil, seuil 0 autorisé et distinct du vide, quantité = Cmd − stock restant, envoi WhatsApp direct, sans bouton « Générer » ni historique). Précédemment V0.75 : 09-10-2026 : commande fournisseur — « RESTE » ne dépend plus de la Corbeille : une ligne dont le produit n'existe plus dans le stock est ignorée (affichage, envoi WhatsApp, génération) dans une commande générée automatiquement, et retirée à la génération avec annonce du nom retiré. Précédemment V0.74 08-10-2026 : commande fournisseur — « RESTE » (et tout produit supprimé du stock) ne réapparaît plus ; catégorie lue dans la fiche actuelle seulement (plus dans d'anciennes lignes enregistrées) ; commande fournisseur horodatée pour la synchronisation ; « Anticasse A12 » / « Pochette Original A04 S » rangés dans leur catégorie à l'affichage (aucune fiche modifiée). Précédemment V0.73 08-10-2026 : en-tête — en paysage sur téléphone, tous les boutons (⟳, Affichage, Paramètres, 🔑, Export, Excel, Import, Clôture, Tout, Déconnexion) tiennent à l'écran sans défilement : libellés remplacés par des icônes + infobulle à appui long (CSS/affichage uniquement, portrait et ordinateur inchangés). Précédemment V0.72 08-10-2026 : catégories du Stock Entreprise synchronisées entre appareils via Supabase (colonnes categorie + categorie_at, la modification la plus récente gagne ; SQL supabase_v072_categories_stock.sql). Précédemment V0.71 08-10-2026 : catégories du Stock Entreprise enregistrées dans les fiches (207 produits, une seule fois), nom de catégorie retiré à l'affichage même avec une faute (Enticasse, Blutooth). Précédemment V0.70 08-10-2026 : commande fournisseur — regroupement par catégorie enregistrée (une seule fois), nom de catégorie retiré devant les produits, catégorie/Cmd conservées à la fusion cloud. Précédemment V0.69 08-10-2026 : commande fournisseur — produits sans catégorie placés à la fin (A → Z). Précédemment V0.68 08-10-2026 : commande fournisseur triée A → Z (catégories puis produits). Précédemment V0.67 08-10-2026 : la synchro du stock conserve aussi le champ « Cmd » (comme la catégorie). Précédemment V0.66 08-10-2026 : texte de la commande fournisseur au modèle Date / CATÉGORIE / « n. Produit........Qté » ; la synchro du stock ne perd plus la catégorie. Précédemment V0.65 08-10-2026 : Commande fournisseur — présentation Date / CATÉGORIE / « n. Produit........Qté » (sans prix, affichage uniquement). Précédemment V0.64 08-10-2026 16:51 : Stock Entreprise — champ « Cmd » par produit (ajout/modification, mémorisé comme le Seuil) utilisé comme quantité proposée dans Commandes → Fournisseur (valeur par défaut mémorisée pour les anciens produits, modifiable via ✏️ Édition). Précédemment V0.63 08-10-2026 13:50 : onglet Commandes — interface minimale : barre Clients | Fournisseur + « + Commande » + Recherche ; filtres/période/tri A-Z/suppression dans « Filtres » et ⋯ ; carte Client | Total | Statut | ⋯ avec détails dépliables ; vue Fournisseur Catégorie | Produit | Quantité + « Générer » (une seule commande fournisseur, modifiable avant Envoyer) — affichage uniquement, logique métier inchangée. Précédemment V0.62 : 08-10-2026 12:51 : lignes de totaux fixes en bas de leur tableau à tous les niveaux (Activités, Stock Ent., Stock Perso, Dépenses, Associé, Rapport, vue Associé) — une seule ligne, sans retour à la ligne, calculs inchangés — affichage uniquement. Précédemment V0.61 : 08-10-2026 : onglet Commandes simplifié — 2 vues (Clients / Fournisseur), carte unique, bouton « Prévenir » intégré, modale épurée (« Plus d'options »), téléphone non exigé pour la commande FOURNISSEUR. Précédemment V0.60 : // 08-10-2026 12:11 : onglet Commandes simplifié — filtre rapide par statut (Toutes / En attente / En cours / Livré / Annulé), carte claire (client + total, infos, produits, statut + actions en texte), « Produits à commander » repliable avec compteur, message d'aide si vide — affichage uniquement, logique métier inchangée. Précédemment V0.59 : 08-10-2026 11:33 : espaces inutiles réduits à tous les niveaux (marges, cartes, grilles, formulaires) ; Stock Perso — tableau étendu jusqu'en bas, totaux descendus — affichage uniquement. Précédemment V0.58 : 08-10-2026 11:20 : Bilan — « Résumé période » compact (plus de case vide) ; barre de recherche globale et totaux Dépenses masqués au défilement vertical (réaffichés en remontant) ; Associé — bloc des totaux de dettes réduit ; Stock Ent. — lignes sans retour à la ligne ; Stock Perso — totaux « l'entreprise vous doit » sur une ligne — affichage uniquement. Précédemment V0.57 : 08-10-2026 10:12 : compact — totaux sur une seule ligne (police adaptée à la largeur), ligne TOTAL des dépenses toujours visible, tableaux/cartes/espacements réduits, formulaire Patrimoine compacté, bouton « Ajouter à la commande fournisseur » près de la recherche, Associé : barre de « Dettes enregistrées » sur la ligne du titre — affichage uniquement. Précédemment V0.56 : 08-10-2026 02:41 : mise en page compacte — boutons d'action (⋯, Paiement partiel, Imprimer) au bout de la barre de recherche ; barres d'outils (recherche/filtres/ajout) remontées sur la ligne du titre (Activités, Stock Ent., Stock Perso, Dépenses, Historique, Corbeille, Associé) ; boutons secondaires de Associé regroupés dans ⋯ ; hauteur des tableaux ajustée à l'écran — affichage uniquement. Précédemment V0.55 : 08-10-2026 02:14 : Bilan — barre de recherche globale affichée sur la ligne du titre (entre le titre et les boutons « Infos »), à la place de l'ancien « Calculer » ; reprend sa place en haut sur les autres onglets — affichage uniquement. Précédemment V0.54 : 08-10-2026 00:23 : Bilan — bouton « Calculer » retiré (simple rafraîchissement déjà automatique via renderAll/save), second bouton « Infos » déplacé sur la ligne du titre, en-tête sur une seule ligne — affichage uniquement. Précédemment V0.53 : 07-10-2026 22:25 : Commandes — produits à commander affichés par catégorie en liste N° | Désignation | Quantité ; Patrimoine — note masquée par défaut, affichée via le bouton « Infos » ; Bilan — boutons « En savoir plus » remplacés par « Infos » (présentation distincte) — affichage uniquement. Précédemment V0.52 : 07-10-2026 22:01 : champs de texte long (Description, Note, Motif, Adresse, Panne…) en zones multilignes, contenu 100 % visible — affichage uniquement. Précédemment V0.51 : 07-10-2026 21:40 : zones de saisie ajustées au contenu (texte jamais coupé, largeur dynamique, responsive) — affichage uniquement. Précédemment V0.50 : 07-10-2026 21:00 : Activité/Dépense/Commande (champs texte extensibles, Qté réduit, Téléphone obligatoire), Patrimoine (bouton à côté de la date), Bilan (hauteurs réduites). Précédemment V0.49 : 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
-var APP_VERSION_DATE = '2026-10-09T23:30:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V0.82'; // 10-10-2026 00:42 : Patrimoine (formulaire en édition corrigé), séparateurs horizontaux, colonnes vides (« — » compris) masquées dynamiquement, Rapport en police maximale, en-tête compact « BS.app » sans heure, onglet actif réduit, performances (totaux, hauteur de page, synchro auto, observateur unique) — affichage/performances uniquement. Précédemment V0.81 09-10-2026 23:30 : contenu toujours lisible — plus de points de suspension (logo, badge de synchro, titre Bilan, clients des Commandes), longs textes de tableau à la ligne, Patrimoine : Nom multiligne (Entrée = saut de ligne) et tableau lisible en portrait sans coupure (affichage uniquement, aucune donnée/calcul/synchro modifié). Précédemment V0.80 — 09-10-2026 : tableaux — en-têtes sur plusieurs lignes centrés, colonnes dont toutes les cellules de données sont vides masquées automatiquement (réaffichées dès qu'une donnée apparaît), aucune donnée/calcul/export modifié — affichage uniquement. Précédemment V0.79 : 09-10-2026 : dates de tous les tableaux sur deux lignes centrées (jour puis JJ-MM-AAAA, via un petit utilitaire d'affichage qui entoure le jour et la date de <span>, texte inchangé), Rapport — Historique clôture entièrement visible en portrait sans défilement horizontal — affichage uniquement. Précédemment V0.78 : 09-10-2026 : tableaux — colonnes ajustées au contenu, aucun retour à la ligne (portrait et paysage), défilement horizontal si nécessaire, séparateurs verticaux entre toutes les colonnes — affichage uniquement. Précédemment V0.77 : 09-10-2026 : suppression définitive des anciennes commandes fournisseur (local + Supabase, avec tombstones anti-réapparition). Précédemment V0.76 : 09-10-2026 : liste « À commander » automatique unique (stock restant ≤ seuil, seuil 0 autorisé et distinct du vide, quantité = Cmd − stock restant, envoi WhatsApp direct, sans bouton « Générer » ni historique). Précédemment V0.75 : 09-10-2026 : commande fournisseur — « RESTE » ne dépend plus de la Corbeille : une ligne dont le produit n'existe plus dans le stock est ignorée (affichage, envoi WhatsApp, génération) dans une commande générée automatiquement, et retirée à la génération avec annonce du nom retiré. Précédemment V0.74 08-10-2026 : commande fournisseur — « RESTE » (et tout produit supprimé du stock) ne réapparaît plus ; catégorie lue dans la fiche actuelle seulement (plus dans d'anciennes lignes enregistrées) ; commande fournisseur horodatée pour la synchronisation ; « Anticasse A12 » / « Pochette Original A04 S » rangés dans leur catégorie à l'affichage (aucune fiche modifiée). Précédemment V0.73 08-10-2026 : en-tête — en paysage sur téléphone, tous les boutons (⟳, Affichage, Paramètres, 🔑, Export, Excel, Import, Clôture, Tout, Déconnexion) tiennent à l'écran sans défilement : libellés remplacés par des icônes + infobulle à appui long (CSS/affichage uniquement, portrait et ordinateur inchangés). Précédemment V0.72 08-10-2026 : catégories du Stock Entreprise synchronisées entre appareils via Supabase (colonnes categorie + categorie_at, la modification la plus récente gagne ; SQL supabase_v072_categories_stock.sql). Précédemment V0.71 08-10-2026 : catégories du Stock Entreprise enregistrées dans les fiches (207 produits, une seule fois), nom de catégorie retiré à l'affichage même avec une faute (Enticasse, Blutooth). Précédemment V0.70 08-10-2026 : commande fournisseur — regroupement par catégorie enregistrée (une seule fois), nom de catégorie retiré devant les produits, catégorie/Cmd conservées à la fusion cloud. Précédemment V0.69 08-10-2026 : commande fournisseur — produits sans catégorie placés à la fin (A → Z). Précédemment V0.68 08-10-2026 : commande fournisseur triée A → Z (catégories puis produits). Précédemment V0.67 08-10-2026 : la synchro du stock conserve aussi le champ « Cmd » (comme la catégorie). Précédemment V0.66 08-10-2026 : texte de la commande fournisseur au modèle Date / CATÉGORIE / « n. Produit........Qté » ; la synchro du stock ne perd plus la catégorie. Précédemment V0.65 08-10-2026 : Commande fournisseur — présentation Date / CATÉGORIE / « n. Produit........Qté » (sans prix, affichage uniquement). Précédemment V0.64 08-10-2026 16:51 : Stock Entreprise — champ « Cmd » par produit (ajout/modification, mémorisé comme le Seuil) utilisé comme quantité proposée dans Commandes → Fournisseur (valeur par défaut mémorisée pour les anciens produits, modifiable via ✏️ Édition). Précédemment V0.63 08-10-2026 13:50 : onglet Commandes — interface minimale : barre Clients | Fournisseur + « + Commande » + Recherche ; filtres/période/tri A-Z/suppression dans « Filtres » et ⋯ ; carte Client | Total | Statut | ⋯ avec détails dépliables ; vue Fournisseur Catégorie | Produit | Quantité + « Générer » (une seule commande fournisseur, modifiable avant Envoyer) — affichage uniquement, logique métier inchangée. Précédemment V0.62 : 08-10-2026 12:51 : lignes de totaux fixes en bas de leur tableau à tous les niveaux (Activités, Stock Ent., Stock Perso, Dépenses, Associé, Rapport, vue Associé) — une seule ligne, sans retour à la ligne, calculs inchangés — affichage uniquement. Précédemment V0.61 : 08-10-2026 : onglet Commandes simplifié — 2 vues (Clients / Fournisseur), carte unique, bouton « Prévenir » intégré, modale épurée (« Plus d'options »), téléphone non exigé pour la commande FOURNISSEUR. Précédemment V0.60 : // 08-10-2026 12:11 : onglet Commandes simplifié — filtre rapide par statut (Toutes / En attente / En cours / Livré / Annulé), carte claire (client + total, infos, produits, statut + actions en texte), « Produits à commander » repliable avec compteur, message d'aide si vide — affichage uniquement, logique métier inchangée. Précédemment V0.59 : 08-10-2026 11:33 : espaces inutiles réduits à tous les niveaux (marges, cartes, grilles, formulaires) ; Stock Perso — tableau étendu jusqu'en bas, totaux descendus — affichage uniquement. Précédemment V0.58 : 08-10-2026 11:20 : Bilan — « Résumé période » compact (plus de case vide) ; barre de recherche globale et totaux Dépenses masqués au défilement vertical (réaffichés en remontant) ; Associé — bloc des totaux de dettes réduit ; Stock Ent. — lignes sans retour à la ligne ; Stock Perso — totaux « l'entreprise vous doit » sur une ligne — affichage uniquement. Précédemment V0.57 : 08-10-2026 10:12 : compact — totaux sur une seule ligne (police adaptée à la largeur), ligne TOTAL des dépenses toujours visible, tableaux/cartes/espacements réduits, formulaire Patrimoine compacté, bouton « Ajouter à la commande fournisseur » près de la recherche, Associé : barre de « Dettes enregistrées » sur la ligne du titre — affichage uniquement. Précédemment V0.56 : 08-10-2026 02:41 : mise en page compacte — boutons d'action (⋯, Paiement partiel, Imprimer) au bout de la barre de recherche ; barres d'outils (recherche/filtres/ajout) remontées sur la ligne du titre (Activités, Stock Ent., Stock Perso, Dépenses, Historique, Corbeille, Associé) ; boutons secondaires de Associé regroupés dans ⋯ ; hauteur des tableaux ajustée à l'écran — affichage uniquement. Précédemment V0.55 : 08-10-2026 02:14 : Bilan — barre de recherche globale affichée sur la ligne du titre (entre le titre et les boutons « Infos »), à la place de l'ancien « Calculer » ; reprend sa place en haut sur les autres onglets — affichage uniquement. Précédemment V0.54 : 08-10-2026 00:23 : Bilan — bouton « Calculer » retiré (simple rafraîchissement déjà automatique via renderAll/save), second bouton « Infos » déplacé sur la ligne du titre, en-tête sur une seule ligne — affichage uniquement. Précédemment V0.53 : 07-10-2026 22:25 : Commandes — produits à commander affichés par catégorie en liste N° | Désignation | Quantité ; Patrimoine — note masquée par défaut, affichée via le bouton « Infos » ; Bilan — boutons « En savoir plus » remplacés par « Infos » (présentation distincte) — affichage uniquement. Précédemment V0.52 : 07-10-2026 22:01 : champs de texte long (Description, Note, Motif, Adresse, Panne…) en zones multilignes, contenu 100 % visible — affichage uniquement. Précédemment V0.51 : 07-10-2026 21:40 : zones de saisie ajustées au contenu (texte jamais coupé, largeur dynamique, responsive) — affichage uniquement. Précédemment V0.50 : 07-10-2026 21:00 : Activité/Dépense/Commande (champs texte extensibles, Qté réduit, Téléphone obligatoire), Patrimoine (bouton à côté de la date), Bilan (hauteurs réduites). Précédemment V0.49 : 07-10-2026 20:10 : champs « Date » retirés de l'affichage des boîtes de dialogue (date toujours enregistrée automatiquement, aujourd'hui par défaut). Précédemment V0.48 : 07-10-2026 19:30 : boîtes de dialogue — barre de saisie limitée à la largeur du libellé, tous les champs sur une même ligne quand possible (CSS d'affichage uniquement). Précédemment V0.47 : 07-10-2026 18:40 : audit des 21 boîtes de dialogue — champs courts regroupés et largeurs adaptées (CSS d'affichage uniquement). Précédemment V0.46 : 07-10-2026 18:15 : zones de saisie à largeur adaptée à l'intitulé, champs regroupés sur une même ligne (CSS d'affichage uniquement). Précédemment V0.45 : 07-10-2026 16:20 : boîtes de dialogue compactées et adaptatives (intitulés courts, textes explicatifs retirés, grille responsive portrait/paysage) — affichage uniquement. Précédemment V0.44 : champ Prix vente retiré des dialogues Stock.
+var APP_VERSION_DATE = '2026-10-10T00:42:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 
+/* ===== V0.82 — OBSERVATEUR UNIQUE DES TABLEAUX (AFFICHAGE UNIQUEMENT) =====
+   Remplace les 3 observateurs séparés (V0.79, V0.80, V0.81) par un seul, groupé (40 ms), qui prévient
+   chaque utilitaire d'affichage. Aucune donnée touchée. */
+window.__bpTbl=(function(){
+  var subs=[], touched=new Set(), added=new Set(), tm=null, obs=null;
+  function flush(){
+    tm=null; var t=Array.from(touched), a=Array.from(added); touched.clear(); added.clear();
+    subs.forEach(function(f){ try{ f(t,a); }catch(e){} });
+    if(obs) obs.takeRecords();
+  }
+  function sched(){ if(!tm) tm=setTimeout(flush,40); }
+  function init(){
+    if(obs||!document.body) return;
+    obs=new MutationObserver(function(ms){
+      for(var i=0;i<ms.length;i++){
+        var m=ms[i]; touched.add(m.target);
+        if(m.type==='childList') for(var j=0;j<m.addedNodes.length;j++){ touched.add(m.addedNodes[j]); added.add(m.addedNodes[j]); }
+      }
+      sched();
+    });
+    obs.observe(document.body,{childList:true,characterData:true,subtree:true,attributes:true,attributeFilter:['hidden']});
+    touched.add(document.body); added.add(document.body); sched();
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+  window.addEventListener('load',function(){ touched.add(document.body); added.add(document.body); sched(); });
+  return {add:function(f){ subs.push(f); }};
+})();
+function __bpTablesDe(nodes){
+  var set=new Set();
+  nodes.forEach(function(nd){
+    if(nd.nodeType===3) nd=nd.parentNode; if(!nd||nd.nodeType!==1||!nd.isConnected) return;
+    var t=nd.closest?nd.closest('table'):null; if(t) set.add(t);
+    if(nd.querySelectorAll){ var q=nd.querySelectorAll('table'); for(var i=0;i<q.length;i++) set.add(q[i]); }
+  });
+  return Array.from(set);
+}
+/* ===== /V0.82 bus ===== */
 /* ===== V0.79 — DATES sur deux lignes (AFFICHAGE UNIQUEMENT) =====
    Dans les cellules de tableau, « Mardi 28-10-1990 » est entouré de <span class="dj-b">
    (jour / date en blocs centrés, voir CSS V0.79). Le texte reste identique (même espace
@@ -12873,18 +12940,18 @@ var APP_VERSION_DATE = '2026-10-09T23:30:00'; // Date/heure exacte de la mise à
     var t=cell.closest('table'), r=t&&t.tHead&&t.tHead.rows[0];
     if(r&&cell.tagName==='TD'&&r.cells[cell.cellIndex]) r.cells[cell.cellIndex].classList.add('dj-th');
   }
+  var OKC=null;
   function balayer(racine){
     if(!racine||!document.createTreeWalker) return;
     if(racine.nodeType===3) racine=racine.parentNode; if(!racine||racine.nodeType!==1) return;
     if(!racine.closest('table')&&!racine.querySelector('table')) return;
-    var ok=jours(), tw=document.createTreeWalker(racine,4,null), n, liste=[];
+    var ok=OKC||(OKC=jours()), tw=document.createTreeWalker(racine,4,null), n, liste=[];
     while((n=tw.nextNode())){ if(RX.test(n.nodeValue)&&n.parentNode&&n.parentNode.closest&&n.parentNode.closest('td,th')) liste.push(n); }
     liste.forEach(function(x){ envelopper(x,ok); });
   }
   function init(){
     if(!document.body) return;
-    new MutationObserver(function(ms){ for(var i=0;i<ms.length;i++){ for(var k=0;k<ms[i].addedNodes.length;k++){ try{ balayer(ms[i].addedNodes[k]); }catch(e){} } } }).observe(document.body,{childList:true,subtree:true});
-    try{ balayer(document.body); }catch(e){}
+    window.__bpTbl.add(function(t,a){ OKC=null; a.forEach(function(n){ try{ if(n.isConnected) balayer(n); }catch(e){} }); });
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 }catch(e){} })();
@@ -12904,7 +12971,7 @@ var APP_VERSION_DATE = '2026-10-09T23:30:00'; // Date/heure exacte de la mise à
      (attribut data-cv) est ajouté au tableau. */
 (function(){ try{
   var SEL='button,input,select,textarea,img,svg,canvas,a,progress,meter,.badge,[style*="background"],[style*="width"]';
-  function vide(c){ if((c.textContent||'').replace(/[\s\u00a0\u200b]/g,'')!=='') return false; return !c.querySelector(SEL); }
+  function vide(c){ var tx=(c.textContent||'').replace(/[\s\u00a0\u200b]/g,''); if(tx!==''&&tx!=='—'&&tx!=='–'&&tx!=='-') return false; return !c.querySelector(SEL); }
   function maj(t){
     if(!t||!t.rows||!t.rows.length) return;
     var busy=[], infos=[], ncol=0, ri, ci, k;
@@ -12943,27 +13010,7 @@ var APP_VERSION_DATE = '2026-10-09T23:30:00'; // Date/heure exacte de la mise à
     }
     for(k=0;k<ncol;k++){ var on=!!cache[k], cl=cg.children[k].classList; if(cl.contains('cv-h')!==on) cl.toggle('cv-h',on); }
   }
-  var pend=[], tm=null;
-  function flush(){ tm=null; var l=pend; pend=[]; l.forEach(function(t){ try{ if(document.contains(t)) maj(t); }catch(e){} }); }
-  function planifier(nd){
-    if(!nd) return; if(nd.nodeType===3) nd=nd.parentNode; if(!nd||nd.nodeType!==1) return;
-    var t=nd.closest?nd.closest('table'):null; if(t&&pend.indexOf(t)<0) pend.push(t);
-    if(nd.querySelectorAll){ var q=nd.querySelectorAll('table'); for(var i=0;i<q.length;i++) if(pend.indexOf(q[i])<0) pend.push(q[i]); }
-    if(!tm) tm=setTimeout(flush,40);
-  }
-  function init(){
-    if(!document.body) return;
-    new MutationObserver(function(ms){
-      for(var i=0;i<ms.length;i++){
-        var m=ms[i];
-        if(m.type==='characterData') planifier(m.target);
-        else { planifier(m.target); for(var j=0;j<m.addedNodes.length;j++) planifier(m.addedNodes[j]); }
-      }
-    }).observe(document.body,{childList:true,characterData:true,subtree:true});
-    planifier(document.body);
-    window.addEventListener('load',function(){ planifier(document.body); });
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+  window.__bpTbl.add(function(t){ __bpTablesDe(t).forEach(function(tb){ try{ maj(tb); }catch(e){} }); });
 }catch(e){} })();
 /* ===== /V0.80 ===== */
 /* ===== V0.81 — LONGS TEXTES DE TABLEAU (AFFICHAGE UNIQUEMENT) =====
@@ -12991,29 +13038,28 @@ var APP_VERSION_DATE = '2026-10-09T23:30:00'; // Date/heure exacte de la mise à
       }
     }
   }
-  var pend=[], tm=null;
-  function flush(){ tm=null; var l=pend; pend=[]; l.forEach(function(t){ try{ if(document.contains(t)) maj(t); }catch(e){} }); }
-  function planifier(nd){
-    if(!nd) return; if(nd.nodeType===3) nd=nd.parentNode; if(!nd||nd.nodeType!==1) return;
-    var t=nd.closest?nd.closest('table'):null; if(t&&pend.indexOf(t)<0) pend.push(t);
-    if(nd.querySelectorAll){ var q=nd.querySelectorAll('table'); for(var i=0;i<q.length;i++) if(pend.indexOf(q[i])<0) pend.push(q[i]); }
-    if(!tm) tm=setTimeout(flush,40);
-  }
-  function init(){
-    if(!document.body) return;
-    new MutationObserver(function(ms){
-      for(var i=0;i<ms.length;i++){
-        var m=ms[i];
-        if(m.type==='characterData') planifier(m.target);
-        else { planifier(m.target); for(var j=0;j<m.addedNodes.length;j++) planifier(m.addedNodes[j]); }
-      }
-    }).observe(document.body,{childList:true,characterData:true,subtree:true});
-    planifier(document.body);
-    window.addEventListener('load',function(){ planifier(document.body); });
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+  window.__bpTbl.add(function(t){ __bpTablesDe(t).forEach(function(tb){ try{ maj(tb); }catch(e){} }); });
 }catch(e){} })();
 /* ===== /V0.81 ===== */
+/* ===== V0.82 — POLICE DU RAPPORT (AFFICHAGE UNIQUEMENT) =====
+   En portrait, cherche la plus grande police (8 → 22 px) pour laquelle le tableau « Historique clôture » tient dans la largeur sans défilement. */
+(function(){ try{
+  var last='';
+  function fit(){
+    var el=document.getElementById('rapport-historique-clotures'); if(!el) return;
+    var t=el.querySelector('table'), tw=el.querySelector('.tw');
+    if(!t||!tw||!tw.clientWidth) return;
+    if(!window.matchMedia('(max-width:600px)').matches){ el.style.removeProperty('--rf'); last=''; return; }
+    var sg=tw.clientWidth+'|'+el.textContent.length+'|'+window.innerWidth; if(sg===last) return;
+    var lo=8, hi=22, best=8, i;
+    for(i=0;i<7;i++){ var mid=(lo+hi)/2; el.style.setProperty('--rf',mid+'px'); if(t.scrollWidth<=tw.clientWidth+1){ best=mid; lo=mid; } else hi=mid; }
+    el.style.setProperty('--rf',best+'px'); last=sg;
+  }
+  window.__bpTbl.add(function(){ fit(); });
+  window.addEventListener('resize',function(){ fit(); });
+  window.addEventListener('orientationchange',function(){ setTimeout(fit,250); });
+}catch(e){} })();
+/* ===== /V0.82 ===== */
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
 (function(){var el=document.getElementById('loginVersion');if(el)el.textContent='V : '+String(APP_VERSION).replace(/^V\s*/i,'');})();
 var APP_VERSION_V0_14_HISTORIQUE = 'V0.14'; // 22-09-2026 : (1) les 6 boutons "+ ..." (Activités, Stock Entreprise, Stock Perso, Associé, Dépenses, Commandes) restent visibles (sticky) pendant le défilement vertical de leur tableau, en portrait comme en paysage — affichage uniquement, aucune action modifiée ; (2) Clôture de période — la Corbeille n'était jamais vidée (les entrées Dette/Paiement/Dépense/Activité supprimées manuellement avant la clôture y restaient indéfiniment ; Stock/Stock Perso/Commandes/Patrimoine restent récupérables comme avant, non concernés) ; (3) l'onglet Rapport devenait vide après chaque clôture (il ne lisait que les listes vivantes, remises à zéro par la clôture) — l'historique détaillé (Activités + Dettes + Paiements + Dépenses) des 2 dernières périodes closes est désormais figé (D.periodesCloturees, protégé à la fusion comme D.historiqueClotures) et consultable via un nouveau sélecteur de période dans Rapport. Aucun calcul, Stock, capital, synchronisation ni permission modifiés.
@@ -14210,7 +14256,7 @@ document.addEventListener('DOMContentLoaded',function(){
   // "À propos" y affiche désormais le même format via versionAffichee()).
   (function(){
     var el=document.getElementById('hdr-version'); if(!el) return;
-    el.textContent = versionAffichee();
+    el.textContent = APP_VERSION; // V0.82 : l'heure de mise à jour n'est plus affichée dans l'en-tête (toujours visible dans « À propos »)
   })();
   // Restaurer l'onglet actif avant l'actualisation, au lieu de toujours
   // revenir au tableau de bord (Administrateur uniquement — la vue
@@ -15320,7 +15366,7 @@ function rafraichirActivitesSilencieux(){
   assurerTokenValide().then(function(){
     session = getSession() || session; // reprend le jeton éventuellement renouvelé
     if (session.role === 'admin') {
-      chargerActivitesEtStockDepuisTables(session).then(function(){ renderAll(); termine(); }).catch(function(e){
+      (function(){ var _s0=JSON.stringify(D); return chargerActivitesEtStockDepuisTables(session).then(function(){ if(JSON.stringify(D)!==_s0) renderAll(); /* V0.82 : pas de re-rendu complet si rien n'a changé */ termine(); }); })().catch(function(e){
         /**
          * DEMANDE (14-09-2026 — "ne jamais rester silencieux en cas
          * d'anomalie, à quelque niveau que ce soit") — CAUSE RÉELLE
@@ -16758,7 +16804,7 @@ function testSupabaseConnection() {
     }).observe(document.body,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
     window.addEventListener('resize',function(){Array.prototype.forEach.call(document.querySelectorAll(SEL),function(e){e.__fs=null;});later();});
     window.addEventListener('orientationchange',function(){setTimeout(function(){Array.prototype.forEach.call(document.querySelectorAll(SEL),function(e){e.__fs=null;});later();},250);});
-    setInterval(function(){fitAll(document);},600);
+    setInterval(function(){ if(!document.hidden) fitAll(document); },1500);
     later();
   }catch(e){}
 })();
