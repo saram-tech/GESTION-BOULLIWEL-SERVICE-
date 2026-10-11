@@ -1292,12 +1292,7 @@ body:not(.printing-mode) table :is(td,th) :is(.dj-b,.dj-j,.dj-d),body:not(.print
    largeur/position = zone réellement visible) ; (2) elle était centrée verticalement, donc elle « sautait » dès que la taille du
    texte changeait sa hauteur → alignée en haut ; (3) un geste sur un curseur faisait défiler/zoomer la page → touch-action ;
    (4) grilles et boutons du thème/langue pouvaient élargir la boîte → colonnes à largeur libre, texte à la ligne. */
-#maffichage{align-items:flex-start;overflow:hidden;touch-action:manipulation;overscroll-behavior:contain;}
-#maffichage .modal{margin-top:8px;max-width:min(460px,100%) !important;width:100%;box-sizing:border-box;}
-#maffichage input[type=range]{touch-action:none;min-width:0;width:100%;}
-#maffichage #theme-boutons{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
-#maffichage #theme-boutons .btn,#maffichage #langue-boutons .btn{min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;}
-#maffichage .modal > div{min-width:0;max-width:100%;}
+/* (règles de la boîte « Affichage » remplacées par V1.06, en fin de feuille de style) */
 /* ===== /V0.88 ===== */
 /* ===== V0.89 — TABLEAU DE BORD (AFFICHAGE UNIQUEMENT) =====
    « Dernières opérations » passe sous « Actions rapides », sur toute la largeur (au lieu d'être serrée à côté, en colonne étroite). */
@@ -1419,37 +1414,176 @@ body:has(#vue-associe:not([style*="none"])) #gs-row{display:none !important;}
 #vue-visiteur .tw table td .dj-j{margin-right:4px;}
 /* ===== /V1.01 ===== */
 
-/* ===== V1.03 — BOÎTE « AFFICHAGE » : TAILLE FIXE ET COMPACTE (AFFICHAGE UNIQUEMENT) =====
-   Défaut : tout le contenu de la boîte est en rem, donc elle grandissait avec « Taille du texte » (jusqu'à occuper tout l'écran et déborder).
-   Correctif : chaque bloc de la boîte est réduit par zoom = 0,78 / --fs (--fs = taille du texte / 100, posé par le script V0.90) :
-   la boîte garde la même taille à l'écran quel que soit le réglage. Elle est aussi plus compacte : dans chaque réglage, titre, pourcentage et
-   bouton « ↺ … (100%) » tiennent sur une ligne, puis le curseur, puis l'aperçu ; marges réduites ; langues en 2 colonnes.
-   Exceptions volontaires : l'encadré « Aa — Exemple de texte » et l'aperçu des onglets restent à leur taille réelle (zoom compensé), pour que
-   les curseurs montrent toujours le résultat. Aucune règle hors #maffichage, aucune fonction, donnée ou réglage modifié.
-   Bloc autonome : le supprimer (et les 2 <div class="ap-sec"> / la classe apercu-texte, sans effet) rétablit V1.02. */
-#maffichage .modal{max-width:min(330px,100%) !important;padding:8px 10px;border-radius:13px;}
-#maffichage .modal > *{zoom:.78;zoom:calc(.78 / var(--fs,1));}
-#maffichage .modal .mhd{margin-bottom:2px;}
-#maffichage .modal > div{margin-top:0 !important;margin-bottom:4px !important;}
-#maffichage .modal .sep{margin:4px 0;}
-#maffichage .ap-sec{display:grid;grid-template-columns:minmax(0,1fr) auto auto;column-gap:8px;row-gap:3px;align-items:center;}
-#maffichage .ap-sec > *{margin:0 !important;min-width:0;}
-#maffichage .ap-sec > :nth-child(1){grid-column:1;grid-row:1;}
-#maffichage .ap-sec > :nth-child(3){grid-column:2;grid-row:1;white-space:nowrap;}
-#maffichage .ap-sec > :nth-child(5){grid-column:3;grid-row:1;}
-#maffichage .ap-sec > :nth-child(2){grid-column:1 / -1;grid-row:2;}
-#maffichage .ap-sec > :nth-child(4){grid-column:1 / -1;grid-row:3;}
-#maffichage .ap-sec > .apercu-texte,#maffichage .ap-sec > .apercu-onglets{zoom:calc(var(--fs,1) / .78);}
-#maffichage .ap-sec > .apercu-texte{padding:3px 6px !important;}
-#maffichage .ap-sec > .apercu-onglets{padding:5px 8px 0 !important;}
-#maffichage .ap-sec .btn{min-width:0 !important;padding:3px 9px;}
-#maffichage .ap-sec > div > .btn{white-space:nowrap;}
-#maffichage #theme-boutons{gap:5px !important;}
-#maffichage #theme-boutons .btn,#maffichage #langue-boutons .btn{padding:4px 7px;}
-#maffichage #langue-boutons{display:grid !important;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px !important;}
-#maffichage #bloc-langue > div{margin-top:0 !important;margin-bottom:4px !important;}
-#maffichage #bloc-langue > div:last-child{margin-top:2px !important;margin-bottom:0 !important;line-height:1.2;font-size:.62rem !important;}
-/* ===== /V1.03 ===== */
+/* V1.03 : remplacé par la refonte V1.06 (voir fin de feuille de style). */
+
+/* ===== V1.04 — BARRE SUPÉRIEURE FIXE + BOUTONS D'AJOUT TOUJOURS ENTIÈREMENT VISIBLES (AFFICHAGE UNIQUEMENT) =====
+   Cause : les règles V0.30/V0.56 forçaient « flex-wrap:nowrap !important » sur les barres d'outils (et le correctif
+   « texte très grand » V0.94 ne s'appliquait donc jamais). Quand la ligne (titre + filtres + « + Nouv. ») était plus
+   large que l'écran, elle élargissait toute la page : l'en-tête, les onglets et les boutons « + » se décalaient avec elle.
+   1) La page ne peut plus défiler horizontalement : l'en-tête et les onglets restent fixes (le défilement horizontal
+      reste possible UNIQUEMENT à l'intérieur des tableaux et de la rangée d'onglets/boutons de l'en-tête).
+   2) Les barres d'outils passent à la ligne si la largeur manque (au lieu de déborder) ; le bouton d'ajout reste
+      entier. Texte très grand / écran étroit : la barre d'outils prend sa propre ligne sous le titre.
+   Aucune logique, donnée, synchronisation ni permission modifiée. Bloc autonome : le supprimer rétablit la V1.03. */
+html,body{max-width:100%;overscroll-behavior-x:none;}
+header{left:0;width:100%;max-width:100%;}
+.hbts,#main-nav,.tw{overscroll-behavior-x:contain;}
+main,.tab-panel,.tab-panel > .card,.tab-panel > .sh{min-width:0;max-width:100%;}
+/* ---- Barres d'outils : retour à la ligne plutôt que débordement (la recherche garde son rôle de « variable d'ajustement ») ---- */
+html body .barre-add-sticky.barre-add-sticky,
+html body .tb-ligne.tb-ligne.tb-ligne{flex-wrap:wrap !important;max-width:100%;min-width:0;row-gap:4px;}
+html body .barre-add-sticky > .btn:last-child,
+html body .tb-ligne > .btn:last-child{margin-left:auto;flex:0 0 auto;max-width:100%;}
+html body .tb-ligne > input[type="text"]{flex:1 1 0 !important;}
+/* ---- En-têtes d'onglet : titre + barre d'outils sur la même ligne si la place le permet (base en rem = suit la taille du texte), sinon la barre passe sous le titre ---- */
+html body :is(#tab-activites,#tab-stock,#tab-perso,#tab-depenses,#tab-corbeille,#tab-historique,#tab-associe) > .sh{flex-wrap:wrap;}
+html body :is(#tab-activites,#tab-stock,#tab-perso,#tab-depenses,#tab-corbeille,#tab-historique,#tab-associe) > .sh > .tb-ligne.tb-ligne{flex:1 1 15rem !important;}
+/* ---- Ligne de recherche globale + boutons d'action (⋯, Paiement partiel, Imprimer…) ---- */
+#gs-row{flex-wrap:wrap;max-height:240px;}
+#gs-row > #gs-wrap{flex:1 1 9rem;min-width:0;}
+#gs-actions{flex-wrap:wrap;margin-left:auto;max-width:100%;justify-content:flex-end;}
+/* ---- Onglet Commandes : recherche + « + Commande » + Filtres + ⋯ ---- */
+.cmd-bar{flex-wrap:wrap;max-width:100%;}
+.cmd-bar input{flex:1 1 90px;min-width:60px;}
+/* ---- Onglet Associé : cartes Dettes / Paiements — titre + barre d'outils côte à côte si la place le permet, sinon la barre passe sous le titre ---- */
+html body .g2-dettes > .card{display:flex;flex-wrap:wrap;column-gap:8px;align-items:center;}
+html body .g2-dettes > .card > *{flex:1 1 100%;min-width:0;}
+html body .g2-dettes > .card > .ch{flex:0 1 auto;}
+html body .g2-dettes > .card > .ch + div:not(.tw){flex:1 1 13rem;}
+/* ---- Tableau de bord : actions rapides jamais coupées ---- */
+html body #tab-dashboard .card > div[style*="flex-wrap:wrap"]:has(> .btn){flex-wrap:wrap !important;}
+html body #tab-dashboard .card > div[style*="flex-wrap:wrap"] > .btn{white-space:nowrap;}
+/* ===== /V1.04 ===== */
+
+/* ===== V1.05 — BADGE D'ÉTAT D'EN-TÊTE BORNÉ + TOTAUX JAMAIS COUPÉS SUR TRÈS PETIT ÉCRAN (AFFICHAGE UNIQUEMENT) =====
+   Le badge d'état (« Hors ligne — données sauvegardées localement »…) tient sur UNE ligne, tronquée par « … » si besoin
+   (texte complet en infobulle et via un appui = diagnostic) ; la rangée de boutons de l'en-tête (⟳, Affichage,
+   Paramètres…) garde toujours une largeur minimale accessible. Les lignes de totaux qui ne tiennent pas même réduites
+   passent à la ligne au lieu de dépasser. Bloc autonome : le supprimer rétablit la V1.04. */
+html body header .sync-badge{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:2.2rem;max-width:34vw;line-height:1.5;}
+html body header .hbts{flex:1 0 min(4.5rem,26vw);}
+html body .tot-fixe .tot-ligne.tot-wrap,html body .tot-ligne.tot-wrap{flex-wrap:wrap !important;}
+/* ===== /V1.05 ===== */
+
+/* ===== V1.06 — BOÎTE « AFFICHAGE » : REFONTE COMPLÈTE (AFFICHAGE UNIQUEMENT) =====
+   Nouvelle présentation : en-tête fixe, 4 cartes (Texte, Onglets, Thème, Langue) avec titre, valeur en pastille, curseur rempli,
+   aperçu en direct et bouton « ↺ … (100 %) » ; thèmes sous forme de vignettes ; langues en cartes sélectionnables.
+   Téléphone : une colonne. Ordinateur / tablette / paysage (≥ 700 px) : deux colonnes.
+   La boîte a une taille FIXE (unités en px) : elle ne grandit plus avec « Taille du texte » ; seuls les deux aperçus (rem) suivent le
+   réglage, avec une hauteur minimale pour que la boîte ne « saute » pas. Mêmes réglages, mêmes fonctions, mêmes clés de stockage.
+   Aucune règle hors #maffichage. Bloc autonome : le supprimer (avec le balisage .aff-*) ne rétablit pas V1.03 — restaurer l'ancien fichier. */
+#maffichage{z-index:10000;align-items:flex-start;justify-content:center;padding:max(10px,env(safe-area-inset-top,0px)) 10px 10px;background:rgba(3,6,14,.62);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);overflow:hidden;touch-action:manipulation;overscroll-behavior:contain;-webkit-tap-highlight-color:transparent;}
+#maffichage .aff-modal{display:flex !important;flex-direction:column;flex-wrap:nowrap;align-items:stretch;align-content:normal;gap:0;width:100%;max-width:min(430px,100%) !important;max-height:100%;margin:0;padding:0;box-sizing:border-box;border-radius:22px;overflow:hidden;background:var(--bg2);border:1px solid var(--bd2);box-shadow:0 28px 70px rgba(0,0,0,.5);font-family:var(--font-body);font-size:14px;line-height:1.35;color:var(--tx);}
+#maffichage .aff-modal>*{flex:none !important;min-width:0;max-width:none;}
+#maffichage .aff-modal>.aff-body{flex:1 1 auto !important;min-height:0;}
+#maffichage .aff-modal *{box-sizing:border-box;}
+.ov.open .aff-modal{animation:affIn .22s cubic-bezier(.2,.8,.2,1);}
+@keyframes affIn{from{opacity:0;transform:translateY(10px) scale(.985);}to{opacity:1;transform:none;}}
+@media (prefers-reduced-motion:reduce){.ov.open .aff-modal{animation:none;}#maffichage .aff-modal *{transition:none !important;}}
+
+/* En-tête */
+#maffichage .aff-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px 8px 14px;border-bottom:1px solid var(--bd);background:var(--bg2);}
+#maffichage .aff-head-t{display:flex;align-items:center;gap:10px;min-width:0;font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:-.01em;color:var(--tx);}
+#maffichage .aff-head-t>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#maffichage .aff-head-ico{flex:0 0 auto;width:30px;height:30px;border-radius:10px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--ac),var(--ac2));box-shadow:0 4px 12px rgba(79,142,247,.35);}
+#maffichage .aff-x{flex:0 0 auto;width:34px;height:34px;padding:0;border-radius:50%;display:grid;place-items:center;cursor:pointer;color:var(--tx2);background:var(--bg3);border:1px solid var(--bd);transition:background .15s,color .15s,border-color .15s;}
+#maffichage .aff-x:hover{color:var(--re);border-color:var(--re);}
+#maffichage .aff-x:active{transform:scale(.94);}
+
+/* Corps défilant */
+#maffichage .aff-body{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;padding:8px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin;}
+
+/* Cartes */
+#maffichage .aff-card{min-width:0;padding:10px 12px 11px;border-radius:16px;background:var(--bg3);border:1px solid var(--bd);}
+#maffichage .aff-ch{display:flex;align-items:center;gap:10px;min-height:28px;}
+#maffichage .aff-ci{flex:0 0 auto;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;color:var(--ac);background:rgba(79,142,247,.14);}
+#maffichage .aff-ct{flex:1 1 auto;min-width:0;font-size:14.5px;font-weight:700;line-height:1.25;color:var(--tx);overflow-wrap:anywhere;}
+#maffichage .aff-val{flex:0 0 auto;min-width:56px;text-align:center;padding:6px 11px;border-radius:999px;font-family:var(--font-display);font-size:13px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:var(--ac);background:rgba(79,142,247,.15);background:color-mix(in srgb,var(--ac) 16%,transparent);}
+
+/* Curseur + boutons − / + */
+#maffichage .aff-slide{display:grid;grid-template-columns:34px minmax(0,1fr) 34px;align-items:center;gap:8px;margin-top:6px;}
+#maffichage .aff-step{width:34px;height:34px;padding:0;border-radius:50%;display:grid;place-items:center;cursor:pointer;font:600 21px/1 var(--font-body);color:var(--tx);background:var(--bg2);border:1px solid var(--bd2);transition:background .15s,color .15s,border-color .15s,transform .1s;}
+#maffichage .aff-step:hover{border-color:var(--ac);color:var(--ac);}
+#maffichage .aff-step:active{transform:scale(.92);background:var(--ac);border-color:transparent;color:#fff;}
+#maffichage .aff-rng{min-width:0;}
+#maffichage .aff-rng input[type=range]{-webkit-appearance:none;appearance:none;display:block;width:100% !important;min-width:0;height:30px;margin:0;padding:0;background:transparent !important;border:0 !important;cursor:pointer;touch-action:none;--pct:28%;}
+#maffichage .aff-rng input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:6px;background:linear-gradient(to right,var(--ac) var(--pct),var(--bg5) var(--pct));}
+#maffichage .aff-rng input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:24px;height:24px;margin-top:-9px;border-radius:50%;background:#fff;border:0;box-shadow:0 0 0 3px var(--ac),0 3px 8px rgba(0,0,0,.4);}
+#maffichage .aff-rng input[type=range]::-moz-range-track{height:6px;border-radius:6px;background:var(--bg5);}
+#maffichage .aff-rng input[type=range]::-moz-range-progress{height:6px;border-radius:6px;background:var(--ac);}
+#maffichage .aff-rng input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:0;box-shadow:0 0 0 3px var(--ac),0 3px 8px rgba(0,0,0,.4);}
+#maffichage .aff-scale{display:none;justify-content:space-between;margin:0 48px;font-size:11px;font-weight:600;color:var(--tx3);font-variant-numeric:tabular-nums;}
+
+/* Aperçus */
+#maffichage .aff-prev{display:flex;align-items:center;justify-content:center;min-height:48px;margin-top:8px;padding:6px 10px;border-radius:14px;background:var(--bg2);border:1px dashed var(--bd2);overflow:hidden;text-align:center;}
+#maffichage .aff-prev-txt>span{font-size:1rem;line-height:1.25;color:var(--tx);overflow-wrap:anywhere;}
+#maffichage .aff-prev-tabs{margin:8px 0 0;align-items:flex-end;gap:2px;min-height:58px;padding:6px 8px 0;border:1px solid var(--bd);border-radius:14px;background:var(--bg2);overflow:hidden;}
+#maffichage .aff-prev-tabs .nbp{min-width:0;overflow:hidden;text-overflow:ellipsis;}
+
+/* Bouton « ↺ … (100 %) » */
+#maffichage .aff-reset{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:32px;margin-top:8px;padding:5px 12px;border-radius:11px;cursor:pointer;font:600 12.5px/1.2 var(--font-body);color:var(--tx2);background:transparent;border:1px solid var(--bd2);transition:border-color .15s,color .15s,opacity .15s,background .15s;}
+#maffichage .aff-reset:hover{border-color:var(--ac);color:var(--ac);}
+#maffichage .aff-reset:active{background:rgba(79,142,247,.12);}
+#maffichage .aff-card[data-def="1"] .aff-reset{opacity:.6;}
+
+/* Thèmes : vignettes */
+#maffichage .aff-themes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:8px;}
+#maffichage .aff-th{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:5px;min-width:0;padding:5px 5px 7px;border-radius:14px;cursor:pointer;font:600 12px/1.15 var(--font-body);color:var(--tx2);background:var(--bg2);border:1.5px solid var(--bd);transition:border-color .15s,box-shadow .15s,color .15s,transform .1s;}
+#maffichage .aff-th:hover{border-color:var(--bd2);color:var(--tx);}
+#maffichage .aff-th:active{transform:scale(.97);}
+#maffichage .aff-th.on{color:var(--tx);border-color:var(--ac);box-shadow:0 0 0 3px rgba(79,142,247,.2);}
+#maffichage .aff-th.on::after{content:"✓";position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;color:#fff;background:var(--ac);box-shadow:0 2px 6px rgba(0,0,0,.35);}
+#maffichage .aff-sw{--sw-bg:#131828;--sw-bar:#1A2035;--sw-tx:#9BA8C0;--sw-ac:#4F8EF7;position:relative;display:block;height:32px;border-radius:8px;overflow:hidden;background:var(--sw-bg);border:1px solid rgba(128,128,128,.28);}
+#maffichage .aff-sw::before{content:"";position:absolute;left:6px;right:6px;top:5px;height:7px;border-radius:3px;background:var(--sw-bar);}
+#maffichage .aff-sw::after{content:"";position:absolute;left:6px;right:6px;bottom:5px;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--sw-ac) 0 40%,transparent 40% 48%,var(--sw-tx) 48% 74%,transparent 74%);}
+#maffichage .aff-th[data-t="sombre"] .aff-sw{--sw-bg:#070B14;--sw-bar:#1A2035;--sw-tx:#5A6480;--sw-ac:#4F8EF7;}
+#maffichage .aff-th[data-t="noir"] .aff-sw{--sw-bg:#000;--sw-bar:#1E1E1E;--sw-tx:#6B6B6B;--sw-ac:#4F8EF7;}
+#maffichage .aff-th[data-t="gris"] .aff-sw{--sw-bg:#282D36;--sw-bar:#3C4350;--sw-tx:#7A8090;--sw-ac:#5B9BF8;}
+#maffichage .aff-th[data-t="clair"] .aff-sw{--sw-bg:#F5F7FB;--sw-bar:#E4E9F5;--sw-tx:#8A93A6;--sw-ac:#2F6FE0;}
+#maffichage .aff-thl{display:block;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* Langues : cartes sélectionnables */
+#maffichage .aff-langs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px;}
+#maffichage .aff-lg{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;min-height:40px;padding:6px 12px;border-radius:12px;cursor:pointer;text-align:left;font:600 13.5px/1.2 var(--font-body);color:var(--tx);background:var(--bg2);border:1.5px solid var(--bd);transition:border-color .15s,background .15s,transform .1s;}
+#maffichage .aff-lg:hover{border-color:var(--bd2);}
+#maffichage .aff-lg:active{transform:scale(.98);}
+#maffichage .aff-lg.on{border-color:var(--ac);background:rgba(79,142,247,.13);}
+#maffichage .aff-lgl{min-width:0;overflow-wrap:anywhere;}
+#maffichage .aff-ck{flex:0 0 auto;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;color:#fff;background:var(--ac);}
+#maffichage .aff-langs>.aff-lg:last-child:nth-child(odd){grid-column:1 / -1;}
+#maffichage .aff-note{margin-top:8px;font-size:11px;line-height:1.35;color:var(--tx3);}
+
+/* Accessibilité clavier */
+#maffichage .aff-modal button:focus-visible,#maffichage .aff-modal input:focus-visible{outline:2px solid var(--ac);outline-offset:2px;}
+
+/* Ordinateur / tablette / paysage : deux colonnes */
+@media (min-width:700px){
+  #maffichage{padding-top:max(min(6vh,48px),env(safe-area-inset-top,0px));}
+  #maffichage .aff-modal{max-width:min(780px,100%) !important;}
+  #maffichage .aff-head{padding:12px 14px 12px 20px;}
+  #maffichage .aff-scale{display:flex;}
+  #maffichage .aff-body{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:16px;align-items:stretch;}
+  #maffichage .aff-card{padding:15px 16px 16px;}
+  #maffichage .aff-card--theme:has(+ #bloc-langue[style*="none"]){grid-column:1 / -1;}
+  #maffichage .aff-card--theme:has(+ #bloc-langue[style*="none"]) .aff-sw{height:54px;}
+}
+/* Très petit écran */
+@media (max-width:340px){
+  #maffichage{padding-left:6px;padding-right:6px;}
+  #maffichage .aff-body{padding:8px;gap:8px;}
+  #maffichage .aff-card{padding:11px 11px 12px;}
+  #maffichage .aff-themes{gap:6px;}
+  #maffichage .aff-slide{gap:8px;}
+}
+/* ===== /V1.06 ===== */
+
+/* ===== V1.07 — TOTAUX STABLES AU DÉFILEMENT VERTICAL (AFFICHAGE UNIQUEMENT) =====
+   Cause : au défilement, la barre de recherche globale (#gs-row, jusqu'à 90 px) se replie ; la page remonte mais la hauteur du tableau
+   (calculée par ajusterHauteurPage quand la barre était visible) restait inchangée → les lignes de totaux remontaient en laissant un vide
+   en bas, puis revenaient en remontant la liste. Correctif : la hauteur du tableau est recalculée à chaque repli / réaffichage (script V0.58),
+   et le repli n'est plus animé en hauteur (seul le fondu reste) pour que la mesure soit immédiate et définitive. Aucun calcul ni donnée modifié. */
+#gs-row{transition:opacity .2s ease !important;}
+/* ===== /V1.07 ===== */
 </style>
 </head>
 <body>
@@ -2233,54 +2367,54 @@ body:has(#vue-associe:not([style*="none"])) #gs-row{display:none !important;}
   </div>
 </div>
 
-<!-- AFFICHAGE — taille du texte, thème, langue (accessible à tous les rôles, y compris avant connexion) -->
+<!-- AFFICHAGE — taille du texte, des onglets, thème, langue (accessible à tous les rôles, y compris avant connexion) — refonte V1.06 -->
 <div class="ov" id="maffichage">
-  <div class="modal" style="max-width:460px">
-    <div class="mhd"><span data-i18n="affichage.titre">Affichage</span><button class="mcl" onclick="cm('maffichage')">✕</button></div>
-
-    <div class="ap-sec">
-    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 10px" data-i18n="affichage.taille.titre">Taille du texte</div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-      <button type="button" class="btn bh bsm" onclick="changerTaillePolice(-10)" style="min-width:42px" aria-label="Réduire">−</button>
-      <input type="range" id="rg-taille-police" min="80" max="150" step="5" value="100" oninput="appliquerTaillePolice(parseInt(this.value,10))" style="flex:1;accent-color:var(--ac)">
-      <button type="button" class="btn bh bsm" onclick="changerTaillePolice(10)" style="min-width:42px" aria-label="Agrandir">+</button>
-    </div>
-    <div style="text-align:center;font-size:.78rem;color:var(--tx2);margin-bottom:6px"><span id="lbl-taille-police">100%</span></div>
-    <div class="apercu-texte" style="text-align:center;padding:10px;background:var(--bg4);border-radius:9px;margin-bottom:8px">
-      <span style="font-size:1rem" data-i18n="affichage.taille.exemple">Aa — Exemple de texte</span>
-    </div>
-    <div style="text-align:center;margin-bottom:6px">
-      <button type="button" class="btn bh bsm" onclick="appliquerTaillePolice(100)" style="font-size:.72rem" data-i18n="affichage.taille.reinit">↺ Taille normale (100%)</button>
-    </div>
+  <div class="modal aff-modal" role="dialog" aria-modal="true" aria-labelledby="aff-titre">
+    <div class="aff-head">
+      <div class="aff-head-t"><span class="aff-head-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/></svg></span><span id="aff-titre" data-i18n="affichage.titre">Affichage</span></div>
+      <button type="button" class="aff-x" onclick="cm('maffichage')" aria-label="Fermer"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
 
-    <hr class="sep">
-    <div class="ap-sec">
-    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 10px" data-i18n="affichage.onglets.titre">Taille des onglets</div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-      <button type="button" class="btn bh bsm" onclick="changerTailleOnglets(-10)" style="min-width:42px" aria-label="Réduire les onglets">−</button>
-      <input type="range" id="rg-taille-onglets" min="80" max="140" step="5" value="100" oninput="appliquerTailleOnglets(parseInt(this.value,10))" style="flex:1;accent-color:var(--ac)">
-      <button type="button" class="btn bh bsm" onclick="changerTailleOnglets(10)" style="min-width:42px" aria-label="Agrandir les onglets">+</button>
-    </div>
-    <div style="text-align:center;font-size:.78rem;color:var(--tx2);margin-bottom:6px"><span id="lbl-taille-onglets">100%</span></div>
-    <div class="apercu-onglets" aria-hidden="true">
-      <button type="button" class="nbp nbp-actif" tabindex="-1" disabled>📊 Bord</button>
-      <button type="button" class="nbp" tabindex="-1" disabled data-i18n="nav.activites">📋 Activités</button>
-    </div>
-    <div style="text-align:center;margin-bottom:6px">
-      <button type="button" class="btn bh bsm" onclick="appliquerTailleOnglets(100)" style="font-size:.72rem" data-i18n="affichage.onglets.reinit">↺ Onglets normaux (100%)</button>
-    </div>
-    </div>
+    <div class="aff-body">
 
-    <hr class="sep">
-    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 10px" data-i18n="affichage.theme.titre">Thème</div>
-    <div id="theme-boutons" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px"></div>
+      <section class="aff-card" id="aff-c-texte">
+        <div class="aff-ch"><span class="aff-ci" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 19 8.5 5l5.5 14M5 14h7"/><path d="M15 19l3-7.5 3 7.5M16.2 16.5h3.6"/></svg></span><div class="aff-ct" data-i18n="affichage.taille.titre">Taille du texte</div><span class="aff-val" id="lbl-taille-police">100%</span></div>
+        <div class="aff-slide">
+          <button type="button" class="aff-step" onclick="changerTaillePolice(-10)" aria-label="Réduire">−</button>
+          <div class="aff-rng"><input type="range" id="rg-taille-police" min="80" max="150" step="5" value="100" oninput="appliquerTaillePolice(parseInt(this.value,10))" aria-labelledby="aff-titre"></div>
+          <button type="button" class="aff-step" onclick="changerTaillePolice(10)" aria-label="Agrandir">+</button>
+        </div>
+        <div class="aff-scale" aria-hidden="true"><span>80%</span><span>150%</span></div>
+        <div class="aff-prev aff-prev-txt apercu-texte"><span data-i18n="affichage.taille.exemple">Aa — Exemple de texte</span></div>
+        <button type="button" class="aff-reset" onclick="appliquerTaillePolice(100)" data-i18n="affichage.taille.reinit">↺ Taille normale (100%)</button>
+      </section>
 
-    <div id="bloc-langue" style="display:none">
-    <hr class="sep">
-    <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 10px" data-i18n="affichage.langue.titre">Langue / Language</div>
-    <div id="langue-boutons" style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px"></div>
-    <div style="font-size:.68rem;color:var(--tx3);margin-top:8px" data-i18n="affichage.langue.note">ℹ️ La traduction s'applique à l'interface (menus, boutons, titres). Les données que vous saisissez (noms, descriptions...) ne sont jamais traduites.</div>
+      <section class="aff-card" id="aff-c-onglets">
+        <div class="aff-ch"><span class="aff-ci" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 19V8a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span><div class="aff-ct" data-i18n="affichage.onglets.titre">Taille des onglets</div><span class="aff-val" id="lbl-taille-onglets">100%</span></div>
+        <div class="aff-slide">
+          <button type="button" class="aff-step" onclick="changerTailleOnglets(-10)" aria-label="Réduire les onglets">−</button>
+          <div class="aff-rng"><input type="range" id="rg-taille-onglets" min="80" max="140" step="5" value="100" oninput="appliquerTailleOnglets(parseInt(this.value,10))" aria-labelledby="aff-titre"></div>
+          <button type="button" class="aff-step" onclick="changerTailleOnglets(10)" aria-label="Agrandir les onglets">+</button>
+        </div>
+        <div class="aff-scale" aria-hidden="true"><span>80%</span><span>140%</span></div>
+        <div class="apercu-onglets aff-prev-tabs" aria-hidden="true">
+          <button type="button" class="nbp nbp-actif" tabindex="-1" disabled>📊 Bord</button>
+          <button type="button" class="nbp" tabindex="-1" disabled data-i18n="nav.activites">📋 Activités</button>
+        </div>
+        <button type="button" class="aff-reset" onclick="appliquerTailleOnglets(100)" data-i18n="affichage.onglets.reinit">↺ Onglets normaux (100%)</button>
+      </section>
+
+      <section class="aff-card aff-card--theme" id="aff-c-theme">
+        <div class="aff-ch"><span class="aff-ci" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.8-.9 1.5-1.9-.3-1 .4-2.1 1.5-2.1H17a4 4 0 0 0 4-4c0-5-4-10-9-10z"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/></svg></span><div class="aff-ct" data-i18n="affichage.theme.titre">Thème</div></div>
+        <div id="theme-boutons" class="aff-themes" role="radiogroup"></div>
+      </section>
+
+      <section class="aff-card" id="bloc-langue" style="display:none">
+        <div class="aff-ch"><span class="aff-ci" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></span><div class="aff-ct" data-i18n="affichage.langue.titre">Langue / Language</div></div>
+        <div id="langue-boutons" class="aff-langs" role="radiogroup"></div>
+        <div class="aff-note" data-i18n="affichage.langue.note">ℹ️ La traduction s'applique à l'interface (menus, boutons, titres). Les données que vous saisissez (noms, descriptions...) ne sont jamais traduites.</div>
+      </section>
+
     </div>
   </div>
 </div>
@@ -7053,8 +7187,9 @@ function rThemeBoutons(){
   var actuel=localStorage.getItem('bpro_theme')||'sombre';
   zone.innerHTML=THEME_DEFS.map(function(t){
     var actif=t.id===actuel;
-    return '<button type="button" class="btn '+(actif?'bp':'bh')+' bsm" onclick="appliquerTheme(\''+t.id+'\')" style="display:flex;align-items:center;gap:7px;justify-content:flex-start">'
-      +'<span style="width:14px;height:14px;border-radius:50%;background:'+t.dot+';border:1px solid var(--bd2);flex-shrink:0"></span>'+echap(t.label)+'</button>';
+    var nom=t.label.replace(/^\S+\s+/,''); /* sans l'émoji : la vignette montre déjà la couleur */
+    return '<button type="button" class="aff-th'+(actif?' on':'')+'" data-t="'+t.id+'" role="radio" aria-checked="'+(actif?'true':'false')+'" title="'+echap(nom)+'" onclick="appliquerTheme(\''+t.id+'\')">'
+      +'<span class="aff-sw" style="--sw-bg:'+t.dot+'"></span><span class="aff-thl">'+echap(nom)+'</span></button>';
   }).join('');
 }
 function appliquerTheme(nom){
@@ -7063,6 +7198,30 @@ function appliquerTheme(nom){
   try{ localStorage.setItem('bpro_theme',nom); }catch(e){}
   rThemeBoutons();
 }
+/* V1.06 — Boîte « Affichage » : remplissage coloré des curseurs + bouton « ↺ … (100 %) » atténué quand le réglage est déjà normal.
+   AFFICHAGE UNIQUEMENT : ne lit que la valeur des curseurs, n'écrit aucun réglage ni aucune donnée. */
+function affMajCurseurs(){
+  [['rg-taille-police','aff-c-texte'],['rg-taille-onglets','aff-c-onglets']].forEach(function(p){
+    var sl=document.getElementById(p[0]); if(!sl) return;
+    var mn=parseFloat(sl.min), mx=parseFloat(sl.max), v=parseFloat(sl.value);
+    sl.style.setProperty('--pct', (((v-mn)/(mx-mn))*100)+'%');
+    sl.setAttribute('aria-valuetext', v+'%');
+    var c=document.getElementById(p[1]); if(c) c.setAttribute('data-def', v===100?'1':'0');
+  });
+}
+(function(){
+  function init(){
+    var ov=document.getElementById('maffichage'); if(!ov) return;
+    ov.addEventListener('input', affMajCurseurs);
+    if(window.MutationObserver){
+      var mo=new MutationObserver(affMajCurseurs);
+      ['lbl-taille-police','lbl-taille-onglets'].forEach(function(id){ var el=document.getElementById(id); if(el) mo.observe(el,{childList:true,characterData:true,subtree:true}); });
+      mo.observe(ov,{attributes:true,attributeFilter:['class']});
+    }
+    affMajCurseurs();
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
 /* ============================================================
  * PULAR / FULFULDE — écriture ADLAM (Unicode U+1E900–1E95F)
  * Couche d'AFFICHAGE uniquement : les données (noms, montants,
@@ -7227,7 +7386,8 @@ function rLangueBoutons(){
   var actuel=langueStockee();
   zone.innerHTML=LANGUE_DEFS.map(function(l){
     var actif=l.id===actuel;
-    return '<button type="button" class="btn '+(actif?'bp':'bh')+' bsm" onclick="appliquerLangue(\''+l.id+'\')" style="text-align:left">'+echap(l.label)+(actif?' ✓':'')+'</button>';
+    return '<button type="button" class="aff-lg'+(actif?' on':'')+'" role="radio" aria-checked="'+(actif?'true':'false')+'" onclick="appliquerLangue(\''+l.id+'\')">'
+      +'<span class="aff-lgl">'+echap(l.label)+'</span>'+(actif?'<span class="aff-ck" aria-hidden="true">✓</span>':'')+'</button>';
   }).join('');
 }
 function appliquerLangue(code){
@@ -12774,7 +12934,9 @@ function ajusterHauteurPage(){
     var MIN=96, tops=zones.map(function(z){ return z.scrollTop; });
     zones.forEach(function(z){ z.style.maxHeight=MIN+'px'; });
     var bas=tab.getBoundingClientRect().bottom+window.pageYOffset;
-    var reste=Math.max(0,window.innerHeight-bas-8);
+    /* V1.07 : on tient compte de l'espace réel sous l'onglet (marge de la carte + marge basse de <main>) : la page tient exactement dans l'écran, sans défilement parasite de quelques pixels. */
+    var fond=bas+8; try{ var mn=document.querySelector('main'); if(mn){ fond=Math.max(fond,mn.getBoundingClientRect().bottom+window.pageYOffset); } }catch(e){}
+    var reste=Math.max(0,window.innerHeight-fond);
     var extra=zones.map(function(z){ return Math.max(0,z.scrollHeight-MIN); });
     var alloc=zones.map(function(){ return 0; }), ouverts=zones.map(function(z,i){ return i; });
     while(ouverts.length && reste>0.5){
@@ -12783,7 +12945,7 @@ function ajusterHauteurPage(){
       petits.forEach(function(i){ alloc[i]=extra[i]; reste-=extra[i]; });
       ouverts=ouverts.filter(function(i){ return petits.indexOf(i)<0; });
     }
-    zones.forEach(function(z,i){ z.style.maxHeight=Math.floor(MIN+alloc[i])+'px'; z.scrollTop=tops[i]; });
+    zones.forEach(function(z,i){ z.style.maxHeight=Math.floor(MIN+alloc[i])+'px'; if(z.scrollTop!==tops[i]) z.scrollTop=tops[i]; }); /* V1.07 : pas de réaffectation inutile (ne coupe pas l'élan du doigt) */
     ajusterHauteurPage.__sg=sig();
   }catch(e){}
 }
@@ -12793,7 +12955,7 @@ function ajusterTotaux(){
       var kids=[].slice.call(r.children);
       var sg=function(){ return r.clientWidth+'|'+r.textContent+'|'+getComputedStyle(r).fontSize; };
       if(r.__sgT && r.__sgT===sg()) return;
-      kids.forEach(function(k){ k.style.zoom=''; });
+      kids.forEach(function(k){ k.style.zoom=''; }); r.classList.remove('tot-wrap');
       if(!r.clientWidth) return;
       /* V0.82 : une seule mesure pour estimer le zoom, puis au plus 4 corrections (avant : jusqu'à ~16 remises en page de toute la page) */
       var s=1, sw=r.scrollWidth, cw=r.clientWidth, n=0;
@@ -12801,6 +12963,7 @@ function ajusterTotaux(){
         s=Math.max(0.5,Math.floor(cw/sw*100)/100); kids.forEach(function(k){ k.style.zoom=s; });
         while(r.scrollWidth>r.clientWidth+0.5 && s>0.5 && n<4){ s=Math.max(0.5,Math.round((s-0.03)*100)/100); kids.forEach(function(k){ k.style.zoom=s; }); n++; }
       }
+      if(r.scrollWidth>r.clientWidth+0.5){ kids.forEach(function(k){ k.style.zoom=''; }); r.classList.add('tot-wrap'); } /* V1.05 : même réduit à 50 %, ça ne tient pas → retour à la ligne */
       r.__sgT=sg();
     });
   }catch(e){}
@@ -12824,6 +12987,9 @@ function majDispositionOnglet(){
 // V0.58 — Barre de recherche globale (et totaux Dépenses) masquées pendant le défilement vers le bas, réaffichées en remontant (affichage uniquement)
 (function(){
   var lock=0;
+  /* V1.07 — Quand la barre de recherche se replie / réapparaît, la place disponible change : on recalcule aussitôt la hauteur du tableau pour que
+     les lignes de totaux restent collées au bas de l'écran (avant : le tableau gardait son ancienne hauteur → totaux remontés + vide en bas). */
+  function refit(){ try{ ajusterHauteurPage(); }catch(x){} setTimeout(function(){ try{ ajusterHauteurPage(); }catch(x){} },260); }
   document.addEventListener('scroll',function(e){
     try{
       var t=e.target, page=(t===document||t===window), el=page?(document.scrollingElement||document.documentElement):t;
@@ -12832,9 +12998,9 @@ function majDispositionOnglet(){
       var y=el.scrollTop, d=y-(el.__sy||0); el.__sy=y;
       if(Date.now()<lock) return;
       var b=document.body, on=b.classList.contains('gs-masque');
-      if(y<=4){ if(on&&(d<0||page)){ b.classList.remove('gs-masque'); lock=Date.now()+320; } return; }
-      if(d>6&&y>40&&!on){ b.classList.add('gs-masque'); lock=Date.now()+320; }
-      else if(d<-6&&on){ b.classList.remove('gs-masque'); lock=Date.now()+320; }
+      if(y<=4){ if(on&&(d<0||page)){ b.classList.remove('gs-masque'); lock=Date.now()+320; refit(); } return; }
+      if(d>6&&y>40&&!on){ b.classList.add('gs-masque'); lock=Date.now()+320; refit(); }
+      else if(d<-6&&on){ b.classList.remove('gs-masque'); lock=Date.now()+320; refit(); }
     }catch(x){}
   },true);
   document.addEventListener('click',function(e){
@@ -13119,8 +13285,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V1.03'; // 11-10-2026 : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
-var APP_VERSION_DATE = '2026-10-10T23:30:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V1.07'; // 11-10-2026 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
+var APP_VERSION_DATE = '2026-10-11T10:00:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 
 /* ===== V0.82 — OBSERVATEUR UNIQUE DES TABLEAUX (AFFICHAGE UNIQUEMENT) =====
    Remplace les 3 observateurs séparés (V0.79, V0.80, V0.81) par un seul, groupé (40 ms), qui prévient
@@ -15997,6 +16163,7 @@ function setSyncStatus(state, text) {
   if (!el) return;
   el.className = 'sync-badge sync-' + state;
   el.textContent = text;
+  try{ el.title = text + ' — Toucher pour voir le diagnostic détaillé'; }catch(e){} // V1.05 : texte complet si le badge est tronqué
 }
 
 // Réagit immédiatement aux changements de connexion réseau
@@ -16983,6 +17150,29 @@ function testSupabaseConnection() {
   }catch(e){}
 })();
 
+
+  // ================================================================
+  // V1.04 — VERROU DE DÉFILEMENT HORIZONTAL DE LA PAGE (affichage uniquement)
+  // L'en-tête, les onglets et les barres d'outils ne doivent jamais se décaler : si un défilement horizontal
+  // de la PAGE survient (focus d'un champ, scrollIntoView, geste qui « chaîne » depuis un tableau…), il est
+  // aussitôt ramené à 0. Le défilement interne des tableaux / de la rangée d'onglets n'est pas concerné.
+  // ================================================================
+  (function(){
+    function verrouX(){
+      try{
+        var de=document.documentElement, b=document.body;
+        if((window.pageXOffset||0)!==0 || de.scrollLeft!==0 || (b&&b.scrollLeft!==0)){
+          window.scrollTo(0, window.pageYOffset||0);
+          de.scrollLeft=0; if(b) b.scrollLeft=0;
+        }
+      }catch(e){}
+    }
+    window.addEventListener('scroll',verrouX,{passive:true});
+    window.addEventListener('resize',verrouX);
+    window.addEventListener('orientationchange',verrouX);
+    document.addEventListener('focusin',function(){ setTimeout(verrouX,0); setTimeout(verrouX,300); });
+    verrouX();
+  })();
   </script>
 
   <!-- =====================================================================
