@@ -1419,6 +1419,37 @@ body:has(#vue-associe:not([style*="none"])) #gs-row{display:none !important;}
 #vue-visiteur .tw table td .dj-j{margin-right:4px;}
 /* ===== /V1.01 ===== */
 
+/* ===== V1.03 — BOÎTE « AFFICHAGE » : TAILLE FIXE ET COMPACTE (AFFICHAGE UNIQUEMENT) =====
+   Défaut : tout le contenu de la boîte est en rem, donc elle grandissait avec « Taille du texte » (jusqu'à occuper tout l'écran et déborder).
+   Correctif : chaque bloc de la boîte est réduit par zoom = 0,78 / --fs (--fs = taille du texte / 100, posé par le script V0.90) :
+   la boîte garde la même taille à l'écran quel que soit le réglage. Elle est aussi plus compacte : dans chaque réglage, titre, pourcentage et
+   bouton « ↺ … (100%) » tiennent sur une ligne, puis le curseur, puis l'aperçu ; marges réduites ; langues en 2 colonnes.
+   Exceptions volontaires : l'encadré « Aa — Exemple de texte » et l'aperçu des onglets restent à leur taille réelle (zoom compensé), pour que
+   les curseurs montrent toujours le résultat. Aucune règle hors #maffichage, aucune fonction, donnée ou réglage modifié.
+   Bloc autonome : le supprimer (et les 2 <div class="ap-sec"> / la classe apercu-texte, sans effet) rétablit V1.02. */
+#maffichage .modal{max-width:min(330px,100%) !important;padding:8px 10px;border-radius:13px;}
+#maffichage .modal > *{zoom:.78;zoom:calc(.78 / var(--fs,1));}
+#maffichage .modal .mhd{margin-bottom:2px;}
+#maffichage .modal > div{margin-top:0 !important;margin-bottom:4px !important;}
+#maffichage .modal .sep{margin:4px 0;}
+#maffichage .ap-sec{display:grid;grid-template-columns:minmax(0,1fr) auto auto;column-gap:8px;row-gap:3px;align-items:center;}
+#maffichage .ap-sec > *{margin:0 !important;min-width:0;}
+#maffichage .ap-sec > :nth-child(1){grid-column:1;grid-row:1;}
+#maffichage .ap-sec > :nth-child(3){grid-column:2;grid-row:1;white-space:nowrap;}
+#maffichage .ap-sec > :nth-child(5){grid-column:3;grid-row:1;}
+#maffichage .ap-sec > :nth-child(2){grid-column:1 / -1;grid-row:2;}
+#maffichage .ap-sec > :nth-child(4){grid-column:1 / -1;grid-row:3;}
+#maffichage .ap-sec > .apercu-texte,#maffichage .ap-sec > .apercu-onglets{zoom:calc(var(--fs,1) / .78);}
+#maffichage .ap-sec > .apercu-texte{padding:3px 6px !important;}
+#maffichage .ap-sec > .apercu-onglets{padding:5px 8px 0 !important;}
+#maffichage .ap-sec .btn{min-width:0 !important;padding:3px 9px;}
+#maffichage .ap-sec > div > .btn{white-space:nowrap;}
+#maffichage #theme-boutons{gap:5px !important;}
+#maffichage #theme-boutons .btn,#maffichage #langue-boutons .btn{padding:4px 7px;}
+#maffichage #langue-boutons{display:grid !important;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px !important;}
+#maffichage #bloc-langue > div{margin-top:0 !important;margin-bottom:4px !important;}
+#maffichage #bloc-langue > div:last-child{margin-top:2px !important;margin-bottom:0 !important;line-height:1.2;font-size:.62rem !important;}
+/* ===== /V1.03 ===== */
 </style>
 </head>
 <body>
@@ -2207,6 +2238,7 @@ body:has(#vue-associe:not([style*="none"])) #gs-row{display:none !important;}
   <div class="modal" style="max-width:460px">
     <div class="mhd"><span data-i18n="affichage.titre">Affichage</span><button class="mcl" onclick="cm('maffichage')">✕</button></div>
 
+    <div class="ap-sec">
     <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 10px" data-i18n="affichage.taille.titre">Taille du texte</div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
       <button type="button" class="btn bh bsm" onclick="changerTaillePolice(-10)" style="min-width:42px" aria-label="Réduire">−</button>
@@ -2214,14 +2246,16 @@ body:has(#vue-associe:not([style*="none"])) #gs-row{display:none !important;}
       <button type="button" class="btn bh bsm" onclick="changerTaillePolice(10)" style="min-width:42px" aria-label="Agrandir">+</button>
     </div>
     <div style="text-align:center;font-size:.78rem;color:var(--tx2);margin-bottom:6px"><span id="lbl-taille-police">100%</span></div>
-    <div style="text-align:center;padding:10px;background:var(--bg4);border-radius:9px;margin-bottom:8px">
+    <div class="apercu-texte" style="text-align:center;padding:10px;background:var(--bg4);border-radius:9px;margin-bottom:8px">
       <span style="font-size:1rem" data-i18n="affichage.taille.exemple">Aa — Exemple de texte</span>
     </div>
     <div style="text-align:center;margin-bottom:6px">
       <button type="button" class="btn bh bsm" onclick="appliquerTaillePolice(100)" style="font-size:.72rem" data-i18n="affichage.taille.reinit">↺ Taille normale (100%)</button>
     </div>
+    </div>
 
     <hr class="sep">
+    <div class="ap-sec">
     <div style="font-size:.78rem;color:var(--tx2);font-weight:700;text-transform:uppercase;margin:4px 0 10px" data-i18n="affichage.onglets.titre">Taille des onglets</div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
       <button type="button" class="btn bh bsm" onclick="changerTailleOnglets(-10)" style="min-width:42px" aria-label="Réduire les onglets">−</button>
@@ -2235,6 +2269,7 @@ body:has(#vue-associe:not([style*="none"])) #gs-row{display:none !important;}
     </div>
     <div style="text-align:center;margin-bottom:6px">
       <button type="button" class="btn bh bsm" onclick="appliquerTailleOnglets(100)" style="font-size:.72rem" data-i18n="affichage.onglets.reinit">↺ Onglets normaux (100%)</button>
+    </div>
     </div>
 
     <hr class="sep">
@@ -13084,7 +13119,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V1.02'; // 10-10-2026 : impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
+var APP_VERSION = 'V1.03'; // 11-10-2026 : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
 var APP_VERSION_DATE = '2026-10-10T23:30:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 
 /* ===== V0.82 — OBSERVATEUR UNIQUE DES TABLEAUX (AFFICHAGE UNIQUEMENT) =====
