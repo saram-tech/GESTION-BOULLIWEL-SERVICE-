@@ -3769,7 +3769,11 @@ function normSearch(s){
   // traitement casse/accents déjà en place. Ne modifie JAMAIS le nom
   // affiché/enregistré tel que saisi — sert uniquement à la comparaison
   // d'identité, exactement comme avant.
-  return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[\s\u00A0]+/g,' ').trim();
+  /* V1.10 : résultat mémorisé (fonction pure : même entrée → même sortie) — évite 4 expressions régulières par champ à chaque frappe de recherche. */
+  var k=String(s==null?'':s), c=normSearch._c||(normSearch._c=new Map()), r=c.get(k);
+  if(r!==undefined) return r;
+  r=k.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[\s\u00A0]+/g,' ').trim();
+  if(c.size>20000) c.clear(); c.set(k,r); return r;
 }
 function matchPeriode(dateStr, periode){
   if(!periode || !dateStr) return true;
@@ -7532,11 +7536,14 @@ function enrParametres(){
  */
 function appliquerVisibiliteAffichage(){
   var p=getParams(), va=p.visAffichage;
+  /* V1.10 : une seule passe sur le document (au lieu d'une recherche complète par clé), mêmes résultats ; on n'écrit que si la valeur change. */
+  var tous=document.querySelectorAll('[data-vk]'), parCle={}, q;
+  for(q=0;q<tous.length;q++){ var kk=tous[q].getAttribute('data-vk'); (parCle[kk]||(parCle[kk]=[])).push(tous[q]); }
   ['associe','visiteur','dashboard'].forEach(function(groupKey){
     var etat=va[groupKey]||{};
     Object.keys(etat).forEach(function(k){
-      var els=document.querySelectorAll('[data-vk="'+k+'"]');
-      for(var i=0;i<els.length;i++) els[i].style.display = (etat[k]!==false) ? '' : 'none';
+      var els=parCle[k]; if(!els) return; var dv=(etat[k]!==false) ? '' : 'none';
+      for(var i=0;i<els.length;i++) if(els[i].style.display!==dv) els[i].style.display=dv;
     });
   });
   var elBilan=document.getElementById('card-formules-bilan');
@@ -11074,7 +11081,7 @@ function rAct(){
   items=items.filter(function(a){ return matchPeriodeFull(a.date,fp); });
   if(fs) items=items.filter(function(a){ return normSearch(a.desig).indexOf(fs)>-1||normSearch(a.client).indexOf(fs)>-1||normSearch(a.panne).indexOf(fs)>-1||normSearch(a.ticket).indexOf(fs)>-1; });
   if(!items.length){
-    tb.innerHTML='<tr><td colspan="13" style="text-align:center;color:var(--tx2);padding:20px">Aucune activité</td></tr>';
+    tb.__h=null; tb.__r=null; tb.innerHTML='<tr><td colspan="13" style="text-align:center;color:var(--tx2);padding:20px">Aucune activité</td></tr>';
     st('t-enc','0 GNF'); st('t-ben','0 GNF'); st('t-rst','0 GNF'); return;
   }
   var tc={'Vente':'bbr','Réparation':'bnr','Service':'btr'};
@@ -11110,7 +11117,7 @@ function rAct(){
   html+='<td colspan="6">TOTAL ('+items.length+' ligne'+(items.length>1?'s':'')+')</td>';
   html+='<td>'+fmt(totAchatQte)+'</td><td>'+fmt(totApayer)+'</td><td style="color:var(--gr)">'+fmt(totPaye)+'</td><td style="color:'+(totReste>0?'var(--or)':'var(--gr)')+'">'+fmt(totReste)+'</td><td>—</td><td style="color:'+(totBenefice>=0?'var(--gr)':'var(--re)')+'">'+fmt(totBenefice)+'</td><td>—</td>';
   html+='</tr>';
-  tb.innerHTML=html;
+  __majTb(tb,html);
   var enc=items.reduce(function(s,a){ return s+a.paye; },0);
   var ben=items.reduce(function(s,a){ return s+a.benefice; },0);
   var rst=items.reduce(function(s,a){ return s+a.reste; },0);
@@ -11161,7 +11168,7 @@ function rStock(){
   // d'affichage, appliqué en dernier s'il est actif — aucune donnée,
   // aucun total, aucun calcul n'est modifié.
   if(triAZ.stock) items=items.slice().sort(function(a,b){ return normSearch(a.nom).localeCompare(normSearch(b.nom)); });
-  if(!items.length){ tb.innerHTML='<tr><td colspan="12" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit</td></tr>'; return; }
+  if(!items.length){ tb.__h=null; tb.__r=null; tb.innerHTML='<tr><td colspan="12" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit</td></tr>'; return; }
   var html='';
   var totInit=0,totVendu=0,totRestant=0,totValeur=0,totAchatU=0,totVenteU=0;
   items.forEach(function(s,idx){
@@ -11189,7 +11196,7 @@ function rStock(){
   html+='<td>—</td><td>TOTAL</td><td>'+totInit+'</td><td style="color:var(--or)">'+totVendu+'</td><td>'+totRestant+'</td>';
   html+='<td>—</td><td>—</td><td>—</td><td>'+fmt(totVenteU)+'</td><td style="color:var(--go)">'+fmt(totValeur)+'</td><td>—</td><td>—</td>';
   html+='</tr>';
-  tb.innerHTML=html;
+  __majTb(tb,html);
 }
 
 function rPerso(){
@@ -11221,7 +11228,7 @@ function rPerso(){
    * l'écran. Aucun calcul (entDoit, resteEnt, entDoitBase...) n'est
    * modifié — seul l'aiguillage vers le bon champ HTML change.
    */
-  if(!items.length){ tb.innerHTML='<tr><td colspan="12" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr>'; var bdVide=calculerBilanData(); st('t-perso',fmt(Math.max(0,bdVide.entDoit))); st('t-perso-reste',fmt(Math.max(0,bdVide.resteEnt))); return; }
+  if(!items.length){ tb.__h=null; tb.__r=null; tb.innerHTML='<tr><td colspan="12" style="text-align:center;color:var(--tx2);padding:20px">Aucun produit perso</td></tr>'; var bdVide=calculerBilanData(); st('t-perso',fmt(Math.max(0,bdVide.entDoit))); st('t-perso-reste',fmt(Math.max(0,bdVide.resteEnt))); return; }
   var tot=0, html='';
   var totInit=0,totVendu=0,totRestant=0,totAchatU=0,totRevient=0,totCommission=0,totDu=0;
   items.forEach(function(p,idx){
@@ -11249,7 +11256,7 @@ function rPerso(){
   html+='<td>—</td><td>TOTAL</td><td>'+totInit+'</td><td style="color:var(--or)">'+totVendu+'</td><td>'+totRestant+'</td>';
   html+='<td>—</td><td style="color:var(--tx2)">'+fmt(totRevient)+'</td><td style="color:var(--gr)">+'+fmt(totCommission)+'</td><td style="color:var(--go)">'+fmt(totDu)+'</td><td>—</td><td>—</td><td>—</td>';
   html+='</tr>';
-  tb.innerHTML=html; var bdPerso=calculerBilanData(); st('t-perso',fmt(Math.max(0,bdPerso.entDoit)));
+  __majTb(tb,html); var bdPerso=calculerBilanData(); st('t-perso',fmt(Math.max(0,bdPerso.entDoit)));
   st('t-perso-reste',fmt(Math.max(0,bdPerso.resteEnt)));
 }
 
@@ -11320,7 +11327,7 @@ function rDep(){
   var fs=normSearch(v('f-search-dep'));
   var items=D.depenses.filter(function(d){ return matchPeriodeFull(d.date,'f-periode-dep'); });
   if(fs) items=items.filter(function(d){ return normSearch(d.cat).indexOf(fs)>-1||normSearch(d.desc).indexOf(fs)>-1; });
-  if(!items.length){ tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--tx2);padding:20px">'+(D.depenses.length?'Aucun résultat':'Aucune dépense')+'</td></tr>'; st('k-dt','0 GNF'); st('k-dm','0 GNF'); return; }
+  if(!items.length){ tb.__h=null; tb.__r=null; tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--tx2);padding:20px">'+(D.depenses.length?'Aucun résultat':'Aucune dépense')+'</td></tr>'; st('k-dt','0 GNF'); st('k-dm','0 GNF'); return; }
   var tot=0, mois=0, m=new Date().toISOString().slice(0,7), html='';
   var lastDateDep=null;
   items.forEach(function(d,idx){
@@ -11336,7 +11343,7 @@ function rDep(){
   html+='<tr style="background:var(--bg4);font-weight:700;border-top:2px solid var(--bd)">';
   html+='<td>—</td><td colspan="3">TOTAL GÉNÉRAL ('+items.length+' dépense'+(items.length>1?'s':'')+')</td><td>'+totQte+'</td><td>—</td><td style="color:var(--re)">'+fmt(tot)+'</td><td>—</td>';
   html+='</tr>';
-  tb.innerHTML=html; st('k-dt',fmt(tot)); st('k-dm',fmt(mois));
+  __majTb(tb,html); st('k-dt',fmt(tot)); st('k-dm',fmt(mois));
 }
 
 var cmdStatutFiltre='todo', cmdVue='clients';
@@ -11761,8 +11768,53 @@ function updateKPIs(){
   document.getElementById('last-ops').innerHTML=lohtml;
 }
 
+/* ===== V1.10 — RENDU PARESSEUX DES ONGLETS CACHÉS (PERFORMANCE, AUCUN CHANGEMENT D'AFFICHAGE) =====
+   renderAll() reconstruisait à chaque enregistrement TOUS les tableaux (Activités, Stock, Perso, Dépenses, Commandes, Corbeille, Patrimoine,
+   Bilan, Dettes), même ceux d'onglets invisibles : ~350 ms de blocage pour 1 000 lignes. Désormais seul l'onglet VISIBLE est reconstruit tout de
+   suite ; un onglet caché est simplement marqué « à jour à l'ouverture » et reconstruit au moment où on l'ouvre (gt, goBack, ou filet de sécurité).
+   Les données, calculs, totaux du Tableau de bord, synchronisations et appels directs (rStock(), rAct()… depuis leur propre onglet) sont inchangés. */
+/* V1.10 — __majTb : ne reconstruit pas le tableau si le HTML généré est strictement identique au précédent (même langue) : plus de reconstruction du DOM,
+   de passage des modules d'affichage ni de nouvelle mise en page pour rien (frappe d'une recherche sans changement de résultat, synchronisation sans nouveauté). */
+function __majTb(tb,html){
+  var lg=''; try{ lg=langueActive(); }catch(e){}
+  if(tb.__h===html && tb.__l===lg && tb.firstChild) return false;
+  /* Mise à jour par différence : si la structure est intacte (même nombre de lignes, même langue), seules les lignes dont le HTML a changé sont remplacées ;
+     sinon (ou si plus de 40 % des lignes changent) reconstruction complète comme avant. Les lignes inchangées gardent leur forme déjà complétée par les modules d'affichage. */
+  var rows=html.split(/(?=<tr[\s>])/), old=tb.__r, patch=false;
+  if(old && tb.__l===lg && tb.tagName==='TBODY' && old.length===rows.length && rows.length>8 && tb.children.length===rows.length){
+    var diff=[]; for(var i=0;i<rows.length;i++){ if(rows[i]!==old[i]) diff.push(i); }
+    if(diff.length<=rows.length*0.4){
+      var ok=true, nodes=[]; var tmp=document.createElement('tbody');
+      for(var j=0;j<diff.length&&ok;j++){ tmp.innerHTML=rows[diff[j]]; if(tmp.children.length!==1){ ok=false; break; } nodes.push(tmp.removeChild(tmp.firstElementChild)); }
+      if(ok){ for(var k=0;k<diff.length;k++){ tb.replaceChild(nodes[k],tb.children[diff[k]]); } patch=true; }
+    }
+  }
+  tb.__h=html; tb.__l=lg; tb.__r=rows;
+  if(!patch) tb.innerHTML=html;
+  return true;
+}
+var __rSale=__rSale||{};
+function __rLazyMap(){ return { activites:['rAct'], stock:['rStock'], perso:['rPerso'], depenses:['rDep'], corbeille:['rCorbeille'], commandes:['rCmd','rAlertesStock','rAlertesCommandesDisponibles'], patrimoine:['rPatrimoine'], bilan:['calculerBilan'], associe:['rDettes'] }; }
+function __ongletActif(){ var a=document.querySelector('.tab-panel.active'); return (a&&a.id)?a.id.replace('tab-',''):''; }
+var __rDone=__rDone||{}, __rPlanTm=null, __rPlanN=0;
+function __rExec(tab){ __rDone[tab]=true; var l=__rLazyMap()[tab]||[]; for(var i=0;i<l.length;i++){ try{ window[l[i]](); }catch(e){ console.error('[render '+l[i]+']',e); } } }
+/* Préchargement en temps mort : un onglet jamais construit l'est une seule fois, quand l'application est inactive (connecté, aucune boîte ouverte, aucun champ en saisie),
+   pour que sa première ouverture soit aussi rapide qu'avant. Les mises à jour suivantes se font par lignes modifiées (voir __majTb). */
+function __rPlan(){ if(__rPlanTm) return; __rPlanTm=setTimeout(function(){ __rPlanTm=null; var go=function(){ __rWarm(); }; if(window.requestIdleCallback) requestIdleCallback(go,{timeout:3000}); else go(); },700); }
+function __rWarm(){
+  try{
+    var reessayer=function(){ if(++__rPlanN<60) __rPlan(); };
+    if(!isLoggedIn()||isAssocie()||isVisiteur()||document.hidden){ reessayer(); return; }
+    var ae=document.activeElement; if(document.querySelector('.ov.open')||(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))){ reessayer(); return; }
+    var ordre=['stock','activites','perso','depenses','commandes','patrimoine','bilan','associe','corbeille'], i, fait=false;
+    for(i=0;i<ordre.length;i++){ if(__rSale[ordre[i]] && !__rDone[ordre[i]]){ rVider(ordre[i]); fait=true; break; } }
+    for(i=0;i<ordre.length;i++){ if(__rSale[ordre[i]] && !__rDone[ordre[i]]){ __rPlanN=0; __rPlan(); break; } }
+  }catch(e){}
+}
+function rParesse(tab){ if(__ongletActif()===tab){ __rSale[tab]=false; __rExec(tab); } else { __rSale[tab]=true; if(!__rDone[tab]) __rPlan(); } }
+function rVider(tab){ if(__rSale&&__rSale[tab]){ __rSale[tab]=false; __rExec(tab); } }
 function renderAll(){
-  rAct(); rStock(); rPerso(); rDettes(); rDep(); rCmd(); rHisto(); rRapport(); rCorbeille(); rAlertesStock(); rAlertesCommandesDisponibles(); rPatrimoine(); updateKPIs(); calculerBilan(); rCatList();
+  rParesse('activites'); rParesse('stock'); rParesse('perso'); rParesse('associe'); rParesse('depenses'); rParesse('commandes'); rHisto(); rRapport(); rParesse('corbeille'); rParesse('patrimoine'); updateKPIs(); rParesse('bilan'); rCatList();
   if(isLoggedIn() && isAssocie()) rVueAssocie();
 }
 /**
@@ -12655,6 +12707,7 @@ function gt(id, btn) {
   document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
   document.querySelectorAll('.nb').forEach(function(b){ b.classList.remove('active'); });
   document.getElementById('tab-'+id).classList.add('active');
+  try{ rVider(id); }catch(e){} /* V1.10 : onglet resté « à reconstruire » */
   var activeBtn = btn || null;
   if (activeBtn) activeBtn.classList.add('active');
   else document.querySelectorAll('.nb').forEach(function(b){
@@ -13048,7 +13101,7 @@ function goBack() {
     var prev = navHistory.pop();
     document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
     document.querySelectorAll('.nb').forEach(function(b){ b.classList.remove('active'); });
-    document.getElementById('tab-'+prev).classList.add('active');
+    document.getElementById('tab-'+prev).classList.add('active'); try{ rVider(prev); }catch(e){}
     document.querySelectorAll('.nb').forEach(function(b){
       if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf("'"+prev+"'") > -1) b.classList.add('active');
     });
@@ -13316,7 +13369,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V1.09'; // 11-10-2026 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
+var APP_VERSION = 'V1.10'; // 12-10-2026 : performance — rendu des onglets cachés différé, mise à jour des tableaux par lignes modifiées, pré-filtres des modules d'affichage, recherche mémorisée. (avant V1.09 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
 var APP_VERSION_DATE = '2026-10-11T10:00:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 
 /* ===== V0.82 — OBSERVATEUR UNIQUE DES TABLEAUX (AFFICHAGE UNIQUEMENT) =====
@@ -13383,6 +13436,7 @@ function __bpTablesDe(nodes){
   function balayer(racine){
     if(!racine||!document.createTreeWalker) return;
     if(racine.nodeType===3) racine=racine.parentNode; if(!racine||racine.nodeType!==1) return;
+    if(!/\d{2}-\d{2}-\d{4}/.test(racine.textContent||'')) return; /* V1.10 : pas de date dans ce bloc → inutile de parcourir ses nœuds texte (même résultat) */
     if(!racine.closest('table')&&!racine.querySelector('table')) return;
     var ok=OKC||(OKC=jours()), tw=document.createTreeWalker(racine,4,null), n, liste=[];
     while((n=tw.nextNode())){ if(RX.test(n.nodeValue)&&n.parentNode&&n.parentNode.closest&&n.parentNode.closest('td,th')) liste.push(n); }
@@ -13521,6 +13575,7 @@ function __bpTablesDe(nodes){
   ['touchend','touchcancel','pointerup','mouseup'].forEach(function(n){ document.addEventListener(n,function(){ setTimeout(function(){ touching=false; },250); },true); });
   function restaurer(w){ var p=pos.get(w); if(!p||touching) return; if(w.scrollTop!==p.t||w.scrollLeft!==p.l){ ids.add(w); w.scrollTop=p.t; w.scrollLeft=p.l; setTimeout(function(){ ids.delete(w); },60); } }
   var RX=/(^|[^\d\-\/:.,+])((?:\+|00)?\d(?:[ \u00a0\u202f]?\d){7,14})(?![\d\-\/:])/g;
+  var PRE_TEL=/(?:\d[ \u00a0\u202f]?){7}\d/;
   var MONTANT=/^\d{1,3}(?:[ \u00a0\u202f]\d{3})+$/, UNITE=/^\s*(?:GNF|FG|F\b|€|\$|%|x\b)/i;
   function tel(n){
     var tx=n.nodeValue; if(!tx||tx.length<8||!/\d{3}/.test(tx)) return;
@@ -13543,6 +13598,7 @@ function __bpTablesDe(nodes){
     var zones=(r.matches&&r.matches('td,#tbl-cmd'))?[r]:Array.prototype.slice.call(r.querySelectorAll?r.querySelectorAll('td,#tbl-cmd'):[]);
     var up=r.closest&&r.closest('td,#tbl-cmd'); if(up&&zones.indexOf(up)<0) zones.push(up);
     zones.forEach(function(z){
+      if(!PRE_TEL.test(z.textContent||'')) return; /* V1.10 : aucune suite de 8 chiffres → aucun numéro possible (même résultat, sans parcourir les nœuds) */
       var tw=document.createTreeWalker(z,4,null), n, l=[];
       while((n=tw.nextNode())){ var pe=n.parentNode; if(pe&&pe.classList&&pe.classList.contains('tel-n')) continue; if(pe&&pe.closest&&pe.closest('button,input,select,textarea,.dj-b,script,style')) continue; l.push(n); }
       l.forEach(tel);
@@ -16997,7 +17053,7 @@ function _reconcilerAppDataCoeur(silencieux) {
        * migrerEntDoitBaseStockPerso() elle-même, ni aucune autre
        * fonctionnalité modifiés.
        */
-      persist(); renderAll();
+      persist(); if(changementReel || !silencieux) renderAll(); /* V1.10 : cycle automatique sans aucun changement → pas de reconstruction d'affichage inutile */
       // On repousse immédiatement la version fusionnée, pour que le
       // cloud et cet appareil convergent tout de suite vers l'union.
       // CORRECTIF : le message "fusionné avec le cloud, rien n'est
@@ -17393,6 +17449,11 @@ function testSupabaseConnection() {
   function sync(){ ids.forEach(function(t){ var el=document.getElementById(t[0]), c=t[1]==='body'?document.body:document.querySelector('header'); if(c) c.classList.toggle(t[2], on(el)); }); }
   function init(){ sync(); ids.forEach(function(t){ var el=document.getElementById(t[0]); if(el) new MutationObserver(sync).observe(el,{attributes:true,attributeFilter:['style']}); }); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+}catch(e){} })();
+/* ===== V1.10 — filet de sécurité du rendu paresseux : tout onglet qui devient actif (quel que soit le chemin) est reconstruit s'il était en attente ===== */
+(function(){ try{
+  var obs=new MutationObserver(function(ms){ for(var i=0;i<ms.length;i++){ var t=ms[i].target; if(t.classList&&t.classList.contains('active')&&t.id&&t.id.indexOf('tab-')===0) rVider(t.id.slice(4)); } });
+  [].forEach.call(document.querySelectorAll('.tab-panel'),function(p){ obs.observe(p,{attributes:true,attributeFilter:['class']}); });
 }catch(e){} })();
 /* ===== /V1.08 ===== */
 </script>
