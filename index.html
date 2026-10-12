@@ -1134,7 +1134,7 @@ body:not(.printing-mode) table :is(th,td)+:is(th,td){border-left:1px solid var(-
    - Bloc autonome : le supprimer rétablit l'affichage V0.78.
    ===================================================================== */
 .dj-b,.dj-j,.dj-d{display:block;text-align:center;white-space:nowrap;}
-body:not(.printing-mode) :is(td,th):has(.dj-b),th.dj-th{text-align:center;}
+body:not(.printing-mode) :is(td,th).dj-c,th.dj-th{text-align:center;}
 @media(max-width:600px){
   body:not(.printing-mode) #rapport-historique-clotures table{width:100%;}
   body:not(.printing-mode) #rapport-historique-clotures :is(th,td){padding:4px 1px !important;font-size:min(.62rem,2.3vw) !important;letter-spacing:0;}
@@ -1244,9 +1244,11 @@ header .sync-badge{font-size:.6rem;padding:3px 8px;line-height:1.1;max-width:36v
    ===================================================================== */
 header .sync-badge{max-width:48vw;}
 body:not(.printing-mode) table :is(td,th).ac{display:table-cell !important;white-space:nowrap !important;text-align:center;vertical-align:middle;width:1px;}
+#tbl-stock td.no-ordre-ed{-webkit-tap-highlight-color:rgba(255,255,255,.12);}
+#tbl-stock td.no-ordre-ed:active{background:var(--bg4);}
 body:not(.printing-mode) table td.ac > .btn{display:inline-flex;vertical-align:middle;margin:0 1px;}
-body:not(.printing-mode) table td:has(.dj-b) .badge{white-space:normal !important;display:block;text-align:center;max-width:10em;margin:2px auto 0;line-height:1.15;}
-body:not(.printing-mode) table td:has(.dj-b) .badge *{white-space:normal !important;}
+body:not(.printing-mode) table td.dj-c .badge{white-space:normal !important;display:block;text-align:center;max-width:10em;margin:2px auto 0;line-height:1.15;}
+body:not(.printing-mode) table td.dj-c .badge *{white-space:normal !important;}
 body:not(.printing-mode) table :is(td,th){padding-left:5px !important;padding-right:5px !important;}
 /* ===== /V0.83 ===== */
 /* ===== V0.84 — TABLEAUX DYNAMIQUES (AFFICHAGE UNIQUEMENT) =====
@@ -1272,8 +1274,8 @@ body:not(.printing-mode) .tw tbody tr td.tot-lbl[style],body:not(.printing-mode)
      et la cellule de date prend sa largeur minimale → colonne Date réduite à la plus longue ligne réelle (« 07-10-2026 »).
    - Pastille « Reste » placée sous le montant au lieu de l'élargir ; plus de largeur imposée aux cellules de date.
    - Rapport (Historique clôture) en portrait : aucune largeur minimale imposée, tableau toujours à la largeur de l'écran. */
-body:not(.printing-mode) table td strong:has(> .dj-b){display:block;}
-body:not(.printing-mode) table td:has(.dj-b){width:1px;min-width:0 !important;max-width:none !important;}
+body:not(.printing-mode) table td strong.dj-s{display:block;}
+body:not(.printing-mode) table td.dj-c{width:1px;min-width:0 !important;max-width:none !important;}
 body:not(.printing-mode) table td > .badge[style*="font-size:.62rem"]{display:block;width:max-content;margin:1px 0 0;}
 body:not(.printing-mode) #rapport-historique-clotures th[data-fx]{width:auto !important;}
 @media(max-width:600px){
@@ -1400,15 +1402,15 @@ html.fs-xl .barre-add-sticky{flex-wrap:wrap;max-width:100%;justify-content:flex-
 #vue-associe .tw table td .dj-j{margin-right:4px;}
 #vue-associe .tw table td[colspan]{padding:12px 6px;}
 @media (max-width:600px) and (orientation:portrait){
-  header:has(#hbts-associe:not([style*="none"])){flex-wrap:wrap;height:auto;min-height:46px;padding-top:2px;padding-bottom:3px;row-gap:2px;overflow:visible;align-items:center;}
-  header:has(#hbts-associe:not([style*="none"])) > #hbts-associe{order:5;flex:1 0 100%;width:100%;margin-left:0;justify-content:flex-start;gap:4px !important;}
-  header:has(#hbts-associe:not([style*="none"])) > #btn-logout,header:has(#hbts-associe:not([style*="none"])) > button.btn:last-of-type{margin-left:auto;}
+  header.hb-ass-on:not(#hb-x){flex-wrap:wrap;height:auto;min-height:46px;padding-top:2px;padding-bottom:3px;row-gap:2px;overflow:visible;align-items:center;}
+  header.hb-ass-on:not(#hb-x) > #hbts-associe{order:5;flex:1 0 100%;width:100%;margin-left:0;justify-content:flex-start;gap:4px !important;}
+  header.hb-ass-on:not(#hb-x) > #btn-logout,header.hb-ass-on:not(#hb-x) > button.btn:last-of-type{margin-left:auto;}
 }
 /* ===== /V1.00 ===== */
 
 /* ===== V1.01 — COMPTES ASSOCIE ET VISITEUR : LA RANGEE D'ACTIONS ADMIN (« PAIEMENT PARTIEL », « ⋯ », « IMPRIMER » DU TABLEAU DE BORD…) N'EST JAMAIS AFFICHEE ; TABLEAU VISITEUR : DATE SUR UNE LIGNE (AFFICHAGE UNIQUEMENT) ===== */
-body:has(#vue-visiteur:not([style*="none"])) #gs-row,
-body:has(#vue-associe:not([style*="none"])) #gs-row{display:none !important;}
+body.vue-vis-on:not(#bd-x) #gs-row,
+body.vue-ass-on:not(#bd-x) #gs-row{display:none !important;}
 #vue-visiteur .tw table td .dj-b{display:inline;white-space:nowrap;}
 #vue-visiteur .tw table td .dj-j,#vue-visiteur .tw table td .dj-d{display:inline;}
 #vue-visiteur .tw table td .dj-j{margin-right:4px;}
@@ -1584,6 +1586,23 @@ html body .tot-fixe .tot-ligne.tot-wrap,html body .tot-ligne.tot-wrap{flex-wrap:
    et le repli n'est plus animé en hauteur (seul le fondu reste) pour que la mesure soit immédiate et définitive. Aucun calcul ni donnée modifié. */
 #gs-row{transition:opacity .2s ease !important;}
 /* ===== /V1.07 ===== */
+
+/* ===== V1.09 — RESPONSIVE : LIBELLÉS LONGS DES BOUTONS DE BOÎTES DE DIALOGUE (AFFICHAGE UNIQUEMENT) =====
+   Un bouton de boîte de dialogue dont le libellé ne tient pas sur une ligne (petit écran étroit, texte du système à 150 %, langue plus
+   verbeuse) passe à la ligne au lieu de déborder / d'être coupé. Tant que le libellé tient, rendu strictement identique. */
+.modal .btn{max-width:100%;}
+.modal .btn:not(.mcl){white-space:normal;text-align:center;}
+/* ===== /V1.09 ===== */
+
+/* ===== V1.09 — RESPONSIVE : CARTES KPI DES VUES ASSOCIÉ / VISITEUR (AFFICHAGE UNIQUEMENT) =====
+   Défaut constaté (texte 150 %, petits écrans et tablette 768 px) : la grille « 1fr » ne pouvait pas descendre sous la largeur du montant (nowrap)
+   → carte plus large que l'écran, bouton « Plus d'infos » hors écran, défilement horizontal de la page. Les colonnes peuvent maintenant rétrécir
+   (minmax(0,1fr)) et le montant passe à la ligne seulement s'il n'y a vraiment plus de place. Tant qu'il tient, rendu strictement identique. */
+#vue-visiteur .vv-grid,#vue-associe .vv-grid{grid-template-columns:minmax(0,1fr);}
+@media(min-width:700px){#vue-visiteur .vv-grid,#vue-associe .vv-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);}}
+#vue-visiteur .vv-card,#vue-associe .vv-card{grid-template-columns:minmax(0,1fr) auto;}
+#vue-visiteur .vv-card .kv,#vue-associe .vv-card .kv{white-space:normal;overflow-wrap:anywhere;max-width:58vw;}
+/* ===== /V1.09 ===== */
 </style>
 </head>
 <body>
@@ -11098,6 +11117,13 @@ function rAct(){
   st('t-enc',fmt(enc)); st('t-ben',fmt(ben)); st('t-rst',fmt(rst));
 }
 
+/* V1.08 — Stock Entreprise : toucher le N° d'ordre déclenche le bouton ✏️ existant de la même ligne (aucune logique d'édition dupliquée). */
+function declencherEditStock(td){
+  try{
+    var tr=td&&td.closest?td.closest('tr'):null; if(!tr) return;
+    var b=tr.querySelector('button[onclick^="editStock("]'); if(b) b.click();
+  }catch(e){}
+}
 function rStock(){
   var tb=document.getElementById('tbl-stock');
   var fs=normSearch(v('f-search-stock'));
@@ -11145,7 +11171,7 @@ function rStock(){
     totInit+=s.qteInitiale||0; totVendu+=s.qteVendue||0; totRestant+=restant; totValeur+=restant*s.achat;
     totAchatU+=s.achat||0; totVenteU+=s.vente||0;
     html+='<tr>';
-    html+='<td style="color:var(--tx3)">'+(idx+1)+'</td>';
+    html+='<td class="no-ordre-ed" style="color:var(--tx3);cursor:pointer" title="Modifier ce produit" onclick="declencherEditStock(this)">'+(idx+1)+'</td>'; /* V1.08 : toucher le N° = bouton ✏️ de la ligne */
     html+='<td><strong>'+echap(s.nom)+'</strong>'+(s.origPerso>0?' <span class="badge bor" style="font-size:.65rem" title="Dont '+s.origPerso+' unité(s) apportée(s) personnellement">👤 dont '+s.origPerso+'</span>':'')+'</td>';
     html+='<td>'+s.qteInitiale+'</td>';
     html+='<td style="color:var(--or)">'+(s.qteVendue||0)+'</td>';
@@ -12652,10 +12678,9 @@ function gt(id, btn) {
    * existante de gt() supprimée ni modifiée au-delà de la capture de
    * activeBtn ci-dessus.
    */
-  if (activeBtn && typeof activeBtn.scrollIntoView === 'function') {
-    activeBtn.scrollIntoView({behavior:'smooth', inline:'nearest', block:'nearest'});
-  }
+  /* V1.08 : scrollIntoView déplacé après le réglage de la page (voir fin de gt) : il forçait une mise en page complète du tableau avant les déplacements de barres. */
   try{ localStorage.setItem('bpro_last_tab', id); }catch(e){}
+  try{ initDispositionOnglets(); placerBarreRecherche(); placerActionsOnglet(); }catch(e){} /* V1.08 : toutes les écritures DOM avant la première lecture de mise en page */
   // CORRECTIF (12-09-2026 — "des boutons comme + Nouvelle commande /
   // Ajouter dépense / Ajouter dette semblent inertes") : cause réelle
   // trouvée — changer d'onglet ne remettait jamais le défilement de la
@@ -12672,6 +12697,9 @@ function gt(id, btn) {
   // formulaire, calcul ni donnée modifiés.
   try{ window.scrollTo(0,0); }catch(e){}
   majDispositionOnglet();
+  if (activeBtn && typeof activeBtn.scrollIntoView === 'function') {
+    activeBtn.scrollIntoView({behavior:'smooth', inline:'nearest', block:'nearest'});
+  }
 }
 
 // ================================================================
@@ -12929,11 +12957,14 @@ function ajusterHauteurPage(){
     var zones=[].filter.call(tab.querySelectorAll('.tw, #corbeille-list'),function(z){ return z.offsetParent!==null; });
     if(!zones.length) return;
     /* V0.82 : rien n'a changé depuis le dernier ajustement → aucune remesure (évite de remettre en page tout le tableau à chaque clic/focus). */
-    var sig=function(){ return id+'|'+window.innerHeight+'|'+Math.round(tab.getBoundingClientRect().bottom+window.pageYOffset)+'|'+zones.map(function(z){ return z.scrollHeight+':'+z.clientHeight; }).join(','); };
-    if(ajusterHauteurPage.__sg===sig()) return;
+    /* V1.08 : la position est corrigée du décalage de l'animation d'apparition (translateY 4 px) : la signature ne varie plus pendant les 200 ms d'animation → plus de seconde remesure complète à +250 ms ; cache par onglet. */
+    var dy=function(){ try{ var t=getComputedStyle(tab).transform; return (t&&t!=='none')?new DOMMatrixReadOnly(t).m42:0; }catch(e){ return 0; } };
+    var sig=function(){ return id+'|'+window.innerHeight+'|'+Math.round(tab.getBoundingClientRect().bottom-dy()+window.pageYOffset)+'|'+zones.map(function(z){ return z.scrollHeight+':'+z.clientHeight; }).join(','); };
+    var SGM=ajusterHauteurPage.__sgm||(ajusterHauteurPage.__sgm={});
+    if(SGM[id]===sig()) return;
     var MIN=96, tops=zones.map(function(z){ return z.scrollTop; });
     zones.forEach(function(z){ z.style.maxHeight=MIN+'px'; });
-    var bas=tab.getBoundingClientRect().bottom+window.pageYOffset;
+    var bas=tab.getBoundingClientRect().bottom-dy()+window.pageYOffset;
     /* V1.07 : on tient compte de l'espace réel sous l'onglet (marge de la carte + marge basse de <main>) : la page tient exactement dans l'écran, sans défilement parasite de quelques pixels. */
     var fond=bas+8; try{ var mn=document.querySelector('main'); if(mn){ fond=Math.max(fond,mn.getBoundingClientRect().bottom+window.pageYOffset); } }catch(e){}
     var reste=Math.max(0,window.innerHeight-fond);
@@ -12946,7 +12977,7 @@ function ajusterHauteurPage(){
       ouverts=ouverts.filter(function(i){ return petits.indexOf(i)<0; });
     }
     zones.forEach(function(z,i){ z.style.maxHeight=Math.floor(MIN+alloc[i])+'px'; if(z.scrollTop!==tops[i]) z.scrollTop=tops[i]; }); /* V1.07 : pas de réaffectation inutile (ne coupe pas l'élan du doigt) */
-    ajusterHauteurPage.__sg=sig();
+    SGM[id]=sig();
   }catch(e){}
 }
 function ajusterTotaux(){
@@ -12978,9 +13009,9 @@ function majDispositionOnglet(){
   window.addEventListener('load',function(){ setTimeout(ajusterHauteurPage,150); });
   window.addEventListener('resize',function(){ ajusterTotaux(); ajusterHauteurPage(); });
   window.addEventListener('orientationchange',function(){ setTimeout(ajusterHauteurPage,250); });
-  document.addEventListener('focusin',function(){ setTimeout(ajusterHauteurPage,60); });
-  document.addEventListener('focusout',function(){ setTimeout(ajusterHauteurPage,60); });
-  document.addEventListener('click',function(){ setTimeout(ajusterHauteurPage,80); });
+  document.addEventListener('focusin',function(){ setTimeout(function(){ if(!document.querySelector('.ov.open')) ajusterHauteurPage(); },60); });
+  document.addEventListener('focusout',function(){ setTimeout(function(){ if(!document.querySelector('.ov.open')) ajusterHauteurPage(); },60); });
+  document.addEventListener('click',function(){ setTimeout(function(){ if(!document.querySelector('.ov.open')) ajusterHauteurPage(); },80); });
 })();
 
 
@@ -13285,7 +13316,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V1.07'; // 11-10-2026 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
+var APP_VERSION = 'V1.09'; // 11-10-2026 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
 var APP_VERSION_DATE = '2026-10-11T10:00:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 
 /* ===== V0.82 — OBSERVATEUR UNIQUE DES TABLEAUX (AFFICHAGE UNIQUEMENT) =====
@@ -13342,7 +13373,7 @@ function __bpTablesDe(nodes){
     j.textContent=m[2]; dd.textContent=m[4]; b.appendChild(j); b.appendChild(d.createTextNode(m[3])); b.appendChild(dd);
     var reste=n.nodeValue.slice(m[0].length).replace(/^\s*à\s+(?=\d{1,2}:\d{2})/,' '), p=n.parentNode; /* V0.87 : « à 05:27 » → « 05:27 » (3 lignes max : jour / date / heure) */
     if(m[1]) p.insertBefore(d.createTextNode(m[1]),n);
-    p.insertBefore(b,n);
+    p.insertBefore(b,n); cell.classList.add('dj-c'); if(p.nodeName==='STRONG') p.classList.add('dj-s'); /* V1.08 : remplace :has(.dj-b), trop coûteux */
     if(reste) p.insertBefore(d.createTextNode(reste),n);
     p.removeChild(n);
     var t=cell.closest('table'), r=t&&t.tHead&&t.tHead.rows[0];
@@ -17355,6 +17386,15 @@ function testSupabaseConnection() {
     later();
   }catch(e){}
 })();
+/* ===== V1.08 — classes d'état remplaçant body:has()/header:has() (recalcul de style global à chaque modification) ===== */
+(function(){ try{
+  var ids=[['vue-visiteur','body','vue-vis-on'],['vue-associe','body','vue-ass-on'],['hbts-associe','header','hb-ass-on']];
+  function on(el){ return !!el && (el.getAttribute('style')||'').indexOf('none')<0; }
+  function sync(){ ids.forEach(function(t){ var el=document.getElementById(t[0]), c=t[1]==='body'?document.body:document.querySelector('header'); if(c) c.classList.toggle(t[2], on(el)); }); }
+  function init(){ sync(); ids.forEach(function(t){ var el=document.getElementById(t[0]); if(el) new MutationObserver(sync).observe(el,{attributes:true,attributeFilter:['style']}); }); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+}catch(e){} })();
+/* ===== /V1.08 ===== */
 </script>
 </body>
 </html>
