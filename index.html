@@ -1040,6 +1040,16 @@ main{padding:6px 8px 8px !important;}
 .fg-c{font-size:.8rem;font-weight:800;color:var(--ac);text-transform:uppercase;margin:7px 0 2px;letter-spacing:.02em;}
 .fg-l{display:flex;align-items:baseline;gap:4px;padding:1px 0;font-size:.84rem;color:var(--tx);line-height:1.35;}
 .fg-l .fg-n{word-break:break-word;}
+/* V1.11 — N° d'ordre cliquable (liste « À commander ») : même aspect que le texte, soulignement discret + zone tactile élargie */
+.fg-l .fg-no{background:none;border:0;margin:0;padding:2px 4px 2px 0;font:inherit;color:var(--ac);cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px;-webkit-tap-highlight-color:transparent;}
+.fg-l .fg-no:active{opacity:.6;}
+/* V1.12 — Commandes › Fournisseur : produits sous le seuil déjà couverts par la Cmd + accès permanent aux réglages Seuil / Cmd (affichage uniquement) */
+.fo-ext{margin-top:12px;}
+.fo-h{display:flex;align-items:center;gap:6px;font-weight:700;font-size:.84rem;margin:12px 0 2px;color:var(--tx);}
+.fo-h b,.fo-ext>summary b{background:var(--bg4);color:var(--tx2);border-radius:10px;padding:1px 8px;font-size:.72rem;margin-left:6px;}
+.fo-note{font-size:.74rem;color:var(--tx2);margin:0 0 4px;line-height:1.3;}
+.fo-ext>summary{cursor:pointer;font-weight:700;font-size:.84rem;color:var(--tx);padding:6px 0;}
+.fo-ext .fg-l small{font-size:.7rem;color:var(--tx2);font-weight:600;}
 .fg-l i{flex:1 1 12px;min-width:12px;border-bottom:1px dotted var(--tx3);transform:translateY(-3px);}
 .fg-l b{flex:0 0 auto;font-weight:800;white-space:nowrap;}
 .fg-sc{margin-top:7px;}
@@ -2615,6 +2625,23 @@ html body .tot-fixe .tot-ligne.tot-wrap,html body .tot-ligne.tot-wrap{flex-wrap:
     <div class="mft">
       <button class="btn bh" onclick="cm('ms');rSF()">Annuler</button>
       <button class="btn bp js-tap-fast" id="btn-ss" onclick="enrStock()">✓ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- V1.11 — SEUIL / CMD d'un produit, depuis l'onglet Commandes (N° d'ordre de la liste « À commander ») : seuls ces deux champs sont modifiables -->
+<div class="ov" id="mcs">
+  <div class="modal">
+    <div class="mhd"><span id="mcs-t">Seuil et Cmd</span><button class="mcl" onclick="cm('mcs')">✕</button></div>
+    <input type="hidden" id="cs-id">
+    <div id="cs-nom" style="font-weight:700;margin-bottom:8px;word-break:break-word"></div>
+    <div class="fr">
+      <div class="fg"><label>Seuil alerte</label><input type="number" id="cs-seuil" placeholder="3" min="0" inputmode="numeric"></div>
+      <div class="fg"><label>Cmd</label><input type="number" id="cs-cmd" placeholder="Qté à commander" min="1" inputmode="numeric"></div>
+    </div>
+    <div class="mft">
+      <button class="btn bh" onclick="cm('mcs')">Annuler</button>
+      <button class="btn bp js-tap-fast" id="btn-cs" onclick="enrSeuilCmd()">✓ Enregistrer</button>
     </div>
   </div>
 </div>
@@ -4877,6 +4904,13 @@ var I18N={
     "Session : ❌ aucun jeton de connexion valide en mémoire.":"Session: ❌ no valid login token in memory.",
     "Seuil":"Threshold",
     "Seuil alerte":"Alert threshold",
+    "Seuil et Cmd":"Threshold and Order qty",
+    "Sous le seuil — aucune quantité supplémentaire à commander":"Below threshold — no additional quantity to order",
+    "Le stock restant couvre déjà la Cmd. Touchez le N° pour ajuster le Seuil ou la Cmd.":"The remaining stock already covers the order qty. Tap the number to adjust the threshold or order qty.",
+    "Réglages Seuil / Cmd":"Threshold / Order qty settings",
+    "Modifier Seuil et Cmd":"Edit threshold and order qty",
+    "⚠️ Cmd obligatoire (nombre supérieur à 0)":"⚠️ Order qty required (number greater than 0)",
+    "✅ Seuil / Cmd enregistrés:":"✅ Threshold / Order qty saved:",
     "Seuil alerte stock faible":"Low stock alert threshold",
     "Seules":"Only",
     "Si renseigné, \"📲 Copier pour fournisseur\" enverra directement à ce numéro au lieu d'ouvrir le sélecteur de contact.":"If filled in, \"📲 Copy for supplier\" will send directly to this number instead of opening the contact picker.",
@@ -8878,6 +8912,33 @@ function editStock(id){
   var b=document.getElementById('btn-ss'); b.textContent='✓ Modifier'; b.onclick=enrStock; om('ms');
   var h=document.getElementById('s-qte-hint'); if(h) h.style.display='block';
 }
+/* V1.11 — Commandes : modifier directement Seuil et Cmd (commande de référence) d'un produit, sans passer par l'onglet Stock Entreprise.
+   Mêmes champs (s.seuil / s.cmd), même enregistrement (save() → persist + synchronisation Supabase) et même horodatage (_localTouchedAt) que ✏️ Modifier du Stock.
+   La nouvelle Cmd REMPLACE l'ancienne (affectation, jamais addition) ; elle sert ensuite de référence : quantité à commander = Cmd − stock restant (qteACommander).
+   Aucune autre donnée du produit (quantité, prix, catégorie, ventes) n'est touchée. */
+function ouvrirSeuilCmd(id){
+  if(isVisiteur()){ notif('🚫 Action réservée à l\'Administrateur.'); return; }
+  var s=(D.stock||[]).find(function(x){ return x && x.id==id; }); if(!s) return;
+  sv('cs-id',s.id);
+  var n=document.getElementById('cs-nom'); if(n) n.textContent=s.nom||'';
+  sv('cs-seuil',(s.seuil===null||s.seuil==='')?'':(s.seuil===undefined?3:s.seuil));
+  sv('cs-cmd',cmdQteFournisseur(s));
+  om('mcs');
+  var c=document.getElementById('cs-cmd'); if(c){ try{ c.focus(); c.select(); }catch(e){} }
+}
+function enrSeuilCmd(){
+  var id=v('cs-id');
+  var s=(D.stock||[]).find(function(x){ return x && x.id==id; });
+  if(!s){ cm('mcs'); return; }
+  var cmd=parseInt(v('cs-cmd'),10);
+  if(isNaN(cmd) || cmd<=0){ notif('⚠️ Cmd obligatoire (nombre supérieur à 0)'); return; }
+  var brut=String(v('cs-seuil')).trim();
+  var seuil=(brut===''?null:Math.max(0,parseInt(brut,10)||0));
+  var avSeuil=s.seuil, avCmd=s.cmd;
+  s.seuil=seuil; s.cmd=cmd; s._localTouchedAt=Date.now();
+  if(avSeuil!==seuil || parseInt(avCmd)!==cmd) ah('stock','Modif seuil/cmd: '+s.nom+' (seuil '+(seuil===null?'—':seuil)+', cmd '+cmd+')',0,td());
+  save(); cm('mcs'); notif('✅ Seuil / Cmd enregistrés: '+s.nom);
+}
 function delStock(id){
   var s=D.stock.find(function(x){ return x.id===id; }); if(!s) return;
   if(!confirm('Supprimer ?')) return;
@@ -9629,7 +9690,7 @@ function appelClientById(id){
 /* V0.76 — Liste « À commander » unique et automatique (voir listeACommander()). Plus de bouton « Générer » ni de fiche enregistrée :
    l'envoi WhatsApp utilise directement la liste actuelle (stock restant ≤ seuil ; quantité = Cmd − stock restant). */
 function lignesListeACommander(){
-  return listeACommander().map(function(x){ return {produit:x.s.nom, qte:x.qte, catFiche:(x.s.categorie?String(x.s.categorie).trim():'').toUpperCase()}; });
+  return listeACommander().map(function(x){ return {id:x.s.id, produit:x.s.nom, qte:x.qte, catFiche:(x.s.categorie?String(x.s.categorie).trim():'').toUpperCase()}; });
 }
 function envoyerListeACommander(){
   var lignes=lignesListeACommander();
@@ -9747,10 +9808,10 @@ function blocsCmdFournisseur(produits, cmd){
     var cat=(l.catFiche!==undefined && String(l.catFiche).trim()) ? String(l.catFiche).trim() : (exact[k]||alt[k]||'');
     cat=cat.replace(/\s+/g,' ').trim().toUpperCase();
     if(!cat) cat=deduire(l.produit);
-    if(!cat){ blocs.push({cat:'',items:[{produit:l.produit,qte:l.qte,aff:String(l.produit).trim()}]}); return; }
+    if(!cat){ blocs.push({cat:'',items:[{id:l.id,produit:l.produit,qte:l.qte,aff:String(l.produit).trim()}]}); return; }
     var kc=_cleNomCmd(cat);
     if(index[kc]===undefined){ index[kc]=blocs.length; blocs.push({cat:cat,items:[]}); }
-    blocs[index[kc]].items.push({produit:l.produit,qte:l.qte,aff:_sansPrefixeCat(l.produit,cat)});
+    blocs[index[kc]].items.push({id:l.id,produit:l.produit,qte:l.qte,aff:_sansPrefixeCat(l.produit,cat)});
   });
   var cmp=function(x,y){ return String(x).localeCompare(String(y),'fr',{sensitivity:'base',numeric:true}); };
   blocs.forEach(function(bl){ bl.items.sort(function(x,y){ return cmp(x.aff,y.aff); }); });
@@ -10292,7 +10353,7 @@ function htmlCmdFournGroupe(lignes, dateStr, cmd){
     }
     h+='<div class="fg-c">'+echap(bl.cat)+'</div>';
     bl.items.forEach(function(l,i){
-      h+='<div class="fg-l"><span class="fg-n">'+(i+1)+'. '+echap(l.aff)+'</span><i></i><b>'+l.qte+'</b></div>';
+      h+='<div class="fg-l"><span class="fg-n">'+((l.id!==undefined&&l.id!==null)?'<button type="button" class="fg-no" onclick="ouvrirSeuilCmd('+Number(l.id)+')" title="Modifier Seuil et Cmd" aria-label="Modifier Seuil et Cmd">'+(i+1)+'.</button> ':(i+1)+'. ')+echap(l.aff)+'</span><i></i><b>'+l.qte+'</b></div>';
     });
   });
   return h+'</div>';
@@ -10300,12 +10361,42 @@ function htmlCmdFournGroupe(lignes, dateStr, cmd){
 function rAlertesStock(){
   var el=document.getElementById('alertes-stock'); if(!el) return;
   var tous=lignesListeACommander();
-  if(!tous.length){ el.innerHTML='<div class="oc-vide">Rien à commander : le stock est suffisant.</div>'; return; }
+  var extra=htmlCmdFournReglages(); /* V1.12 : sections d'affichage seul (aucun calcul, aucune donnée, jamais envoyées au fournisseur) */
+  if(!tous.length){ el.innerHTML='<div class="oc-vide">Rien à commander : le stock est suffisant.</div>'+extra; return; }
   var fs=normSearch((document.getElementById('f-search-cmd')||{}).value||'');
   var lignesF=tous.filter(function(l){ return !fs || normSearch(l.produit).indexOf(fs)>=0 || normSearch(l.catFiche).indexOf(fs)>=0; });
   var html='<div class="fo-top"><span>À commander<b>'+tous.length+'</b></span><button class="btn bg bsm" onclick="envoyerListeACommander()">Envoyer</button></div>';
   html+=htmlCmdFournGroupe(lignesF, td());
-  el.innerHTML=html;
+  el.innerHTML=html+extra;
+}
+/* V1.12 — Vue Fournisseur, affichage uniquement (lecture de D.stock, rien n'est modifié, ni envoyé dans le message fournisseur, ni compté dans le compteur) :
+   1) produits SOUS le seuil dont la quantité à commander calculée est nulle (Cmd ≤ stock restant) : ils restent visibles avec une explication claire ;
+   2) « Réglages Seuil / Cmd » : tous les produits, avec accès au même dialogue Seuil / Cmd, même s'ils ne figurent pas (ou plus) dans « À commander ». */
+var reglagesCmdOuvert=false;
+function htmlCmdFournReglages(){
+  var stock=(D.stock||[]).filter(function(s){ return s && s.nom; });
+  if(!stock.length) return '';
+  var fs=normSearch((document.getElementById('f-search-cmd')||{}).value||'');
+  var garde=function(s){ return !fs || normSearch(s.nom).indexOf(fs)>=0 || normSearch(s.categorie||'').indexOf(fs)>=0; };
+  var tri=function(a,b){ return normSearch(a.nom).localeCompare(normSearch(b.nom)); };
+  var cmdTxt=function(s){ var c=parseInt(s.cmd)||0; return c>0?c:'—'; };
+  var ligne=function(s,i,droite){
+    return '<div class="fg-l"><span class="fg-n"><button type="button" class="fg-no" onclick="ouvrirSeuilCmd('+Number(s.id)+')" title="Modifier Seuil et Cmd" aria-label="Modifier Seuil et Cmd">'+(i+1)+'.</button> '+echap(s.nom)+'</span><i></i><b>'+droite+'</b></div>';
+  };
+  var h='';
+  var couverts=stock.filter(function(s){ return estSousSeuil(s) && qteACommander(s)===0 && garde(s); }).sort(tri);
+  if(couverts.length){
+    h+='<div class="fo-h"><span>Sous le seuil — aucune quantité supplémentaire à commander</span><b>'+couverts.length+'</b></div>';
+    h+='<div class="fo-note">Le stock restant couvre déjà la Cmd. Touchez le N° pour ajuster le Seuil ou la Cmd.</div>';
+    couverts.forEach(function(s,i){ h+=ligne(s,i,'<small>Restant</small> '+qteRestanteStock(s)+' · <small>Cmd</small> '+cmdTxt(s)); });
+  }
+  var tout=stock.filter(garde).sort(tri);
+  if(tout.length){
+    h+='<details class="fo-ext"'+(reglagesCmdOuvert?' open':'')+' ontoggle="reglagesCmdOuvert=this.open"><summary>Réglages Seuil / Cmd<b>'+tout.length+'</b></summary>';
+    tout.forEach(function(s,i){ var sl=seuilStock(s); h+=ligne(s,i,'<small>Seuil</small> '+(sl===null?'—':sl)+' · <small>Cmd</small> '+cmdTxt(s)); });
+    h+='</details>';
+  }
+  return h;
 }
 var alertesStockOuvert=false;
 
@@ -13369,7 +13460,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V1.10'; // 12-10-2026 : performance — rendu des onglets cachés différé, mise à jour des tableaux par lignes modifiées, pré-filtres des modules d'affichage, recherche mémorisée. (avant V1.09 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
+var APP_VERSION = 'V1.12'; // 12-10-2026 : Commandes › Fournisseur — produits sous le seuil déjà couverts par la Cmd signalés (« aucune quantité supplémentaire ») et section « Réglages Seuil / Cmd » toujours accessible (affichage uniquement). (avant V1.11 : Commandes — N° d'ordre des produits à commander cliquable : boîte Seuil / Cmd modifiable et enregistrée sans passer par le Stock Entreprise (la nouvelle Cmd remplace l'ancienne et devient la commande de référence). (avant V1.10 : performance — rendu des onglets cachés différé, mise à jour des tableaux par lignes modifiées, pré-filtres des modules d'affichage, recherche mémorisée. (avant V1.09 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
 var APP_VERSION_DATE = '2026-10-11T10:00:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 
 /* ===== V0.82 — OBSERVATEUR UNIQUE DES TABLEAUX (AFFICHAGE UNIQUEMENT) =====
