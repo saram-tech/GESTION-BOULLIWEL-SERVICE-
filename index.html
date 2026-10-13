@@ -1050,6 +1050,8 @@ main{padding:6px 8px 8px !important;}
 .fo-note{font-size:.74rem;color:var(--tx2);margin:0 0 4px;line-height:1.3;}
 .fo-ext>summary{cursor:pointer;font-weight:700;font-size:.84rem;color:var(--tx);padding:6px 0;}
 .fo-ext .fg-l small{font-size:.7rem;color:var(--tx2);font-weight:600;}
+/* V1.14 — Qté restante du Stock Entreprise à la suite du nom (même ligne, jamais coupée en deux) */
+.fg-l .fg-q{white-space:nowrap;font-size:.9em;font-weight:600;color:var(--tx2);}
 .fg-l i{flex:1 1 12px;min-width:12px;border-bottom:1px dotted var(--tx3);transform:translateY(-3px);}
 .fg-l b{flex:0 0 auto;font-weight:800;white-space:nowrap;}
 .fg-sc{margin-top:7px;}
@@ -8760,8 +8762,10 @@ function enrPP(){
 function seuilStock(s){ var x=s?s.seuil:undefined; if(x===undefined) return 3; if(x===null||x===''||isNaN(Number(x))) return null; return Number(x); }
 function qteRestanteStock(s){ return s.qteRestante!==undefined?s.qteRestante:s.qteInitiale; }
 function estSousSeuil(s){ var t=seuilStock(s); return t!==null && qteRestanteStock(s)<=t; }
+/* V1.13 — Règle d'alerte de la vue Commandes › Fournisseur uniquement : seuil 0 (ou vide) = aucune alerte, même si le stock est nul ; seuil n ≥ 1 = alerte quand restant ≤ n. estSousSeuil() n'est pas modifié (Rapport). */
+function alerteFournisseur(s){ var t=seuilStock(s); return t!==null && t>0 && qteRestanteStock(s)<=t; }
 /** Quantité à commander = Cmd (stock cible) − stock restant, seulement si restant ≤ seuil et résultat positif. */
-function qteACommander(s){ if(!estSousSeuil(s)) return 0; var c=parseInt(s.cmd)||0; if(c<=0){ var _t=seuilStock(s); c=Math.max((_t>0?_t:3)*3,10); } return Math.max(0,c-qteRestanteStock(s)); }
+function qteACommander(s){ if(!alerteFournisseur(s)) return 0; var c=parseInt(s.cmd)||0; if(c<=0){ var _t=seuilStock(s); c=Math.max((_t>0?_t:3)*3,10); } return Math.max(0,c-qteRestanteStock(s)); }
 /** Liste unique « À commander », recalculée à chaque appel depuis le stock actuel (aucun historique, aucune donnée enregistrée). */
 function listeACommander(){ var r=[]; (D.stock||[]).forEach(function(s){ if(!s||!s.nom) return; var q=qteACommander(s); if(q>0) r.push({s:s,qte:q}); }); return r; }
 function niveauStock(restant,seuil){
@@ -10345,15 +10349,18 @@ function rAlertesCommandesDisponibles(){
 }
 /* V0.65 — Présentation « Date / CATÉGORIE / 1. Produit........Qté » (affichage uniquement, aucune donnée modifiée) */
 function htmlCmdFournGroupe(lignes, dateStr, cmd){
+  /* V1.14 — affichage seul : « · Qté : N » = quantité réellement restante (qteRestanteStock) du produit, lue dans D.stock par son id ; rien n'est écrit ni calculé. Lignes sans id (anciennes commandes enregistrées) : aucune quantité affichée. */
+  var _qr={}; (D.stock||[]).forEach(function(s){ if(s) _qr[s.id]=qteRestanteStock(s); });
+  var _qt=function(l){ return (l.id!==undefined&&l.id!==null&&_qr[l.id]!==undefined)?'<span class="fg-q"> · <span>Qté</span> : '+_qr[l.id]+'</span>':''; };
   var h='<div class="fg">'+(dateStr?'<div class="fg-d">'+echap(fmtDateJour(dateStr))+'</div>':'');
   blocsCmdFournisseur(lignes, cmd).forEach(function(bl){
     if(!bl.cat){
-      h+='<div class="fg-l fg-sc"><span class="fg-n">'+echap(bl.items[0].aff)+'</span><i></i><b>'+bl.items[0].qte+'</b></div>';
+      h+='<div class="fg-l fg-sc"><span class="fg-n">'+echap(bl.items[0].aff)+_qt(bl.items[0])+'</span><i></i><b>'+bl.items[0].qte+'</b></div>';
       return;
     }
     h+='<div class="fg-c">'+echap(bl.cat)+'</div>';
     bl.items.forEach(function(l,i){
-      h+='<div class="fg-l"><span class="fg-n">'+((l.id!==undefined&&l.id!==null)?'<button type="button" class="fg-no" onclick="ouvrirSeuilCmd('+Number(l.id)+')" title="Modifier Seuil et Cmd" aria-label="Modifier Seuil et Cmd">'+(i+1)+'.</button> ':(i+1)+'. ')+echap(l.aff)+'</span><i></i><b>'+l.qte+'</b></div>';
+      h+='<div class="fg-l"><span class="fg-n">'+((l.id!==undefined&&l.id!==null)?'<button type="button" class="fg-no" onclick="ouvrirSeuilCmd('+Number(l.id)+')" title="Modifier Seuil et Cmd" aria-label="Modifier Seuil et Cmd">'+(i+1)+'.</button> ':(i+1)+'. ')+echap(l.aff)+_qt(l)+'</span><i></i><b>'+l.qte+'</b></div>';
     });
   });
   return h+'</div>';
@@ -10384,7 +10391,7 @@ function htmlCmdFournReglages(){
     return '<div class="fg-l"><span class="fg-n"><button type="button" class="fg-no" onclick="ouvrirSeuilCmd('+Number(s.id)+')" title="Modifier Seuil et Cmd" aria-label="Modifier Seuil et Cmd">'+(i+1)+'.</button> '+echap(s.nom)+'</span><i></i><b>'+droite+'</b></div>';
   };
   var h='';
-  var couverts=stock.filter(function(s){ return estSousSeuil(s) && qteACommander(s)===0 && garde(s); }).sort(tri);
+  var couverts=stock.filter(function(s){ return alerteFournisseur(s) && qteACommander(s)===0 && garde(s); }).sort(tri);
   if(couverts.length){
     h+='<div class="fo-h"><span>Sous le seuil — aucune quantité supplémentaire à commander</span><b>'+couverts.length+'</b></div>';
     h+='<div class="fo-note">Le stock restant couvre déjà la Cmd. Touchez le N° pour ajuster le Seuil ou la Cmd.</div>';
@@ -13460,7 +13467,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V1.12'; // 12-10-2026 : Commandes › Fournisseur — produits sous le seuil déjà couverts par la Cmd signalés (« aucune quantité supplémentaire ») et section « Réglages Seuil / Cmd » toujours accessible (affichage uniquement). (avant V1.11 : Commandes — N° d'ordre des produits à commander cliquable : boîte Seuil / Cmd modifiable et enregistrée sans passer par le Stock Entreprise (la nouvelle Cmd remplace l'ancienne et devient la commande de référence). (avant V1.10 : performance — rendu des onglets cachés différé, mise à jour des tableaux par lignes modifiées, pré-filtres des modules d'affichage, recherche mémorisée. (avant V1.09 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
+var APP_VERSION = 'V1.14'; // 13-10-2026 : Commandes › Fournisseur — quantité restante du Stock Entreprise affichée à la suite du nom (« Produit · Qté : N »), affichage seul. (avant V1.13 : Commandes › Fournisseur — seuil 0 = aucune alerte (seuil ≥ 1 : alerte si restant ≤ seuil) ; Rapport et autres calculs inchangés. (avant V1.12 : Commandes › Fournisseur — produits sous le seuil déjà couverts par la Cmd signalés (« aucune quantité supplémentaire ») et section « Réglages Seuil / Cmd » toujours accessible (affichage uniquement). (avant V1.11 : Commandes — N° d'ordre des produits à commander cliquable : boîte Seuil / Cmd modifiable et enregistrée sans passer par le Stock Entreprise (la nouvelle Cmd remplace l'ancienne et devient la commande de référence). (avant V1.10 : performance — rendu des onglets cachés différé, mise à jour des tableaux par lignes modifiées, pré-filtres des modules d'affichage, recherche mémorisée. (avant V1.09 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
 var APP_VERSION_DATE = '2026-10-11T10:00:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 
 /* ===== V0.82 — OBSERVATEUR UNIQUE DES TABLEAUX (AFFICHAGE UNIQUEMENT) =====
