@@ -1618,6 +1618,32 @@ html body .tot-fixe .tot-ligne.tot-wrap,html body .tot-ligne.tot-wrap{flex-wrap:
 #vue-visiteur .vv-card,#vue-associe .vv-card{grid-template-columns:minmax(0,1fr) auto;}
 #vue-visiteur .vv-card .kv,#vue-associe .vv-card .kv{white-space:normal;overflow-wrap:anywhere;max-width:58vw;}
 /* ===== /V1.09 ===== */
+/* ===== V1.19 — PORTRAIT TÉLÉPHONE : totaux et valeurs de stock toujours visibles (AFFICHAGE UNIQUEMENT) =====
+   Constat : en portrait, les tableaux Dépenses, Stock Entreprise et Stock Perso dépassaient l'écran ; la colonne « Total » (Dépenses) et
+   la colonne « Restant » (Stocks) étaient hors écran, et le libellé « TOTAL GÉNÉRAL (n dépenses) » était rogné dans sa ligne fixe.
+   Correction : uniquement en portrait étroit (≤ 600 px) — colonnes plus serrées, textes autorisés à passer à la ligne (sauf Actions),
+   montants « 100 000 / GNF » sur deux lignes, nom du produit sur 2-3 lignes. Les autres colonnes restent accessibles par défilement
+   horizontal comme avant. Paysage, autres écrans, données, calculs, synchronisation : inchangés. Bloc autonome : le supprimer rétablit V1.18. */
+@media (orientation:portrait) and (max-width:600px){
+  body:not(.printing-mode) :is(#tab-depenses,#tab-stock,#tab-perso) .tw table :is(th,td){padding-left:3px !important;padding-right:3px !important;}
+  body:not(.printing-mode) :is(#tab-depenses,#tab-stock,#tab-perso) .tw table th{letter-spacing:0;font-size:.6rem;}
+  body:not(.printing-mode) :is(#tab-depenses,#tab-stock,#tab-perso) .tw table :is(th,td):not(:last-child){white-space:normal !important;}
+  body:not(.printing-mode) :is(#tab-depenses,#tab-stock,#tab-perso) .tw table td:not(:last-child) *{white-space:normal !important;}
+  body:not(.printing-mode) :is(#tab-depenses,#tab-stock,#tab-perso) .tw table td :is(.dj-b,.dj-j,.dj-d){white-space:nowrap !important;}
+  body:not(.printing-mode) :is(#tab-depenses,#tab-stock,#tab-perso) .tw table td.tx-long{min-width:0 !important;max-width:none !important;}
+  /* Dépenses : date un peu plus compacte, montants sur 2 lignes, ligne TOTAL GÉNÉRAL de hauteur suffisante (le libellé s'étend sur 2 colonnes dont une repliée) */
+  body:not(.printing-mode) #tab-depenses .tw table td :is(.dj-b,.dj-j,.dj-d){font-size:.92em;}
+  body:not(.printing-mode) #tab-depenses .tw tbody tr:last-child[style*="border-top:2px"] > td{height:calc(2.5em + 10px);}
+  /* Stocks : N° et Produit compacts pour laisser Initial / Vendu / Restant à l'écran ; le nom passe à la ligne */
+  body:not(.printing-mode) :is(#tab-stock,#tab-perso) .tw table td:nth-child(2){min-width:min(32vw,120px);overflow-wrap:anywhere;}
+  /* Filet de sécurité : si, malgré tout (texte très grand, longue description, très petit écran), les colonnes dépassent encore l'écran,
+     la colonne clé — « Total » (Dépenses) ou « Restant » (Stocks) — reste épinglée au bord droit ; sans dépassement, aucun effet. */
+  body:not(.printing-mode) #tab-depenses .tw table :is(th,td):nth-last-child(2),
+  body:not(.printing-mode) :is(#tab-stock,#tab-perso) .tw table :is(th,td):nth-child(5){position:sticky;right:0;}
+  body:not(.printing-mode) #tab-depenses .tw table tbody td:nth-last-child(2),
+  body:not(.printing-mode) :is(#tab-stock,#tab-perso) .tw table tbody td:nth-child(5){background-color:var(--bg2);z-index:2;}
+}
+/* ===== /V1.19 ===== */
 </style>
 </head>
 <body>
@@ -7297,7 +7323,7 @@ function appliquerTailleOnglets(pct){
   try{ localStorage.setItem('bpro_taille_onglets',String(pct)); }catch(e){}
   var sl=document.getElementById('rg-taille-onglets'); if(sl) sl.value=pct;
   st('lbl-taille-onglets',pct+'%');
-  var act=document.querySelector('#main-nav .nb.active'); if(act&&act.scrollIntoView){ try{ act.scrollIntoView({block:'nearest',inline:'nearest'}); }catch(e){} }
+  centrerOngletActif(); /* V1.18 */
 }
 function changerTaillePolice(delta){
   var pct=parseInt(localStorage.getItem('bpro_taille_police')||'100',10);
@@ -12919,10 +12945,43 @@ function gt(id, btn) {
   // formulaire, calcul ni donnée modifiés.
   try{ window.scrollTo(0,0); }catch(e){}
   majDispositionOnglet();
-  if (activeBtn && typeof activeBtn.scrollIntoView === 'function') {
-    activeBtn.scrollIntoView({behavior:'smooth', inline:'nearest', block:'nearest'});
-  }
+  /* V1.18 : l'onglet actif est centré directement dans la barre (scrollLeft), sans défilement doux interruptible ; répété après la transition de taille de l'onglet actif. */
+  centrerOngletActif(); setTimeout(centrerOngletActif,120); setTimeout(centrerOngletActif,350);
 }
+
+/* ===== V1.18 — ONGLET ACTIF TOUJOURS VISIBLE (AFFICHAGE UNIQUEMENT) =====
+   Avant : gt() appelait scrollIntoView({behavior:'smooth'}). Ce défilement doux était interrompu (verrou de défilement de la page V1.04,
+   autre défilement en cours), et au rechargement l'onglet restauré (bpro_last_tab) était activé AVANT la mise en page de la barre :
+   l'onglet « Dépenses » restait hors de l'écran. Maintenant : position calculée et appliquée directement sur #main-nav (sans animation),
+   puis recalculée à chaque changement de taille de la barre (démarrage, police, taille des onglets, rotation). Aucun onglet, donnée,
+   calcul ni synchronisation modifié. */
+function centrerOngletActif(){
+  try{
+    var nav=document.getElementById('main-nav'); if(!nav||!nav.clientWidth) return;
+    var a=nav.querySelector('.nb.active'); if(!a) return;
+    var nr=nav.getBoundingClientRect(), ar=a.getBoundingClientRect();
+    var cible=nav.scrollLeft+(ar.left-nr.left)-(nav.clientWidth-ar.width)/2;
+    var max=Math.max(0,nav.scrollWidth-nav.clientWidth);
+    cible=Math.max(0,Math.min(max,Math.round(cible)));
+    if(Math.abs(cible-nav.scrollLeft)>1) nav.scrollLeft=cible;
+  }catch(e){}
+}
+(function(){ try{
+  var nav=document.getElementById('main-nav'); if(!nav) return;
+  var touche=false, tm=null;
+  function fin(){ setTimeout(function(){ touche=false; },800); }
+  nav.addEventListener('touchstart',function(){ touche=true; },{passive:true});
+  nav.addEventListener('touchend',fin,{passive:true});
+  nav.addEventListener('touchcancel',fin,{passive:true});
+  function planifier(){ if(touche) return; clearTimeout(tm); tm=setTimeout(centrerOngletActif,30); }
+  if(window.ResizeObserver){ var ro=new ResizeObserver(planifier); ro.observe(nav); var ni=nav.querySelector('.ni'); if(ni) ro.observe(ni); }
+  nav.addEventListener('transitionend',planifier,true);
+  window.addEventListener('resize',planifier);
+  window.addEventListener('orientationchange',planifier);
+  window.addEventListener('load',function(){ setTimeout(centrerOngletActif,0); setTimeout(centrerOngletActif,400); setTimeout(centrerOngletActif,1200); });
+  setTimeout(centrerOngletActif,0);
+}catch(e){} })();
+/* ===== /V1.18 ===== */
 
 // ================================================================
 // NAVIGATION AU CLAVIER (flèches directionnelles)
@@ -13538,8 +13597,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V1.17'; // 13-10-2026 : boîtes de dialogue — fermeture uniquement par leurs boutons (plus au toucher extérieur) + séparateurs de milliers dans les champs numériques (valeur exacte conservée). (avant V1.16 : Commandes › Fournisseur — libellé « Qté » remplacé par « Reste » (aucun autre changement). (avant V1.15 : Commandes › Fournisseur — « Qté : N » dans une zone fixe alignée à droite, nom raccourci (…) sur une seule ligne, affichage seul. (avant V1.14 : quantité restante à la suite du nom. (avant V1.13 : Commandes › Fournisseur — seuil 0 = aucune alerte (seuil ≥ 1 : alerte si restant ≤ seuil) ; Rapport et autres calculs inchangés. (avant V1.12 : Commandes › Fournisseur — produits sous le seuil déjà couverts par la Cmd signalés (« aucune quantité supplémentaire ») et section « Réglages Seuil / Cmd » toujours accessible (affichage uniquement). (avant V1.11 : Commandes — N° d'ordre des produits à commander cliquable : boîte Seuil / Cmd modifiable et enregistrée sans passer par le Stock Entreprise (la nouvelle Cmd remplace l'ancienne et devient la commande de référence). (avant V1.10 : performance — rendu des onglets cachés différé, mise à jour des tableaux par lignes modifiées, pré-filtres des modules d'affichage, recherche mémorisée. (avant V1.09 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
-var APP_VERSION_DATE = '2026-10-11T10:00:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V1.19'; // 17-10-2026 : portrait téléphone — Dépenses (Total général), Stock Entreprise et Stock Perso (Initial / Vendu / Restant) visibles sans défilement horizontal, ligne TOTAL non rognée (CSS uniquement). (avant V1.18 : onglet actif toujours visible dans la barre d'onglets (ex. « Dépenses » restait hors écran) — centrage direct de #main-nav, recalculé au démarrage et à chaque changement de taille. (avant V1.17 : 13-10-2026 : boîtes de dialogue — fermeture uniquement par leurs boutons (plus au toucher extérieur) + séparateurs de milliers dans les champs numériques (valeur exacte conservée). (avant V1.16 : Commandes › Fournisseur — libellé « Qté » remplacé par « Reste » (aucun autre changement). (avant V1.15 : Commandes › Fournisseur — « Qté : N » dans une zone fixe alignée à droite, nom raccourci (…) sur une seule ligne, affichage seul. (avant V1.14 : quantité restante à la suite du nom. (avant V1.13 : Commandes › Fournisseur — seuil 0 = aucune alerte (seuil ≥ 1 : alerte si restant ≤ seuil) ; Rapport et autres calculs inchangés. (avant V1.12 : Commandes › Fournisseur — produits sous le seuil déjà couverts par la Cmd signalés (« aucune quantité supplémentaire ») et section « Réglages Seuil / Cmd » toujours accessible (affichage uniquement). (avant V1.11 : Commandes — N° d'ordre des produits à commander cliquable : boîte Seuil / Cmd modifiable et enregistrée sans passer par le Stock Entreprise (la nouvelle Cmd remplace l'ancienne et devient la commande de référence). (avant V1.10 : performance — rendu des onglets cachés différé, mise à jour des tableaux par lignes modifiées, pré-filtres des modules d'affichage, recherche mémorisée. (avant V1.09 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
+var APP_VERSION_DATE = '2026-10-17T21:30:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 
 /* ===== V0.82 — OBSERVATEUR UNIQUE DES TABLEAUX (AFFICHAGE UNIQUEMENT) =====
    Remplace les 3 observateurs séparés (V0.79, V0.80, V0.81) par un seul, groupé (40 ms), qui prévient
