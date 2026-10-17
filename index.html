@@ -1618,32 +1618,31 @@ html body .tot-fixe .tot-ligne.tot-wrap,html body .tot-ligne.tot-wrap{flex-wrap:
 #vue-visiteur .vv-card,#vue-associe .vv-card{grid-template-columns:minmax(0,1fr) auto;}
 #vue-visiteur .vv-card .kv,#vue-associe .vv-card .kv{white-space:normal;overflow-wrap:anywhere;max-width:58vw;}
 /* ===== /V1.09 ===== */
-/* ===== V1.19 — PORTRAIT TÉLÉPHONE : totaux et valeurs de stock toujours visibles (AFFICHAGE UNIQUEMENT) =====
-   Constat : en portrait, les tableaux Dépenses, Stock Entreprise et Stock Perso dépassaient l'écran ; la colonne « Total » (Dépenses) et
-   la colonne « Restant » (Stocks) étaient hors écran, et le libellé « TOTAL GÉNÉRAL (n dépenses) » était rogné dans sa ligne fixe.
-   Correction : uniquement en portrait étroit (≤ 600 px) — colonnes plus serrées, textes autorisés à passer à la ligne (sauf Actions),
-   montants « 100 000 / GNF » sur deux lignes, nom du produit sur 2-3 lignes. Les autres colonnes restent accessibles par défilement
-   horizontal comme avant. Paysage, autres écrans, données, calculs, synchronisation : inchangés. Bloc autonome : le supprimer rétablit V1.18. */
+/* ===== V1.20 — PORTRAIT TÉLÉPHONE : Total général (Dépenses) et valeurs des stocks toujours visibles, SANS retour à la ligne (AFFICHAGE UNIQUEMENT) =====
+   Remplace V1.19 (qui faisait passer montants et noms à la ligne). En portrait étroit (≤ 600 px) : aucun retour à la ligne dans les tableaux
+   Dépenses / Stock Ent. / Stock Perso, SAUF pour les dates (jour / date / heure, et « +N le … » de dernière modification) ; marges de cellules réduites.
+   Dépenses : le Total général a son propre emplacement fixe sous le tableau (#dep-tot-strip), toujours à l'écran, quel que soit le défilement.
+   Stocks : le nom du produit se raccourcit (…) sur une ligne pour que N°, Produit, Initial, Vendu et Restant tiennent sans défilement horizontal ;
+   les chiffres ne sont jamais coupés. Paysage, grands écrans, impression, données, calculs, synchronisation : inchangés. Bloc autonome : le supprimer rétablit V1.18. */
+#dep-tot-strip{display:none !important;} /* .tot-ligne impose display:flex !important : on ne l'affiche qu'en portrait étroit (règle plus bas) */
 @media (orientation:portrait) and (max-width:600px){
+  body:not(.printing-mode) :is(#tab-depenses,#tab-stock,#tab-perso) .tw table :is(th,td,td *):not(.dj-b):not(.dj-j):not(.dj-d):not([title="Dernière modification"]){white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important;}
   body:not(.printing-mode) :is(#tab-depenses,#tab-stock,#tab-perso) .tw table :is(th,td){padding-left:3px !important;padding-right:3px !important;}
   body:not(.printing-mode) :is(#tab-depenses,#tab-stock,#tab-perso) .tw table th{letter-spacing:0;font-size:.6rem;}
-  body:not(.printing-mode) :is(#tab-depenses,#tab-stock,#tab-perso) .tw table :is(th,td):not(:last-child){white-space:normal !important;}
-  body:not(.printing-mode) :is(#tab-depenses,#tab-stock,#tab-perso) .tw table td:not(:last-child) *{white-space:normal !important;}
-  body:not(.printing-mode) :is(#tab-depenses,#tab-stock,#tab-perso) .tw table td :is(.dj-b,.dj-j,.dj-d){white-space:nowrap !important;}
   body:not(.printing-mode) :is(#tab-depenses,#tab-stock,#tab-perso) .tw table td.tx-long{min-width:0 !important;max-width:none !important;}
-  /* Dépenses : date un peu plus compacte, montants sur 2 lignes, ligne TOTAL GÉNÉRAL de hauteur suffisante (le libellé s'étend sur 2 colonnes dont une repliée) */
-  body:not(.printing-mode) #tab-depenses .tw table td :is(.dj-b,.dj-j,.dj-d){font-size:.92em;}
-  body:not(.printing-mode) #tab-depenses .tw tbody tr:last-child[style*="border-top:2px"] > td{height:calc(2.5em + 10px);}
-  /* Stocks : N° et Produit compacts pour laisser Initial / Vendu / Restant à l'écran ; le nom passe à la ligne */
-  body:not(.printing-mode) :is(#tab-stock,#tab-perso) .tw table td:nth-child(2){min-width:min(32vw,120px);overflow-wrap:anywhere;}
-  /* Filet de sécurité : si, malgré tout (texte très grand, longue description, très petit écran), les colonnes dépassent encore l'écran,
-     la colonne clé — « Total » (Dépenses) ou « Restant » (Stocks) — reste épinglée au bord droit ; sans dépassement, aucun effet. */
-  body:not(.printing-mode) #tab-depenses .tw table :is(th,td):nth-last-child(2),
-  body:not(.printing-mode) :is(#tab-stock,#tab-perso) .tw table :is(th,td):nth-child(5){position:sticky;right:0;}
-  body:not(.printing-mode) #tab-depenses .tw table tbody td:nth-last-child(2),
-  body:not(.printing-mode) :is(#tab-stock,#tab-perso) .tw table tbody td:nth-child(5){background-color:var(--bg2);z-index:2;}
+  /* Stocks : colonnes Initial / Vendu / Restant plus serrées (les chiffres restent entiers) */
+  body:not(.printing-mode) :is(#tab-stock,#tab-perso) .tw table :is(th,td):nth-child(n+3):nth-child(-n+5){padding-left:2px !important;padding-right:2px !important;}
+  body:not(.printing-mode) :is(#tab-stock,#tab-perso) .tw table th:nth-child(n+3):nth-child(-n+5){font-size:.55rem;}
+  /* Stocks : nom du produit raccourci (…) sur une seule ligne ; badges « dont N » / 🔗 à sa suite ; N°, Initial, Vendu, Restant restent entiers */
+  body:not(.printing-mode) :is(#tab-stock,#tab-perso) .tw table td:nth-child(2) > strong{display:inline-block;max-width:min(22vw,96px);overflow:hidden;text-overflow:ellipsis;vertical-align:middle;line-height:1.25;}
+  body:not(.printing-mode) :is(#tab-stock,#tab-perso) .tw table td:nth-child(2) .badge:not([title="Dernière modification"]){padding-left:4px;padding-right:4px;vertical-align:middle;font-size:.6rem !important;}
+  /* Dépenses : la ligne « TOTAL GÉNÉRAL » du tableau (libellé trop long pour ses colonnes sans retour à la ligne) est remplacée, en portrait seulement, par l'emplacement dédié ci-dessous */
+  body:not(.printing-mode) #tab-depenses .tw tbody tr:last-child[style*="border-top:2px"]{display:none;}
+  /* Dépenses : emplacement dédié du Total général, sur une seule ligne (réduit automatiquement par ajusterTotaux si le montant est très grand) */
+  body:not(.printing-mode) #dep-tot-strip{display:flex !important;flex-wrap:nowrap !important;justify-content:space-between;align-items:baseline;gap:8px;white-space:nowrap;margin-top:6px;padding:6px 9px;background:var(--bg4);border:1px solid var(--bd);border-radius:8px;font-weight:700;font-size:.8rem;}
+  body:not(.printing-mode) #dep-tot-strip #dep-tot-val{color:var(--re);font-family:'Syne',sans-serif;font-size:.98rem;}
 }
-/* ===== /V1.19 ===== */
+/* ===== /V1.20 ===== */
 </style>
 </head>
 <body>
@@ -2198,7 +2197,9 @@ html body .tot-fixe .tot-ligne.tot-wrap,html body .tot-ligne.tot-wrap{flex-wrap:
     <div class="tw"><table>
     <thead><tr><th>#</th><th>Date</th><th>Catégorie</th><th>Description</th><th>Qté</th><th>Prix Unit.</th><th>Total</th><th>Actions</th></tr></thead>
     <tbody id="tbl-dep"><tr><td colspan="8" style="text-align:center;color:var(--tx2);padding:20px">Aucune dépense</td></tr></tbody>
-  </table></div></div>
+  </table></div>
+    <div class="tot-ligne" id="dep-tot-strip"><span id="dep-tot-lbl">TOTAL GÉNÉRAL (0 dépense)</span><span id="dep-tot-val">0 GNF</span></div>
+  </div>
 </div>
 
 <!-- COMMANDES -->
@@ -11522,7 +11523,7 @@ function rDep(){
   var fs=normSearch(v('f-search-dep'));
   var items=D.depenses.filter(function(d){ return matchPeriodeFull(d.date,'f-periode-dep'); });
   if(fs) items=items.filter(function(d){ return normSearch(d.cat).indexOf(fs)>-1||normSearch(d.desc).indexOf(fs)>-1; });
-  if(!items.length){ tb.__h=null; tb.__r=null; tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--tx2);padding:20px">'+(D.depenses.length?'Aucun résultat':'Aucune dépense')+'</td></tr>'; st('k-dt','0 GNF'); st('k-dm','0 GNF'); return; }
+  if(!items.length){ tb.__h=null; tb.__r=null; tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--tx2);padding:20px">'+(D.depenses.length?'Aucun résultat':'Aucune dépense')+'</td></tr>'; st('k-dt','0 GNF'); st('k-dm','0 GNF'); st('dep-tot-lbl','TOTAL GÉNÉRAL (0 dépense)'); st('dep-tot-val','0 GNF'); return; }
   var tot=0, mois=0, m=new Date().toISOString().slice(0,7), html='';
   var lastDateDep=null;
   items.forEach(function(d,idx){
@@ -11539,6 +11540,7 @@ function rDep(){
   html+='<td>—</td><td colspan="3">TOTAL GÉNÉRAL ('+items.length+' dépense'+(items.length>1?'s':'')+')</td><td>'+totQte+'</td><td>—</td><td style="color:var(--re)">'+fmt(tot)+'</td><td>—</td>';
   html+='</tr>';
   __majTb(tb,html); st('k-dt',fmt(tot)); st('k-dm',fmt(mois));
+  st('dep-tot-lbl','TOTAL GÉNÉRAL ('+items.length+' dépense'+(items.length>1?'s':'')+')'); st('dep-tot-val',fmt(tot)); /* V1.20 : emplacement fixe du Total général (portrait) — affichage seul */
 }
 
 var cmdStatutFiltre='todo', cmdVue='clients';
@@ -13597,8 +13599,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V1.19'; // 17-10-2026 : portrait téléphone — Dépenses (Total général), Stock Entreprise et Stock Perso (Initial / Vendu / Restant) visibles sans défilement horizontal, ligne TOTAL non rognée (CSS uniquement). (avant V1.18 : onglet actif toujours visible dans la barre d'onglets (ex. « Dépenses » restait hors écran) — centrage direct de #main-nav, recalculé au démarrage et à chaque changement de taille. (avant V1.17 : 13-10-2026 : boîtes de dialogue — fermeture uniquement par leurs boutons (plus au toucher extérieur) + séparateurs de milliers dans les champs numériques (valeur exacte conservée). (avant V1.16 : Commandes › Fournisseur — libellé « Qté » remplacé par « Reste » (aucun autre changement). (avant V1.15 : Commandes › Fournisseur — « Qté : N » dans une zone fixe alignée à droite, nom raccourci (…) sur une seule ligne, affichage seul. (avant V1.14 : quantité restante à la suite du nom. (avant V1.13 : Commandes › Fournisseur — seuil 0 = aucune alerte (seuil ≥ 1 : alerte si restant ≤ seuil) ; Rapport et autres calculs inchangés. (avant V1.12 : Commandes › Fournisseur — produits sous le seuil déjà couverts par la Cmd signalés (« aucune quantité supplémentaire ») et section « Réglages Seuil / Cmd » toujours accessible (affichage uniquement). (avant V1.11 : Commandes — N° d'ordre des produits à commander cliquable : boîte Seuil / Cmd modifiable et enregistrée sans passer par le Stock Entreprise (la nouvelle Cmd remplace l'ancienne et devient la commande de référence). (avant V1.10 : performance — rendu des onglets cachés différé, mise à jour des tableaux par lignes modifiées, pré-filtres des modules d'affichage, recherche mémorisée. (avant V1.09 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
-var APP_VERSION_DATE = '2026-10-17T21:30:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V1.20'; // 17-10-2026 : portrait téléphone — aucun retour à la ligne dans Dépenses / Stock Ent. / Stock Perso (sauf les dates) ; Dépenses : « Total général » dans un emplacement fixe sous le tableau (toujours visible) ; Stocks : Initial / Vendu / Restant entièrement visibles (nom du produit raccourci « … » sur une ligne). Affichage uniquement (CSS + 2 lignes d'affichage dans rDep). (avant V1.19 : 17-10-2026 : portrait téléphone — Dépenses (Total général), Stock Entreprise et Stock Perso (Initial / Vendu / Restant) visibles sans défilement horizontal, ligne TOTAL non rognée (CSS uniquement). (avant V1.18 : onglet actif toujours visible dans la barre d'onglets (ex. « Dépenses » restait hors écran) — centrage direct de #main-nav, recalculé au démarrage et à chaque changement de taille. (avant V1.17 : 13-10-2026 : boîtes de dialogue — fermeture uniquement par leurs boutons (plus au toucher extérieur) + séparateurs de milliers dans les champs numériques (valeur exacte conservée). (avant V1.16 : Commandes › Fournisseur — libellé « Qté » remplacé par « Reste » (aucun autre changement). (avant V1.15 : Commandes › Fournisseur — « Qté : N » dans une zone fixe alignée à droite, nom raccourci (…) sur une seule ligne, affichage seul. (avant V1.14 : quantité restante à la suite du nom. (avant V1.13 : Commandes › Fournisseur — seuil 0 = aucune alerte (seuil ≥ 1 : alerte si restant ≤ seuil) ; Rapport et autres calculs inchangés. (avant V1.12 : Commandes › Fournisseur — produits sous le seuil déjà couverts par la Cmd signalés (« aucune quantité supplémentaire ») et section « Réglages Seuil / Cmd » toujours accessible (affichage uniquement). (avant V1.11 : Commandes — N° d'ordre des produits à commander cliquable : boîte Seuil / Cmd modifiable et enregistrée sans passer par le Stock Entreprise (la nouvelle Cmd remplace l'ancienne et devient la commande de référence). (avant V1.10 : performance — rendu des onglets cachés différé, mise à jour des tableaux par lignes modifiées, pré-filtres des modules d'affichage, recherche mémorisée. (avant V1.09 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
+var APP_VERSION_DATE = '2026-10-17T22:08:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 
 /* ===== V0.82 — OBSERVATEUR UNIQUE DES TABLEAUX (AFFICHAGE UNIQUEMENT) =====
    Remplace les 3 observateurs séparés (V0.79, V0.80, V0.81) par un seul, groupé (40 ms), qui prévient
