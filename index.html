@@ -740,7 +740,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 /* ===== V0.46 — Zones de saisie : largeur adaptée à l'intitulé, champs sur une même ligne (affichage uniquement) ===== */
 .fr{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:flex-end;}
 .fr>.fg{flex:1 1 150px;min-width:0;}
-.fr>.fg:has(>input[type="number"]){flex:1 1 92px;max-width:150px;}
+.fr>.fg:has(>input[type="number"]),.fr>.fg:has(>input[data-mil]){flex:1 1 92px;max-width:150px;}
 .fr>.fg:has(>input[type="date"]),.fr>.fg:has(>input[type="time"]),.fr>.fg:has(>input[type="month"]){flex:1 1 138px;max-width:190px;}
 .fr>.fg:has(>select){flex:1 1 130px;max-width:230px;}
 .fr>.fg:has(>textarea){flex:1 1 100%;max-width:none;}
@@ -749,13 +749,13 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 .modal .fr>.fg[style*="flex:2"]{grid-column:auto;}
 @media (max-height:480px) and (orientation:landscape){
   .modal .fr{display:flex;gap:4px 6px;}
-  .fr>.fg:has(>input[type="number"]){flex-basis:84px;}
+  .fr>.fg:has(>input[type="number"]),.fr>.fg:has(>input[data-mil]){flex-basis:84px;}
   .fr>.fg{flex-basis:130px;}
 }
 /* ===== /V0.46 ===== */
 /* ===== V0.47 — Toutes les boîtes de dialogue : lignes à champ unique regroupées, champs courts (mot de passe, code, numéro) à largeur adaptée — affichage uniquement ===== */
-.modal .fr:has(>.fg):not(:has(>.fg~.fg)):has(>.fg>input[type="number"],>.fg>input[type="date"],>.fg>input[type="time"],>.fg>select){display:inline-flex;vertical-align:top;width:min(150px,calc(50% - 6px));margin-right:4px;}
-.modal .fr:has(>.fg):not(:has(>.fg~.fg)):has(>.fg>input[type="number"],>.fg>input[type="date"],>.fg>input[type="time"],>.fg>select)>.fg{max-width:none;flex:1 1 auto;}
+.modal .fr:has(>.fg):not(:has(>.fg~.fg)):has(>.fg>input[type="number"],>.fg>input[data-mil],>.fg>input[type="date"],>.fg>input[type="time"],>.fg>select){display:inline-flex;vertical-align:top;width:min(150px,calc(50% - 6px));margin-right:4px;}
+.modal .fr:has(>.fg):not(:has(>.fg~.fg)):has(>.fg>input[type="number"],>.fg>input[data-mil],>.fg>input[type="date"],>.fg>input[type="time"],>.fg>select)>.fg{max-width:none;flex:1 1 auto;}
 .modal .fg:has(input[type="password"]){max-width:300px;}
 .modal .fg:has(#pr-fourn){max-width:240px;}
 .modal .fg:has(#pr-visiteur-pin){max-width:170px;}
@@ -774,7 +774,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 .modal .mft{margin-top:4px;}
 .modal>.fr>.fg,.modal>.fg{flex:0 0 auto !important;width:min-content;min-width:80px;max-width:100% !important;margin-bottom:0 !important;}
 .modal>.fr>.fg>label,.modal>.fg>label{white-space:nowrap;padding-right:10px;}
-.modal>.fr>.fg:has(>input[type="number"]),.modal>.fg:has(>input[type="number"]){min-width:84px;}
+.modal>.fr>.fg:has(>input[type="number"]),.modal>.fg:has(>input[type="number"]),.modal>.fr>.fg:has(>input[data-mil]),.modal>.fg:has(>input[data-mil]){min-width:84px;}
 .modal>.fr>.fg:has(>input[type="date"]),.modal>.fg:has(>input[type="date"]){min-width:128px;}
 .modal>.fr>.fg:has(>select),.modal>.fg:has(>select){min-width:108px;}
 .modal>.fr>.fg:has(input[type="password"]),.modal>.fg:has(input[type="password"]){min-width:150px;}
@@ -784,7 +784,7 @@ input[id^="f-search"]:focus{flex:1 1 100% !important;min-width:100% !important;f
 @media (max-height:480px) and (orientation:landscape){.modal>.mft{flex:0 0 calc(100% + 24px) !important;}}
 /* ===== /V0.48 ===== */
 /* ===== V0.50 — Activité / Dépense / Commande : champs texte extensibles, Qté réduit ; Patrimoine : bouton à côté ; Bilan : hauteurs réduites (affichage uniquement) ===== */
-#ma .modal>.fr>.fg:has(>input[type="text"]),#md .modal>.fr>.fg:has(>input[type="text"]),#mc .modal>.fr>.fg:has(>input[type="text"]){flex:1 1 auto !important;}
+#ma .modal>.fr>.fg:has(>input[type="text"]:not([data-mil])),#md .modal>.fr>.fg:has(>input[type="text"]:not([data-mil])),#mc .modal>.fr>.fg:has(>input[type="text"]:not([data-mil])){flex:1 1 auto !important;}
 #mc .modal>.fr>.fg:has(>div>input[type="tel"]){flex:1 1 auto !important;}
 .modal>.fr>.fg:has(#a-qte),.modal>.fr>.fg:has(#dep-qte){min-width:44px;}
 .modal>.fr>.fg:has(#a-type){min-width:134px;}
@@ -3599,15 +3599,82 @@ document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeAllMM
  * volontaire en dehors de la fenêtre), jamais si le geste a commencé
  * sur le contenu de la fenêtre elle-même.
  */
-document.querySelectorAll('.ov').forEach(function(o){
-  var appuiSurFond = false;
-  o.addEventListener('mousedown', function(e){ appuiSurFond = (e.target===o); });
-  o.addEventListener('touchstart', function(e){ appuiSurFond = (e.target===o); }, {passive:true});
-  o.addEventListener('click', function(e){
-    if(e.target===o && appuiSurFond) o.classList.remove('open');
-    appuiSurFond = false;
+/* V1.17 — Boîtes de dialogue : un toucher/clic à l'EXTÉRIEUR ne ferme plus jamais la boîte (ancien comportement : fermeture au clic sur le fond).
+   Seuls les boutons dédiés (✕, Annuler, Fermer, Enregistrer…) ferment une boîte, via cm(). Aucune donnée ni calcul modifié. */
+
+/* V1.17 — Séparateurs de milliers dans les champs numériques des BOÎTES DE DIALOGUE (.ov), y compris pendant la saisie.
+   Principe : un champ type="number" ne peut pas afficher d'espaces ; chaque champ concerné devient un champ texte (inputmode décimal, clavier numérique conservé)
+   et sa propriété .value est redéfinie sur cet élément : LIRE .value (v(), parseInt/parseFloat, oninput…) renvoie TOUJOURS la valeur numérique exacte, sans espaces
+   (ex. affichage « 1 250 000,5 » → .value = « 1250000.5 ») ; ÉCRIRE .value (sv(), rAF()…) affiche la valeur formatée. Les enregistrements, calculs, données et la
+   synchronisation lisent donc exactement les mêmes valeurs qu'avant. Séparateur = celui de fmt() (fr-FR). Hors périmètre (inchangés) : champs hors boîtes de dialogue,
+   pourcentages (champs avec max : pr-reinvest, pr-perso). Les règles CSS des champs number sont étendues à [data-mil] pour garder la même mise en page. */
+(function(){
+  var SEP=' ';
+  try{ var t=(1000).toLocaleString('fr-FR').replace(/[0-9]/g,''); if(t) SEP=t; }catch(e){}
+  var DESC=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
+  function analyse(txt){
+    var s=String(txt==null?'':txt).replace(/[\s\u00a0\u202f]/g,'');
+    var neg=/^-/.test(s); s=s.replace(/-/g,'');
+    var m=s.match(/[.,]/), ent, dec=null;
+    if(m){ ent=s.slice(0,m.index).replace(/[^0-9]/g,''); dec=s.slice(m.index+1).replace(/[^0-9]/g,''); }
+    else ent=s.replace(/[^0-9]/g,'');
+    ent=ent.replace(/^0+(?=[0-9])/,'');
+    return {neg:neg,ent:ent,dec:dec};
+  }
+  function affiche(txt){
+    var n=analyse(txt);
+    if(n.ent==='' && n.dec===null) return n.neg?'-':'';
+    return (n.neg?'-':'')+n.ent.replace(/\B(?=([0-9]{3})+(?![0-9]))/g,SEP)+(n.dec===null?'':','+n.dec);
+  }
+  function brut(txt){
+    var n=analyse(txt);
+    if(n.ent==='' && (n.dec===null||n.dec==='')) return '';
+    return (n.neg?'-':'')+(n.ent===''?'0':n.ent)+((n.dec!==null&&n.dec!=='')?'.'+n.dec:'');
+  }
+  function significatif(c){ return /[0-9,.\-]/.test(c); }
+  function surSaisie(e){
+    var el=e.target; if(!el || !el.__mil) return;
+    var avant=DESC.get.call(el), apres=affiche(avant);
+    if(apres===avant) return;
+    var pos=el.selectionStart, n=0, i;
+    if(pos!=null) for(i=0;i<pos;i++) if(significatif(avant.charAt(i))) n++;
+    DESC.set.call(el,apres);
+    if(pos!=null && document.activeElement===el){
+      var p=0, c=0; while(p<apres.length && c<n){ if(significatif(apres.charAt(p))) c++; p++; }
+      try{ el.setSelectionRange(p,p); }catch(x){}
+    }
+  }
+  function surSortie(e){
+    var el=e.target; if(!el || !el.__mil) return;
+    var cur=DESC.get.call(el), ok=affiche(brut(cur));
+    if(ok!==cur) DESC.set.call(el,ok);
+  }
+  function convertir(el){
+    if(el.__mil || el.type!=='number' || el.hasAttribute('max') || el.hasAttribute('data-nomil')) return;
+    var init=DESC.get.call(el);
+    el.__mil=1;
+    el.setAttribute('type','text'); el.setAttribute('data-mil','1');
+    if(!el.hasAttribute('inputmode')) el.setAttribute('inputmode','decimal');
+    Object.defineProperty(el,'value',{configurable:true,
+      get:function(){ return brut(DESC.get.call(el)); },
+      set:function(x){ DESC.set.call(el,affiche(x==null?'':String(x))); }});
+    DESC.set.call(el,affiche(init));
+  }
+  function balayer(racine){
+    if(racine.nodeType!==1) return;
+    if(racine.matches && racine.matches('input[type="number"]')) convertir(racine);
+    var l=racine.querySelectorAll('input[type="number"]');
+    for(var i=0;i<l.length;i++) convertir(l[i]);
+  }
+  document.querySelectorAll('.ov').forEach(function(ov){
+    balayer(ov);
+    new MutationObserver(function(ms){
+      for(var i=0;i<ms.length;i++) for(var j=0;j<ms[i].addedNodes.length;j++) balayer(ms[i].addedNodes[j]);
+    }).observe(ov,{childList:true,subtree:true});
   });
-});
+  document.addEventListener('input',surSaisie,true);
+  document.addEventListener('focusout',surSortie,true);
+})();
 
 /**
  * CORRECTIF (13-09-2026 — "+Perso, +Nouvelle commande, Ajouter dette,
@@ -13471,7 +13538,7 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V1.16'; // 13-10-2026 : Commandes › Fournisseur — libellé « Qté » remplacé par « Reste » (aucun autre changement). (avant V1.15 : Commandes › Fournisseur — « Qté : N » dans une zone fixe alignée à droite, nom raccourci (…) sur une seule ligne, affichage seul. (avant V1.14 : quantité restante à la suite du nom. (avant V1.13 : Commandes › Fournisseur — seuil 0 = aucune alerte (seuil ≥ 1 : alerte si restant ≤ seuil) ; Rapport et autres calculs inchangés. (avant V1.12 : Commandes › Fournisseur — produits sous le seuil déjà couverts par la Cmd signalés (« aucune quantité supplémentaire ») et section « Réglages Seuil / Cmd » toujours accessible (affichage uniquement). (avant V1.11 : Commandes — N° d'ordre des produits à commander cliquable : boîte Seuil / Cmd modifiable et enregistrée sans passer par le Stock Entreprise (la nouvelle Cmd remplace l'ancienne et devient la commande de référence). (avant V1.10 : performance — rendu des onglets cachés différé, mise à jour des tableaux par lignes modifiées, pré-filtres des modules d'affichage, recherche mémorisée. (avant V1.09 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
+var APP_VERSION = 'V1.17'; // 13-10-2026 : boîtes de dialogue — fermeture uniquement par leurs boutons (plus au toucher extérieur) + séparateurs de milliers dans les champs numériques (valeur exacte conservée). (avant V1.16 : Commandes › Fournisseur — libellé « Qté » remplacé par « Reste » (aucun autre changement). (avant V1.15 : Commandes › Fournisseur — « Qté : N » dans une zone fixe alignée à droite, nom raccourci (…) sur une seule ligne, affichage seul. (avant V1.14 : quantité restante à la suite du nom. (avant V1.13 : Commandes › Fournisseur — seuil 0 = aucune alerte (seuil ≥ 1 : alerte si restant ≤ seuil) ; Rapport et autres calculs inchangés. (avant V1.12 : Commandes › Fournisseur — produits sous le seuil déjà couverts par la Cmd signalés (« aucune quantité supplémentaire ») et section « Réglages Seuil / Cmd » toujours accessible (affichage uniquement). (avant V1.11 : Commandes — N° d'ordre des produits à commander cliquable : boîte Seuil / Cmd modifiable et enregistrée sans passer par le Stock Entreprise (la nouvelle Cmd remplace l'ancienne et devient la commande de référence). (avant V1.10 : performance — rendu des onglets cachés différé, mise à jour des tableaux par lignes modifiées, pré-filtres des modules d'affichage, recherche mémorisée. (avant V1.09 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
 var APP_VERSION_DATE = '2026-10-11T10:00:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 
 /* ===== V0.82 — OBSERVATEUR UNIQUE DES TABLEAUX (AFFICHAGE UNIQUEMENT) =====
