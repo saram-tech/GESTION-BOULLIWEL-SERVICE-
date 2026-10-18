@@ -289,6 +289,20 @@ tbody tr:last-child td{border-bottom:none;}
 #maffichage{z-index:10000;}
 .ov.open{display:flex;}
 .modal{background:var(--bg2);border:1px solid var(--bd2);border-radius:17px;padding:20px;max-width:640px;width:100%;max-height:min(92vh,92%);overflow-y:auto;}
+/* V1.25 — liste de suggestions des zones de texte (saisie semi-automatique) */
+.bw-ac-pop{position:fixed;z-index:700;display:none;box-sizing:border-box;background:var(--bg5);border:1px solid var(--bd2);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.45);padding:4px;overflow-y:auto;-webkit-overflow-scrolling:touch;font-size:.8rem;}
+.bw-ac-pop.open{display:block;}
+.bw-ac-pop [data-v]{padding:9px 10px;border-radius:7px;cursor:pointer;color:var(--tx);line-height:1.3;word-break:break-word;}
+.bw-ac-pop [data-v]:hover,.bw-ac-pop [data-v]:active{background:var(--bg4);}
+/* V1.27 — bouton flottant d'accès rapide aux onglets */
+#bw-fab{position:fixed;z-index:410;width:48px;height:48px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;background:var(--bg3);color:var(--tx);border:1px solid var(--ac,var(--bd2));font-size:1.25rem;line-height:1;cursor:grab;opacity:.5;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;box-shadow:0 3px 12px rgba(0,0,0,.35);transition:opacity .15s;}
+#bw-fab:hover,#bw-fab.on,#bw-fab:focus-visible{opacity:.95;}
+#bw-fab.drag{opacity:.95;cursor:grabbing;transition:none;}
+#bw-fab-menu{position:fixed;z-index:420;display:none;box-sizing:border-box;grid-template-columns:1fr 1fr;gap:5px;padding:7px;overflow-y:auto;background:var(--bg3);border:1px solid var(--bd2);border-radius:14px;box-shadow:0 10px 28px rgba(0,0,0,.5);}
+#bw-fab-menu.open{display:grid;}
+.bw-fab-it{padding:10px 8px;border-radius:9px;border:1px solid transparent;background:var(--bg4);color:var(--tx);font-size:.78rem;text-align:left;cursor:pointer;line-height:1.25;}
+.bw-fab-it.on{border-color:var(--ac,var(--bd2));font-weight:700;}
+@media print{#bw-fab,#bw-fab-menu{display:none!important;}}
 /**
  * CORRECTIF UI (03-09-2026 — "clavier Android + suggestions de noms de
  * produits masquent encore la boîte de dialogue, notamment le bouton
@@ -3010,6 +3024,8 @@ html body .tot-fixe .tot-ligne.tot-wrap,html body .tot-ligne.tot-wrap{flex-wrap:
     }catch(e){}
   }
   window.addEventListener('error', function(ev){
+    /* V1.26 : avertissement bénin du navigateur (mesure de taille différée), sans erreur ni perte de donnée : pas de bandeau rouge */
+    if(/ResizeObserver loop (completed with undelivered notifications|limit exceeded)/.test(ev.message||'')){ ev.stopImmediatePropagation(); ev.preventDefault(); return; }
     showFatalError((ev.message||'Erreur inconnue')+' — '+(ev.filename||'')+':'+(ev.lineno||'')+':'+(ev.colno||''));
   });
   window.addEventListener('unhandledrejection', function(ev){
@@ -3538,6 +3554,7 @@ function appliquerCategoriesStockV071(){
   }catch(e){ console.error('[catégories V0.71]', e); return false; }
 }
 function save(){
+  try{ if(window.bwAC) bwAC.valider(); }catch(e){} /* V1.25 : mémorise les saisies pour la saisie semi-automatique (aucun effet sur les données) */
   persist(); renderAll();
   var session = getSession();
   if (session && session.access_token) {
@@ -3569,8 +3586,9 @@ function om(id){
   if(id==='mc'){ fillDL(); fillDLClients(); }
   if(id==='ms') fillDL();
   if(id==='mp') fillDL();
+  try{ if(window.bwAC) bwAC.ouvrir(id); }catch(e){} /* V1.25 : saisie semi-automatique par champ */
 }
-function cm(id){ document.getElementById(id).classList.remove('open'); }
+function cm(id){ document.getElementById(id).classList.remove('open'); try{ if(window.bwAC) bwAC.fermer(); }catch(e){} }
 /**
  * AJOUT (v97) — CORRECTION STRICTE, VERSION UNIQUEMENT : génère le texte
  * de version affiché (en-tête + écran "À propos"), au format demandé
@@ -3730,6 +3748,354 @@ document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeAllMM
   });
   document.addEventListener('input',surSaisie,true);
   document.addEventListener('focusout',surSortie,true);
+})();
+
+/* V1.25 — Saisie semi-automatique (AutoComplete) dans TOUTES les boîtes de dialogue (.ov).
+   Règle : chaque champ propose UNIQUEMENT les valeurs déjà saisies dans CE MÊME champ (clé = identifiant du champ ; pour les champs
+   générés sans identifiant, boîte + libellé). Aucun historique n'est partagé entre champs (ex. Activités : Ticket, Produit, Panne et Client
+   ont chacun le leur ; Client d'une Activité ≠ Client d'une Commande).
+   Sources par champ : (1) valeurs déjà ENREGISTRÉES via ce champ (mémorisées à l'enregistrement, jamais à l'annulation) ; (2) valeurs déjà
+   présentes dans les données pour ce même champ (ex. a-client ← clients des activités). Champs texte/nombre : liste native (datalist) propre
+   à chaque champ ; zones de texte (Panne, Description, Note, Motif, Adresse) : petite liste de suggestions propre à chaque champ.
+   Exclus : mots de passe, PIN, contact de récupération, dates, listes déroulantes, cases, curseurs, champs en lecture seule.
+   Stockage : localStorage « bw_autocomplete_v1 » (appareil uniquement). Les données (D), calculs, Supabase et la synchronisation ne sont ni lus
+   en écriture ni modifiés : seules 3 lignes d'appel ont été ajoutées dans save(), om() et cm(). Tout est protégé par try/catch. */
+(function(){
+  var CLE_STOCK='bw_autocomplete_v1', MAX_HIST=40, MAX_LISTE=60, MAX_POP=6, ARME_MS=3000;
+  var EXCLUS={'pr-visiteur-pin':1,'pr-recup-tel':1,'pr-recup-email':1,'sec-pass':1,'cp-actuel':1,'cp-nouveau':1,'cp-confirm':1};
+  var SEP=' ';
+  try{ var t=(1000).toLocaleString('fr-FR').replace(/[0-9]/g,''); if(t) SEP=t; }catch(e){}
+  var H=null, arme=null, pop=null, popCible=null, popCle=null, tap=false, tmHide=null;
+
+  function norm(s){
+    s=String(s==null?'':s).toLowerCase();
+    try{ s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); }catch(e){}
+    return s.replace(/\s+/g,' ').trim();
+  }
+  function charger(){
+    if(H) return H;
+    try{ H=JSON.parse(localStorage.getItem(CLE_STOCK)||'{}'); }catch(e){ H=null; }
+    if(!H || typeof H!=='object' || Array.isArray(H)) H={};
+    return H;
+  }
+  function ecrire(){ try{ localStorage.setItem(CLE_STOCK,JSON.stringify(H)); }catch(e){} }
+
+  /* --- Éligibilité et clé propre à chaque champ --- */
+  function eligible(el){
+    if(!el || el.nodeType!==1 || !el.closest || !el.closest('.ov')) return false;
+    if(el.readOnly || el.disabled || el.hasAttribute('data-no-ac') || EXCLUS[el.id]) return false;
+    if(el.tagName==='TEXTAREA') return true;
+    if(el.tagName!=='INPUT') return false;
+    var ty=(el.getAttribute('type')||'text').toLowerCase();
+    return ty==='text'||ty==='tel'||ty==='email'||ty==='search'||ty==='number';
+  }
+  function estNombre(el){
+    return el.tagName==='INPUT' && (el.hasAttribute('data-mil') || (el.getAttribute('type')||'').toLowerCase()==='number');
+  }
+  function cleDe(el){
+    var ov=el.closest('.ov'); if(!ov) return null;
+    if(el.id) return el.id;
+    var fg=el.closest('.fg'), lb=fg?fg.querySelector('label'):null;
+    var tx=el.getAttribute('data-ac') || (lb?lb.textContent:'') || el.getAttribute('placeholder') || '';
+    tx=norm(tx).replace(/\s+/g,''); if(!tx) return null;
+    return ov.id+':'+tx;
+  }
+
+  /* --- Valeurs déjà présentes dans les données, pour CE champ seulement (lecture seule) --- */
+  function col(arr,prop){ var r=[]; try{ (arr||[]).forEach(function(x){ if(x && x[prop]!=null && x[prop]!=='') r.push(String(x[prop])); }); }catch(e){} return r; }
+  function lignes(prop){ var r=[]; try{ (D.commandes||[]).forEach(function(c){ (c.produits||[]).forEach(function(l){ if(l && l[prop]!=null && l[prop]!=='') r.push(String(l[prop])); }); }); }catch(e){} return r; }
+  var GRAINES={
+    'a-ticket':function(){return col(D.activites,'ticket');},
+    'a-desig':function(){return col(D.activites,'desig');},
+    'a-panne':function(){return col(D.activites,'panne');},
+    'a-client':function(){return col(D.activites,'client');},
+    'a-achat':function(){return col(D.activites,'achat');},
+    'a-qte':function(){return col(D.activites,'qte');},
+    'a-apayer':function(){return col(D.activites,'apayer');},
+    'a-paye':function(){return col(D.activites,'paye');},
+    's-nom':function(){return col(D.stock,'nom');},
+    's-categorie':function(){return col(D.stock,'categorie');},
+    'p-nom':function(){return col(D.perso,'nom');},
+    'dep-cat':function(){ var r=col(D.depenses,'cat'); try{ r=r.concat(getDepCategories()); }catch(e){} return r; },
+    'dep-desc':function(){return col(D.depenses,'desc');},
+    'dep-qte':function(){return col(D.depenses,'qte');},
+    'dep-prix':function(){return col(D.depenses,'prix');},
+    'det-desc':function(){return col(D.dettes,'desc');},
+    'det-montant':function(){return col(D.dettes,'montant');},
+    'paym-n':function(){return col(D.paiements,'note');},
+    'paym-m':function(){return col(D.paiements,'montant');},
+    'c-client':function(){return col(D.commandes,'client');},
+    'c-tel':function(){return col(D.commandes,'tel');},
+    'c-num':function(){return col(D.commandes,'num');},
+    'c-adr':function(){return col(D.commandes,'adresse');},
+    'c-note':function(){return col(D.commandes,'note');},
+    'mc:produit':function(){return lignes('produit');},
+    'mc:qte':function(){return lignes('qte');},
+    'mc:prix(gnf)':function(){return lignes('prix');}
+  };
+
+  function valide(val,nombre){
+    val=String(val==null?'':val).trim();
+    if(!val || val.length>200) return '';
+    if(nombre){ if(!/^-?[0-9]+([.,][0-9]+)?$/.test(val) || parseFloat(val.replace(',','.'))===0) return ''; }
+    else if(val.length<2) return '';
+    return val;
+  }
+  /* Liste du champ : historique enregistré (récent d'abord) puis valeurs déjà présentes dans les données (les plus récentes d'abord) */
+  function liste(cle,nombre){
+    var vus={}, out=[];
+    function ajoute(x){
+      x=valide(x,nombre); if(!x) return;
+      var k=norm(x); if(vus[k]) return; vus[k]=1; out.push(x);
+    }
+    (charger()[cle]||[]).forEach(ajoute);
+    var g=GRAINES[cle];
+    if(g){ try{ var a=g(); for(var i=a.length-1;i>=0 && out.length<MAX_LISTE;i--) ajoute(a[i]); }catch(e){} }
+    return out.slice(0,MAX_LISTE);
+  }
+  function affNombre(x){
+    var s=String(x), m=s.match(/^(-?)([0-9]+)(?:[.,]([0-9]+))?$/); if(!m) return s;
+    return m[1]+m[2].replace(/\B(?=([0-9]{3})+(?![0-9]))/g,SEP)+(m[3]?','+m[3]:'');
+  }
+
+  /* --- Champs <input> : une datalist PROPRE à chaque champ --- */
+  function conteneurDL(){
+    var c=document.getElementById('bw-ac-listes');
+    if(!c){ c=document.createElement('div'); c.id='bw-ac-listes'; c.style.display='none'; document.body.appendChild(c); }
+    return c;
+  }
+  function brancher(el){
+    var cle=cleDe(el); if(!cle) return;
+    var id='bw-ac-'+cle.replace(/[^a-z0-9_-]/gi,'_');
+    var dl=document.getElementById(id);
+    if(!dl){ dl=document.createElement('datalist'); dl.id=id; conteneurDL().appendChild(dl); }
+    var nb=estNombre(el), vals=liste(cle,nb), sig=vals.join('\u0001');
+    if(dl.__sig!==sig){
+      dl.innerHTML=''; dl.__sig=sig;
+      vals.forEach(function(x){ var o=document.createElement('option'); o.value=nb?affNombre(x):x; dl.appendChild(o); });
+    }
+    if(el.getAttribute('list')!==id) el.setAttribute('list',id);
+  }
+
+  /* --- Zones de texte : liste de suggestions propre à chaque champ --- */
+  function creerPop(){
+    if(pop) return pop;
+    pop=document.createElement('div'); pop.className='bw-ac-pop'; pop.setAttribute('role','listbox');
+    function debut(){ tap=true; }
+    function fin(){ setTimeout(function(){ tap=false; },500); }
+    pop.addEventListener('mousedown',function(e){ debut(); e.preventDefault(); });
+    pop.addEventListener('touchstart',debut,{passive:true});
+    pop.addEventListener('touchend',fin,{passive:true}); pop.addEventListener('touchcancel',fin,{passive:true});
+    pop.addEventListener('mouseup',fin);
+    pop.addEventListener('click',function(e){
+      var it=e.target.closest?e.target.closest('[data-v]'):null; if(!it || !popCible) return;
+      var el=popCible; el.value=it.getAttribute('data-v');
+      try{ el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); }catch(x){}
+      cacher();
+    });
+    return pop;
+  }
+  function cacher(){ if(pop) pop.classList.remove('open'); popCible=null; popCle=null; }
+  function montrer(el){
+    var cle=cleDe(el); if(!cle){ cacher(); return; }
+    var saisi=norm(el.value), tout=liste(cle,false), res=[];
+    for(var i=0;i<tout.length && res.length<MAX_POP;i++){
+      var k=norm(tout[i]);
+      if(k===saisi) continue;
+      if(!saisi || k.indexOf(saisi)!==-1) res.push(tout[i]);
+    }
+    if(!res.length){ cacher(); return; }
+    var p=creerPop(), ov=el.closest('.ov');
+    if(p.parentNode!==ov) ov.appendChild(p);
+    p.innerHTML='';
+    res.forEach(function(x){ var d=document.createElement('div'); d.setAttribute('role','option'); d.setAttribute('data-v',x); d.textContent=x; p.appendChild(d); });
+    var r=el.getBoundingClientRect(), vh=window.innerHeight||document.documentElement.clientHeight, larg=Math.max(r.width,160);
+    p.style.left=Math.max(4,Math.min(r.left,(window.innerWidth||320)-larg-4))+'px'; p.style.width=larg+'px';
+    var haut=Math.min(168,Math.round(vh*.4));
+    p.style.maxHeight=haut+'px';
+    if(vh-r.bottom>=Math.min(110,haut)+8){ p.style.top=(r.bottom+2)+'px'; p.style.bottom='auto'; }
+    else { p.style.bottom=(vh-r.top+2)+'px'; p.style.top='auto'; }
+    p.classList.add('open'); popCible=el; popCle=cle;
+  }
+
+  /* --- Mémorisation : uniquement quand un bouton d'action d'une boîte est activé PUIS que save() est appelée --- */
+  function instantane(ov){
+    var snap={};
+    ov.querySelectorAll('input,textarea').forEach(function(el){
+      if(!eligible(el)) return;
+      var cle=cleDe(el); if(!cle) return;
+      var val=valide(el.value,estNombre(el)); if(!val) return;
+      snap[cle]=val;
+    });
+    return snap;
+  }
+  function armer(cible){
+    var ov=cible && cible.closest ? cible.closest('.ov.open') : null;
+    if(!ov){ return; }
+    arme={t:Date.now(),snap:instantane(ov)};
+  }
+  function valider(){
+    if(!arme) return;
+    var a=arme; arme=null;
+    if(Date.now()-a.t>ARME_MS) return;
+    var h=charger(), change=false;
+    Object.keys(a.snap).forEach(function(cle){
+      var val=a.snap[cle], k=norm(val), l=(h[cle]||[]).filter(function(x){ return norm(x)!==k; });
+      l.unshift(val); h[cle]=l.slice(0,MAX_HIST); change=true;
+    });
+    if(change) ecrire();
+  }
+
+  document.addEventListener('click',function(e){
+    try{
+      var b=e.target.closest?e.target.closest('button'):null;
+      if(!b || b.disabled || b.classList.contains('bh') || b.classList.contains('mcl')) return;
+      armer(b);
+    }catch(x){}
+  },true);
+  document.addEventListener('keydown',function(e){
+    try{
+      if(e.key==='Escape'){ cacher(); return; }
+      if(e.key==='Enter' && e.target && e.target.tagName==='INPUT') armer(e.target);
+    }catch(x){}
+  },true);
+  document.addEventListener('focusin',function(e){
+    try{
+      var el=e.target; clearTimeout(tmHide);
+      if(el===popCible) return;
+      if(!eligible(el)){ if(!(pop && pop.contains(el))) cacher(); return; }
+      if(el.tagName==='TEXTAREA') montrer(el); else { cacher(); brancher(el); }
+    }catch(x){}
+  });
+  document.addEventListener('input',function(e){
+    try{ var el=e.target; if(el && el.tagName==='TEXTAREA' && eligible(el)) montrer(el); }catch(x){}
+  });
+  document.addEventListener('focusout',function(e){
+    try{
+      if(e.target!==popCible) return;
+      clearTimeout(tmHide);
+      tmHide=setTimeout(function(){ if(!tap && document.activeElement!==popCible) cacher(); },250);
+    }catch(x){}
+  });
+  document.addEventListener('scroll',function(e){ try{ if(pop && pop.classList.contains('open') && e.target!==popCible && !(pop.contains(e.target))) cacher(); }catch(x){} },true);
+  window.addEventListener('resize',function(){ try{ cacher(); }catch(x){} });
+
+  window.bwAC={
+    /* appelé par om(id) : branche, dès l'ouverture, la liste propre à chaque champ de la boîte */
+    ouvrir:function(id){ var ov=document.getElementById(id); if(!ov) return; cacher(); ov.querySelectorAll('input').forEach(function(el){ if(eligible(el)) brancher(el); }); },
+    /* appelé par cm(id) : referme la liste de suggestions */
+    fermer:function(){ cacher(); },
+    /* appelé par save() : mémorise les valeurs saisies si, et seulement si, un bouton d'action vient d'être activé */
+    valider:valider
+  };
+})();
+
+/* V1.27 — Bouton flottant semi-transparent d'accès rapide aux onglets.
+   Déplaçable au doigt ou à la souris (un simple toucher ouvre un menu compact listant les onglets actuellement visibles ; choisir un onglet
+   clique simplement sur le vrai bouton d'onglet, donc gt() et les droits par rôle restent exactement ceux de la barre d'onglets).
+   Position initiale : en bas à droite. Position mémorisée sur l'appareil (localStorage « bw_fab_onglets_v1 », en proportions de l'écran).
+   Masqué quand la barre d'onglets n'est pas affichée (connexion, vue restreinte) ou quand une boîte de dialogue est ouverte.
+   Ne lit ni n'écrit aucune donnée (D), ne touche pas à Supabase. Tout est protégé par try/catch. */
+(function(){
+  var CLE='bw_fab_onglets_v1', TAI=48, MARGE=6, SEUIL=7;
+  var btn=null, menu=null, pos=null, drag=null;
+  function dims(){ return {W:window.innerWidth||document.documentElement.clientWidth||320, H:window.innerHeight||document.documentElement.clientHeight||480}; }
+  function lire(){ try{ var o=JSON.parse(localStorage.getItem(CLE)||'null'); if(o && isFinite(o.fx) && isFinite(o.fy)) return {fx:Math.min(1,Math.max(0,+o.fx)),fy:Math.min(1,Math.max(0,+o.fy))}; }catch(e){} return null; }
+  function ecrire(){ try{ localStorage.setItem(CLE,JSON.stringify(pos)); }catch(e){} }
+  function bornes(){ var d=dims(); return {maxX:Math.max(MARGE,d.W-TAI-MARGE), maxY:Math.max(MARGE,d.H-TAI-MARGE)}; }
+  function clamp(v,a,b){ return Math.min(b,Math.max(a,v)); }
+  function placer(){
+    if(!btn) return;
+    var b=bornes(), d=dims(), x, y;
+    if(pos){ x=MARGE+pos.fx*(b.maxX-MARGE); y=MARGE+pos.fy*(b.maxY-MARGE); }
+    else { x=d.W-TAI-16; y=d.H-TAI-70; }            /* initialement : en bas à droite */
+    btn.style.left=clamp(x,MARGE,b.maxX)+'px'; btn.style.top=clamp(y,MARGE,b.maxY)+'px';
+  }
+  function memoriser(x,y){
+    var b=bornes();
+    pos={fx:b.maxX>MARGE?clamp((x-MARGE)/(b.maxX-MARGE),0,1):1, fy:b.maxY>MARGE?clamp((y-MARGE)/(b.maxY-MARGE),0,1):1};
+    ecrire();
+  }
+  function onglets(){
+    var r=[]; [].forEach.call(document.querySelectorAll('#main-nav .nb'),function(b){ if(b.getClientRects().length) r.push(b); });
+    return r;
+  }
+  function visiblePossible(){
+    var nav=document.getElementById('main-nav');
+    if(!nav || !nav.getClientRects().length) return false;
+    if(document.querySelector('.ov.open')) return false;
+    return true;
+  }
+  function fermer(){ if(menu) menu.classList.remove('open'); if(btn) btn.classList.remove('on'); if(btn) btn.setAttribute('aria-expanded','false'); }
+  function ouvert(){ return !!(menu && menu.classList.contains('open')); }
+  function ouvrir(){
+    var l=onglets(); if(!l.length) return;
+    menu.innerHTML='';
+    l.forEach(function(b){
+      var it=document.createElement('button'); it.type='button';
+      it.className='bw-fab-it'+(b.classList.contains('active')?' on':'');
+      it.textContent=(b.textContent||'').trim();
+      it.addEventListener('click',function(){ fermer(); try{ b.click(); }catch(e){} });
+      menu.appendChild(it);
+    });
+    var d=dims(), r=btn.getBoundingClientRect(), w=Math.min(260,d.W-16);
+    menu.style.width=w+'px'; menu.style.maxHeight=Math.round(d.H*.7)+'px';
+    menu.classList.add('open'); btn.classList.add('on'); btn.setAttribute('aria-expanded','true');
+    var h=menu.offsetHeight||0;
+    var left=(r.left+r.width/2>d.W/2)?(r.right-w):r.left;
+    menu.style.left=clamp(left,8,Math.max(8,d.W-w-8))+'px';
+    var top=(r.top>d.H/2)?(r.top-h-8):(r.bottom+8);
+    menu.style.top=clamp(top,8,Math.max(8,d.H-h-8))+'px';
+  }
+  function maj(){
+    try{
+      if(!btn) return;
+      var v=visiblePossible();
+      btn.style.display=v?'':'none';
+      if(!v) fermer();
+    }catch(e){}
+  }
+  function creer(){
+    if(btn || !document.body) return;
+    pos=lire();
+    btn=document.createElement('button'); btn.type='button'; btn.id='bw-fab'; btn.className='no-print';
+    btn.setAttribute('aria-label','Menu rapide des onglets'); btn.setAttribute('aria-haspopup','true'); btn.setAttribute('aria-expanded','false');
+    btn.title='Menu des onglets (glisser pour déplacer)'; btn.textContent='☰';
+    menu=document.createElement('div'); menu.id='bw-fab-menu'; menu.className='no-print'; menu.setAttribute('role','menu');
+    document.body.appendChild(btn); document.body.appendChild(menu);
+    placer();
+    btn.addEventListener('pointerdown',function(e){
+      if(e.pointerType==='mouse' && e.button!==0) return;
+      var r=btn.getBoundingClientRect();
+      drag={id:e.pointerId,sx:e.clientX,sy:e.clientY,x0:r.left,y0:r.top,moved:false};
+      try{ btn.setPointerCapture(e.pointerId); }catch(x){}
+    });
+    btn.addEventListener('pointermove',function(e){
+      if(!drag || e.pointerId!==drag.id) return;
+      var dx=e.clientX-drag.sx, dy=e.clientY-drag.sy;
+      if(!drag.moved){ if(Math.sqrt(dx*dx+dy*dy)<SEUIL) return; drag.moved=true; fermer(); btn.classList.add('drag'); }
+      var b=bornes();
+      btn.style.left=clamp(drag.x0+dx,MARGE,b.maxX)+'px'; btn.style.top=clamp(drag.y0+dy,MARGE,b.maxY)+'px';
+      if(e.cancelable) e.preventDefault();
+    });
+    function fin(e,annule){
+      if(!drag || e.pointerId!==drag.id) return;
+      var d=drag; drag=null; btn.classList.remove('drag');
+      try{ btn.releasePointerCapture(e.pointerId); }catch(x){}
+      if(d.moved){ memoriser(parseFloat(btn.style.left)||MARGE,parseFloat(btn.style.top)||MARGE); }
+      else if(!annule){ if(ouvert()) fermer(); else ouvrir(); }
+    }
+    btn.addEventListener('pointerup',function(e){ fin(e,false); });
+    btn.addEventListener('pointercancel',function(e){ fin(e,true); });
+    btn.addEventListener('click',function(e){ if(e.detail===0){ if(ouvert()) fermer(); else ouvrir(); } }); /* clavier (Entrée / Espace) */
+    document.addEventListener('pointerdown',function(e){ try{ if(ouvert() && !menu.contains(e.target) && e.target!==btn) fermer(); }catch(x){} },true);
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape') fermer(); },true);
+    window.addEventListener('resize',function(){ try{ fermer(); placer(); }catch(x){} });
+    window.addEventListener('orientationchange',function(){ try{ fermer(); setTimeout(placer,300); }catch(x){} });
+    setInterval(maj,700); maj();
+  }
+  window.bwFab={maj:maj};
+  if(document.body) creer(); else document.addEventListener('DOMContentLoaded',creer);
 })();
 
 /**
@@ -13735,8 +14101,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V1.24'; // 18-10-2026 : (1) Rapport — tableau « Historique clôture » entier en portrait (police ajustée sur la mesure réelle, GNF sous le nombre si l'écran est étroit, plus de dernière colonne coupée) ; (2) onglets — balayage / flèches dans l'ordre réel de la barre (Rapport et Patrimoine ne sont plus sautés), un seul onglet par geste, seul l'onglet concerné est modifié, défilement des tableaux conservé par onglet. Affichage uniquement. (avant V1.23 : 18-10-2026 : correspondance des produits — « Pochette Original A04 E » = « Pochette A04 E » (stock commun) ; « Pochette Femme / Local / Fermé … » restent distincts ; aucune ligne fusionnée ni supprimée. (avant V1.22 : 18-10-2026 : vente — le stock disponible est cumulé sur toutes les lignes identiques d'un même produit (plus de blocage si la première ligne est à 0 alors qu'une autre a du stock) ; la quantité vendue est répartie sur ces lignes, sans fusion ni suppression. (avant V1.21 : 17-10-2026 : portrait — ligne TOTAL des stocks = « Valeur : N GNF » (ajustée à la place disponible, Val. / sans libellé si étroit) ; Stock Perso : date de dernière modification sur deux lignes, masquée après 48 h. Affichage uniquement. (avant V1.20 : 17-10-2026 : portrait téléphone — aucun retour à la ligne dans Dépenses / Stock Ent. / Stock Perso (sauf les dates) ; Dépenses : « Total général » dans un emplacement fixe sous le tableau (toujours visible) ; Stocks : Initial / Vendu / Restant entièrement visibles (nom du produit raccourci « … » sur une ligne). Affichage uniquement (CSS + 2 lignes d'affichage dans rDep). (avant V1.19 : 17-10-2026 : portrait téléphone — Dépenses (Total général), Stock Entreprise et Stock Perso (Initial / Vendu / Restant) visibles sans défilement horizontal, ligne TOTAL non rognée (CSS uniquement). (avant V1.18 : onglet actif toujours visible dans la barre d'onglets (ex. « Dépenses » restait hors écran) — centrage direct de #main-nav, recalculé au démarrage et à chaque changement de taille. (avant V1.17 : 13-10-2026 : boîtes de dialogue — fermeture uniquement par leurs boutons (plus au toucher extérieur) + séparateurs de milliers dans les champs numériques (valeur exacte conservée). (avant V1.16 : Commandes › Fournisseur — libellé « Qté » remplacé par « Reste » (aucun autre changement). (avant V1.15 : Commandes › Fournisseur — « Qté : N » dans une zone fixe alignée à droite, nom raccourci (…) sur une seule ligne, affichage seul. (avant V1.14 : quantité restante à la suite du nom. (avant V1.13 : Commandes › Fournisseur — seuil 0 = aucune alerte (seuil ≥ 1 : alerte si restant ≤ seuil) ; Rapport et autres calculs inchangés. (avant V1.12 : Commandes › Fournisseur — produits sous le seuil déjà couverts par la Cmd signalés (« aucune quantité supplémentaire ») et section « Réglages Seuil / Cmd » toujours accessible (affichage uniquement). (avant V1.11 : Commandes — N° d'ordre des produits à commander cliquable : boîte Seuil / Cmd modifiable et enregistrée sans passer par le Stock Entreprise (la nouvelle Cmd remplace l'ancienne et devient la commande de référence). (avant V1.10 : performance — rendu des onglets cachés différé, mise à jour des tableaux par lignes modifiées, pré-filtres des modules d'affichage, recherche mémorisée. (avant V1.09 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
-var APP_VERSION_DATE = '2026-10-18T10:30:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V1.27'; // 18-10-2026 : bouton flottant semi-transparent d'accès rapide aux onglets (déplaçable, position mémorisée). (avant V1.26 : 18-10-2026 : plus de bandeau d'erreur pour l'avertissement bénin « ResizeObserver loop completed with undelivered notifications » (aucune autre modification). (avant V1.25 : 18-10-2026 : saisie semi-automatique (AutoComplete) dans toutes les boîtes de dialogue — chaque champ propose uniquement les valeurs déjà saisies dans CE MÊME champ (Activités : Ticket, Produit, Panne, Client, montants… chacun son historique ; Client d'une Activité ≠ Client d'une Commande) ; aucune donnée, calcul ni synchronisation modifiés. (avant V1.24 : 18-10-2026 : (1) Rapport — tableau « Historique clôture » entier en portrait (police ajustée sur la mesure réelle, GNF sous le nombre si l'écran est étroit, plus de dernière colonne coupée) ; (2) onglets — balayage / flèches dans l'ordre réel de la barre (Rapport et Patrimoine ne sont plus sautés), un seul onglet par geste, seul l'onglet concerné est modifié, défilement des tableaux conservé par onglet. Affichage uniquement. (avant V1.23 : 18-10-2026 : correspondance des produits — « Pochette Original A04 E » = « Pochette A04 E » (stock commun) ; « Pochette Femme / Local / Fermé … » restent distincts ; aucune ligne fusionnée ni supprimée. (avant V1.22 : 18-10-2026 : vente — le stock disponible est cumulé sur toutes les lignes identiques d'un même produit (plus de blocage si la première ligne est à 0 alors qu'une autre a du stock) ; la quantité vendue est répartie sur ces lignes, sans fusion ni suppression. (avant V1.21 : 17-10-2026 : portrait — ligne TOTAL des stocks = « Valeur : N GNF » (ajustée à la place disponible, Val. / sans libellé si étroit) ; Stock Perso : date de dernière modification sur deux lignes, masquée après 48 h. Affichage uniquement. (avant V1.20 : 17-10-2026 : portrait téléphone — aucun retour à la ligne dans Dépenses / Stock Ent. / Stock Perso (sauf les dates) ; Dépenses : « Total général » dans un emplacement fixe sous le tableau (toujours visible) ; Stocks : Initial / Vendu / Restant entièrement visibles (nom du produit raccourci « … » sur une ligne). Affichage uniquement (CSS + 2 lignes d'affichage dans rDep). (avant V1.19 : 17-10-2026 : portrait téléphone — Dépenses (Total général), Stock Entreprise et Stock Perso (Initial / Vendu / Restant) visibles sans défilement horizontal, ligne TOTAL non rognée (CSS uniquement). (avant V1.18 : onglet actif toujours visible dans la barre d'onglets (ex. « Dépenses » restait hors écran) — centrage direct de #main-nav, recalculé au démarrage et à chaque changement de taille. (avant V1.17 : 13-10-2026 : boîtes de dialogue — fermeture uniquement par leurs boutons (plus au toucher extérieur) + séparateurs de milliers dans les champs numériques (valeur exacte conservée). (avant V1.16 : Commandes › Fournisseur — libellé « Qté » remplacé par « Reste » (aucun autre changement). (avant V1.15 : Commandes › Fournisseur — « Qté : N » dans une zone fixe alignée à droite, nom raccourci (…) sur une seule ligne, affichage seul. (avant V1.14 : quantité restante à la suite du nom. (avant V1.13 : Commandes › Fournisseur — seuil 0 = aucune alerte (seuil ≥ 1 : alerte si restant ≤ seuil) ; Rapport et autres calculs inchangés. (avant V1.12 : Commandes › Fournisseur — produits sous le seuil déjà couverts par la Cmd signalés (« aucune quantité supplémentaire ») et section « Réglages Seuil / Cmd » toujours accessible (affichage uniquement). (avant V1.11 : Commandes — N° d'ordre des produits à commander cliquable : boîte Seuil / Cmd modifiable et enregistrée sans passer par le Stock Entreprise (la nouvelle Cmd remplace l'ancienne et devient la commande de référence). (avant V1.10 : performance — rendu des onglets cachés différé, mise à jour des tableaux par lignes modifiées, pré-filtres des modules d'affichage, recherche mémorisée. (avant V1.09 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
+var APP_VERSION_DATE = '2026-10-18T15:20:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 
 /* ===== V0.82 — OBSERVATEUR UNIQUE DES TABLEAUX (AFFICHAGE UNIQUEMENT) =====
    Remplace les 3 observateurs séparés (V0.79, V0.80, V0.81) par un seul, groupé (40 ms), qui prévient
