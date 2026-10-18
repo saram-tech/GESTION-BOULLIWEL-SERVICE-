@@ -1656,6 +1656,22 @@ html body .tot-fixe .tot-ligne.tot-wrap,html body .tot-ligne.tot-wrap{flex-wrap:
   body:not(.printing-mode) :is(#tab-stock,#tab-perso) .tw table td .vt{display:block;width:0;min-width:100%;overflow:hidden;white-space:nowrap !important;color:var(--go);font-weight:700;}
 }
 /* ===== /V1.21 ===== */
+/* ===== V1.24 — RAPPORT « HISTORIQUE CLÔTURE » TOUJOURS ENTIER EN PORTRAIT (AFFICHAGE UNIQUEMENT) =====
+   Avant : la police était calculée une seule fois avec 1 px de tolérance, le tableau dépassait de 2 px de la carte et la dernière colonne (Reste Perso)
+   était coupée / défilait. Maintenant : le script ajuste la police sur la mesure réelle (aucun débordement, aucune tolérance) et choisit
+   - rp1 : montants sur UNE ligne (« 2 962 018 GNF ») si la police reste ≥ 10 px ;
+   - rp2 : sinon « GNF » passe sous le nombre (le nombre lui-même n'est jamais coupé) avec une police plus grande.
+   Réajusté à chaque changement de largeur (rotation, taille du texte, onglet qui devient visible). Seules les dates sont sur deux lignes.
+   Paysage / grands écrans / impression : inchangés. Bloc autonome : le supprimer rétablit V1.23. */
+@media (max-width:600px){
+  body:not(.printing-mode) #rapport-historique-clotures table{width:100% !important;table-layout:auto;}
+  body:not(.printing-mode) #rapport-historique-clotures .tw{overflow-x:auto;}
+  body:not(.printing-mode) #rapport-historique-clotures.rp1 td{white-space:nowrap !important;}
+  body:not(.printing-mode) #rapport-historique-clotures.rp2 td{white-space:normal !important;}
+  body:not(.printing-mode) #rapport-historique-clotures :is(.rp1,.rp2) th,body:not(.printing-mode) #rapport-historique-clotures.rp1 th,body:not(.printing-mode) #rapport-historique-clotures.rp2 th{white-space:normal !important;}
+  body:not(.printing-mode) #rapport-historique-clotures.rp1 :is(th,td),body:not(.printing-mode) #rapport-historique-clotures.rp2 :is(th,td){padding:4px 1px !important;}
+}
+/* ===== /V1.24 ===== */
 </style>
 </head>
 <body>
@@ -12989,8 +13005,10 @@ function gt(id, btn) {
       if (navHistory.length > 20) navHistory.shift();
     }
   }
-  document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
-  document.querySelectorAll('.nb').forEach(function(b){ b.classList.remove('active'); });
+  /* V1.24 : seuls l'onglet et le bouton actifs sont touchés (avant : les 12 onglets et tous les boutons étaient réécrits à chaque changement) */
+  try{ memoriserDefilOnglet(current); }catch(e){}
+  document.querySelectorAll('.tab-panel.active').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.nb.active').forEach(function(b){ b.classList.remove('active'); });
   document.getElementById('tab-'+id).classList.add('active');
   try{ rVider(id); }catch(e){} /* V1.10 : onglet resté « à reconstruire » */
   var activeBtn = btn || null;
@@ -13037,7 +13055,43 @@ function gt(id, btn) {
   majDispositionOnglet();
   /* V1.18 : l'onglet actif est centré directement dans la barre (scrollLeft), sans défilement doux interruptible ; répété après la transition de taille de l'onglet actif. */
   centrerOngletActif(); setTimeout(centrerOngletActif,120); setTimeout(centrerOngletActif,350);
+  try{ restaurerDefilOnglet(id); }catch(e){}
 }
+/* ===== V1.24 — CHANGEMENT D'ONGLET : ordre réel de la barre, un seul onglet par geste, défilement de chaque onglet conservé (AFFICHAGE UNIQUEMENT) =====
+   Avant : le balayage / les flèches utilisaient une liste fixe qui ne contenait NI « Rapport » NI « Patrimoine » : de Historique on sautait à Corbeille,
+   et depuis Rapport ou Patrimoine rien ne bougeait. Maintenant : l'ordre est lu dans la barre d'onglets réellement affichée (onglets visibles seulement).
+   Un geste = un seul onglet (verrou anti double déclenchement, répétition de touche ignorée, geste annulé = rien). Le défilement interne des tableaux
+   de chaque onglet est mémorisé en le quittant et rétabli en y revenant ; la page revient toujours en haut (correctif 12-09-2026 conservé) et la barre
+   d'onglets recentre l'onglet actif (V1.18). Aucune donnée, aucun calcul, aucune synchronisation modifiés. */
+var __defilOnglets={};
+function memoriserDefilOnglet(panel){
+  if(!panel||!panel.id) return;
+  var id=panel.id.replace('tab-',''), v=[]; [].forEach.call(panel.querySelectorAll('.tw'),function(t){ v.push([t.scrollTop,t.scrollLeft]); });
+  __defilOnglets[id]=v;
+}
+function restaurerDefilOnglet(id){
+  var v=__defilOnglets[id]; if(!v||!v.length) return;
+  function appliquer(){ var tab=document.getElementById('tab-'+id); if(!tab||!tab.classList.contains('active')) return; var tws=tab.querySelectorAll('.tw'); v.forEach(function(p,i){ var t=tws[i]; if(!t) return; if(Math.abs(t.scrollTop-p[0])>1) t.scrollTop=p[0]; if(Math.abs(t.scrollLeft-p[1])>1) t.scrollLeft=p[1]; }); }
+  requestAnimationFrame(appliquer); setTimeout(appliquer,120); setTimeout(appliquer,350);
+}
+function ordreOngletsBarre(){
+  var out=[]; try{
+    [].forEach.call(document.querySelectorAll('#main-nav .nb'),function(b){
+      if(b.offsetParent===null) return;
+      var m=/gt\('(\w+)'/.exec(b.getAttribute('onclick')||''); if(m && document.getElementById('tab-'+m[1]) && out.indexOf(m[1])<0) out.push(m[1]);
+    });
+  }catch(e){}
+  return out.length?out:TAB_ORDER;
+}
+var __dernierChgtOnglet=0;
+function ongletVoisinDe(dir){ /* dir = +1 suivant, -1 précédent ; null si extrémité / onglet inconnu / geste trop rapproché */
+  var now=Date.now(); if(now-__dernierChgtOnglet<300) return null;
+  var current=document.querySelector('.tab-panel.active'); if(!current) return null;
+  var ordre=ordreOngletsBarre(), idx=ordre.indexOf(current.id.replace('tab-','')); if(idx===-1) return null;
+  var n=idx+dir; if(n<0||n>=ordre.length) return null;
+  __dernierChgtOnglet=now; return ordre[n];
+}
+/* ===== /V1.24 ===== */
 
 /* ===== V1.18 — ONGLET ACTIF TOUJOURS VISIBLE (AFFICHAGE UNIQUEMENT) =====
    Avant : gt() appelait scrollIntoView({behavior:'smooth'}). Ce défilement doux était interrompu (verrou de défilement de la page V1.04,
@@ -13089,15 +13143,10 @@ document.addEventListener('keydown', function (e) {
 
   var current = document.querySelector('.tab-panel.active');
   if (!current) return;
-  var curId = current.id.replace('tab-', '');
-  var idx = TAB_ORDER.indexOf(curId);
-  if (idx === -1) return;
-
   e.preventDefault();
-  var nextIdx = e.key === 'ArrowRight'
-    ? (idx + 1) % TAB_ORDER.length
-    : (idx - 1 + TAB_ORDER.length) % TAB_ORDER.length;
-  gt(TAB_ORDER[nextIdx], null);
+  if (e.repeat) return; /* V1.24 : une pression = un seul onglet (la répétition automatique de la touche est ignorée) */
+  var cible = ongletVoisinDe(e.key === 'ArrowRight' ? 1 : -1); /* V1.24 : ordre réel de la barre, sans rebouclage aux extrémités */
+  if (cible) gt(cible, null);
 });
 
 // ================================================================
@@ -13227,6 +13276,7 @@ document.addEventListener('keydown', function (e) {
     if (Math.abs(dx) > 14 && Math.abs(dy) <= Math.abs(dx) * SWIPE_RATIO_MAX) swipeConfirme = true;
   }, {passive:true});
 
+  document.addEventListener('touchcancel', function(){ swipeX0 = null; swipeConfirme = false; }, {passive:true}); /* V1.24 : geste interrompu = aucun changement */
   document.addEventListener('touchend', function(e){
     if (swipeX0 === null) return;
     var confirme = swipeConfirme; swipeConfirme = false;
@@ -13237,11 +13287,11 @@ document.addEventListener('keydown', function (e) {
     var dx = t.clientX - x0, dy = t.clientY - y0;
     if (Math.abs(dx) < SWIPE_DIST_MIN || Math.abs(dy) > Math.abs(dx) * SWIPE_RATIO_MAX) return;
     if (typeof isAssocie === 'function' && isAssocie()) return; // gt() refuse déjà l'Associé — on évite juste l'appel inutile
-    var current = document.querySelector('.tab-panel.active');
-    if (!current) return;
-    var curId = current.id.replace('tab-', '');
-    var idx = TAB_ORDER.indexOf(curId);
-    if (idx === -1) return;
+    /* V1.24 : onglet voisin dans l'ordre réel de la barre (Rapport et Patrimoine inclus), un seul par geste */
+    var cibleV124 = ongletVoisinDe(dx < 0 ? 1 : -1);
+    if (!cibleV124) return;
+    gt(cibleV124, null);
+    return;
     /**
      * CORRECTIF (14-09-2026 — "aucun retour/rebond inattendu aux
      * extrémités") : la version précédente utilisait un modulo, donc un
@@ -13254,9 +13304,7 @@ document.addEventListener('keydown', function (e) {
      * autres onglets (au milieu de la liste) est strictement identique
      * à avant.
      */
-    var nextIdx = dx < 0 ? (idx + 1) : (idx - 1); // balayage vers la gauche → onglet suivant ; vers la droite → onglet précédent
-    if (nextIdx < 0 || nextIdx >= TAB_ORDER.length) return; // extrémité atteinte : ne rien faire
-    gt(TAB_ORDER[nextIdx], null);
+    /* (V1.24) balayage vers la gauche → onglet suivant ; vers la droite → onglet précédent ; extrémité : rien — voir ongletVoisinDe() */
   }, {passive:true});
 })();
 
@@ -13687,8 +13735,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V1.23'; // 18-10-2026 : correspondance des produits — « Pochette Original A04 E » = « Pochette A04 E » (stock commun) ; « Pochette Femme / Local / Fermé … » restent distincts ; aucune ligne fusionnée ni supprimée. (avant V1.22 : 18-10-2026 : vente — le stock disponible est cumulé sur toutes les lignes identiques d'un même produit (plus de blocage si la première ligne est à 0 alors qu'une autre a du stock) ; la quantité vendue est répartie sur ces lignes, sans fusion ni suppression. (avant V1.21 : 17-10-2026 : portrait — ligne TOTAL des stocks = « Valeur : N GNF » (ajustée à la place disponible, Val. / sans libellé si étroit) ; Stock Perso : date de dernière modification sur deux lignes, masquée après 48 h. Affichage uniquement. (avant V1.20 : 17-10-2026 : portrait téléphone — aucun retour à la ligne dans Dépenses / Stock Ent. / Stock Perso (sauf les dates) ; Dépenses : « Total général » dans un emplacement fixe sous le tableau (toujours visible) ; Stocks : Initial / Vendu / Restant entièrement visibles (nom du produit raccourci « … » sur une ligne). Affichage uniquement (CSS + 2 lignes d'affichage dans rDep). (avant V1.19 : 17-10-2026 : portrait téléphone — Dépenses (Total général), Stock Entreprise et Stock Perso (Initial / Vendu / Restant) visibles sans défilement horizontal, ligne TOTAL non rognée (CSS uniquement). (avant V1.18 : onglet actif toujours visible dans la barre d'onglets (ex. « Dépenses » restait hors écran) — centrage direct de #main-nav, recalculé au démarrage et à chaque changement de taille. (avant V1.17 : 13-10-2026 : boîtes de dialogue — fermeture uniquement par leurs boutons (plus au toucher extérieur) + séparateurs de milliers dans les champs numériques (valeur exacte conservée). (avant V1.16 : Commandes › Fournisseur — libellé « Qté » remplacé par « Reste » (aucun autre changement). (avant V1.15 : Commandes › Fournisseur — « Qté : N » dans une zone fixe alignée à droite, nom raccourci (…) sur une seule ligne, affichage seul. (avant V1.14 : quantité restante à la suite du nom. (avant V1.13 : Commandes › Fournisseur — seuil 0 = aucune alerte (seuil ≥ 1 : alerte si restant ≤ seuil) ; Rapport et autres calculs inchangés. (avant V1.12 : Commandes › Fournisseur — produits sous le seuil déjà couverts par la Cmd signalés (« aucune quantité supplémentaire ») et section « Réglages Seuil / Cmd » toujours accessible (affichage uniquement). (avant V1.11 : Commandes — N° d'ordre des produits à commander cliquable : boîte Seuil / Cmd modifiable et enregistrée sans passer par le Stock Entreprise (la nouvelle Cmd remplace l'ancienne et devient la commande de référence). (avant V1.10 : performance — rendu des onglets cachés différé, mise à jour des tableaux par lignes modifiées, pré-filtres des modules d'affichage, recherche mémorisée. (avant V1.09 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
-var APP_VERSION_DATE = '2026-10-18T01:30:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V1.24'; // 18-10-2026 : (1) Rapport — tableau « Historique clôture » entier en portrait (police ajustée sur la mesure réelle, GNF sous le nombre si l'écran est étroit, plus de dernière colonne coupée) ; (2) onglets — balayage / flèches dans l'ordre réel de la barre (Rapport et Patrimoine ne sont plus sautés), un seul onglet par geste, seul l'onglet concerné est modifié, défilement des tableaux conservé par onglet. Affichage uniquement. (avant V1.23 : 18-10-2026 : correspondance des produits — « Pochette Original A04 E » = « Pochette A04 E » (stock commun) ; « Pochette Femme / Local / Fermé … » restent distincts ; aucune ligne fusionnée ni supprimée. (avant V1.22 : 18-10-2026 : vente — le stock disponible est cumulé sur toutes les lignes identiques d'un même produit (plus de blocage si la première ligne est à 0 alors qu'une autre a du stock) ; la quantité vendue est répartie sur ces lignes, sans fusion ni suppression. (avant V1.21 : 17-10-2026 : portrait — ligne TOTAL des stocks = « Valeur : N GNF » (ajustée à la place disponible, Val. / sans libellé si étroit) ; Stock Perso : date de dernière modification sur deux lignes, masquée après 48 h. Affichage uniquement. (avant V1.20 : 17-10-2026 : portrait téléphone — aucun retour à la ligne dans Dépenses / Stock Ent. / Stock Perso (sauf les dates) ; Dépenses : « Total général » dans un emplacement fixe sous le tableau (toujours visible) ; Stocks : Initial / Vendu / Restant entièrement visibles (nom du produit raccourci « … » sur une ligne). Affichage uniquement (CSS + 2 lignes d'affichage dans rDep). (avant V1.19 : 17-10-2026 : portrait téléphone — Dépenses (Total général), Stock Entreprise et Stock Perso (Initial / Vendu / Restant) visibles sans défilement horizontal, ligne TOTAL non rognée (CSS uniquement). (avant V1.18 : onglet actif toujours visible dans la barre d'onglets (ex. « Dépenses » restait hors écran) — centrage direct de #main-nav, recalculé au démarrage et à chaque changement de taille. (avant V1.17 : 13-10-2026 : boîtes de dialogue — fermeture uniquement par leurs boutons (plus au toucher extérieur) + séparateurs de milliers dans les champs numériques (valeur exacte conservée). (avant V1.16 : Commandes › Fournisseur — libellé « Qté » remplacé par « Reste » (aucun autre changement). (avant V1.15 : Commandes › Fournisseur — « Qté : N » dans une zone fixe alignée à droite, nom raccourci (…) sur une seule ligne, affichage seul. (avant V1.14 : quantité restante à la suite du nom. (avant V1.13 : Commandes › Fournisseur — seuil 0 = aucune alerte (seuil ≥ 1 : alerte si restant ≤ seuil) ; Rapport et autres calculs inchangés. (avant V1.12 : Commandes › Fournisseur — produits sous le seuil déjà couverts par la Cmd signalés (« aucune quantité supplémentaire ») et section « Réglages Seuil / Cmd » toujours accessible (affichage uniquement). (avant V1.11 : Commandes — N° d'ordre des produits à commander cliquable : boîte Seuil / Cmd modifiable et enregistrée sans passer par le Stock Entreprise (la nouvelle Cmd remplace l'ancienne et devient la commande de référence). (avant V1.10 : performance — rendu des onglets cachés différé, mise à jour des tableaux par lignes modifiées, pré-filtres des modules d'affichage, recherche mémorisée. (avant V1.09 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.
+var APP_VERSION_DATE = '2026-10-18T10:30:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 
 /* ===== V0.82 — OBSERVATEUR UNIQUE DES TABLEAUX (AFFICHAGE UNIQUEMENT) =====
    Remplace les 3 observateurs séparés (V0.79, V0.80, V0.81) par un seul, groupé (40 ms), qui prévient
@@ -13943,23 +13991,35 @@ function __bpTablesDe(nodes){
   window.addEventListener('load',function(){ fs(); notifier(); });
 }catch(e){} })();
 /* ===== /V0.90 ===== */
-/* ===== V0.82 — POLICE DU RAPPORT (AFFICHAGE UNIQUEMENT) =====
-   En portrait, cherche la plus grande police (8 → 22 px) pour laquelle le tableau « Historique clôture » tient dans la largeur sans défilement. */
+/* ===== V0.82 → V1.24 — POLICE DU RAPPORT (AFFICHAGE UNIQUEMENT) =====
+   En portrait (≤ 600 px) : plus grande police pour laquelle TOUT le tableau « Historique clôture » tient dans la carte, mesuré réellement (aucune tolérance).
+   Mode rp1 (montants sur une ligne) si la police atteint 10 px, sinon rp2 (« GNF » sous le nombre). Recalculé à chaque changement de largeur. */
 (function(){ try{
   var last='';
+  function tient(t,tw){ return t.scrollWidth<=tw.clientWidth && t.offsetWidth<=tw.clientWidth; }
+  function meilleure(el,t,tw){ var lo=6,hi=22,best=0,i; for(i=0;i<9;i++){ var mid=(lo+hi)/2; el.style.setProperty('--rf',mid+'px'); if(tient(t,tw)){ best=mid; lo=mid; } else hi=mid; } return best; }
   function fit(){
     var el=document.getElementById('rapport-historique-clotures'); if(!el) return;
     var t=el.querySelector('table'), tw=el.querySelector('.tw');
     if(!t||!tw||!tw.clientWidth) return;
-    if(!window.matchMedia('(max-width:600px)').matches){ el.style.removeProperty('--rf'); last=''; return; }
-    var sg=tw.clientWidth+'|'+el.textContent.length+'|'+window.innerWidth; if(sg===last) return;
-    var lo=6, hi=22, best=6, i;
-    for(i=0;i<7;i++){ var mid=(lo+hi)/2; el.style.setProperty('--rf',mid+'px'); if(t.scrollWidth<=tw.clientWidth+1){ best=mid; lo=mid; } else hi=mid; }
-    el.style.setProperty('--rf',best+'px'); last=sg;
+    if(!window.matchMedia('(max-width:600px)').matches){ el.style.removeProperty('--rf'); el.classList.remove('rp1','rp2'); last=''; return; }
+    var sg=tw.clientWidth+'|'+el.textContent.length+'|'+window.innerWidth+'|'+getComputedStyle(document.documentElement).fontSize; if(sg===last) return;
+    el.classList.remove('rp2'); el.classList.add('rp1');
+    var b1=meilleure(el,t,tw);
+    if(b1>=10){ el.style.setProperty('--rf',b1+'px'); }
+    else {
+      el.classList.remove('rp1'); el.classList.add('rp2');
+      var b2=meilleure(el,t,tw);
+      if(b2>b1){ el.style.setProperty('--rf',b2+'px'); }
+      else { el.classList.remove('rp2'); el.classList.add('rp1'); el.style.setProperty('--rf',(b1||6)+'px'); }
+    }
+    last=sg;
   }
   window.__bpTbl.add(function(){ fit(); });
   window.addEventListener('resize',function(){ fit(); });
   window.addEventListener('orientationchange',function(){ setTimeout(fit,250); });
+  window.addEventListener('load',function(){ setTimeout(fit,300); });
+  if(window.ResizeObserver){ var elr=document.getElementById('rapport-historique-clotures'); if(elr) new ResizeObserver(function(){ fit(); }).observe(elr); }
 }catch(e){} })();
 /* ===== /V0.82 ===== */
 // Affichage de la version sous le sous-titre de l'écran de connexion : lu depuis APP_VERSION (aucune valeur en dur) → se met à jour tout seul à chaque nouvelle version.
