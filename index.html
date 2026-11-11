@@ -294,6 +294,18 @@ tbody tr:last-child td{border-bottom:none;}
 .bw-ac-pop.open{display:block;}
 .bw-ac-pop [data-v]{padding:9px 10px;border-radius:7px;cursor:pointer;color:var(--tx);line-height:1.3;word-break:break-word;}
 .bw-ac-pop [data-v]:hover,.bw-ac-pop [data-v]:active{background:var(--bg4);}
+/* V1.33 — Vente : liste de suggestions des produits du Stock Entreprise (sous le champ Produit, dans le flux de la boîte, jamais masquée) */
+#a-desig-sug{display:none;box-sizing:border-box;margin-top:4px;background:var(--bg5);border:1px solid var(--bd2);border-radius:10px;max-height:min(34vh,230px);overflow-y:auto;-webkit-overflow-scrolling:touch;font-size:.82rem;}
+#a-desig-sug.open{display:block;}
+#a-desig-sug .sg-h{padding:5px 10px;font-size:.68rem;color:var(--tx3);border-bottom:1px solid var(--bd2);}
+#a-desig-sug .sg-i{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px;padding:7px 10px;cursor:pointer;color:var(--tx);line-height:1.3;border-bottom:1px solid var(--bd2);}
+#a-desig-sug .sg-i:last-child{border-bottom:none;}
+#a-desig-sug .sg-i:hover,#a-desig-sug .sg-i:active,#a-desig-sug .sg-i.sel{background:var(--bg4);}
+#a-desig-sug .sg-n{word-break:break-word;min-width:0;}
+#a-desig-sug .sg-q{flex:none;white-space:nowrap;font-weight:600;color:var(--gr);}
+#a-desig-sug .sg-i.vide .sg-n{opacity:.55;}
+#a-desig-sug .sg-i.vide .sg-q{color:var(--re);}
+#a-desig-sug .sg-m{padding:7px 10px;font-size:.72rem;color:var(--tx3);}
 /* V1.27 — bouton flottant d'accès rapide aux onglets */
 #bw-fab{position:fixed;z-index:410;width:48px;height:48px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;background:var(--bg3);color:var(--tx);border:1px solid var(--ac,var(--bd2));font-size:1.25rem;line-height:1;cursor:grab;opacity:.5;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;box-shadow:0 3px 12px rgba(0,0,0,.35);transition:opacity .15s;}
 #bw-fab:hover,#bw-fab.on,#bw-fab:focus-visible{opacity:.95;}
@@ -2391,7 +2403,7 @@ body:not(.printing-mode) :is(#tab-stock,#tab-perso) .tw table td:nth-child(2) > 
     </div>
     <div class="fr">
       <div class="fg" style="flex:2"><label id="lbl-a-desig">Produit *</label>
-        <input type="text" id="a-desig" placeholder="" oninput="autoPA()" onblur="capitaliserChamp('a-desig')" list="dl-prod">
+        <input type="text" id="a-desig" placeholder="" oninput="autoPA()" onblur="capitaliserChamp('a-desig')" list="dl-prod" autocomplete="off">
         <datalist id="dl-prod"></datalist>
       </div>
       <div class="fg" id="fg-a-panne"><label id="lbl-a-panne">Panne</label><textarea id="a-panne" placeholder="" rows="1"></textarea></div>
@@ -4453,6 +4465,121 @@ function autoPA(){
   var pr=D.stock.concat(D.perso).find(function(p){ return normNom(p.nom)===nom; });
   if(pr){ sv('a-achat',pr.achat||0); pAct(); }
 }
+/* V1.33 — VENTE : suggestions des produits du Stock Entreprise (noms EXACTS), sous le champ Produit.
+   Lecture seule de D.stock (aucune donnée, aucun calcul, aucune synchronisation modifiés). Recherche insensible à la casse, aux accents et aux
+   espaces superflus ; chaque mot tapé doit se retrouver dans le nom (dans n'importe quel ordre, au début ou au milieu : « a12 ecran » trouve
+   « Écran A12 »). Les lignes d'un même produit (même normNom) sont regroupées, quantité = somme des restants (comme le contrôle de enrAct).
+   Champ vide : liste complète, défilante. Sélection : le nom exact du stock est placé dans le champ + prix d'achat pré-rempli (autoPA).
+   Actif uniquement pour le Type « Vente » ; Réparation / Service gardent leur comportement d'avant. */
+(function(){
+  var sel=-1, items=[], tap=false, tmHide=null, scrolled=false;
+  function el(){ return document.getElementById('a-desig'); }
+  function box(){
+    var b=document.getElementById('a-desig-sug'); if(b) return b;
+    var inp=el(); if(!inp || !inp.parentNode) return null;
+    b=document.createElement('div'); b.id='a-desig-sug'; b.setAttribute('role','listbox');
+    inp.parentNode.insertBefore(b, inp.nextSibling);
+    b.addEventListener('mousedown',function(e){ e.preventDefault(); }); /* garde le focus (et le clavier) dans le champ */
+    b.addEventListener('touchstart',function(){ tap=true; clearTimeout(tmHide); },{passive:true});
+    b.addEventListener('touchend',function(){ setTimeout(function(){ tap=false; },450); },{passive:true});
+    b.addEventListener('click',function(e){
+      var it=e.target.closest?e.target.closest('.sg-i'):null; if(!it) return;
+      choisir(parseInt(it.getAttribute('data-k'),10));
+    });
+    return b;
+  }
+  function estVente(){ var t=document.getElementById('a-type'); return !!t && t.value==='Vente'; }
+  function qteRest(s){ return s.qteRestante!==undefined ? s.qteRestante : s.qteInitiale; }
+  function produits(){
+    var map={}, ordre=[];
+    (D.stock||[]).forEach(function(s){
+      if(!s || !s.nom) return;
+      var k=normNom(s.nom); if(!k) return;
+      var g=map[k];
+      if(!g){ g=map[k]={nom:s.nom, q:0, k:k, n:normSearch(s.nom)}; ordre.push(g); }
+      else if(normSearch(s.nom).trim()===g.n.trim()){ /* nom exact identique : on garde le premier */ }
+      g.q+=(Number(qteRest(s))||0);
+    });
+    return ordre;
+  }
+  function filtrer(q){
+    var toks=normSearch(q).split(' ').filter(Boolean), all=produits(), out=[], i, g, ok, j, h;
+    for(i=0;i<all.length;i++){
+      g=all[i]; ok=true;
+      for(j=0;j<toks.length;j++){ if(g.n.indexOf(toks[j])<0 && g.k.indexOf(toks[j])<0){ ok=false; break; } }
+      if(!ok) continue;
+      g.r = toks.length ? (g.n.indexOf(toks.join(' '))===0 ? 0 : (g.n.indexOf(' '+toks[0])>=0 ? 1 : 2)) : 0;
+      out.push(g);
+    }
+    out.sort(function(a,b){
+      var av=a.q>0?0:1, bv=b.q>0?0:1; if(av!==bv) return av-bv;          /* disponibles d'abord */
+      if(a.r!==b.r) return a.r-b.r;
+      return a.nom.localeCompare(b.nom,'fr',{numeric:true,sensitivity:'base'});
+    });
+    return out;
+  }
+  function cacher(){ var b=document.getElementById('a-desig-sug'); if(b) b.classList.remove('open'); sel=-1; scrolled=false; }
+  function afficher(){
+    var inp=el(), b; if(!inp) return;
+    if(!estVente()){ cacher(); return; }
+    b=box(); if(!b) return;
+    items=filtrer(inp.value); sel=-1;
+    var MAX=250, html=document.createDocumentFragment(), h=document.createElement('div');
+    h.className='sg-h'; h.textContent=items.length+' produit'+(items.length>1?'s':'')+' · Stock Entreprise'; html.appendChild(h);
+    if(!items.length){
+      var m=document.createElement('div'); m.className='sg-m'; m.textContent='Aucun produit du Stock Entreprise ne correspond.'; html.appendChild(m);
+    }
+    items.slice(0,MAX).forEach(function(g,i){
+      var r=document.createElement('div'); r.className='sg-i'+(g.q>0?'':' vide'); r.setAttribute('role','option'); r.setAttribute('data-k',i);
+      var n=document.createElement('span'); n.className='sg-n'; n.textContent=g.nom;
+      var q=document.createElement('span'); q.className='sg-q'; q.textContent=g.q>0?('Qté : '+g.q):'Épuisé';
+      r.appendChild(n); r.appendChild(q); html.appendChild(r);
+    });
+    if(items.length>MAX){ var p=document.createElement('div'); p.className='sg-m'; p.textContent='… '+(items.length-MAX)+' autres : continuez à taper pour affiner.'; html.appendChild(p); }
+    b.innerHTML=''; b.appendChild(html); b.scrollTop=0; b.classList.add('open');
+    if(!scrolled){ scrolled=true; setTimeout(function(){ try{ if(b.classList.contains('open')) b.scrollIntoView({block:'nearest'}); }catch(e){} },350); }
+  }
+  function choisir(i){
+    var g=items[i], inp=el(); if(!g || !inp) return;
+    inp.value=g.nom;
+    try{ autoPA(); }catch(e){}
+    cacher();
+    var q=document.getElementById('a-qte'); if(q){ try{ q.focus(); q.select(); }catch(e){} }
+  }
+  function surligner(){
+    var b=document.getElementById('a-desig-sug'); if(!b) return;
+    var rows=b.querySelectorAll('.sg-i');
+    for(var i=0;i<rows.length;i++){
+      var on=(i===sel); rows[i].classList.toggle('sel',on);
+      if(on){ try{ rows[i].scrollIntoView({block:'nearest'}); }catch(e){} }
+    }
+  }
+  document.addEventListener('focusin',function(e){
+    var inp=el(); if(!inp) return;
+    if(e.target===inp){ clearTimeout(tmHide); afficher(); }
+    else{ var b=document.getElementById('a-desig-sug'); if(b && !b.contains(e.target)) cacher(); }
+  });
+  document.addEventListener('input',function(e){ if(e.target===el()){ clearTimeout(tmHide); afficher(); } });
+  document.addEventListener('focusout',function(e){
+    if(e.target!==el()) return;
+    tmHide=setTimeout(function(){ if(!tap && document.activeElement!==el()) cacher(); },250);
+  });
+  document.addEventListener('change',function(e){ if(e.target && e.target.id==='a-type') cacher(); });
+  document.addEventListener('keydown',function(e){
+    if(e.target!==el()) return;
+    var b=document.getElementById('a-desig-sug'); if(!b || !b.classList.contains('open')) return;
+    var n=Math.min(items.length,250);
+    if(e.key==='ArrowDown'){ e.preventDefault(); if(n){ sel=(sel+1)%n; surligner(); } }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); if(n){ sel=sel<=0?n-1:sel-1; surligner(); } }
+    else if(e.key==='Enter' && sel>=0){ e.preventDefault(); choisir(sel); }
+  });
+  /* Appelée par basculerChampsSelonType() : Vente → liste du Stock Entreprise (ni datalist native, ni historique générique) ; autres types → comportement d'avant */
+  window.majSuggestionsVente=function(){
+    var inp=el(); if(!inp) return;
+    if(estVente()){ inp.removeAttribute('list'); inp.setAttribute('data-no-ac','1'); }
+    else{ inp.setAttribute('list','dl-prod'); inp.removeAttribute('data-no-ac'); cacher(); }
+  };
+})();
 /** Pré-remplit le prix d'achat en Stock Ent. si le produit existe déjà (Stock Ent. ou Perso). */
 function autoPS(){
   if(v('s-eid')) return; // ne pas écraser une modification en cours
@@ -9207,6 +9334,7 @@ function basculerChampsSelonType(){
   var lblPanne = document.getElementById('lbl-a-panne');
   if (lblPanne) lblPanne.textContent = estReparation ? 'Panne' : 'Description';
 
+  try{ majSuggestionsVente(); }catch(e){} /* V1.33 : suggestions des produits du Stock Entreprise (Vente uniquement) */
   pAct();
 }
 function rAF(){
@@ -14128,8 +14256,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V1.32'; // 23-10-2026 : CORRECTIF — la clôture ne modifie plus jamais le capital de l'entreprise (la remise à zéro Initial/Vendu du Stock Entreprise retirait du capital la valeur d'achat des quantités vendues ; cette contribution est désormais conservée dans le cumul capitalStockSupprime). (avant V1.31 : 22-10-2026 : enregistrement plus rapide — l'historique n'est plus reconstruit à chaque enregistrement (rendu paresseux, reconstruit à l'ouverture de son onglet), un appel redondant retiré dans les indicateurs, et la recherche/les opérations de Stock ne reconstruisent « À commander » que si l'onglet Commandes est affiché. (avant V1.30 : 21-10-2026 : suggestions de saisie dessinées dans la page (visibles sur les captures d'écran) au lieu de la liste native de Chrome. (avant V1.29 : 19-10-2026 : Stock Entreprise et Stock Perso : nom complet du produit sur une seule ligne (plus de « … »). (avant V1.28 : 18-10-2026 : Stock Perso, colonne Produit de la ligne TOTAL : « Dû période » = total exact de la colonne « Total dû » (suit la période et les données). (avant V1.27 : 18-10-2026 : bouton flottant semi-transparent d'accès rapide aux onglets (déplaçable, position mémorisée). (avant V1.26 : 18-10-2026 : plus de bandeau d'erreur pour l'avertissement bénin « ResizeObserver loop completed with undelivered notifications » (aucune autre modification). (avant V1.25 : 18-10-2026 : saisie semi-automatique (AutoComplete) dans toutes les boîtes de dialogue — chaque champ propose uniquement les valeurs déjà saisies dans CE MÊME champ (Activités : Ticket, Produit, Panne, Client, montants… chacun son historique ; Client d'une Activité ≠ Client d'une Commande) ; aucune donnée, calcul ni synchronisation modifiés. (avant V1.24 : 18-10-2026 : (1) Rapport — tableau « Historique clôture » entier en portrait (police ajustée sur la mesure réelle, GNF sous le nombre si l'écran est étroit, plus de dernière colonne coupée) ; (2) onglets — balayage / flèches dans l'ordre réel de la barre (Rapport et Patrimoine ne sont plus sautés), un seul onglet par geste, seul l'onglet concerné est modifié, défilement des tableaux conservé par onglet. Affichage uniquement. (avant V1.23 : 18-10-2026 : correspondance des produits — « Pochette Original A04 E » = « Pochette A04 E » (stock commun) ; « Pochette Femme / Local / Fermé … » restent distincts ; aucune ligne fusionnée ni supprimée. (avant V1.22 : 18-10-2026 : vente — le stock disponible est cumulé sur toutes les lignes identiques d'un même produit (plus de blocage si la première ligne est à 0 alors qu'une autre a du stock) ; la quantité vendue est répartie sur ces lignes, sans fusion ni suppression. (avant V1.21 : 17-10-2026 : portrait — ligne TOTAL des stocks = « Valeur : N GNF » (ajustée à la place disponible, Val. / sans libellé si étroit) ; Stock Perso : date de dernière modification sur deux lignes, masquée après 48 h. Affichage uniquement. (avant V1.20 : 17-10-2026 : portrait téléphone — aucun retour à la ligne dans Dépenses / Stock Ent. / Stock Perso (sauf les dates) ; Dépenses : « Total général » dans un emplacement fixe sous le tableau (toujours visible) ; Stocks : Initial / Vendu / Restant entièrement visibles (nom du produit raccourci « … » sur une ligne). Affichage uniquement (CSS + 2 lignes d'affichage dans rDep). (avant V1.19 : 17-10-2026 : portrait téléphone — Dépenses (Total général), Stock Entreprise et Stock Perso (Initial / Vendu / Restant) visibles sans défilement horizontal, ligne TOTAL non rognée (CSS uniquement). (avant V1.18 : onglet actif toujours visible dans la barre d'onglets (ex. « Dépenses » restait hors écran) — centrage direct de #main-nav, recalculé au démarrage et à chaque changement de taille. (avant V1.17 : 13-10-2026 : boîtes de dialogue — fermeture uniquement par leurs boutons (plus au toucher extérieur) + séparateurs de milliers dans les champs numériques (valeur exacte conservée). (avant V1.16 : Commandes › Fournisseur — libellé « Qté » remplacé par « Reste » (aucun autre changement). (avant V1.15 : Commandes › Fournisseur — « Qté : N » dans une zone fixe alignée à droite, nom raccourci (…) sur une seule ligne, affichage seul. (avant V1.14 : quantité restante à la suite du nom. (avant V1.13 : Commandes › Fournisseur — seuil 0 = aucune alerte (seuil ≥ 1 : alerte si restant ≤ seuil) ; Rapport et autres calculs inchangés. (avant V1.12 : Commandes › Fournisseur — produits sous le seuil déjà couverts par la Cmd signalés (« aucune quantité supplémentaire ») et section « Réglages Seuil / Cmd » toujours accessible (affichage uniquement). (avant V1.11 : Commandes — N° d'ordre des produits à commander cliquable : boîte Seuil / Cmd modifiable et enregistrée sans passer par le Stock Entreprise (la nouvelle Cmd remplace l'ancienne et devient la commande de référence). (avant V1.10 : performance — rendu des onglets cachés différé, mise à jour des tableaux par lignes modifiées, pré-filtres des modules d'affichage, recherche mémorisée. (avant V1.09 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.)
-var APP_VERSION_DATE = '2026-10-23T23:38:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V1.33'; // 11-11-2026 : (1) l'onglet Activités s'affiche par défaut à chaque ouverture ; (2) Vente : suggestions des noms exacts du Stock Entreprise (recherche tolérante, quantités affichées). Aucune donnée, aucun calcul, aucune synchronisation modifiés. (avant V1.32) 23-10-2026 : CORRECTIF — la clôture ne modifie plus jamais le capital de l'entreprise (la remise à zéro Initial/Vendu du Stock Entreprise retirait du capital la valeur d'achat des quantités vendues ; cette contribution est désormais conservée dans le cumul capitalStockSupprime). (avant V1.31 : 22-10-2026 : enregistrement plus rapide — l'historique n'est plus reconstruit à chaque enregistrement (rendu paresseux, reconstruit à l'ouverture de son onglet), un appel redondant retiré dans les indicateurs, et la recherche/les opérations de Stock ne reconstruisent « À commander » que si l'onglet Commandes est affiché. (avant V1.30 : 21-10-2026 : suggestions de saisie dessinées dans la page (visibles sur les captures d'écran) au lieu de la liste native de Chrome. (avant V1.29 : 19-10-2026 : Stock Entreprise et Stock Perso : nom complet du produit sur une seule ligne (plus de « … »). (avant V1.28 : 18-10-2026 : Stock Perso, colonne Produit de la ligne TOTAL : « Dû période » = total exact de la colonne « Total dû » (suit la période et les données). (avant V1.27 : 18-10-2026 : bouton flottant semi-transparent d'accès rapide aux onglets (déplaçable, position mémorisée). (avant V1.26 : 18-10-2026 : plus de bandeau d'erreur pour l'avertissement bénin « ResizeObserver loop completed with undelivered notifications » (aucune autre modification). (avant V1.25 : 18-10-2026 : saisie semi-automatique (AutoComplete) dans toutes les boîtes de dialogue — chaque champ propose uniquement les valeurs déjà saisies dans CE MÊME champ (Activités : Ticket, Produit, Panne, Client, montants… chacun son historique ; Client d'une Activité ≠ Client d'une Commande) ; aucune donnée, calcul ni synchronisation modifiés. (avant V1.24 : 18-10-2026 : (1) Rapport — tableau « Historique clôture » entier en portrait (police ajustée sur la mesure réelle, GNF sous le nombre si l'écran est étroit, plus de dernière colonne coupée) ; (2) onglets — balayage / flèches dans l'ordre réel de la barre (Rapport et Patrimoine ne sont plus sautés), un seul onglet par geste, seul l'onglet concerné est modifié, défilement des tableaux conservé par onglet. Affichage uniquement. (avant V1.23 : 18-10-2026 : correspondance des produits — « Pochette Original A04 E » = « Pochette A04 E » (stock commun) ; « Pochette Femme / Local / Fermé … » restent distincts ; aucune ligne fusionnée ni supprimée. (avant V1.22 : 18-10-2026 : vente — le stock disponible est cumulé sur toutes les lignes identiques d'un même produit (plus de blocage si la première ligne est à 0 alors qu'une autre a du stock) ; la quantité vendue est répartie sur ces lignes, sans fusion ni suppression. (avant V1.21 : 17-10-2026 : portrait — ligne TOTAL des stocks = « Valeur : N GNF » (ajustée à la place disponible, Val. / sans libellé si étroit) ; Stock Perso : date de dernière modification sur deux lignes, masquée après 48 h. Affichage uniquement. (avant V1.20 : 17-10-2026 : portrait téléphone — aucun retour à la ligne dans Dépenses / Stock Ent. / Stock Perso (sauf les dates) ; Dépenses : « Total général » dans un emplacement fixe sous le tableau (toujours visible) ; Stocks : Initial / Vendu / Restant entièrement visibles (nom du produit raccourci « … » sur une ligne). Affichage uniquement (CSS + 2 lignes d'affichage dans rDep). (avant V1.19 : 17-10-2026 : portrait téléphone — Dépenses (Total général), Stock Entreprise et Stock Perso (Initial / Vendu / Restant) visibles sans défilement horizontal, ligne TOTAL non rognée (CSS uniquement). (avant V1.18 : onglet actif toujours visible dans la barre d'onglets (ex. « Dépenses » restait hors écran) — centrage direct de #main-nav, recalculé au démarrage et à chaque changement de taille. (avant V1.17 : 13-10-2026 : boîtes de dialogue — fermeture uniquement par leurs boutons (plus au toucher extérieur) + séparateurs de milliers dans les champs numériques (valeur exacte conservée). (avant V1.16 : Commandes › Fournisseur — libellé « Qté » remplacé par « Reste » (aucun autre changement). (avant V1.15 : Commandes › Fournisseur — « Qté : N » dans une zone fixe alignée à droite, nom raccourci (…) sur une seule ligne, affichage seul. (avant V1.14 : quantité restante à la suite du nom. (avant V1.13 : Commandes › Fournisseur — seuil 0 = aucune alerte (seuil ≥ 1 : alerte si restant ≤ seuil) ; Rapport et autres calculs inchangés. (avant V1.12 : Commandes › Fournisseur — produits sous le seuil déjà couverts par la Cmd signalés (« aucune quantité supplémentaire ») et section « Réglages Seuil / Cmd » toujours accessible (affichage uniquement). (avant V1.11 : Commandes — N° d'ordre des produits à commander cliquable : boîte Seuil / Cmd modifiable et enregistrée sans passer par le Stock Entreprise (la nouvelle Cmd remplace l'ancienne et devient la commande de référence). (avant V1.10 : performance — rendu des onglets cachés différé, mise à jour des tableaux par lignes modifiées, pré-filtres des modules d'affichage, recherche mémorisée. (avant V1.09 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.)
+var APP_VERSION_DATE = '2026-11-11T22:52:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 
 /* ===== V0.82 — OBSERVATEUR UNIQUE DES TABLEAUX (AFFICHAGE UNIQUEMENT) =====
    Remplace les 3 observateurs séparés (V0.79, V0.80, V0.81) par un seul, groupé (40 ms), qui prévient
@@ -15626,8 +15754,8 @@ document.addEventListener('DOMContentLoaded',function(){
   // Associé n'a pas d'onglets à restaurer).
   try{
     if(!isAssocie()){
-      var lastTab=localStorage.getItem('bpro_last_tab');
-      if(lastTab && document.getElementById('tab-'+lastTab)) gt(lastTab, null);
+      /* V1.33 : à chaque ouverture de l'application, l'onglet Activités s'affiche par défaut (l'ancien onglet mémorisé n'est plus restauré) */
+      if(document.getElementById('tab-activites')) gt('activites', null);
     }
   }catch(e){}
   // Vérifier session — sauf si l'utilisateur vient d'arriver depuis le
