@@ -420,7 +420,7 @@ tbody tr:last-child td{border-bottom:none;}
 /* /V0.24 */
 
 /* ===== LOGIN ===== */
-#login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;}
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:99998;display:flex;align-items:center;justify-content:center;padding:20px;}
 #login-screen.hidden{display:none;}
 .login-box{background:var(--bg2);border:1px solid var(--bd2);border-radius:18px;padding:16px 18px;max-width:420px;width:100%;text-align:center;max-height:min(92vh,92%);overflow-y:auto;}
 .login-logo{font-family:var(--font-display);font-size:1.1rem;font-weight:800;line-height:1.2;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:2px;}
@@ -1468,7 +1468,7 @@ body.vue-ass-on:not(#bd-x) #gs-row{display:none !important;}
    2) Les barres d'outils passent à la ligne si la largeur manque (au lieu de déborder) ; le bouton d'ajout reste
       entier. Texte très grand / écran étroit : la barre d'outils prend sa propre ligne sous le titre.
    Aucune logique, donnée, synchronisation ni permission modifiée. Bloc autonome : le supprimer rétablit la V1.03. */
-html,body{max-width:100%;overscroll-behavior-x:none;}
+html,body{max-width:100%;overscroll-behavior-x:none;overscroll-behavior-y:none;} /* V1.34 : glisser vers le bas en haut de page ne déclenche plus le rafraîchissement natif du navigateur (rechargement involontaire) */
 header{left:0;width:100%;max-width:100%;}
 .hbts,#main-nav,.tw{overscroll-behavior-x:contain;}
 main,.tab-panel,.tab-panel > .card,.tab-panel > .sh{min-width:0;max-width:100%;}
@@ -9085,14 +9085,25 @@ function persoRestantPourStock(s){
     return normNom(p.nom)===normNom(s.nom) ? t+(calcPersoVenduRestant(p).restant||0) : t;
   },0);
 }
+/* V1.37 — limites du ➖ Stock Entreprise. Avant : les unités venant du Stock Perso étaient interdites. Maintenant tout le restant physique est
+   corrigeable. Ordre inchangé pour la part « saisie directement » (diminue qteInitiale seule, comme avant). L'excédent est pris sur la part
+   Stock Perso : qteInitiale ET origPerso baissent de la même quantité → (qteInitiale − origPerso), base du capital, reste IDENTIQUE ; les fiches
+   Stock Perso (apport, totalDu, rembourse) ne sont jamais touchées. maxQ est borné par origPerso : si l'enregistrement de l'origine était
+   incohérent, on refuse plutôt que de risquer une baisse du capital. */
+function limitesDiminutionStock(s){
+  var restant=Math.max(0,(s.qteInitiale||0)-(s.qteVendue||0));
+  var persoRest=persoRestantPourStock(s);
+  var directDispo=Math.max(0,restant-persoRest);
+  var op=Math.max(0,Number(s.origPerso)||0);
+  var persoDispo=Math.max(0,Math.min(restant-directDispo,persoRest,op));
+  return {restant:restant,persoRest:persoRest,directDispo:directDispo,op:op,maxQ:directDispo+persoDispo};
+}
 function ouvrirDiminutionStock(id){
   var s=D.stock.find(function(x){ return x.id===id; });
   if(!s) return;
-  var restant=Math.max(0,(s.qteInitiale||0)-(s.qteVendue||0));
-  var persoRest=persoRestantPourStock(s);
-  var dispo=Math.max(0,restant-persoRest);
+  var L=limitesDiminutionStock(s), restant=L.restant, persoRest=L.persoRest, dispo=L.maxQ;
   sv('dqe-id',id); sv('dqe-qte','');
-  document.getElementById('dqe-inf').innerHTML='<strong>'+echap(s.nom)+'</strong> — actuelle <strong>'+(s.qteInitiale||0)+'</strong>, vendue '+(s.qteVendue||0)+', restante <strong>'+restant+'</strong> · Retirable maintenant : <strong>'+dispo+'</strong>'+(persoRest>0?' (dont '+persoRest+' unité(s) du Stock Perso à retirer depuis le Stock Perso)':'');
+  document.getElementById('dqe-inf').innerHTML='<strong>'+echap(s.nom)+'</strong> — actuelle <strong>'+(s.qteInitiale||0)+'</strong>, vendue '+(s.qteVendue||0)+', restante <strong>'+restant+'</strong> · Retirable maintenant : <strong>'+dispo+'</strong>'+(persoRest>0?' (dont '+Math.max(0,dispo-L.directDispo)+' unité(s) venant du Stock Perso : correction de la quantité physique seulement — capital, apport et montant dû inchangés)':'');
   om('mdqe');
 }
 function enrDiminutionStock(){
@@ -9106,9 +9117,11 @@ function enrDiminutionStock(){
     var s=D.stock.find(function(x){ return x.id==id; }); if(!s) return;
     var restant=Math.max(0,(s.qteInitiale||0)-(s.qteVendue||0));
     if(q>restant){ notif('⚠️ Impossible : il ne reste que '+restant+' unité(s) dans ce Stock Entreprise'); return; }
-    var persoRest=persoRestantPourStock(s);
-    if(q>restant-persoRest){ notif('⚠️ Impossible : '+persoRest+' unité(s) restante(s) viennent du Stock Perso — retirez-les depuis le Stock Perso (maximum ici : '+Math.max(0,restant-persoRest)+')'); return; }
+    var L=limitesDiminutionStock(s);
+    if(q>L.maxQ){ notif('⚠️ Impossible : maximum '+L.maxQ+' unité(s) corrigeable(s) sans toucher au capital ni au montant dû'); return; }
+    var qPerso=Math.max(0,q-L.directDispo); /* part prise sur les unités venant du Stock Perso (0 si tout est « direct ») */
     s.qteInitiale=Math.max(0,(s.qteInitiale||0)-q);
+    if(qPerso>0) s.origPerso=Math.max(0,L.op-qPerso); /* même baisse que qteInitiale : le capital ne bouge pas ; AUCUNE fiche Stock Perso modifiée */
     s.qteRestante=Math.max(0,s.qteInitiale-(s.qteVendue||0));
     if((s.dernierAjoutQte||0)>0){
       s.dernierAjoutQte=Math.max(0,s.dernierAjoutQte-q);
@@ -9117,7 +9130,8 @@ function enrDiminutionStock(){
     s._localTouchedAt=Date.now();
     s._baisseVoulueAt=s._localTouchedAt; // baisse volontaire : voir mergeAppData()
     s._baisseAEnvoyer=true; // retiré dès que le serveur a reçu la quantité : voir chargerActivitesEtStockDepuisTables()
-    ah('stock','Diminution quantité: '+s.nom+' -'+q,0,td());
+    /* V1.37 : tracé comme CORRECTION DE STOCK (montant 0 : ni vente, ni retrait, ni remboursement) */
+    ah('stock','Correction de stock : '+s.nom+' -'+q+(qPerso>0?' (dont '+qPerso+' d\'origine Stock Perso — capital et montant dû inchangés)':''),0,td());
     sv('dqe-id',''); sv('dqe-qte','');
     save(); cm('mdqe'); rStock(); notif('✅ '+s.nom+' : -'+q+' unité(s) retirée(s)');
   } finally {
@@ -9432,7 +9446,30 @@ function alerteFournisseur(s){ var t=seuilStock(s); return t!==null && t>0 && qt
 /** Quantité à commander = Cmd (stock cible) − stock restant, seulement si restant ≤ seuil et résultat positif. */
 function qteACommander(s){ if(!alerteFournisseur(s)) return 0; var c=parseInt(s.cmd)||0; if(c<=0){ var _t=seuilStock(s); c=Math.max((_t>0?_t:3)*3,10); } return Math.max(0,c-qteRestanteStock(s)); }
 /** Liste unique « À commander », recalculée à chaque appel depuis le stock actuel (aucun historique, aucune donnée enregistrée). */
-function listeACommander(){ var r=[]; (D.stock||[]).forEach(function(s){ if(!s||!s.nom) return; var q=qteACommander(s); if(q>0) r.push({s:s,qte:q}); }); return r; }
+/* V1.38 — UN SEUL ARTICLE PAR PRODUIT dans « À commander ». Cause des doublons : le Stock Entreprise contient parfois DEUX fiches du même produit dont
+   le nom ne diffère que par un espace interne ou une ponctuation (« Kk A21 S » / « Kk A21S », « Kk Spark 5 Air » / « KK Spark5 Air ») ; normNom()
+   ne les reconnaît pas comme identiques, et la liste créait un article PAR FICHE. Ici les fiches sont rapprochées par _cleNomCmd() (casse, accents,
+   espaces et ponctuation ignorés — déjà utilisée par cette vue). Quantité réellement nécessaire d'un produit en plusieurs fiches = plus haute
+   cible Cmd parmi ses fiches en alerte − somme des restants de TOUTES ses fiches (ni somme des deux commandes, qui compterait deux fois le même
+   stock, ni commande réduite à une seule fiche). Produit à une seule fiche : résultat strictement identique à avant. Affichage/envoi seulement :
+   aucune fiche de stock n'est lue autrement, modifiée, fusionnée ni supprimée ; chaque fiche reste modifiable dans « Réglages Seuil / Cmd ». */
+function cmdEffectiveStock(s){ var c=parseInt(s.cmd)||0; if(c<=0){ var _t=seuilStock(s); c=Math.max((_t>0?_t:3)*3,10); } return c; }
+function listeACommander(){
+  var stock=(D.stock||[]), groupes={}, r=[], i, s, k;
+  for(i=0;i<stock.length;i++){ s=stock[i]; if(!s||!s.nom) continue; k=_cleNomCmd(s.nom); if(!k) k='#'+s.id; (groupes[k]||(groupes[k]=[])).push(s); }
+  for(i=0;i<stock.length;i++){
+    s=stock[i]; if(!s||!s.nom) continue; k=_cleNomCmd(s.nom); if(!k) k='#'+s.id;
+    var g=groupes[k];
+    if(g.length===1){ var q=qteACommander(s); if(q>0) r.push({s:s,qte:q}); continue; }   /* cas normal : comportement d'avant */
+    var alertes=g.filter(function(x){ return qteACommander(x)>0; });
+    if(!alertes.length || alertes[0]!==s) continue;                                       /* un seul article par produit : à la 1re fiche en alerte */
+    var reste=g.reduce(function(t,x){ return t+(Number(qteRestanteStock(x))||0); },0);
+    var cible=alertes.reduce(function(m,x){ return Math.max(m,cmdEffectiveStock(x)); },0);
+    var qm=Math.max(0,cible-reste);
+    if(qm>0) r.push({s:s,qte:qm,reste:reste,fiches:g.length});
+  }
+  return r;
+}
 function niveauStock(restant,seuil){
   if(restant===0) return {label:'Rupture',color:'var(--re)',lvl:0};
   if(restant<=seuil) return {label:'Faible',color:'var(--or)',lvl:1};
@@ -10359,7 +10396,7 @@ function appelClientById(id){
 /* V0.76 — Liste « À commander » unique et automatique (voir listeACommander()). Plus de bouton « Générer » ni de fiche enregistrée :
    l'envoi WhatsApp utilise directement la liste actuelle (stock restant ≤ seuil ; quantité = Cmd − stock restant). */
 function lignesListeACommander(){
-  return listeACommander().map(function(x){ return {id:x.s.id, produit:x.s.nom, qte:x.qte, catFiche:(x.s.categorie?String(x.s.categorie).trim():'').toUpperCase()}; });
+  return listeACommander().map(function(x){ var o={id:x.s.id, produit:x.s.nom, qte:x.qte, catFiche:(x.s.categorie?String(x.s.categorie).trim():'').toUpperCase()}; if(x.reste!==undefined) o.reste=x.reste; return o; });
 }
 function envoyerListeACommander(){
   var lignes=lignesListeACommander();
@@ -11016,6 +11053,7 @@ function rAlertesCommandesDisponibles(){
 function htmlCmdFournGroupe(lignes, dateStr, cmd){
   /* V1.15 — affichage seul : zone « Qté : N » à droite = quantité réellement restante (qteRestanteStock) du produit, lue dans D.stock par son id ; rien n'est écrit ni calculé. Lignes sans id (anciennes commandes enregistrées) : aucune quantité affichée. */
   var _qr={}; (D.stock||[]).forEach(function(s){ if(s) _qr[s.id]=qteRestanteStock(s); });
+  (lignes||[]).forEach(function(l){ if(l && l.reste!==undefined && _qr[l.id]!==undefined) _qr[l.id]=l.reste; }); /* V1.38 : produit en plusieurs fiches → restant total */
   var _aQ=function(l){ return l.id!==undefined&&l.id!==null&&_qr[l.id]!==undefined; };
   var _qz=function(l){ return _aQ(l)?'<span class="fg-qz"><span>Reste</span> : '+_qr[l.id]+'</span>':''; };
   var h='<div class="fg">'+(dateStr?'<div class="fg-d">'+echap(fmtDateJour(dateStr))+'</div>':'');
@@ -11926,6 +11964,16 @@ function valTotalHtml(valeur,lib,libCourt){ /* V1.28 : lib/libCourt facultatifs 
   return '<span class="tot-t">TOTAL</span><span class="vt" data-v="'+f+'">Valeur : '+f+'</span>';
 }
 var DERN_MODIF_MS=48*3600*1000;
+/* V1.36 : badge « +quantité Jour date » aussi pour un produit tout juste CRÉÉ dans le Stock Perso (avant : uniquement après un ➕, car la création
+   n'enregistre pas de « dernier ajout »). Affichage seul : aucune donnée, aucun calcul modifié ; reste limité à 48 h comme le badge existant.
+   Création reconnue par derniereModifDate ≈ id (les deux posés dans la même seconde à la création) ; une modification, un ➕ ou une annulation
+   ultérieurs changent derniereModifDate : le repli ne s'applique alors plus. */
+function badgeAjoutPersoHtml(p){
+  if(p.dernierAjoutQte>0) return dernModifPersoHtml(p.dernierAjoutQte,p.dernierAjoutDate);
+  var t=p.derniereModifDate?new Date(p.derniereModifDate).getTime():NaN, id=Number(p.id);
+  if(!isNaN(t) && id>0 && (p.qteInitiale||0)>0 && Math.abs(t-id)<10000) return dernModifPersoHtml(p.qteInitiale,p.derniereModifDate);
+  return '';
+}
 function dernModifPersoHtml(qte,iso){ /* « +22 Mercredi / 07-10-2026 », centré sur deux lignes ; rien au-delà de 48 h (la donnée reste enregistrée) */
   var ts=iso?new Date(iso).getTime():NaN; if(isNaN(ts)||Date.now()-ts>=DERN_MODIF_MS) return '';
   var dt=new Date(ts), ds=dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2)+'-'+('0'+dt.getDate()).slice(-2);
@@ -12061,7 +12109,7 @@ function rPerso(){
     totRevient+=(p.prixRevient||p.achat*p.qteInitiale); totCommission+=p.commission||0; totDu+=p.totalDu||0;
     html+='<tr>';
     html+='<td style="color:var(--tx3)">'+(idx+1)+'</td>';
-    html+='<td><strong>'+echap(p.nom)+'</strong>'+(lie?' <span style="font-size:.65rem;color:var(--tx3)" title="Fusionné dans le Stock Entreprise">🔗</span>':' <span style="font-size:.65rem;color:var(--re)" title="Non retrouvé dans le Stock Entreprise">⚠️</span>')+(p.dernierAjoutQte>0?dernModifPersoHtml(p.dernierAjoutQte,p.dernierAjoutDate):'')+'</td>';
+    html+='<td><strong>'+echap(p.nom)+'</strong>'+(lie?' <span style="font-size:.65rem;color:var(--tx3)" title="Fusionné dans le Stock Entreprise">🔗</span>':' <span style="font-size:.65rem;color:var(--re)" title="Non retrouvé dans le Stock Entreprise">⚠️</span>')+badgeAjoutPersoHtml(p)+'</td>';
     html+='<td>'+p.qteInitiale+'</td>';
     html+='<td style="color:var(--or)">'+vr.vendu+'</td>';
     html+='<td><strong style="color:'+(vr.restant<3?'var(--re)':'var(--gr)')+'">'+vr.restant+'</strong></td>';
@@ -14256,8 +14304,8 @@ function viderDep() {
 // même D. Ce système empêche l'accès par l'INTERFACE (ce que 99,9% des
 // utilisateurs verront) mais n'est pas une garantie cryptographique.
 
-var APP_VERSION = 'V1.33'; // 11-11-2026 : (1) l'onglet Activités s'affiche par défaut à chaque ouverture ; (2) Vente : suggestions des noms exacts du Stock Entreprise (recherche tolérante, quantités affichées). Aucune donnée, aucun calcul, aucune synchronisation modifiés. (avant V1.32) 23-10-2026 : CORRECTIF — la clôture ne modifie plus jamais le capital de l'entreprise (la remise à zéro Initial/Vendu du Stock Entreprise retirait du capital la valeur d'achat des quantités vendues ; cette contribution est désormais conservée dans le cumul capitalStockSupprime). (avant V1.31 : 22-10-2026 : enregistrement plus rapide — l'historique n'est plus reconstruit à chaque enregistrement (rendu paresseux, reconstruit à l'ouverture de son onglet), un appel redondant retiré dans les indicateurs, et la recherche/les opérations de Stock ne reconstruisent « À commander » que si l'onglet Commandes est affiché. (avant V1.30 : 21-10-2026 : suggestions de saisie dessinées dans la page (visibles sur les captures d'écran) au lieu de la liste native de Chrome. (avant V1.29 : 19-10-2026 : Stock Entreprise et Stock Perso : nom complet du produit sur une seule ligne (plus de « … »). (avant V1.28 : 18-10-2026 : Stock Perso, colonne Produit de la ligne TOTAL : « Dû période » = total exact de la colonne « Total dû » (suit la période et les données). (avant V1.27 : 18-10-2026 : bouton flottant semi-transparent d'accès rapide aux onglets (déplaçable, position mémorisée). (avant V1.26 : 18-10-2026 : plus de bandeau d'erreur pour l'avertissement bénin « ResizeObserver loop completed with undelivered notifications » (aucune autre modification). (avant V1.25 : 18-10-2026 : saisie semi-automatique (AutoComplete) dans toutes les boîtes de dialogue — chaque champ propose uniquement les valeurs déjà saisies dans CE MÊME champ (Activités : Ticket, Produit, Panne, Client, montants… chacun son historique ; Client d'une Activité ≠ Client d'une Commande) ; aucune donnée, calcul ni synchronisation modifiés. (avant V1.24 : 18-10-2026 : (1) Rapport — tableau « Historique clôture » entier en portrait (police ajustée sur la mesure réelle, GNF sous le nombre si l'écran est étroit, plus de dernière colonne coupée) ; (2) onglets — balayage / flèches dans l'ordre réel de la barre (Rapport et Patrimoine ne sont plus sautés), un seul onglet par geste, seul l'onglet concerné est modifié, défilement des tableaux conservé par onglet. Affichage uniquement. (avant V1.23 : 18-10-2026 : correspondance des produits — « Pochette Original A04 E » = « Pochette A04 E » (stock commun) ; « Pochette Femme / Local / Fermé … » restent distincts ; aucune ligne fusionnée ni supprimée. (avant V1.22 : 18-10-2026 : vente — le stock disponible est cumulé sur toutes les lignes identiques d'un même produit (plus de blocage si la première ligne est à 0 alors qu'une autre a du stock) ; la quantité vendue est répartie sur ces lignes, sans fusion ni suppression. (avant V1.21 : 17-10-2026 : portrait — ligne TOTAL des stocks = « Valeur : N GNF » (ajustée à la place disponible, Val. / sans libellé si étroit) ; Stock Perso : date de dernière modification sur deux lignes, masquée après 48 h. Affichage uniquement. (avant V1.20 : 17-10-2026 : portrait téléphone — aucun retour à la ligne dans Dépenses / Stock Ent. / Stock Perso (sauf les dates) ; Dépenses : « Total général » dans un emplacement fixe sous le tableau (toujours visible) ; Stocks : Initial / Vendu / Restant entièrement visibles (nom du produit raccourci « … » sur une ligne). Affichage uniquement (CSS + 2 lignes d'affichage dans rDep). (avant V1.19 : 17-10-2026 : portrait téléphone — Dépenses (Total général), Stock Entreprise et Stock Perso (Initial / Vendu / Restant) visibles sans défilement horizontal, ligne TOTAL non rognée (CSS uniquement). (avant V1.18 : onglet actif toujours visible dans la barre d'onglets (ex. « Dépenses » restait hors écran) — centrage direct de #main-nav, recalculé au démarrage et à chaque changement de taille. (avant V1.17 : 13-10-2026 : boîtes de dialogue — fermeture uniquement par leurs boutons (plus au toucher extérieur) + séparateurs de milliers dans les champs numériques (valeur exacte conservée). (avant V1.16 : Commandes › Fournisseur — libellé « Qté » remplacé par « Reste » (aucun autre changement). (avant V1.15 : Commandes › Fournisseur — « Qté : N » dans une zone fixe alignée à droite, nom raccourci (…) sur une seule ligne, affichage seul. (avant V1.14 : quantité restante à la suite du nom. (avant V1.13 : Commandes › Fournisseur — seuil 0 = aucune alerte (seuil ≥ 1 : alerte si restant ≤ seuil) ; Rapport et autres calculs inchangés. (avant V1.12 : Commandes › Fournisseur — produits sous le seuil déjà couverts par la Cmd signalés (« aucune quantité supplémentaire ») et section « Réglages Seuil / Cmd » toujours accessible (affichage uniquement). (avant V1.11 : Commandes — N° d'ordre des produits à commander cliquable : boîte Seuil / Cmd modifiable et enregistrée sans passer par le Stock Entreprise (la nouvelle Cmd remplace l'ancienne et devient la commande de référence). (avant V1.10 : performance — rendu des onglets cachés différé, mise à jour des tableaux par lignes modifiées, pré-filtres des modules d'affichage, recherche mémorisée. (avant V1.09 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.)
-var APP_VERSION_DATE = '2026-11-11T22:52:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
+var APP_VERSION = 'V1.39'; // 19-11-2026 : Connexion : le mot de passe est désormais vérifié aussi hors ligne (empreinte locale PBKDF2, aucun blocage possible) — le verrouillage/la déconnexion ne se contournent plus en coupant le réseau ; messages d'erreur de connexion précis. Aucune synchronisation/donnée/session Supabase modifiée. (avant V1.38) 15-11-2026 : Commandes › Fournisseur : un produit n'apparaît plus qu'une seule fois dans « À commander » même si le Stock Entreprise en a deux fiches aux noms presque identiques (espace/ponctuation/casse/accents) ; quantité = cible − restant total. Aucune fiche modifiée. (avant V1.37) 15-11-2026 : Stock Entreprise ➖ : tous les produits sont corrigeables, y compris ceux venant du Stock Perso (quantité physique seulement ; capital, apport et montant dû inchangés ; historique « Correction de stock »). (avant V1.36) 13-11-2026 : (1) Stock Perso : badge « +quantité Jour date » aussi pour les produits tout juste créés ; (2) garde anti-rafraîchissement par glissement vers le bas (2e couche contre les fermetures/réouvertures). (avant V1.35) 11-11-2026 : délai de verrouillage porté à 13 HEURES d'inactivité (avant V1.34 : 13 minutes) ; (1) verrouillage automatique après 13 min d'inactivité (reconnexion demandée, données locales et synchronisation conservées) ; (2) glisser vers le bas ne déclenche plus le rafraîchissement natif du navigateur. (avant V1.33) 11-11-2026 : (1) l'onglet Activités s'affiche par défaut à chaque ouverture ; (2) Vente : suggestions des noms exacts du Stock Entreprise (recherche tolérante, quantités affichées). Aucune donnée, aucun calcul, aucune synchronisation modifiés. (avant V1.32) 23-10-2026 : CORRECTIF — la clôture ne modifie plus jamais le capital de l'entreprise (la remise à zéro Initial/Vendu du Stock Entreprise retirait du capital la valeur d'achat des quantités vendues ; cette contribution est désormais conservée dans le cumul capitalStockSupprime). (avant V1.31 : 22-10-2026 : enregistrement plus rapide — l'historique n'est plus reconstruit à chaque enregistrement (rendu paresseux, reconstruit à l'ouverture de son onglet), un appel redondant retiré dans les indicateurs, et la recherche/les opérations de Stock ne reconstruisent « À commander » que si l'onglet Commandes est affiché. (avant V1.30 : 21-10-2026 : suggestions de saisie dessinées dans la page (visibles sur les captures d'écran) au lieu de la liste native de Chrome. (avant V1.29 : 19-10-2026 : Stock Entreprise et Stock Perso : nom complet du produit sur une seule ligne (plus de « … »). (avant V1.28 : 18-10-2026 : Stock Perso, colonne Produit de la ligne TOTAL : « Dû période » = total exact de la colonne « Total dû » (suit la période et les données). (avant V1.27 : 18-10-2026 : bouton flottant semi-transparent d'accès rapide aux onglets (déplaçable, position mémorisée). (avant V1.26 : 18-10-2026 : plus de bandeau d'erreur pour l'avertissement bénin « ResizeObserver loop completed with undelivered notifications » (aucune autre modification). (avant V1.25 : 18-10-2026 : saisie semi-automatique (AutoComplete) dans toutes les boîtes de dialogue — chaque champ propose uniquement les valeurs déjà saisies dans CE MÊME champ (Activités : Ticket, Produit, Panne, Client, montants… chacun son historique ; Client d'une Activité ≠ Client d'une Commande) ; aucune donnée, calcul ni synchronisation modifiés. (avant V1.24 : 18-10-2026 : (1) Rapport — tableau « Historique clôture » entier en portrait (police ajustée sur la mesure réelle, GNF sous le nombre si l'écran est étroit, plus de dernière colonne coupée) ; (2) onglets — balayage / flèches dans l'ordre réel de la barre (Rapport et Patrimoine ne sont plus sautés), un seul onglet par geste, seul l'onglet concerné est modifié, défilement des tableaux conservé par onglet. Affichage uniquement. (avant V1.23 : 18-10-2026 : correspondance des produits — « Pochette Original A04 E » = « Pochette A04 E » (stock commun) ; « Pochette Femme / Local / Fermé … » restent distincts ; aucune ligne fusionnée ni supprimée. (avant V1.22 : 18-10-2026 : vente — le stock disponible est cumulé sur toutes les lignes identiques d'un même produit (plus de blocage si la première ligne est à 0 alors qu'une autre a du stock) ; la quantité vendue est répartie sur ces lignes, sans fusion ni suppression. (avant V1.21 : 17-10-2026 : portrait — ligne TOTAL des stocks = « Valeur : N GNF » (ajustée à la place disponible, Val. / sans libellé si étroit) ; Stock Perso : date de dernière modification sur deux lignes, masquée après 48 h. Affichage uniquement. (avant V1.20 : 17-10-2026 : portrait téléphone — aucun retour à la ligne dans Dépenses / Stock Ent. / Stock Perso (sauf les dates) ; Dépenses : « Total général » dans un emplacement fixe sous le tableau (toujours visible) ; Stocks : Initial / Vendu / Restant entièrement visibles (nom du produit raccourci « … » sur une ligne). Affichage uniquement (CSS + 2 lignes d'affichage dans rDep). (avant V1.19 : 17-10-2026 : portrait téléphone — Dépenses (Total général), Stock Entreprise et Stock Perso (Initial / Vendu / Restant) visibles sans défilement horizontal, ligne TOTAL non rognée (CSS uniquement). (avant V1.18 : onglet actif toujours visible dans la barre d'onglets (ex. « Dépenses » restait hors écran) — centrage direct de #main-nav, recalculé au démarrage et à chaque changement de taille. (avant V1.17 : 13-10-2026 : boîtes de dialogue — fermeture uniquement par leurs boutons (plus au toucher extérieur) + séparateurs de milliers dans les champs numériques (valeur exacte conservée). (avant V1.16 : Commandes › Fournisseur — libellé « Qté » remplacé par « Reste » (aucun autre changement). (avant V1.15 : Commandes › Fournisseur — « Qté : N » dans une zone fixe alignée à droite, nom raccourci (…) sur une seule ligne, affichage seul. (avant V1.14 : quantité restante à la suite du nom. (avant V1.13 : Commandes › Fournisseur — seuil 0 = aucune alerte (seuil ≥ 1 : alerte si restant ≤ seuil) ; Rapport et autres calculs inchangés. (avant V1.12 : Commandes › Fournisseur — produits sous le seuil déjà couverts par la Cmd signalés (« aucune quantité supplémentaire ») et section « Réglages Seuil / Cmd » toujours accessible (affichage uniquement). (avant V1.11 : Commandes — N° d'ordre des produits à commander cliquable : boîte Seuil / Cmd modifiable et enregistrée sans passer par le Stock Entreprise (la nouvelle Cmd remplace l'ancienne et devient la commande de référence). (avant V1.10 : performance — rendu des onglets cachés différé, mise à jour des tableaux par lignes modifiées, pré-filtres des modules d'affichage, recherche mémorisée. (avant V1.09 : responsive intégral (cartes KPI Associé/Visiteur, boutons de boîtes de dialogue à 150 % de texte). (avant V1.08 : N° d'ordre du Stock Entreprise cliquable (= ✏️) ; réactivité : règles CSS :has() coûteuses remplacées (recalcul de style global évité), réglage de hauteur sans remesure inutile. (avant V1.07 : lignes de totaux stables au défilement vertical (plus de remontée ni de vide en bas quand la barre de recherche se replie) ; affichage uniquement. Avant : boîte « Affichage » entièrement repensée (cartes Texte / Onglets / Thème / Langue, curseurs remplis, aperçus en direct, thèmes en vignettes, deux colonnes sur grand écran) ; mêmes réglages, mêmes fonctions ; affichage uniquement. Avant : badge d'état de l'en-tête sur une ligne (tronqué « … », texte complet en infobulle) avec rangée de boutons toujours accessible ; lignes de totaux qui passent à la ligne sur très petit écran (280 px, texte 150 %) au lieu de dépasser ; affichage uniquement. Avant : barre supérieure (en-tête + onglets) fixe — la page ne défile plus horizontalement ; boutons d'ajout (« + Nouv. », « + Entrée », « Ajouter dette », « + Commande »…) toujours entièrement visibles : les barres d'outils passent à la ligne au lieu de déborder (portrait/paysage, texte jusqu'à 150 %) ; affichage uniquement. Avant : boîte « Affichage » compacte et de taille fixe (ne grandit plus avec la taille du texte / des onglets) ; affichage uniquement. Avant : V1.02 — impression PDF du compte Visiteur — montants plus grands et en gras, Total des avoirs très en évidence, une seule page A4 (mise en page uniquement). Avant : V1.01 — comptes Associé et Visiteur — la rangée d'actions de l'Administrateur (« Paiement partiel », « ⋯ », « Imprimer » du tableau de bord…) n'est plus jamais affichée (elle reprenait les boutons du dernier onglet Admin actif sur le même appareil) ; tableau Visiteur : jour et date sur une seule ligne ; affichage uniquement.)
+var APP_VERSION_DATE = '2026-11-19T21:50:00'; // Date/heure exacte de la mise à jour V0.19 — NE PAS mettre à jour automatiquement (pas de new Date()) : à modifier manuellement uniquement lors d'une nouvelle mise à jour réellement publiée.
 
 /* ===== V0.82 — OBSERVATEUR UNIQUE DES TABLEAUX (AFFICHAGE UNIQUEMENT) =====
    Remplace les 3 observateurs séparés (V0.79, V0.80, V0.81) par un seul, groupé (40 ms), qui prévient
@@ -14660,15 +14708,72 @@ function setDonneesVisiteur(d){ try{ sessionStorage.setItem('bpro_visiteur_data'
  * seule une session déjà obtenue du serveur est réutilisée.
  * @returns {boolean} true si une session a été reprise avec succès
  */
-function tenterReconnexionHorsLigne(email, err){
+/* V1.39 — MOT DE PASSE VÉRIFIÉ AUSSI HORS LIGNE. Avant : hors ligne (ou serveur injoignable), « admin » + N'IMPORTE QUEL mot de passe non vide
+   rouvrait la session mise en cache (30 jours) — le verrouillage par inactivité, comme la déconnexion, pouvait donc être contourné en coupant
+   le réseau. Maintenant : à chaque connexion EN LIGNE réussie, une empreinte du mot de passe (PBKDF2-SHA-256, sel aléatoire, 150 000 itérations ;
+   jamais le mot de passe) est mémorisée sur l'appareil, par compte. Hors ligne, le mot de passe saisi est comparé à cette empreinte.
+   Aucune possibilité de blocage : sans empreinte (appareil jamais connecté depuis cette version) ou en cas d'erreur technique de calcul,
+   le comportement d'avant est conservé (avec un avertissement) — seul un mot de passe réellement DIFFÉRENT est refusé. Aucune synchronisation,
+   aucune donnée, aucune session Supabase n'est touchée. */
+var PWV_ITER=150000;
+function _pwvB64(buf){ var b=new Uint8Array(buf), s2=''; for(var i=0;i<b.length;i++) s2+=String.fromCharCode(b[i]); return btoa(s2); }
+function _pwvB64Vers(str){ var b=atob(str), u=new Uint8Array(b.length); for(var i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u; }
+function _pwvCalculer(pass, selB64, iter){
+  var enc=new TextEncoder();
+  return crypto.subtle.importKey('raw', enc.encode(String(pass)), {name:'PBKDF2'}, false, ['deriveBits']).then(function(k){
+    return crypto.subtle.deriveBits({name:'PBKDF2', hash:'SHA-256', salt:_pwvB64Vers(selB64), iterations:iter}, k, 256);
+  }).then(_pwvB64);
+}
+function memoriserVerificateurMotDePasse(role, pass){
+  try{
+    if(!role || !pass || !window.crypto || !crypto.subtle || typeof TextEncoder==='undefined') return;
+    var sel=_pwvB64(crypto.getRandomValues(new Uint8Array(16)));
+    _pwvCalculer(pass, sel, PWV_ITER).then(function(h){
+      try{ localStorage.setItem('bpro_pwv_'+role, JSON.stringify({v:1, s:sel, h:h, i:PWV_ITER})); }catch(e){}
+    }).catch(function(e){ console.warn('[pwv] empreinte non mémorisée :', e && e.message); });
+  }catch(e){ console.warn('[pwv]', e && e.message); }
+}
+/** @returns Promise<'ok'|'ko'|'absent'|'erreur'> — 'ko' UNIQUEMENT si une empreinte existe ET que le mot de passe diffère. */
+function verifierMotDePasseHorsLigne(role, pass){
+  var v=null; try{ v=JSON.parse(localStorage.getItem('bpro_pwv_'+role)||'null'); }catch(e){}
+  if(!v || !v.s || !v.h || !(v.i>0)) return Promise.resolve('absent');
+  if(!window.crypto || !crypto.subtle || typeof TextEncoder==='undefined') return Promise.resolve('erreur');
+  return _pwvCalculer(pass, v.s, v.i).then(function(h){ return h===v.h ? 'ok' : 'ko'; }).catch(function(){ return 'erreur'; });
+}
+var _reconnexionHorsLigneEnCours=false;
+function tenterReconnexionHorsLigne(email, err, pass){
   // Voir setSession()/getSessionPourEmail() : on relit ici la session
   // PROPRE au compte demandé (email), jamais celle du dernier compte
   // actif sur l'appareil — c'est ce qui isole totalement les comptes
   // entre eux lors d'une utilisation successive sur le même appareil.
   var cached = getSessionPourEmail(email);
   if (cached && cached.email === email && cached.offline_ok_until > Date.now()) {
-    setSession(cached); // réactive cette session comme session active partagée, pour le reste de l'app
-    appliquerSession(cached);
+    if (pass === undefined) { // appel sans mot de passe (ancien comportement)
+      setSession(cached); // réactive cette session comme session active partagée, pour le reste de l'app
+      appliquerSession(cached);
+      return true;
+    }
+    if (_reconnexionHorsLigneEnCours) return true; // double appui : une vérification est déjà en cours
+    _reconnexionHorsLigneEnCours = true;
+    if (err) err.textContent = '⏳ Vérification du mot de passe…';
+    verifierMotDePasseHorsLigne(cached.role, pass).then(function(r){
+      _reconnexionHorsLigneEnCours = false;
+      if (r === 'ko') {
+        if (err) err.textContent = '❌ Mot de passe incorrect (hors ligne : utilisez le dernier mot de passe saisi en ligne sur cet appareil, ou reconnectez-vous avec Internet).';
+        var ip=document.getElementById('inp-pass'); if(ip){ ip.value=''; try{ ip.focus(); }catch(e){} }
+        return;
+      }
+      if (r === 'erreur') {
+        try{ enregistrerDiagnostic('Connexion hors ligne', false, 'Vérification locale du mot de passe impossible — reprise de session sans vérification.'); }catch(e){}
+        notif('⚠️ Vérification du mot de passe impossible sur cet appareil : reconnectez-vous avec Internet dès que possible.');
+      }
+      setSession(cached);
+      appliquerSession(cached);
+    }).catch(function(e){
+      _reconnexionHorsLigneEnCours = false;
+      console.error('[reconnexion hors ligne]', e);
+      if (err) err.textContent = '⚠️ Erreur technique — réessayez ou reconnectez-vous avec Internet.';
+    });
     return true;
   }
   if (err) err.textContent = '⚠️ Connexion Internet requise pour la première connexion sur cet appareil.';
@@ -14699,13 +14804,16 @@ function doLogin() {
 
   if (!navigator.onLine) {
     // Hors ligne (détecté) : reprise directe de la session locale.
-    tenterReconnexionHorsLigne(email, err);
+    tenterReconnexionHorsLigne(email, err, pass);
     return;
   }
 
   err.textContent = '⏳ Connexion en cours…';
   supabaseSignIn(email, pass).then(function(res){
     if (!res.ok || !res.body || !res.body.access_token) {
+      /* V1.39 : message selon la vraie cause (avant : « Mot de passe incorrect » même pour un serveur en panne ou trop de tentatives) */
+      if (res && (res.status === 429)) { err.textContent = '⏳ Trop de tentatives : patientez une minute puis réessayez.'; return; }
+      if (res && res.status >= 500) { err.textContent = '⚠️ Service de connexion momentanément indisponible : réessayez dans un instant.'; return; }
       err.textContent = '❌ Mot de passe incorrect.';
       document.getElementById('inp-pass').value = '';
       document.getElementById('inp-pass').focus();
@@ -14720,6 +14828,7 @@ function doLogin() {
       offline_ok_until: Date.now() + (30 * 24 * 3600 * 1000) // 30 jours de confiance hors ligne sur cet appareil
     };
     setSession(session);
+    memoriserVerificateurMotDePasse(role, pass); // V1.39 : empreinte locale pour la reconnexion hors ligne (voir tenterReconnexionHorsLigne)
     appliquerSession(session);
   }).catch(function(e){
     // Le serveur n'a pas répondu à temps (voir fetchAvecDelai, 8s) :
@@ -14729,7 +14838,7 @@ function doLogin() {
     // la session déjà validée sur cet appareil, exactement comme si
     // navigator.onLine avait dit "false" dès le départ.
     console.error('[doLogin] Échec réseau — tentative de reprise hors ligne…', e);
-    if (!tenterReconnexionHorsLigne(email, err)) {
+    if (!tenterReconnexionHorsLigne(email, err, pass)) {
       err.textContent = '⚠️ Connexion Internet requise pour la première connexion sur cet appareil.';
     }
   });
@@ -18159,7 +18268,90 @@ function testSupabaseConnection() {
     document.addEventListener('focusin',function(){ setTimeout(verrouX,0); setTimeout(verrouX,300); });
     verrouX();
   })();
-  </script>
+  
+/* ===== V1.34 — VERROUILLAGE AUTOMATIQUE APRÈS 13 HEURES D'INACTIVITÉ =====
+   Réutilise la déconnexion existante doLogout() (dernier envoi Supabase en meilleur effort, session effacée, données locales CONSERVÉES,
+   écran de connexion). Inactivité = aucun toucher / clic / frappe / molette (le défilement programmé n'est pas compté). Mesurée par l'heure réelle (Date.now) et mémorisée
+   (localStorage « bpro_last_activity_v1 ») : le verrouillage s'applique aussi si l'application est restée en arrière-plan, ou fermée puis
+   rouverte, plus de 13 heures. Aucune donnée, aucun calcul ni aucune synchronisation modifiés ; les boîtes ouvertes restent telles quelles
+   derrière l'écran de connexion. */
+(function(){
+  var DELAI_MS=13*60*60*1000, CLE='bpro_last_activity_v1', ECRIT_MS=5000, VERIF_MS=15000;
+  var dernier=Date.now(), ecritA=0, verrou=false;
+  function lire(){ try{ var x=parseInt(localStorage.getItem(CLE),10); return isNaN(x)?0:x; }catch(e){ return 0; } }
+  function ecrire(t){ try{ localStorage.setItem(CLE,String(t)); }catch(e){} }
+  function connecteEtAffiche(){
+    var ls=document.getElementById('login-screen');
+    return !!ls && ls.classList.contains('hidden') && isLoggedIn();
+  }
+  function activite(){
+    var n=Date.now(); dernier=n; verrou=false;
+    if(n-ecritA>ECRIT_MS){ ecritA=n; ecrire(n); }
+  }
+  function verifier(){
+    try{
+      if(!connecteEtAffiche()) return;
+      var ref=Math.max(dernier,lire()), maintenant=Date.now();
+      if(maintenant-ref<DELAI_MS) return;
+      if(verrou) return; verrou=true;
+      doLogout();
+      try{ notif('🔒 Application verrouillée après 13 heures d\'inactivité. Reconnectez-vous pour accéder à vos données.',9000); }catch(e){}
+    }catch(e){ try{ console.error('[verrouillage]',e); }catch(x){} }
+  }
+  /* Reprise : une activité enregistrée avant la fermeture/mise en arrière-plan compte comme dernière activité */
+  var avant=lire(); if(avant && avant<=Date.now()) dernier=avant; else { dernier=Date.now(); ecrire(dernier); ecritA=dernier; }
+  ['pointerdown','touchstart','mousedown','keydown','wheel','input'].forEach(function(n){
+    document.addEventListener(n,activite,{capture:true,passive:true});
+  });
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='hidden'){ ecrire(Math.max(dernier,lire())); }
+    else verifier();
+  });
+  window.addEventListener('pageshow',verifier);
+  window.addEventListener('focus',verifier);
+  window.addEventListener('pagehide',function(){ ecrire(Math.max(dernier,lire())); });
+  setInterval(verifier,VERIF_MS);
+  setTimeout(verifier,0);
+  window.verifierVerrouillageInactivite=verifier;
+})();
+/* ===== /V1.34 ===== */
+
+/* ===== V1.36 — GARDE ANTI-RAFRAÎCHISSEMENT PAR GLISSEMENT (2e couche, en plus de overscroll-behavior-y:none de la V1.34) =====
+   Cause des « fermetures/réouvertures » : en tirant le doigt de haut en bas en haut de page, le navigateur (Chrome Android, PWA) déclenche son
+   geste natif « tirer pour rafraîchir » = rechargement COMPLET de l'application. Ici, un glissement nettement vertical vers le bas, lorsque la page
+   est tout en haut et qu'aucun conteneur défilable touché n'est défilé vers le bas, est neutralisé. Les défilements normaux (page, tableaux,
+   boîtes de dialogue, glissements horizontaux) ne sont jamais bloqués. Aucune donnée ni synchronisation touchée. */
+(function(){
+  var x0=0,y0=0,actif=false;
+  function defilableVersLeHaut(el){
+    try{
+      while(el && el.nodeType===1 && el!==document.body && el!==document.documentElement){
+        var oy=getComputedStyle(el).overflowY;
+        if((oy==='auto'||oy==='scroll'||oy==='overlay') && el.scrollHeight>el.clientHeight && el.scrollTop>0) return true;
+        el=el.parentNode;
+      }
+    }catch(e){}
+    return false;
+  }
+  document.addEventListener('touchstart',function(e){
+    if(e.touches && e.touches.length===1){ x0=e.touches[0].clientX; y0=e.touches[0].clientY; actif=true; } else actif=false;
+  },{capture:true,passive:true});
+  document.addEventListener('touchmove',function(e){
+    try{
+      if(!actif || !e.touches || e.touches.length!==1) return;
+      var dx=e.touches[0].clientX-x0, dy=e.touches[0].clientY-y0;
+      if(dy<=8 || dy<Math.abs(dx)*1.5) return;                    /* uniquement un glissement nettement vertical vers le bas */
+      var racine=document.scrollingElement||document.documentElement;
+      if(racine.scrollTop>0) return;                              /* page déjà défilée : défilement normal */
+      var t=e.target; if(t && t.type==='range') return;
+      if(defilableVersLeHaut(t)) return;                          /* un tableau / une boîte peut encore défiler vers le haut */
+      if(e.cancelable) e.preventDefault();
+    }catch(x){}
+  },{capture:true,passive:false});
+})();
+/* ===== /V1.36 ===== */
+
+</script>
 
   <!-- =====================================================================
        SCRIPT SQL A COLLER DANS SUPABASE > SQL EDITOR (une seule fois)
